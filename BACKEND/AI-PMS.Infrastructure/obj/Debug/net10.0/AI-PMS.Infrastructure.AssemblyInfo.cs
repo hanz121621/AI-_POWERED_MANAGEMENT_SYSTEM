@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AI-PMS.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1d8fb4a9d470e96281db512542ee126b2f7d00e5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+48b7c7284884885786cb9316d31db61f58c79bb3")]
 [assembly: System.Reflection.AssemblyProductAttribute("AI-PMS.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AI-PMS.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
