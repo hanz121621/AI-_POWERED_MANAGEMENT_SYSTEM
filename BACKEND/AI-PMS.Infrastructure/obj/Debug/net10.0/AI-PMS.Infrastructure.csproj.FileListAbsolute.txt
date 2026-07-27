@@ -12,3 +12,21 @@ C:\Users\hp\Desktop\afri\AI POWERED  MANAGEMENT SYSTEM\backend\AI-PMS.Infrastruc
 C:\Users\hp\Desktop\afri\AI POWERED  MANAGEMENT SYSTEM\backend\AI-PMS.Infrastructure\obj\Debug\net10.0\AI-PMS.Infrastructure.pdb
 C:\Users\hp\Desktop\afri\AI POWERED  MANAGEMENT SYSTEM\backend\AI-PMS.Infrastructure\obj\Debug\net10.0\AI-PMS.Infrastructure.genruntimeconfig.cache
 C:\Users\hp\Desktop\afri\AI POWERED  MANAGEMENT SYSTEM\backend\AI-PMS.Infrastructure\obj\Debug\net10.0\ref\AI-PMS.Infrastructure.dll
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\BACKEND\AI-PMS.Infrastructure\bin\Debug\net10.0\AI-PMS.Infrastructure.deps.json
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\BACKEND\AI-PMS.Infrastructure\bin\Debug\net10.0\AI-PMS.Infrastructure.runtimeconfig.json
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\bin\Debug\net10.0\AI-PMS.Infrastructure.dll
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\bin\Debug\net10.0\AI-PMS.Infrastructure.pdb
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\bin\Debug\net10.0\AI-PMS.Domain.dll
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\bin\Debug\net10.0\AI-PMS.Domain.pdb
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\obj\Debug\net10.0\AI-PMS.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\obj\Debug\net10.0\AI-PMS.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\obj\Debug\net10.0\AI-PMS.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\obj\Debug\net10.0\AI-PMS.Infrastructure.AssemblyInfo.cs
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\obj\Debug\net10.0\AI-PMS.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\obj\Debug\net10.0\AI-PMS.Infrastructure.sourcelink.json
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\BACKEND\AI-PMS.Infrastructure\obj\Debug\net10.0\AI-PMS.I.1C2EE346.Up2Date
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\obj\Debug\net10.0\AI-PMS.Infrastructure.dll
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\obj\Debug\net10.0\refint\AI-PMS.Infrastructure.dll
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.Infrastructure\obj\Debug\net10.0\AI-PMS.Infrastructure.pdb
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\BACKEND\AI-PMS.Infrastructure\obj\Debug\net10.0\AI-PMS.Infrastructure.genruntimeconfig.cache
+C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\BACKEND\AI-PMS.Infrastructure\obj\Debug\net10.0\ref\AI-PMS.Infrastructure.dll
