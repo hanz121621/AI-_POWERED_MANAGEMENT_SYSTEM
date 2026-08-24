@@ -1,9 +1,0 @@
-C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.API\obj\Debug\net10.0\AI-PMS.API.csproj.AssemblyReference.cache
-C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.API\obj\Debug\net10.0\rpswa.dswa.cache.json
-C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.API\obj\Debug\net10.0\AI-PMS.API.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.API\obj\Debug\net10.0\AI-PMS.API.AssemblyInfoInputs.cache
-C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.API\obj\Debug\net10.0\AI-PMS.API.AssemblyInfo.cs
-C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.API\obj\Debug\net10.0\AI-PMS.API.csproj.CoreCompileInputs.cache
-C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.API\obj\Debug\net10.0\AI-PMS.API.MvcApplicationPartsAssemblyInfo.cs
-C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.API\obj\Debug\net10.0\AI-PMS.API.MvcApplicationPartsAssemblyInfo.cache
-C:\Users\kidis\OneDrive\Desktop\AI-POWERED--MANAGEMENT-SYSTEM\backend\AI-PMS.API\obj\Debug\net10.0\AI-PMS.API.sourcelink.json

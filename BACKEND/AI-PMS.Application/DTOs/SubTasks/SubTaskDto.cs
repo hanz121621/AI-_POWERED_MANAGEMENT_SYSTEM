@@ -1,0 +1,23 @@
+namespace AI_PMS.Application.DTOs.SubTasks
+{
+    public class SubTaskDto
+    {
+        public Guid Id { get; set; }
+
+        public Guid TaskId { get; set; }
+
+        public string Title { get; set; } = string.Empty;
+
+        public string Description { get; set; } = string.Empty;
+
+        public int EstimatedHours { get; set; }
+
+        public bool IsAIGenerated { get; set; }
+
+        public bool IsApproved { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+
+        public DateTime? UpdatedAt { get; set; }
+    }
+}
