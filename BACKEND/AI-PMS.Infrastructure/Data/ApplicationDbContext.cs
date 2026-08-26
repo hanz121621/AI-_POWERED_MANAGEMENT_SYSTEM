@@ -46,6 +46,7 @@ namespace AI_PMS.Infrastructure.Data
             Set<TaskItem>();
 
         public DbSet<SubTask> SubTasks =>
+        
             Set<SubTask>();
 
         public DbSet<Team> Teams =>
@@ -53,6 +54,8 @@ namespace AI_PMS.Infrastructure.Data
 
         public DbSet<TeamMember> TeamMembers =>
             Set<TeamMember>();
+            public DbSet<TeamMemberRequest> TeamMemberRequests =>
+    Set<TeamMemberRequest>();
 
         public DbSet<ActivityLog> ActivityLogs { get; set; } = null!;
 
@@ -101,6 +104,7 @@ namespace AI_PMS.Infrastructure.Data
 
         public DbSet<Project> Projects { get; set; } = null!;
 
+        public DbSet<ProjectSpecification> ProjectSpecifications { get; set; } = null!;  
         public DbSet<ProjectStatusDefinition> ProjectStatusDefinitions
         {
             get;
@@ -112,7 +116,7 @@ namespace AI_PMS.Infrastructure.Data
             get;
             set;
         } = null!;
-
+     
         // =========================================================
         // MODEL CONFIGURATION
         // =========================================================
@@ -255,7 +259,90 @@ namespace AI_PMS.Infrastructure.Data
                     up.PermissionId
                 })
                 .IsUnique();
+              
+                // =====================================================
+// PROJECT -> PROJECT SPECIFICATION
+// ONE PROJECT HAS ONE SPECIFICATION
+// =====================================================
 
+modelBuilder.Entity<ProjectSpecification>(entity =>
+{
+    entity.HasKey(x => x.Id);
+
+    entity.HasIndex(x => x.ProjectId)
+        .IsUnique();
+
+    entity.HasOne(x => x.Project)
+        .WithOne(p => p.Specification)
+        .HasForeignKey<ProjectSpecification>(x => x.ProjectId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+    entity.Property(x => x.Objectives)
+        .IsRequired()
+        .HasMaxLength(5000);
+
+    entity.Property(x => x.Scope)
+        .IsRequired()
+        .HasMaxLength(5000);
+
+    entity.Property(x => x.FunctionalRequirements)
+        .IsRequired()
+        .HasMaxLength(10000);
+
+    entity.Property(x => x.NonFunctionalRequirements)
+        .IsRequired()
+        .HasMaxLength(10000);
+
+    entity.Property(x => x.Deliverables)
+        .IsRequired()
+        .HasMaxLength(5000);
+
+    entity.Property(x => x.TechnologyStack)
+        .IsRequired()
+        .HasMaxLength(2000);
+
+    entity.Property(x => x.Assumptions)
+        .HasMaxLength(5000);
+
+    entity.Property(x => x.Constraints)
+        .HasMaxLength(5000);
+});
+modelBuilder.Entity<TeamMemberRequest>(entity =>
+{
+    entity.ToTable("TeamMemberRequests");
+
+    entity.HasKey(e => e.Id);
+
+    entity.Property(e => e.Reason)
+        .HasMaxLength(1000);
+
+    entity.Property(e => e.ReviewComment)
+        .HasMaxLength(1000);
+
+    entity.Property(e => e.Status)
+        .HasConversion<int>()
+        .IsRequired();
+
+    entity.Property(e => e.RequestType)
+        .HasConversion<int>()
+        .IsRequired();
+
+    entity.Property(e => e.CreatedAt)
+        .IsRequired();
+
+    entity.HasIndex(e => new
+    {
+        e.TeamId,
+        e.UserId,
+        e.Status,
+        e.RequestType
+    });
+
+    entity.HasOne(e => e.Team)
+        .WithMany()
+        .HasForeignKey(e => e.TeamId)
+        .OnDelete(DeleteBehavior.Cascade);
+});
             // =====================================================
             // SPRINT -> PROJECT
             // =====================================================
@@ -300,11 +387,11 @@ namespace AI_PMS.Infrastructure.Data
             // TEAM MEMBER -> CONTRIBUTOR SUBTYPE
             // =====================================================
 
-            modelBuilder.Entity<TeamMember>()
-                .HasOne(tm => tm.ContributorSubType)
-                .WithMany()
-                .HasForeignKey(tm => tm.ContributorSubTypeId)
-                .OnDelete(DeleteBehavior.Restrict);
+           modelBuilder.Entity<TeamMember>()
+    .HasOne(tm => tm.ContributorSubType)
+    .WithMany(cst => cst.TeamMembers)
+    .HasForeignKey(tm => tm.ContributorSubTypeId)
+    .OnDelete(DeleteBehavior.Restrict);
 
             // =====================================================
             // TEAM NAME UNIQUE
@@ -333,6 +420,45 @@ namespace AI_PMS.Infrastructure.Data
                 .WithMany()
                 .HasForeignKey(tm => tm.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+                // =====================================================
+// TEAM MEMBER REQUEST
+// =====================================================
+
+modelBuilder.Entity<TeamMemberRequest>(entity =>
+{
+    entity.HasKey(x => x.Id);
+
+    entity.Property(x => x.Status)
+        .HasConversion<int>()
+        .IsRequired();
+
+    entity.Property(x => x.Reason)
+        .HasMaxLength(1000);
+
+    entity.Property(x => x.ReviewComment)
+        .HasMaxLength(1000);
+
+    // -------------------------------------------------
+    // TEAM
+    // -------------------------------------------------
+
+    entity.HasOne(x => x.Team)
+        .WithMany()
+        .HasForeignKey(x => x.TeamId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+    // -------------------------------------------------
+    // PREVENT DUPLICATE PENDING REQUESTS
+    // -------------------------------------------------
+
+    entity.HasIndex(x => new
+    {
+        x.TeamId,
+        x.UserId,
+        x.Status
+    });
+});
 
             // =====================================================
             // PREVENT DUPLICATE TEAM MEMBERS

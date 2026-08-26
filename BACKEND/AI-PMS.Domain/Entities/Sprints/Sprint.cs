@@ -32,6 +32,15 @@ namespace AI_PMS.Domain.Entities.Sprints
         public SprintPriority Priority { get; set; }
             = SprintPriority.Medium;
 
+        // =========================================================
+        // TEAM ASSIGNMENT
+        // =========================================================
+
+        // Team assigned to this Sprint.
+        // Nullable because a Sprint does not have to be assigned
+        // to a Team immediately after creation.
+        public Guid? TeamId { get; set; }
+
         public DateTime CreatedAt { get; set; }
             = DateTime.UtcNow;
 

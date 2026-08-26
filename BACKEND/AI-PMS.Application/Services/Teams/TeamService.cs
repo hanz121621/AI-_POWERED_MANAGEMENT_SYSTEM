@@ -165,106 +165,272 @@ private readonly IContributorSubTypeRepository _contributorSubTypeRepository;
         // =========================================================
         // UPDATE TEAM
         // =========================================================
+  
+         public async Task<(bool Success, string Message, TeamDto? Team)>
+    UpdateTeamAsync(
+        Guid id,
+        UpdateTeamDto dto)
+{
+    // =========================================================
+    // GET TEAM
+    // =========================================================
 
-        public async Task<(bool Success, string Message, TeamDto? Team)>
-            UpdateTeamAsync(
-                Guid id,
-                UpdateTeamDto dto)
+    var team =
+        await _teamRepository.GetByIdAsync(id);
+
+    if (team == null)
+    {
+        return (false, "Team not found.", null);
+    }
+
+    // =========================================================
+    // VALIDATE TEAM NAME
+    // =========================================================
+
+    if (string.IsNullOrWhiteSpace(dto.Name))
+    {
+        return (false, "Team name is required.", null);
+    }
+
+    var teams =
+        await _teamRepository.GetAllAsync();
+
+    if (teams.Any(t =>
+        t.Id != id &&
+        t.Name.Trim().Equals(
+            dto.Name.Trim(),
+            StringComparison.OrdinalIgnoreCase)))
+    {
+        return (
+            false,
+            "Team name already exists.",
+            null);
+    }
+
+    // =========================================================
+    // VALIDATE MANAGER
+    // =========================================================
+
+    if (dto.ManagerId.HasValue)
+    {
+        var manager =
+            await _userRepository.GetByIdAsync(
+                dto.ManagerId.Value);
+
+        if (manager == null)
         {
-            var team =
-                await _teamRepository.GetByIdAsync(id);
+            return (
+                false,
+                "Manager not found.",
+                null);
+        }
 
-            if (team == null)
+        if (manager.Role != Role.Manager)
+        {
+            return (
+                false,
+                "Only users with Manager role can be assigned.",
+                null);
+        }
+
+        if (!manager.IsActive)
+        {
+            return (
+                false,
+                "Selected manager is inactive.",
+                null);
+        }
+    }
+
+    // =========================================================
+    // UPDATE TEAM INFORMATION
+    // =========================================================
+
+    team.Name =
+        dto.Name.Trim();
+
+    team.Description =
+        dto.Description?.Trim();
+
+    team.ManagerId =
+        dto.ManagerId;
+
+    team.IsActive =
+        dto.IsActive;
+
+    team.UpdatedAt =
+        DateTime.UtcNow;
+
+    await _teamRepository.UpdateAsync(team);
+
+    // =========================================================
+    // GET ALL MEMBERS
+    // IMPORTANT:
+    // Includes BOTH active and inactive members.
+    // =========================================================
+
+    var existingMembers =
+        await _teamRepository.GetAllMembersAsync(id);
+
+    // =========================================================
+    // REQUESTED MEMBER IDS
+    // =========================================================
+
+    var requestedUserIds =
+        dto.Members
+            .Select(m => m.UserId)
+            .Distinct()
+            .ToHashSet();
+
+    // =========================================================
+    // DEACTIVATE REMOVED MEMBERS
+    // =========================================================
+
+    foreach (var existingMember in existingMembers)
+    {
+        if (!requestedUserIds.Contains(
+            existingMember.UserId))
+        {
+            if (existingMember.IsActive)
             {
-                return (false, "Team not found.", null);
+                existingMember.IsActive = false;
+
+                await _teamRepository
+                    .UpdateMemberAsync(existingMember);
             }
+        }
+    }
 
-            if (string.IsNullOrWhiteSpace(dto.Name))
-            {
-                return (false, "Team name is required.", null);
-            }
+    // =========================================================
+    // ADD / REACTIVATE / UPDATE MEMBERS
+    // =========================================================
 
-            var teams =
-                await _teamRepository.GetAllAsync();
+    foreach (var memberDto in dto.Members)
+    {
+        var existingMember =
+            existingMembers.FirstOrDefault(
+                m => m.UserId == memberDto.UserId);
 
-            if (teams.Any(t =>
-                t.Id != id &&
-                t.Name.Trim().ToLower() ==
-                dto.Name.Trim().ToLower()))
+        // -----------------------------------------------------
+        // NEW MEMBER
+        // -----------------------------------------------------
+
+        if (existingMember == null)
+        {
+            var result =
+                await AddMemberAsync(
+                    id,
+                    memberDto);
+
+            if (!result.Success)
             {
                 return (
                     false,
-                    "Team name already exists.",
+                    $"Member {memberDto.UserId} could not be added: {result.Message}",
+                    await GetTeamByIdAsync(id));
+            }
+
+            continue;
+        }
+
+        // -----------------------------------------------------
+        // VALIDATE CONTRIBUTOR TYPE
+        // -----------------------------------------------------
+
+        var contributorType =
+            await _contributorTypeRepository
+                .GetByIdAsync(
+                    memberDto.ContributorTypeId);
+
+        if (contributorType == null)
+        {
+            return (
+                false,
+                "Invalid contributor type.",
+                null);
+        }
+
+        if (!contributorType.IsActive)
+        {
+            return (
+                false,
+                "Selected contributor type is inactive.",
+                null);
+        }
+
+        // -----------------------------------------------------
+        // VALIDATE CONTRIBUTOR SUBTYPE
+        // -----------------------------------------------------
+
+        if (memberDto.ContributorSubTypeId.HasValue)
+        {
+            var subType =
+                await _contributorSubTypeRepository
+                    .GetByIdAsync(
+                        memberDto.ContributorSubTypeId.Value);
+
+            if (subType == null)
+            {
+                return (
+                    false,
+                    "Invalid contributor sub-type.",
                     null);
             }
 
-            // -----------------------------------------------------
-            // Validate Manager
-            // -----------------------------------------------------
-
-            if (dto.ManagerId.HasValue)
+            if (!subType.IsActive)
             {
-                var manager =
-                    await _userRepository
-                        .GetByIdAsync(dto.ManagerId.Value);
-
-                if (manager == null)
-                {
-                    return (false, "Manager not found.", null);
-                }
-
-                if (manager.Role != Role.Manager)
-                {
-                    return (
-                        false,
-                        "Only users with Manager role can be assigned.",
-                        null);
-                }
-
-                if (!manager.IsActive)
-                {
-                    return (
-                        false,
-                        "Selected manager is inactive.",
-                        null);
-                }
+                return (
+                    false,
+                    "Selected contributor sub-type is inactive.",
+                    null);
             }
 
-            team.Name = dto.Name.Trim();
-            team.Description = dto.Description?.Trim();
-            team.ManagerId = dto.ManagerId;
-            team.IsActive = dto.IsActive;
-            team.UpdatedAt = DateTime.UtcNow;
-
-            await _teamRepository.UpdateAsync(team);
-
-            // -----------------------------------------------------
-            // Update Members
-            // -----------------------------------------------------
-
-            foreach (var memberDto in dto.Members)
+            if (subType.ContributorTypeId !=
+                memberDto.ContributorTypeId)
             {
-                var existingMember =
-                    await _teamRepository.GetTeamMemberAsync(
-                        id,
-                        memberDto.UserId);
-
-                if (existingMember == null ||
-                    !existingMember.IsActive)
-                {
-                    await AddMemberAsync(id, memberDto);
-                }
+                return (
+                    false,
+                    "Selected contributor sub-type does not belong to the selected contributor type.",
+                    null);
             }
-
-            var updatedTeam =
-                await _teamRepository.GetByIdAsync(id);
-
-            return (
-                true,
-                "Team updated successfully.",
-                MapToDto(updatedTeam!)
-            );
         }
+
+        // -----------------------------------------------------
+        // REACTIVATE OR UPDATE MEMBER
+        // -----------------------------------------------------
+
+        existingMember.ContributorTypeId =
+            memberDto.ContributorTypeId;
+
+        existingMember.ContributorSubTypeId =
+            memberDto.ContributorSubTypeId;
+
+        existingMember.IsActive = true;
+
+        await _teamRepository
+            .UpdateMemberAsync(existingMember);
+    }
+
+    // =========================================================
+    // GET UPDATED TEAM
+    // =========================================================
+
+    var updatedTeam =
+        await _teamRepository.GetByIdAsync(id);
+
+    if (updatedTeam == null)
+    {
+        return (
+            false,
+            "Team was updated but could not be retrieved.",
+            null);
+    }
+
+    return (
+        true,
+        "Team updated successfully.",
+        MapToDto(updatedTeam));
+}
 
         // =========================================================
         // DELETE TEAM
@@ -350,142 +516,192 @@ private readonly IContributorSubTypeRepository _contributorSubTypeRepository;
         // ADD MEMBER
         // =========================================================
 
-        public async Task<(bool Success, string Message)>
-            AddMemberAsync(
-                Guid teamId,
-                AddTeamMemberDto dto)
+      public async Task<(bool Success, string Message)>
+    AddMemberAsync(
+        Guid teamId,
+        AddTeamMemberDto dto)
+{
+    // =========================================================
+    // VALIDATE TEAM
+    // =========================================================
+
+    var team =
+        await _teamRepository.GetByIdAsync(teamId);
+
+    if (team == null)
+    {
+        return (
+            false,
+            "Team not found.");
+    }
+
+    if (!team.IsActive)
+    {
+        return (
+            false,
+            "Cannot add members to an inactive team.");
+    }
+
+    // =========================================================
+    // VALIDATE USER
+    // =========================================================
+
+    var user =
+        await _userRepository.GetByIdAsync(dto.UserId);
+
+    if (user == null)
+    {
+        return (
+            false,
+            "User not found.");
+    }
+
+    if (!user.IsActive)
+    {
+        return (
+            false,
+            "Selected user is not active.");
+    }
+
+    if (user.Role != Role.Contributor)
+    {
+        return (
+            false,
+            "Only Contributors can be added to this team.");
+    }
+
+    // =========================================================
+    // CHECK EXISTING MEMBER
+    // =========================================================
+
+    var existingMember =
+        await _teamRepository.GetTeamMemberAsync(
+            teamId,
+            dto.UserId);
+
+    // Already active
+    if (existingMember != null &&
+        existingMember.IsActive)
+    {
+        return (
+            false,
+            "User is already part of this team.");
+    }
+
+    // =========================================================
+    // VALIDATE CONTRIBUTOR TYPE
+    // =========================================================
+
+    var contributorType =
+        await _contributorTypeRepository
+            .GetByIdAsync(
+                dto.ContributorTypeId);
+
+    if (contributorType == null)
+    {
+        return (
+            false,
+            "Invalid contributor type.");
+    }
+
+    if (!contributorType.IsActive)
+    {
+        return (
+            false,
+            "Selected contributor type is inactive.");
+    }
+
+    // =========================================================
+    // VALIDATE CONTRIBUTOR SUBTYPE
+    // =========================================================
+
+    if (dto.ContributorSubTypeId.HasValue)
+    {
+        var subType =
+            await _contributorSubTypeRepository
+                .GetByIdAsync(
+                    dto.ContributorSubTypeId.Value);
+
+        if (subType == null)
         {
-            var team =
-                await _teamRepository.GetByIdAsync(teamId);
-
-            if (team == null)
-            {
-                return (false, "Team not found.");
-            }
-
-            var user =
-                await _userRepository
-                    .GetByIdAsync(dto.UserId);
-
-            if (user == null)
-            {
-                return (false, "User not found.");
-            }
-
-            if (!user.IsActive)
-            {
-                return (
-                    false,
-                    "Selected user is not active.");
-            }
-
-            if (user.Role != Role.Contributor)
-            {
-                return (
-                    false,
-                    "Only Contributors can be added to this team.");
-            }
-
-            // -----------------------------------------------------
-            // Check Existing Member
-            // -----------------------------------------------------
-
-            var existingMember =
-                await _teamRepository.GetTeamMemberAsync(
-                    teamId,
-                    dto.UserId);
-
-            if (existingMember != null &&
-                existingMember.IsActive)
-            {
-                return (
-                    false,
-                    "User is already part of this team.");
-            }
-
-            // -----------------------------------------------------
-            // Validate Contributor Type
-            // -----------------------------------------------------
-
-            var contributorType =
-                await _contributorTypeRepository
-                    .GetByIdAsync(
-                        dto.ContributorTypeId);
-
-            if (contributorType == null)
-            {
-                return (
-                    false,
-                    "Invalid contributor type.");
-            }
-
-            if (!contributorType.IsActive)
-            {
-                return (
-                    false,
-                    "Selected contributor type is inactive.");
-            }
-
-            // -----------------------------------------------------
-            // Validate Contributor SubType
-            // -----------------------------------------------------
-
-            if (dto.ContributorSubTypeId.HasValue)
-            {
-                var subType =
-                    await _contributorSubTypeRepository
-                        .GetByIdAsync(
-                            dto.ContributorSubTypeId.Value);
-
-                if (subType == null)
-                {
-                    return (
-                        false,
-                        "Invalid contributor sub-type.");
-                }
-
-                if (!subType.IsActive)
-                {
-                    return (
-                        false,
-                        "Selected contributor sub-type is inactive.");
-                }
-
-                if (subType.ContributorTypeId !=
-                    dto.ContributorTypeId)
-                {
-                    return (
-                        false,
-                        "Selected contributor sub-type does not belong to the selected contributor type.");
-                }
-            }
-
-            // -----------------------------------------------------
-            // Create Team Member
-            // -----------------------------------------------------
-
-            var member = new TeamMember
-            {
-                Id = Guid.NewGuid(),
-                TeamId = teamId,
-                UserId = dto.UserId,
-
-                ContributorTypeId =
-                    dto.ContributorTypeId,
-
-                ContributorSubTypeId =
-                    dto.ContributorSubTypeId,
-
-                JoinedAt = DateTime.UtcNow,
-                IsActive = true
-            };
-
-            await _teamRepository.AddMemberAsync(member);
-
             return (
-                true,
-                "Member added successfully.");
+                false,
+                "Invalid contributor sub-type.");
         }
+
+        if (!subType.IsActive)
+        {
+            return (
+                false,
+                "Selected contributor sub-type is inactive.");
+        }
+
+        if (subType.ContributorTypeId !=
+            dto.ContributorTypeId)
+        {
+            return (
+                false,
+                "Selected contributor sub-type does not belong to the selected contributor type.");
+        }
+    }
+
+    // =========================================================
+    // REACTIVATE EXISTING MEMBER
+    // =========================================================
+
+    if (existingMember != null)
+    {
+        existingMember.ContributorTypeId =
+            dto.ContributorTypeId;
+
+        existingMember.ContributorSubTypeId =
+            dto.ContributorSubTypeId;
+
+        existingMember.IsActive = true;
+
+        existingMember.JoinedAt =
+            DateTime.UtcNow;
+
+        await _teamRepository
+            .UpdateMemberAsync(existingMember);
+
+        return (
+            true,
+            "Member reactivated successfully.");
+    }
+
+    // =========================================================
+    // CREATE NEW MEMBER
+    // =========================================================
+
+    var member = new TeamMember
+    {
+        Id = Guid.NewGuid(),
+
+        TeamId = teamId,
+
+        UserId = dto.UserId,
+
+        ContributorTypeId =
+            dto.ContributorTypeId,
+
+        ContributorSubTypeId =
+            dto.ContributorSubTypeId,
+
+        JoinedAt = DateTime.UtcNow,
+
+        IsActive = true,
+
+        IsTeamLeader = false
+    };
+
+    await _teamRepository
+        .AddMemberAsync(member);
+
+    return (
+        true,
+        "Member added successfully.");
+}
 
         // =========================================================
         // REMOVE MEMBER
@@ -517,9 +733,9 @@ private readonly IContributorSubTypeRepository _contributorSubTypeRepository;
                     "User is not part of this team.");
             }
 
-            member.IsActive = false;
+           member.IsActive = false;
 
-            await _teamRepository.RemoveMemberAsync(member);
+             await _teamRepository.UpdateMemberAsync(member);
 
             return (
                 true,
@@ -579,94 +795,225 @@ private readonly IContributorSubTypeRepository _contributorSubTypeRepository;
                         member.IsActive
                 });
         }
+        // =========================================================
+// ASSIGN TEAM LEADER
+// =========================================================
+
+public async Task<(bool Success, string Message)>
+    AssignTeamLeaderAsync(
+        Guid teamId,
+        Guid userId)
+{
+    var team =
+        await _teamRepository.GetByIdAsync(teamId);
+
+    if (team == null)
+    {
+        return (
+            false,
+            "Team not found.");
+    }
+
+    var member =
+        await _teamRepository.GetTeamMemberAsync(
+            teamId,
+            userId);
+
+    if (member == null)
+    {
+        return (
+            false,
+            "User is not a member of this team.");
+    }
+
+    if (!member.IsActive)
+    {
+        return (
+            false,
+            "User is not an active member of this team.");
+    }
+
+    if (member.User == null)
+    {
+        return (
+            false,
+            "User could not be loaded.");
+    }
+
+    if (member.User.Role != Role.Contributor)
+    {
+        return (
+            false,
+            "Only Contributors can be team leaders.");
+    }
+
+    // Remove existing team leader
+    var existingMembers =
+        await _teamRepository.GetMembersAsync(teamId);
+
+    foreach (var existingMember in existingMembers)
+    {
+        if (existingMember.IsTeamLeader &&
+            existingMember.UserId != userId)
+        {
+            existingMember.IsTeamLeader = false;
+
+            await _teamRepository.UpdateMemberAsync(
+                existingMember);
+        }
+    }
+
+    // Assign new team leader
+    member.IsTeamLeader = true;
+
+    await _teamRepository.UpdateMemberAsync(member);
+
+    return (
+        true,
+        "Team leader assigned successfully.");
+}
+
+// =========================================================
+// REMOVE TEAM LEADER
+// =========================================================
+
+public async Task<(bool Success, string Message)>
+    RemoveTeamLeaderAsync(
+        Guid teamId,
+        Guid userId)
+{
+    var team =
+        await _teamRepository.GetByIdAsync(teamId);
+
+    if (team == null)
+    {
+        return (
+            false,
+            "Team not found.");
+    }
+
+    var member =
+        await _teamRepository.GetTeamMemberAsync(
+            teamId,
+            userId);
+
+    if (member == null)
+    {
+        return (
+            false,
+            "User is not a member of this team.");
+    }
+
+    if (!member.IsActive)
+    {
+        return (
+            false,
+            "User is not an active member of this team.");
+    }
+
+    if (!member.IsTeamLeader)
+    {
+        return (
+            false,
+            "User is not the team leader.");
+    }
+
+    member.IsTeamLeader = false;
+
+    await _teamRepository.UpdateMemberAsync(member);
+
+    return (
+        true,
+        "Team leader removed successfully.");
+}
 
         // =========================================================
         // MAP TEAM -> DTO
         // =========================================================
 
-        private static TeamDto MapToDto(
-            Team team)
-        {
-            var activeMembers =
-                team.TeamMembers
-                    .Where(tm => tm.IsActive)
-                    .ToList();
+       private static TeamDto MapToDto(
+    Team team)
+{
+    var activeMembers =
+        team.TeamMembers
+            .Where(tm => tm.IsActive)
+            .ToList();
 
-            return new TeamDto
-            {
-                Id = team.Id,
+    return new TeamDto
+    {
+        Id = team.Id,
 
-                Name = team.Name,
+        Name = team.Name,
 
-                Description = team.Description,
+        Description = team.Description,
 
-                ManagerId = team.ManagerId,
+        ManagerId = team.ManagerId,
 
-                ManagerName =
-                    team.Manager?.FullName,
+        ManagerName =
+            team.Manager?.FullName,
 
-                IsActive = team.IsActive,
+        IsActive = team.IsActive,
 
-                CreatedAt = team.CreatedAt,
+        CreatedAt = team.CreatedAt,
 
-                UpdatedAt = team.UpdatedAt,
+        UpdatedAt = team.UpdatedAt,
 
-                MemberCount =
-                    activeMembers.Count,
+        MemberCount =
+            activeMembers.Count,
 
-                DeveloperCount =
-                    activeMembers.Count(tm =>
-                        tm.ContributorType?.Name
-                            .Equals(
-                                "Developer",
-                                StringComparison.OrdinalIgnoreCase)
-                        == true),
+        DeveloperCount =
+            activeMembers.Count(tm =>
+                tm.ContributorType?.Name
+                    .Equals(
+                        "Developer",
+                        StringComparison.OrdinalIgnoreCase)
+                == true),
 
-                StaffCount =
-                    activeMembers.Count(tm =>
-                        tm.ContributorType?.Name
-                            .Equals(
-                                "Staff",
-                                StringComparison.OrdinalIgnoreCase)
-                        == true),
+        StaffCount =
+            activeMembers.Count(tm =>
+                tm.ContributorType?.Name
+                    .Equals(
+                        "Staff",
+                        StringComparison.OrdinalIgnoreCase)
+                == true),
 
-                Members =
-                    activeMembers
-                        .Select(tm =>
-                            new TeamMemberDto
-                            {
-                                UserId =
-                                    tm.UserId,
+        Members =
+            activeMembers
+                .Select(tm =>
+                    new TeamMemberDto
+                    {
+                        UserId =
+                            tm.UserId,
 
-                                FullName =
-                                    tm.User?.FullName
-                                    ?? string.Empty,
+                        FullName =
+                            tm.User?.FullName
+                            ?? string.Empty,
 
-                                Email =
-                                    tm.User?.Email
-                                    ?? string.Empty,
+                        Email =
+                            tm.User?.Email
+                            ?? string.Empty,
 
-                                ContributorTypeId =
-                                    tm.ContributorTypeId,
+                        ContributorTypeId =
+                            tm.ContributorTypeId,
 
-                                ContributorTypeName =
-                                    tm.ContributorType?.Name
-                                    ?? string.Empty,
+                        ContributorTypeName =
+                            tm.ContributorType?.Name
+                            ?? string.Empty,
 
-                                ContributorSubTypeId =
-                                    tm.ContributorSubTypeId,
+                        ContributorSubTypeId =
+                            tm.ContributorSubTypeId,
 
-                                ContributorSubTypeName =
-                                    tm.ContributorSubType?.Name,
+                        ContributorSubTypeName =
+                            tm.ContributorSubType?.Name,
 
-                                JoinedAt =
-                                    tm.JoinedAt,
+                        JoinedAt =
+                            tm.JoinedAt,
 
-                                IsActive =
-                                    tm.IsActive
-                            })
-                        .ToList()
-            };
-        }
+                        IsActive =
+                            tm.IsActive
+                    })
+                .ToList()
+    };
+}
     }
 }

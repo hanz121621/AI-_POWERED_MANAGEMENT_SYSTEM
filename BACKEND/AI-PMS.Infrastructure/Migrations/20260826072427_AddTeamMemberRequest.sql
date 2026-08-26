@@ -760,3 +760,42 @@ VALUES ('20260825183624_AddTeamIdToSprints', '10.0.11');
 
 COMMIT;
 
+START TRANSACTION;
+ALTER TABLE "ProjectSpecifications" DROP CONSTRAINT "FK_ProjectSpecifications_Projects_ProjectId1";
+
+DROP INDEX "IX_ProjectSpecifications_ProjectId1";
+
+ALTER TABLE "ProjectSpecifications" DROP COLUMN "ProjectId1";
+
+ALTER TABLE "TeamMembers" ADD "IsTeamLeader" boolean NOT NULL DEFAULT FALSE;
+
+INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+VALUES ('20260825194237_AddTeamLeaderToTeamMembers', '10.0.11');
+
+COMMIT;
+
+START TRANSACTION;
+CREATE TABLE "TeamMemberRequests" (
+    "Id" uuid NOT NULL,
+    "ProjectId" uuid NOT NULL,
+    "TeamId" uuid NOT NULL,
+    "ManagerId" uuid NOT NULL,
+    "UserId" uuid NOT NULL,
+    "Reason" character varying(1000),
+    "Status" integer NOT NULL,
+    "ReviewedByAdminId" uuid,
+    "ReviewedAt" timestamp with time zone,
+    "ReviewComment" character varying(1000),
+    "CreatedAt" timestamp with time zone NOT NULL,
+    "UpdatedAt" timestamp with time zone,
+    CONSTRAINT "PK_TeamMemberRequests" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_TeamMemberRequests_Teams_TeamId" FOREIGN KEY ("TeamId") REFERENCES "Teams" ("Id") ON DELETE CASCADE
+);
+
+CREATE INDEX "IX_TeamMemberRequests_TeamId_UserId_Status" ON "TeamMemberRequests" ("TeamId", "UserId", "Status");
+
+INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+VALUES ('20260826072427_AddTeamMemberRequest', '10.0.11');
+
+COMMIT;
+

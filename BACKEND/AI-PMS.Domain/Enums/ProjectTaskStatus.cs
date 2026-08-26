@@ -5,6 +5,7 @@ namespace AI_PMS.Domain.Enums
         Todo = 1,
         InProgress = 2,
         InReview = 3,
-        Completed = 4
+        Completed = 4,
+        Blocked = 5
     }
 }

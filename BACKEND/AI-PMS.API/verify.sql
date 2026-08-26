@@ -1568,3 +1568,36 @@ BEGIN
 END $EF$;
 COMMIT;
 
+--DO $EF$
+
+BEGIN
+
+    IF NOT EXISTS(
+        SELECT 1
+        FROM "__EFMigrationsHistory"
+        WHERE "MigrationId" = '20260824193355_SyncCurrentModel'
+    ) THEN
+
+    ALTER TABLE "DashboardPreference"
+    ADD CONSTRAINT "FK_DashboardPreference_Users_UserId"
+    FOREIGN KEY ("UserId")
+    REFERENCES "Users" ("Id")
+    ON DELETE CASCADE;
+
+    END IF;
+
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(
+        SELECT 1
+        FROM "__EFMigrationsHistory"
+        WHERE "MigrationId" = '20260825183624_AddTeamIdToSprints'
+    ) THEN
+
+    ALTER TABLE "Sprints"
+    ADD "TeamId" uuid;
+
+    END IF;
+END $EF$;

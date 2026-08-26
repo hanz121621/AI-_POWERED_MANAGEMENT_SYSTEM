@@ -21,6 +21,7 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
         public async Task<Team> AddAsync(Team team)
         {
             await _context.Teams.AddAsync(team);
+
             await _context.SaveChangesAsync();
 
             return team;
@@ -33,16 +34,21 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
         public async Task<Team?> GetByIdAsync(Guid id)
         {
             return await _context.Teams
+
+                // Team Manager
                 .Include(t => t.Manager)
 
+                // Team Members
                 .Include(t => t.TeamMembers)
                     .ThenInclude(tm => tm.User)
-                        .ThenInclude(u => u.ContributorType)
 
-
+                // Team Member -> Contributor Type
                 .Include(t => t.TeamMembers)
-                    .ThenInclude(tm => tm.User)
-                        .ThenInclude(u => u.ContributorSubType)
+                    .ThenInclude(tm => tm.ContributorType)
+
+                // Team Member -> Contributor SubType
+                .Include(t => t.TeamMembers)
+                    .ThenInclude(tm => tm.ContributorSubType)
 
                 .FirstOrDefaultAsync(t => t.Id == id);
         }
@@ -54,19 +60,24 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
         public async Task<List<Team>> GetAllAsync()
         {
             return await _context.Teams
+
+                // Manager
                 .Include(t => t.Manager)
 
+                // Members -> User
                 .Include(t => t.TeamMembers)
                     .ThenInclude(tm => tm.User)
-                        .ThenInclude(u => u.ContributorType)
 
-               
-
+                // Members -> Contributor Type
                 .Include(t => t.TeamMembers)
-                    .ThenInclude(tm => tm.User)
-                        .ThenInclude(u => u.ContributorSubType)
+                    .ThenInclude(tm => tm.ContributorType)
+
+                // Members -> Contributor SubType
+                .Include(t => t.TeamMembers)
+                    .ThenInclude(tm => tm.ContributorSubType)
 
                 .OrderBy(t => t.Name)
+
                 .ToListAsync();
         }
 
@@ -74,23 +85,30 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
         // GET TEAMS BY MANAGER
         // =========================================================
 
-        public async Task<List<Team>> GetByManagerIdAsync(Guid managerId)
+        public async Task<List<Team>> GetByManagerIdAsync(
+            Guid managerId)
         {
             return await _context.Teams
+
+                // Manager
                 .Include(t => t.Manager)
 
+                // Members -> User
                 .Include(t => t.TeamMembers)
                     .ThenInclude(tm => tm.User)
-                        .ThenInclude(u => u.ContributorType)
 
-                
-
+                // Members -> Contributor Type
                 .Include(t => t.TeamMembers)
-                    .ThenInclude(tm => tm.User)
-                        .ThenInclude(u => u.ContributorSubType)
+                    .ThenInclude(tm => tm.ContributorType)
+
+                // Members -> Contributor SubType
+                .Include(t => t.TeamMembers)
+                    .ThenInclude(tm => tm.ContributorSubType)
 
                 .Where(t => t.ManagerId == managerId)
+
                 .OrderBy(t => t.Name)
+
                 .ToListAsync();
         }
 
@@ -103,14 +121,17 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
             Guid userId)
         {
             return await _context.TeamMembers
+
+                // User
                 .Include(tm => tm.User)
-                    .ThenInclude(u => u.ContributorType)
 
-                .Include(tm => tm.User)
-                    .ThenInclude(u => u.ContributorSubType)
+                // Contributor Type
+                .Include(tm => tm.ContributorType)
 
-         
+                // Contributor SubType
+                .Include(tm => tm.ContributorSubType)
 
+                // Team
                 .Include(tm => tm.Team)
 
                 .FirstOrDefaultAsync(tm =>
@@ -119,25 +140,55 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
         }
 
         // =========================================================
-        // GET TEAM MEMBERS
+        // GET ACTIVE TEAM MEMBERS
         // =========================================================
 
-        public async Task<List<TeamMember>> GetMembersAsync(Guid teamId)
+        public async Task<List<TeamMember>> GetMembersAsync(
+            Guid teamId)
         {
             return await _context.TeamMembers
-                .Include(tm => tm.User)
-                    .ThenInclude(u => u.ContributorType)
 
+                // User
                 .Include(tm => tm.User)
-                    .ThenInclude(u => u.ContributorSubType)
 
-              
+                // Contributor Type
+                .Include(tm => tm.ContributorType)
+
+                // Contributor SubType
+                .Include(tm => tm.ContributorSubType)
 
                 .Where(tm =>
                     tm.TeamId == teamId &&
                     tm.IsActive)
 
                 .OrderBy(tm => tm.JoinedAt)
+
+                .ToListAsync();
+        }
+
+        // =========================================================
+        // GET ALL TEAM MEMBERS
+        // Includes active + inactive
+        // =========================================================
+
+        public async Task<List<TeamMember>> GetAllMembersAsync(
+            Guid teamId)
+        {
+            return await _context.TeamMembers
+
+                // User
+                .Include(tm => tm.User)
+
+                // Contributor Type
+                .Include(tm => tm.ContributorType)
+
+                // Contributor SubType
+                .Include(tm => tm.ContributorSubType)
+
+                .Where(tm => tm.TeamId == teamId)
+
+                .OrderBy(tm => tm.JoinedAt)
+
                 .ToListAsync();
         }
 
@@ -149,18 +200,34 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
             string name,
             Guid? excludeTeamId = null)
         {
+            var normalizedName = name.Trim().ToLower();
+
             return await _context.Teams.AnyAsync(t =>
-                t.Name.ToLower() == name.Trim().ToLower() &&
-                (!excludeTeamId.HasValue || t.Id != excludeTeamId.Value));
+                t.Name.ToLower() == normalizedName &&
+                (!excludeTeamId.HasValue ||
+                 t.Id != excludeTeamId.Value));
         }
 
         // =========================================================
         // ADD MEMBER
         // =========================================================
 
-        public async Task AddMemberAsync(TeamMember teamMember)
+        public async Task AddMemberAsync(
+            TeamMember teamMember)
         {
             await _context.TeamMembers.AddAsync(teamMember);
+
+            await _context.SaveChangesAsync();
+        }
+
+        // =========================================================
+        // UPDATE MEMBER
+        // =========================================================
+
+        public async Task UpdateMemberAsync(
+            TeamMember teamMember)
+        {
+            _context.TeamMembers.Update(teamMember);
 
             await _context.SaveChangesAsync();
         }
@@ -169,7 +236,8 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
         // REMOVE MEMBER
         // =========================================================
 
-        public async Task RemoveMemberAsync(TeamMember teamMember)
+        public async Task RemoveMemberAsync(
+            TeamMember teamMember)
         {
             _context.TeamMembers.Remove(teamMember);
 
@@ -180,7 +248,8 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
         // UPDATE TEAM
         // =========================================================
 
-        public async Task UpdateAsync(Team team)
+        public async Task UpdateAsync(
+            Team team)
         {
             team.UpdatedAt = DateTime.UtcNow;
 
@@ -193,7 +262,8 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
         // DELETE TEAM
         // =========================================================
 
-        public async Task DeleteAsync(Team team)
+        public async Task DeleteAsync(
+            Team team)
         {
             _context.Teams.Remove(team);
 

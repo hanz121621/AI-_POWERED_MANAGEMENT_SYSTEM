@@ -18,17 +18,28 @@ namespace AI_PMS.Domain.Entities.Teams
 
         public User? User { get; set; }
 
-        // Team-specific contributor classification
+        // =========================================================
+        // CONTRIBUTOR CLASSIFICATION
+        // =========================================================
+
         [Required]
         public Guid ContributorTypeId { get; set; }
 
         public ContributorType? ContributorType { get; set; }
 
-        // Required when the selected contributor type
-        // requires a subtype.
         public Guid? ContributorSubTypeId { get; set; }
 
         public ContributorSubType? ContributorSubType { get; set; }
+
+        // =========================================================
+        // TEAM LEADER
+        // =========================================================
+
+        public bool IsTeamLeader { get; set; } = false;
+
+        // =========================================================
+        // MEMBERSHIP
+        // =========================================================
 
         public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
 

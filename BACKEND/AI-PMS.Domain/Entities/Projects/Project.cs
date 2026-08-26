@@ -15,9 +15,17 @@ namespace AI_PMS.Domain.Entities.Projects
         [MaxLength(2000)]
         public string? Description { get; set; }
 
+        // =========================================================
+        // PROJECT STATUS
+        // =========================================================
+
         // Database-driven project status
         [Required]
         public Guid StatusId { get; set; }
+
+        // =========================================================
+        // PROJECT ASSIGNMENT
+        // =========================================================
 
         // Project manager
         public Guid? ManagerId { get; set; }
@@ -25,17 +33,35 @@ namespace AI_PMS.Domain.Entities.Projects
         // Assigned team
         public Guid? TeamId { get; set; }
 
+        // =========================================================
+        // PROJECT PRIORITY
+        // =========================================================
+
         // Configurable project priority
-        public ProjectPriority Priority { get; set; } = ProjectPriority.Medium;
+        public ProjectPriority Priority { get; set; }
+            = ProjectPriority.Medium;
+
+        // =========================================================
+        // PROJECT TIMELINE
+        // =========================================================
 
         public DateTime StartDate { get; set; }
 
         public DateTime Deadline { get; set; }
 
+        // =========================================================
+        // PROJECT PROGRESS
+        // =========================================================
+
         [Range(0, 100)]
         public decimal ProgressPercentage { get; set; } = 0;
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        // =========================================================
+        // AUDIT
+        // =========================================================
+
+        public DateTime CreatedAt { get; set; }
+            = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }
 
@@ -47,8 +73,15 @@ namespace AI_PMS.Domain.Entities.Projects
         // RELATIONSHIPS
         // =========================================================
 
-        public ProjectStatusDefinition Status { get; set; } = null!;
+        // Project -> Status
+        public ProjectStatusDefinition Status { get; set; }
+            = null!;
 
+        // Project -> Specification
+        // One Project has one Specification
+        public ProjectSpecification? Specification { get; set; }
+
+        // Project -> Status Transitions
         public ICollection<ProjectStatusTransition> StatusTransitions { get; set; }
             = new List<ProjectStatusTransition>();
     }

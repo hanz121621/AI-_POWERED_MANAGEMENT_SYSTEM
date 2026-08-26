@@ -26,16 +26,53 @@ namespace AI_PMS.API.Controllers.Teams
         public async Task<IActionResult> CreateTeam(
             [FromBody] CreateTeamDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
             var result =
                 await _teamService.CreateTeamAsync(dto);
 
             if (!result.Success)
+            {
+                if (result.Message.Contains(
+                    "already exists",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return Conflict(new
+                    {
+                        message = result.Message
+                    });
+                }
+
+                if (result.Message.Contains(
+                    "not found",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return NotFound(new
+                    {
+                        message = result.Message
+                    });
+                }
+
                 return BadRequest(new
                 {
                     message = result.Message
                 });
+            }
 
-            return Ok(result.Team);
+            return CreatedAtAction(
+                nameof(GetTeamById),
+                new
+                {
+                    id = result.Team!.Id
+                },
+                new
+                {
+                    message = result.Message,
+                    team = result.Team
+                });
         }
 
         // =========================================================
@@ -61,14 +98,24 @@ namespace AI_PMS.API.Controllers.Teams
         public async Task<IActionResult> GetTeamById(
             Guid id)
         {
+            if (id == Guid.Empty)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid team ID."
+                });
+            }
+
             var team =
                 await _teamService.GetTeamByIdAsync(id);
 
             if (team == null)
+            {
                 return NotFound(new
                 {
                     message = "Team not found."
                 });
+            }
 
             return Ok(team);
         }
@@ -83,16 +130,67 @@ namespace AI_PMS.API.Controllers.Teams
             Guid id,
             [FromBody] UpdateTeamDto dto)
         {
+            if (id == Guid.Empty)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid team ID."
+                });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
             var result =
-                await _teamService.UpdateTeamAsync(id, dto);
+                await _teamService.UpdateTeamAsync(
+                    id,
+                    dto);
 
             if (!result.Success)
+            {
+                if (result.Message.Equals(
+                    "Team not found.",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return NotFound(new
+                    {
+                        message = result.Message
+                    });
+                }
+
+                if (result.Message.Contains(
+                    "already exists",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return Conflict(new
+                    {
+                        message = result.Message
+                    });
+                }
+
+                if (result.Message.Contains(
+                    "not found",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return NotFound(new
+                    {
+                        message = result.Message
+                    });
+                }
+
                 return BadRequest(new
                 {
                     message = result.Message
                 });
+            }
 
-            return Ok(result.Team);
+            return Ok(new
+            {
+                message = result.Message,
+                team = result.Team
+            });
         }
 
         // =========================================================
@@ -104,14 +202,44 @@ namespace AI_PMS.API.Controllers.Teams
         public async Task<IActionResult> DeleteTeam(
             Guid id)
         {
+            if (id == Guid.Empty)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid team ID."
+                });
+            }
+
             var result =
                 await _teamService.DeleteTeamAsync(id);
 
             if (!result.Success)
+            {
+                if (result.Message.Equals(
+                    "Team not found.",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return NotFound(new
+                    {
+                        message = result.Message
+                    });
+                }
+
+                if (result.Message.Contains(
+                    "cannot be deleted",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return Conflict(new
+                    {
+                        message = result.Message
+                    });
+                }
+
                 return BadRequest(new
                 {
                     message = result.Message
                 });
+            }
 
             return Ok(new
             {
@@ -129,20 +257,53 @@ namespace AI_PMS.API.Controllers.Teams
             Guid teamId,
             Guid managerId)
         {
+            if (teamId == Guid.Empty)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid team ID."
+                });
+            }
+
+            if (managerId == Guid.Empty)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid manager ID."
+                });
+            }
+
             var result =
                 await _teamService.AssignManagerAsync(
                     teamId,
                     managerId);
 
             if (!result.Success)
+            {
+                if (result.Message.Equals(
+                    "Team not found.",
+                    StringComparison.OrdinalIgnoreCase) ||
+                    result.Message.Equals(
+                    "Manager not found.",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return NotFound(new
+                    {
+                        message = result.Message
+                    });
+                }
+
                 return BadRequest(new
                 {
                     message = result.Message
                 });
+            }
 
             return Ok(new
             {
-                message = result.Message
+                message = result.Message,
+                teamId,
+                managerId
             });
         }
 
@@ -156,20 +317,60 @@ namespace AI_PMS.API.Controllers.Teams
             Guid teamId,
             [FromBody] AddTeamMemberDto dto)
         {
+            if (teamId == Guid.Empty)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid team ID."
+                });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
             var result =
                 await _teamService.AddMemberAsync(
                     teamId,
                     dto);
 
             if (!result.Success)
+            {
+                if (result.Message.Equals(
+                    "Team not found.",
+                    StringComparison.OrdinalIgnoreCase) ||
+                    result.Message.Equals(
+                    "User not found.",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return NotFound(new
+                    {
+                        message = result.Message
+                    });
+                }
+
+                if (result.Message.Contains(
+                    "already part",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return Conflict(new
+                    {
+                        message = result.Message
+                    });
+                }
+
                 return BadRequest(new
                 {
                     message = result.Message
                 });
+            }
 
             return Ok(new
             {
-                message = result.Message
+                message = result.Message,
+                teamId,
+                userId = dto.UserId
             });
         }
 
@@ -183,22 +384,195 @@ namespace AI_PMS.API.Controllers.Teams
             Guid teamId,
             Guid userId)
         {
+            if (teamId == Guid.Empty)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid team ID."
+                });
+            }
+
+            if (userId == Guid.Empty)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid user ID."
+                });
+            }
+
             var result =
                 await _teamService.RemoveMemberAsync(
                     teamId,
                     userId);
 
             if (!result.Success)
+            {
+                if (result.Message.Equals(
+                    "Team not found.",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return NotFound(new
+                    {
+                        message = result.Message
+                    });
+                }
+
+                if (result.Message.Contains(
+                    "not part",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return NotFound(new
+                    {
+                        message = result.Message
+                    });
+                }
+
                 return BadRequest(new
                 {
                     message = result.Message
                 });
+            }
 
             return Ok(new
+            {
+                message = result.Message,
+                teamId,
+                userId
+            });
+        }
+        // =========================================================
+// ASSIGN TEAM LEADER
+// PUT: api/Team/{teamId}/leader/{userId}
+// =========================================================
+
+[HttpPut("{teamId:guid}/leader/{userId:guid}")]
+public async Task<IActionResult> AssignTeamLeader(
+    Guid teamId,
+    Guid userId)
+{
+    if (teamId == Guid.Empty)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid team ID."
+        });
+    }
+
+    if (userId == Guid.Empty)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid user ID."
+        });
+    }
+
+    var result =
+        await _teamService.AssignTeamLeaderAsync(
+            teamId,
+            userId);
+
+    if (!result.Success)
+    {
+        if (result.Message.Equals(
+            "Team not found.",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(new
             {
                 message = result.Message
             });
         }
+
+        if (result.Message.Contains(
+            "not a member",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(new
+            {
+                message = result.Message
+            });
+        }
+
+        return BadRequest(new
+        {
+            message = result.Message
+        });
+    }
+
+    return Ok(new
+    {
+        message = result.Message,
+        teamId,
+        userId
+    });
+}
+
+// =========================================================
+// REMOVE TEAM LEADER
+// DELETE: api/Team/{teamId}/leader/{userId}
+// =========================================================
+
+[HttpDelete("{teamId:guid}/leader/{userId:guid}")]
+public async Task<IActionResult> RemoveTeamLeader(
+    Guid teamId,
+    Guid userId)
+{
+    if (teamId == Guid.Empty)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid team ID."
+        });
+    }
+
+    if (userId == Guid.Empty)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid user ID."
+        });
+    }
+
+    var result =
+        await _teamService.RemoveTeamLeaderAsync(
+            teamId,
+            userId);
+
+    if (!result.Success)
+    {
+        if (result.Message.Equals(
+            "Team not found.",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(new
+            {
+                message = result.Message
+            });
+        }
+
+        if (result.Message.Contains(
+            "not a member",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(new
+            {
+                message = result.Message
+            });
+        }
+
+        return BadRequest(new
+        {
+            message = result.Message
+        });
+    }
+
+    return Ok(new
+    {
+        message = result.Message,
+        teamId,
+        userId
+    });
+}
 
         // =========================================================
         // GET TEAM MEMBERS
@@ -209,8 +583,31 @@ namespace AI_PMS.API.Controllers.Teams
         public async Task<IActionResult> GetTeamMembers(
             Guid teamId)
         {
+            if (teamId == Guid.Empty)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid team ID."
+                });
+            }
+
+            // GetTeamMembersAsync returns an empty collection
+            // when the team does not exist.
+            // Therefore, verify the team first.
+            var team =
+                await _teamService.GetTeamByIdAsync(teamId);
+
+            if (team == null)
+            {
+                return NotFound(new
+                {
+                    message = "Team not found."
+                });
+            }
+
             var members =
-                await _teamService.GetTeamMembersAsync(teamId);
+                await _teamService.GetTeamMembersAsync(
+                    teamId);
 
             return Ok(members);
         }

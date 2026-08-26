@@ -3,6 +3,7 @@ using System;
 using AI_PMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AI_PMS.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260824193355_SyncCurrentModel")]
+    partial class SyncCurrentModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -439,67 +442,6 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.ToTable("Projects", (string)null);
                 });
 
-            modelBuilder.Entity("AI_PMS.Domain.Entities.Projects.ProjectSpecification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Assumptions")
-                        .HasMaxLength(5000)
-                        .HasColumnType("character varying(5000)");
-
-                    b.Property<string>("Constraints")
-                        .HasMaxLength(5000)
-                        .HasColumnType("character varying(5000)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Deliverables")
-                        .IsRequired()
-                        .HasMaxLength(5000)
-                        .HasColumnType("character varying(5000)");
-
-                    b.Property<string>("FunctionalRequirements")
-                        .IsRequired()
-                        .HasMaxLength(10000)
-                        .HasColumnType("character varying(10000)");
-
-                    b.Property<string>("NonFunctionalRequirements")
-                        .IsRequired()
-                        .HasMaxLength(10000)
-                        .HasColumnType("character varying(10000)");
-
-                    b.Property<string>("Objectives")
-                        .IsRequired()
-                        .HasMaxLength(5000)
-                        .HasColumnType("character varying(5000)");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Scope")
-                        .IsRequired()
-                        .HasMaxLength(5000)
-                        .HasColumnType("character varying(5000)");
-
-                    b.Property<string>("TechnologyStack")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId")
-                        .IsUnique();
-
-                    b.ToTable("ProjectSpecifications");
-                });
-
             modelBuilder.Entity("AI_PMS.Domain.Entities.Projects.ProjectStatusDefinition", b =>
                 {
                     b.Property<Guid>("Id")
@@ -707,9 +649,6 @@ namespace AI_PMS.Infrastructure.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
-
-                    b.Property<Guid?>("TeamId")
-                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1071,9 +1010,6 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsTeamLeader")
-                        .HasColumnType("boolean");
-
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1095,54 +1031,6 @@ namespace AI_PMS.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("TeamMembers");
-                });
-
-            modelBuilder.Entity("AI_PMS.Domain.Entities.Teams.TeamMemberRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ManagerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("ReviewComment")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ReviewedByAdminId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("TeamId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TeamId", "UserId", "Status");
-
-                    b.ToTable("TeamMemberRequests");
                 });
 
             modelBuilder.Entity("AI_PMS.Domain.Entities.Users.User", b =>
@@ -1297,17 +1185,6 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Navigation("Status");
                 });
 
-            modelBuilder.Entity("AI_PMS.Domain.Entities.Projects.ProjectSpecification", b =>
-                {
-                    b.HasOne("AI_PMS.Domain.Entities.Projects.Project", "Project")
-                        .WithOne("Specification")
-                        .HasForeignKey("AI_PMS.Domain.Entities.Projects.ProjectSpecification", "ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
-                });
-
             modelBuilder.Entity("AI_PMS.Domain.Entities.Projects.ProjectStatusTransition", b =>
                 {
                     b.HasOne("AI_PMS.Domain.Entities.Projects.ProjectStatusDefinition", "FromStatus")
@@ -1404,17 +1281,6 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("AI_PMS.Domain.Entities.Teams.TeamMemberRequest", b =>
-                {
-                    b.HasOne("AI_PMS.Domain.Entities.Teams.Team", "Team")
-                        .WithMany()
-                        .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Team");
-                });
-
             modelBuilder.Entity("AI_PMS.Domain.Entities.Users.User", b =>
                 {
                     b.HasOne("AI_PMS.Domain.Entities.Teams.ContributorSubType", "ContributorSubType")
@@ -1441,8 +1307,6 @@ namespace AI_PMS.Infrastructure.Migrations
 
             modelBuilder.Entity("AI_PMS.Domain.Entities.Projects.Project", b =>
                 {
-                    b.Navigation("Specification");
-
                     b.Navigation("StatusTransitions");
                 });
 

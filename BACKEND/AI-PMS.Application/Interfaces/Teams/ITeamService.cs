@@ -23,6 +23,16 @@ namespace AI_PMS.Application.Interfaces.Teams
         Task<TeamDto?>
             GetTeamByIdAsync(Guid id);
 
+            Task<(bool Success, string Message)> 
+    AssignTeamLeaderAsync(
+        Guid teamId,
+        Guid userId);
+
+Task<(bool Success, string Message)> 
+    RemoveTeamLeaderAsync(
+        Guid teamId,
+        Guid userId);
+
         // =========================================================
         // MANAGER MANAGEMENT
         // =========================================================

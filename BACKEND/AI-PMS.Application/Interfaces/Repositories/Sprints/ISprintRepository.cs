@@ -4,7 +4,15 @@ namespace AI_PMS.Application.Interfaces.Sprints
 {
     public interface ISprintRepository
     {
+        // =========================================================
+        // CREATE
+        // =========================================================
+
         Task<Sprint> AddAsync(Sprint sprint);
+
+        // =========================================================
+        // GET
+        // =========================================================
 
         Task<List<Sprint>> GetAllAsync();
 
@@ -17,6 +25,17 @@ namespace AI_PMS.Application.Interfaces.Sprints
             Guid projectId,
             string name);
 
+        // =========================================================
+        // UPDATE
+        // =========================================================
+
         Task UpdateAsync(Sprint sprint);
+
+        // =========================================================
+        // TEAM ASSIGNMENT
+        // =========================================================
+
+        Task AssignTeamAsync(
+            Sprint sprint);
     }
 }

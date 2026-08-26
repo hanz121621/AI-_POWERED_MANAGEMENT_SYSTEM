@@ -22,6 +22,12 @@ namespace AI_PMS.Application.DTOs.Sprints
 
         public SprintPriority Priority { get; set; }
 
+        // =========================================================
+        // TEAM
+        // =========================================================
+
+        public Guid? TeamId { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public DateTime? UpdatedAt { get; set; }

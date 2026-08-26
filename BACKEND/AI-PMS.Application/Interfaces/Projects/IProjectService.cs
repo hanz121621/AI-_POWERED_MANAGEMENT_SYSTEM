@@ -11,7 +11,15 @@ namespace AI_PMS.Application.Interfaces.Projects
         Task<ProjectDto?> CreateAsync(
             CreateProjectDto dto,
             Guid createdBy);
+            
+            // =========================================================
+// PROJECT DEADLINE
+// =========================================================
 
+Task<ProjectUpdateResultDto> UpdateDeadlineAsync(
+    Guid projectId,
+    UpdateProjectDeadlineDto dto,
+    Guid managerId);
 
         // =========================================================
         // READ PROJECTS
@@ -24,6 +32,14 @@ namespace AI_PMS.Application.Interfaces.Projects
         Task<IEnumerable<ProjectDto>> GetActiveAsync();
 
         Task<IEnumerable<ProjectDto>> GetArchivedAsync();
+
+        // =========================================================
+        // PM-004
+        // VIEW ASSIGNED PROJECTS
+        // =========================================================
+
+        Task<IEnumerable<ProjectDto>> GetAssignedProjectsAsync(
+            Guid managerId);
 
 
         // =========================================================
@@ -56,8 +72,10 @@ namespace AI_PMS.Application.Interfaces.Projects
         // =========================================================
 
         Task<ProjectUpdateResultDto> ChangeStatusAsync(
-            Guid projectId,
-            Guid statusId);
+    Guid projectId,
+    Guid statusId,
+    Guid managerId,
+    string? notes = null);
 
         Task<IEnumerable<ProjectStatusDto>>
             GetAllowedNextStatusesAsync(
@@ -74,6 +92,10 @@ namespace AI_PMS.Application.Interfaces.Projects
         Task<ProjectUpdateResultDto> RestoreAsync(
             Guid projectId);
 
+Task<ProjectDto?> UpdateTimelineAsync(
+    Guid projectId,
+    UpdateProjectTimelineDto dto,
+    Guid managerId);
 
         // =========================================================
         // PROJECT ASSIGNMENT

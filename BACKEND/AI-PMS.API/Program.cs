@@ -19,6 +19,10 @@ using AI_PMS.Application.Interfaces.Repositories.SecuritySettings;
 using AI_PMS.Application.Interfaces.Repositories.NotificationSettings;
 using AI_PMS.Infrastructure.Repositories.SecuritySettings;
 using AI_PMS.Infrastructure.Repositories.NotificationSettings;
+using AI_PMS.Application.Interfaces.Teams;
+using AI_PMS.Application.Services.Teams;
+using AI_PMS.Application.Interfaces.Repositories.Teams;
+using AI_PMS.Infrastructure.Repositories.Teams;
 
 using AI_PMS.Infrastructure.Repositories.Activities;
 using AI_PMS.Infrastructure.Repositories.Projects;
@@ -30,6 +34,12 @@ using AI_PMS.Application.Interfaces.Repositories.Permissions;
 using AI_PMS.Infrastructure.Repositories.Permissions;
 using AI_PMS.Application.Interfaces.Security;
 using AI_PMS.Infrastructure.Security;
+using AI_PMS.Application.Interfaces.Projects;
+using AI_PMS.Infrastructure.Repositories.Projects;
+using AI_PMS.Application.Interfaces.Projects;
+using AI_PMS.Application.Interfaces.Repositories.Projects;
+using AI_PMS.Application.Services.Projects;
+using AI_PMS.Infrastructure.Repositories.Projects;
 
 using AI_PMS.Application.DTOs.Auth;
 using AI_PMS.Application.Interfaces.Activities;
@@ -138,11 +148,10 @@ builder.Services.AddScoped<
     builder.Services.AddScoped<ISecuritySettingRepository, SecuritySettingRepository>();
 builder.Services.AddScoped<INotificationSettingRepository, NotificationSettingRepository>();
 
-    // =========================================================
-// SETTINGS REPOSITORIES
-// =========================================================
-
-
+  
+builder.Services.AddScoped<
+    ITeamMemberRequestService,
+    TeamMemberRequestService>();
 
 // =========================================================
 // CONTROLLERS
@@ -153,6 +162,14 @@ builder.Services.AddControllers();
 builder.Services.AddMediatR(
     cfg => cfg.RegisterServicesFromAssembly(
         typeof(CreateUserCommand).Assembly));
+
+        builder.Services.AddScoped<
+    IProjectSpecificationRepository,
+    ProjectSpecificationRepository>();
+
+builder.Services.AddScoped<
+    IProjectSpecificationService,
+    ProjectSpecificationService>();
 
 
 builder.Services.AddSingleton<

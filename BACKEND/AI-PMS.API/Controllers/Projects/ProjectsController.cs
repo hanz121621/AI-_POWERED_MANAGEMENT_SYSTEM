@@ -23,6 +23,251 @@ namespace AI_PMS.API.Controllers.Projects
         }
 
         // =========================================================
+        // PM-004
+        // VIEW ASSIGNED PROJECTS
+        // =========================================================
+
+        [HttpGet("my-projects")]
+        [Authorize(Roles = "Manager")]
+        public async Task<IActionResult> GetMyProjects()
+        {
+            try
+            {
+                var managerId = GetCurrentUserId();
+
+                if (!managerId.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid manager identity."
+                    });
+                }
+
+                var projects =
+                    await _projectService.GetAssignedProjectsAsync(
+                        managerId.Value);
+
+                if (!projects.Any())
+                {
+                    return Ok(new
+                    {
+                        message = "No projects are currently assigned to you.",
+                        data = projects
+                    });
+                }
+
+                return Ok(new
+                {
+                    message = "Assigned projects retrieved successfully.",
+                    data = projects
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new
+                {
+                    message =
+                        "An error occurred while retrieving assigned projects."
+                });
+            }
+        }
+
+        // =========================================================
+        // PM-005
+        // UPDATE PROJECT TIMELINE
+        // =========================================================
+
+        [HttpPut("{projectId:guid}/timeline")]
+        [Authorize(Roles = "Manager")]
+        public async Task<IActionResult> UpdateTimeline(
+            Guid projectId,
+            [FromBody] UpdateProjectTimelineDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            if (dto == null)
+            {
+                return BadRequest(new
+                {
+                    message = "Timeline information is required."
+                });
+            }
+
+            try
+            {
+                // Get authenticated Manager from JWT
+                var managerId = GetCurrentUserId();
+
+                if (!managerId.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid manager identity."
+                    });
+                }
+
+                var result =
+                    await _projectService.UpdateTimelineAsync(
+                        projectId,
+                        dto,
+                        managerId.Value);
+
+                if (result == null)
+                {
+                    return NotFound(new
+                    {
+                        message = "Project not found."
+                    });
+                }
+
+                return Ok(new
+                {
+                    message =
+                        "Project timeline updated successfully.",
+                    data = result
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new
+                {
+                    message =
+                        "An error occurred while updating the project timeline."
+                });
+            }
+        }
+
+        // =========================================================
+        // PM-006
+        // SET / UPDATE PROJECT DEADLINE
+        // =========================================================
+
+        [HttpPut("{projectId:guid}/deadline")]
+        [Authorize(Roles = "Manager")]
+        public async Task<IActionResult> UpdateDeadline(
+            Guid projectId,
+            [FromBody] UpdateProjectDeadlineDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            if (dto == null)
+            {
+                return BadRequest(new
+                {
+                    message = "Deadline information is required."
+                });
+            }
+
+            try
+            {
+                // Get authenticated Manager from JWT
+                var managerId = GetCurrentUserId();
+
+                if (!managerId.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid manager identity."
+                    });
+                }
+
+                var result =
+                    await _projectService.UpdateDeadlineAsync(
+                        projectId,
+                        dto,
+                        managerId.Value);
+
+                if (!result.Success)
+                {
+                    if (result.Message == "Project not found.")
+                    {
+                        return NotFound(new
+                        {
+                            message = result.Message,
+                            data = result.Project
+                        });
+                    }
+
+                    return Conflict(new
+                    {
+                        message = result.Message,
+                        data = result.Project
+                    });
+                }
+
+                return Ok(new
+                {
+                    message =
+                        "Project deadline updated successfully.",
+                    data = result.Project
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new
+                {
+                    message =
+                        "An error occurred while updating the project deadline."
+                });
+            }
+        }
+
+        // =========================================================
         // GET ALL PROJECTS
         // PROJ-001
         // =========================================================
@@ -48,7 +293,6 @@ namespace AI_PMS.API.Controllers.Projects
                     });
             }
         }
-
 
         // =========================================================
         // GET ACTIVE PROJECTS
@@ -76,7 +320,6 @@ namespace AI_PMS.API.Controllers.Projects
             }
         }
 
-
         // =========================================================
         // GET ARCHIVED PROJECTS
         // PROJ-002
@@ -103,7 +346,6 @@ namespace AI_PMS.API.Controllers.Projects
                     });
             }
         }
-
 
         // =========================================================
         // GET PROJECT BY ID
@@ -140,7 +382,6 @@ namespace AI_PMS.API.Controllers.Projects
             }
         }
 
-
         // =========================================================
         // CREATE PROJECT
         // PROJ-003
@@ -151,13 +392,15 @@ namespace AI_PMS.API.Controllers.Projects
             [FromBody] CreateProjectDto dto)
         {
             if (!ModelState.IsValid)
+            {
                 return ValidationProblem(ModelState);
+            }
 
             try
             {
                 var createdBy = GetCurrentUserId();
 
-                if (createdBy == null)
+                if (!createdBy.HasValue)
                 {
                     return Unauthorized(new
                     {
@@ -196,7 +439,6 @@ namespace AI_PMS.API.Controllers.Projects
             }
         }
 
-
         // =========================================================
         // UPDATE PROJECT
         // PROJ-004
@@ -208,7 +450,9 @@ namespace AI_PMS.API.Controllers.Projects
             [FromBody] UpdateProjectDto dto)
         {
             if (!ModelState.IsValid)
+            {
                 return ValidationProblem(ModelState);
+            }
 
             try
             {
@@ -247,7 +491,6 @@ namespace AI_PMS.API.Controllers.Projects
                     });
             }
         }
-
 
         // =========================================================
         // DELETE PROJECT
@@ -288,7 +531,6 @@ namespace AI_PMS.API.Controllers.Projects
             }
         }
 
-
         // =========================================================
         // APPROVE PROJECT
         // =========================================================
@@ -327,7 +569,6 @@ namespace AI_PMS.API.Controllers.Projects
                     });
             }
         }
-
 
         // =========================================================
         // REJECT PROJECT
@@ -368,63 +609,111 @@ namespace AI_PMS.API.Controllers.Projects
             }
         }
 
-
         // =========================================================
         // CHANGE PROJECT STATUS
         // PROJ-008
         // =========================================================
+// =========================================================
+// PM-007
+// MANAGE PROJECT STATUS
+// =========================================================
 
-        [HttpPut("{id:guid}/status")]
-        public async Task<IActionResult> ChangeStatus(
-            Guid id,
-            [FromBody] ChangeProjectStatusRequest request)
+[HttpPut("{id:guid}/status")]
+[Authorize(Roles = "Manager")]
+public async Task<IActionResult> ChangeStatus(
+    Guid id,
+    [FromBody] ChangeProjectStatusRequest request)
+{
+    if (request == null)
+    {
+        return BadRequest(new
         {
-            if (request.StatusId == Guid.Empty)
+            message = "Status information is required."
+        });
+    }
+
+    if (request.StatusId == Guid.Empty)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid project status."
+        });
+    }
+
+    try
+    {
+        // =====================================================
+        // GET AUTHENTICATED MANAGER
+        // =====================================================
+
+        var managerId = GetCurrentUserId();
+
+        if (!managerId.HasValue)
+        {
+            return Unauthorized(new
             {
-                return BadRequest(new
-                {
-                    message = "Invalid project status."
-                });
-            }
-
-            try
-            {
-                var result =
-                    await _projectService.ChangeStatusAsync(
-                        id,
-                        request.StatusId);
-
-                if (!result.Success)
-                {
-                    if (result.Message == "Project not found.")
-                    {
-                        return NotFound(new
-                        {
-                            message = result.Message
-                        });
-                    }
-
-                    return BadRequest(new
-                    {
-                        message = result.Message,
-                        project = result.Project
-                    });
-                }
-
-                return Ok(result);
-            }
-            catch
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new
-                    {
-                        message =
-                            "Unable to update project status. Please try again."
-                    });
-            }
+                message = "Unable to identify authenticated manager."
+            });
         }
 
+        // =====================================================
+        // CHANGE STATUS
+        // =====================================================
+
+        var result =
+            await _projectService.ChangeStatusAsync(
+                id,
+                request.StatusId,
+                managerId.Value,
+                request.Notes);
+
+        // =====================================================
+        // PROJECT NOT FOUND
+        // =====================================================
+
+        if (!result.Success &&
+            result.Message == "Project not found.")
+        {
+            return NotFound(new
+            {
+                message = result.Message
+            });
+        }
+
+        // =====================================================
+        // BUSINESS VALIDATION
+        // =====================================================
+
+        if (!result.Success)
+        {
+            return BadRequest(new
+            {
+                message = result.Message,
+                project = result.Project
+            });
+        }
+
+        // =====================================================
+        // SUCCESS
+        // =====================================================
+
+        return Ok(result);
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+        return Forbid();
+    }
+    catch (Exception)
+    {
+        return StatusCode(
+            StatusCodes.Status500InternalServerError,
+            new
+            {
+                message =
+                    "Unable to update project status. Please try again."
+            });
+    }
+}
 
         // =========================================================
         // ASSIGN PROJECT TO MANAGER
@@ -435,7 +724,7 @@ namespace AI_PMS.API.Controllers.Projects
             Guid id,
             [FromBody] AssignManagerRequest request)
         {
-            if (request.ManagerId == Guid.Empty)
+            if (request == null || request.ManagerId == Guid.Empty)
             {
                 return BadRequest(new
                 {
@@ -477,7 +766,6 @@ namespace AI_PMS.API.Controllers.Projects
             }
         }
 
-
         // =========================================================
         // CHANGE PROJECT MANAGER
         // =========================================================
@@ -487,7 +775,7 @@ namespace AI_PMS.API.Controllers.Projects
             Guid id,
             [FromBody] AssignManagerRequest request)
         {
-            if (request.ManagerId == Guid.Empty)
+            if (request == null || request.ManagerId == Guid.Empty)
             {
                 return BadRequest(new
                 {
@@ -532,7 +820,6 @@ namespace AI_PMS.API.Controllers.Projects
             }
         }
 
-
         // =========================================================
         // GET ASSIGNED MANAGER
         // =========================================================
@@ -574,7 +861,6 @@ namespace AI_PMS.API.Controllers.Projects
             }
         }
 
-
         // =========================================================
         // GET PROJECTS ASSIGNED TO MANAGER
         // =========================================================
@@ -603,9 +889,8 @@ namespace AI_PMS.API.Controllers.Projects
             }
         }
 
-
         // =========================================================
-        // CURRENT USER ID
+        // CURRENT AUTHENTICATED USER ID
         // =========================================================
 
         private Guid? GetCurrentUserId()
@@ -615,7 +900,9 @@ namespace AI_PMS.API.Controllers.Projects
                     ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrWhiteSpace(userId))
+            {
                 return null;
+            }
 
             return Guid.TryParse(
                 userId,
@@ -625,16 +912,16 @@ namespace AI_PMS.API.Controllers.Projects
         }
     }
 
-
     // =============================================================
     // REQUEST MODELS
     // =============================================================
 
     public class ChangeProjectStatusRequest
-    {
-        public Guid StatusId { get; set; }
-    }
+{
+    public Guid StatusId { get; set; }
 
+    public string? Notes { get; set; }
+}
 
     public class AssignManagerRequest
     {

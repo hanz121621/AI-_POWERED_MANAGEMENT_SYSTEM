@@ -110,20 +110,45 @@ namespace AI_PMS.Infrastructure.Repositories.Projects
             await _context.SaveChangesAsync();
         }
 
-        // =========================================================
-        // GET PROJECTS BY MANAGER
-        // =========================================================
+    public async Task<bool> HasTimelineConflictAsync(
+    Guid projectId,
+    DateTime startDate,
+    DateTime deadline)
+{
+    return await _context.Sprints
+        .AsNoTracking()
+        .AnyAsync(s =>
+            s.ProjectId == projectId &&
+            !s.IsDeleted &&
+            s.StartDate <= deadline &&
+            s.EndDate >= startDate);
+}
 
-        public async Task<List<Project>> GetByManagerAsync(
-            Guid managerId)
-        {
-            return await _context.Projects
-                .AsNoTracking()
-                .Include(p => p.Status)
-                .Where(p => p.ManagerId == managerId)
-                .OrderBy(p => p.Name)
-                .ToListAsync();
-        }
+public async Task UpdateTimelineAsync(
+    Project project)
+{
+    project.UpdatedAt = DateTime.UtcNow;
+
+    _context.Projects.Update(project);
+
+    await _context.SaveChangesAsync();
+}
+
+// =========================================================
+// PM-004
+// GET PROJECTS ASSIGNED TO MANAGER
+// =========================================================
+
+public async Task<List<Project>> GetByManagerAsync(
+    Guid managerId)
+{
+    return await _context.Projects
+        .AsNoTracking()
+        .Include(p => p.Status)
+        .Where(p => p.ManagerId == managerId)
+        .OrderBy(p => p.Name)
+        .ToListAsync();
+}
 
         // =========================================================
         // GET STATUS
@@ -153,6 +178,46 @@ namespace AI_PMS.Infrastructure.Repositories.Projects
                 .ThenBy(s => s.Name)
                 .ToListAsync();
         }
+        // =========================================================
+// PM-006
+// CHECK DEADLINE CONFLICTS
+// =========================================================
+
+public async Task<bool> HasDeadlineConflictAsync(
+    Guid projectId,
+    DateTime deadline)
+{
+    // Check active/non-deleted sprints that extend
+    // beyond the proposed project deadline.
+    var sprintConflict = await _context.Sprints
+        .AsNoTracking()
+        .AnyAsync(s =>
+            s.ProjectId == projectId &&
+            !s.IsDeleted &&
+            s.EndDate > deadline);
+
+    if (sprintConflict)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+// =========================================================
+// PM-006
+// UPDATE PROJECT DEADLINE
+// =========================================================
+
+public async Task UpdateDeadlineAsync(
+    Project project)
+{
+    project.UpdatedAt = DateTime.UtcNow;
+
+    _context.Projects.Update(project);
+
+    await _context.SaveChangesAsync();
+}
 
         // =========================================================
         // GET INITIAL STATUS
