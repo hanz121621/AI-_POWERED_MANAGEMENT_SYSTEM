@@ -348,28 +348,30 @@ function CreateUserDialog({
                         ? data.items
                         : [];
 
-                const normalizedSubTypes =
-                    subTypes
-                        .map((subType) => ({
-                            id:
-                                subType?.id ??
-                                subType?.Id ??
-                                subType?.contributorSubTypeId ??
-                                subType?.ContributorSubTypeId,
+              const normalizedSubTypes =
+    subTypes
+        .map((subType) => ({
+            id:
+                subType?.id ??
+                subType?.Id ??
+                subType?.contributorSubTypeId ??
+                subType?.ContributorSubTypeId,
 
-                            name:
-                                subType?.name ??
-                                subType?.Name ??
-                                "",
-                        }))
-                        .filter(
-                            (subType) =>
-                                subType.id !== null &&
-                                subType.id !== undefined &&
-                                String(
-                                    subType.name
-                                ).trim() !== ""
-                        );
+            name:
+                subType?.name ??
+                subType?.Name ??
+                subType?.subTypeName ??
+                subType?.SubTypeName ??
+                subType?.contributorSubTypeName ??
+                subType?.ContributorSubTypeName ??
+                "",
+        }))
+        .filter(
+            (subType) =>
+                subType.id !== null &&
+                subType.id !== undefined &&
+                String(subType.name).trim() !== ""
+        );
 
                 console.log(
                     "NORMALIZED SUBTYPES:",
@@ -495,34 +497,41 @@ function CreateUserDialog({
                 return;
             }
 
-            setForm((previous) => ({
-                ...previous,
+          const isTeamLeader =
+    selectedType.name
+        ?.trim()
+        .toLowerCase() === "team leader";
 
-                contributorType:
-                    selectedType.name,
+setForm((previous) => ({
+    ...previous,
 
-                contributorTypeId:
-                    String(selectedType.id),
+    contributorType:
+        selectedType.name,
 
-                contributorSubType: "",
-                contributorSubTypeId: "",
+    contributorTypeId:
+        String(selectedType.id),
 
-                newContributorSubTypeName:
-                    "",
-            }));
+    contributorSubType:
+        isTeamLeader
+            ? ""
+            : previous.contributorSubType,
 
-            setContributorSubTypes([]);
+    contributorSubTypeId:
+        isTeamLeader
+            ? ""
+            : previous.contributorSubTypeId,
 
-            setErrors((previous) => ({
-                ...previous,
-                contributorType: "",
-                contributorSubType: "",
-                newContributorSubTypeName: "",
-            }));
+    newContributorSubTypeName:
+        "",
+}));
 
-            await loadContributorSubTypes(
-                selectedType.id
-            );
+setContributorSubTypes([]);
+
+if (!isTeamLeader) {
+    await loadContributorSubTypes(
+        selectedType.id
+    );
+}
         };
 
     // ========================================================
@@ -816,13 +825,19 @@ function CreateUserDialog({
                     "Please select a contributor type.";
             }
 
-            if (
-                form.contributorTypeId &&
-                !form.contributorSubTypeId
-            ) {
-                newErrors.contributorSubType =
-                    "Please select a contributor subtype.";
-            }
+            const isTeamLeader =
+    form.contributorType
+        ?.trim()
+        .toLowerCase() === "team leader";
+
+if (
+    form.contributorTypeId &&
+    !isTeamLeader &&
+    !form.contributorSubTypeId
+) {
+    newErrors.contributorSubType =
+        "Please select a contributor subtype.";
+}
 
             const selectedSubType =
                 contributorSubTypes.find(
@@ -1204,23 +1219,35 @@ function CreateUserDialog({
         return null;
     }
 
-    // ========================================================
-    // SELECTED SUBTYPE
-    // ========================================================
+   // ========================================================
+// SELECTED CONTRIBUTOR TYPE
+// ========================================================
 
-    const selectedSubType =
-        contributorSubTypes.find(
-            (subType) =>
-                String(subType.id) ===
-                String(
-                    form.contributorSubTypeId
-                )
-        );
+const selectedContributorType =
+    contributorTypes.find(
+        (type) =>
+            String(type.id) ===
+            String(form.contributorTypeId)
+    );
 
-    const isOtherSubType =
-        selectedSubType?.name ===
-        "Other";
+const isTeamLeader =
+    selectedContributorType?.name
+        ?.trim()
+        .toLowerCase() === "team leader";
 
+// ========================================================
+// SELECTED SUBTYPE
+// ========================================================
+
+const selectedSubType =
+    contributorSubTypes.find(
+        (subType) =>
+            String(subType.id) ===
+            String(form.contributorSubTypeId)
+    );
+
+const isOtherSubType =
+    selectedSubType?.name === "Other";
     // ========================================================
     // RENDER
     // ========================================================
@@ -1693,48 +1720,39 @@ function CreateUserDialog({
                                             }
                                         />
 
-                                        <SelectField
-                                            label="Contributor Subtype"
-                                            required
-                                            icon={
-                                                <Code2
-                                                    size={
-                                                        17
-                                                    }
-                                                />
-                                            }
-                                            value={
-                                                form.contributorSubTypeId
-                                            }
-                                            onChange={
-                                                handleContributorSubTypeChange
-                                            }
-                                            placeholder={
-                                                !form.contributorTypeId
-                                                    ? "Select contributor type first"
-                                                    : loadingSubTypes
-                                                    ? "Loading subtypes..."
-                                                    : "Select contributor subtype"
-                                            }
-                                            options={contributorSubTypes.map(
-                                                (
-                                                    subType
-                                                ) => ({
-                                                    value:
-                                                        subType.id,
-                                                    label:
-                                                        subType.name,
-                                                })
-                                            )}
-                                            error={
-                                                errors.contributorSubType
-                                            }
-                                            disabled={
-                                                !form.contributorTypeId ||
-                                                loadingSubTypes ||
-                                                submitting
-                                            }
-                                        />
+                               {form.contributorTypeId && !isTeamLeader && (
+    <SelectField
+        label="Contributor Subtype"
+        required
+        icon={
+            <Code2 size={17} />
+        }
+        value={
+            form.contributorSubTypeId
+        }
+        onChange={
+            handleContributorSubTypeChange
+        }
+        placeholder={
+            loadingSubTypes
+                ? "Loading subtypes..."
+                : "Select contributor subtype"
+        }
+        options={contributorSubTypes.map(
+            (subType) => ({
+                value: subType.id,
+                label: subType.name,
+            })
+        )}
+        error={
+            errors.contributorSubType
+        }
+        disabled={
+            loadingSubTypes ||
+            submitting
+        }
+    />
+)}
                                     </div>
 
                                     {isOtherSubType && (

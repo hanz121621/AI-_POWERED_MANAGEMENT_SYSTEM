@@ -9,15 +9,15 @@ import api from "@/services/api";
 // ============================================================
 // ROLE CONSTANTS
 // Backend enum:
-// Admin       = 0
-// Manager     = 1
-// Contributor = 2
+// Admin       = 1
+// Manager     = 2
+// Contributor = 3
 // ============================================================
 
 export const USER_ROLES = {
-    ADMIN: 0,
-    MANAGER: 1,
-    CONTRIBUTOR: 2,
+    ADMIN: 1,
+    MANAGER: 2,
+    CONTRIBUTOR: 3,
 };
 
 // ============================================================
@@ -27,24 +27,24 @@ export const USER_ROLES = {
 
 export function normalizeUserRole(role) {
     if (
-        role === 0 ||
-        role === "0" ||
+        role === 1 ||
+        role === "1" ||
         String(role).trim().toLowerCase() === "admin"
     ) {
         return "Admin";
     }
 
     if (
-        role === 1 ||
-        role === "1" ||
+        role === 2 ||
+        role === "2" ||
         String(role).trim().toLowerCase() === "manager"
     ) {
         return "Manager";
     }
 
     if (
-        role === 2 ||
-        role === "2" ||
+        role === 3 ||
+        role === "3" ||
         String(role).trim().toLowerCase() === "contributor"
     ) {
         return "Contributor";
