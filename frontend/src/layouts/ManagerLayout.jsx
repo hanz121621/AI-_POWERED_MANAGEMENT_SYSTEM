@@ -1,4 +1,4 @@
-import React from "react";
+
 import { Outlet } from "react-router-dom";
 
 import ManagerSidebar from "@/components/manager/ManagerSidebar";
