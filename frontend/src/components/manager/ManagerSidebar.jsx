@@ -1,293 +1,280 @@
 import React from "react";
 import {
-  LayoutDashboard,
-  FolderKanban,
-  GitBranch,
-  Users,
-  CheckSquare,
-  Calendar,
-  FileText,
-  Bell,
-  Settings,
-  LogOut,
-  BrainCircuit,
+    LayoutDashboard,
+    FolderKanban,
+    ListTodo,
+    UsersRound,
+    Sparkles,
+    FileBarChart,
+    UserRound,
+    Settings,
+    CircleHelp,
+    LogOut,
 } from "lucide-react";
-import {
-  NavLink,
-  useNavigate,
-} from "react-router-dom";
-import { logoutUser } from "../../services/authService";
+
+import { NavLink, useNavigate } from "react-router-dom";
+
+// ============================================================
+// MANAGER SIDEBAR
+// ============================================================
 
 function ManagerSidebar() {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
-  const menuItems = [
-    {
-      name: "Dashboard",
-      icon: LayoutDashboard,
-      path: "/manager/dashboard",
-    },
+    // ============================================================
+    // MAIN NAVIGATION
+    // ============================================================
 
-    {
-      name: "Projects",
-      icon: FolderKanban,
-      path: "/manager/projects",
-    },
+    const navigationItems = [
+        {
+            label: "Dashboard",
+            path: "/manager/dashboard",
+            icon: LayoutDashboard,
+        },
+        {
+            label: "Projects",
+            path: "/manager/projects",
+            icon: FolderKanban,
+        },
+        {
+            label: "Sprint",
+            path: "/manager/sprints",
+            icon: ListTodo,
+        },
+        {
+            label: "Team",
+            path: "/manager/team",
+            icon: UsersRound,
+        },
+        {
+            label: "AI Features",
+            path: "/manager/ai-features",
+            icon: Sparkles,
+        },
+        {
+            label: "Report",
+            path: "/manager/reports",
+            icon: FileBarChart,
+        },
+        {
+            label: "Profile Management",
+            path: "/manager/profile",
+            icon: UserRound,
+        },
+    ];
 
-    {
-      name: "Sprint",
-      icon: GitBranch,
-      path: "/manager/sprints",
-    },
+    // ============================================================
+    // BOTTOM NAVIGATION
+    // ============================================================
 
-    {
-      name: "Team",
-      icon: Users,
-      path: "/manager/team",
-    },
+    const bottomNavigationItems = [
+        {
+            label: "Settings",
+            path: "/manager/settings",
+            icon: Settings,
+        },
+        {
+            label: "Help",
+            path: "/manager/help",
+            icon: CircleHelp,
+        },
+    ];
 
-    {
-      name: "Tasks",
-      icon: CheckSquare,
-      path: "/manager/tasks",
-    },
+    // ============================================================
+    // LOGOUT
+    // ============================================================
 
-    {
-      name: "Calendar",
-      icon: Calendar,
-      path: "/manager/calendar",
-    },
+    const handleLogout = () => {
+        navigate("/logout");
+    };
 
-    {
-      name: "Files",
-      icon: FileText,
-      path: "/manager/files",
-    },
+    // ============================================================
+    // NAVIGATION ITEM
+    // ============================================================
 
-    {
-      name: "Notifications",
-      icon: Bell,
-      path: "/manager/notifications",
-    },
+    const renderNavigationItem = (item) => {
+        const Icon = item.icon;
 
-    // ============================
-    // AI FEATURES
-    // ============================
-    {
-      name: "AI Features",
-      icon: BrainCircuit,
-      path: "/manager/ai-features",
-    },
-
-    {
-      name: "Settings",
-      icon: Settings,
-      path: "/manager/settings",
-    },
-  ];
-
-  // ============================
-  // Logout
-  // ============================
-  const handleLogout = () => {
-    // Remove current logged-in user
-    logoutUser();
-
-    // Go to login page
-    navigate("/login", {
-      replace: true,
-    });
-  };
-
-  return (
-    <aside
-      className="
-        fixed
-        left-0
-        top-0
-        w-64
-        h-screen
-        bg-[#0f172a]
-        text-white
-        flex
-        flex-col
-        overflow-hidden
-        z-50
-      "
-    >
-      {/* ============================
-          Logo
-      ============================ */}
-
-      <div
-        className="
-          h-20
-          flex
-          items-center
-          px-6
-          border-b
-          border-gray-700
-          flex-shrink-0
-        "
-      >
-        <h1
-          className="
-            text-xl
-            font-bold
-            tracking-wide
-            text-white
-          "
-        >
-          AI-PMS
-        </h1>
-      </div>
-
-      {/* ============================
-          Navigation
-      ============================ */}
-
-      <nav
-        className="
-          flex-1
-          px-4
-          py-6
-          space-y-2
-          overflow-y-auto
-        "
-      >
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-
-          return (
+        return (
             <NavLink
-              key={item.name}
-              to={item.path}
-              className={({ isActive }) =>
-                `
-                  flex
-                  items-center
-                  gap-3
-                  px-4
-                  py-3
-                  rounded-lg
-                  transition-all
-                  duration-200
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                    [
+                        "group",
+                        "flex",
+                        "items-center",
+                        "gap-3",
+                        "w-full",
+                        "px-4",
+                        "py-3",
+                        "rounded-xl",
+                        "text-sm",
+                        "font-medium",
+                        "transition-all",
+                        "duration-200",
 
-                  ${
-                    isActive
-                      ? "bg-blue-600 text-white shadow-lg"
-                      : "text-gray-300 hover:bg-slate-800 hover:text-white"
-                  }
-                `
-              }
+                        isActive
+                            ? "bg-slate-800 text-white shadow-sm"
+                            : "text-slate-400 hover:bg-slate-800/70 hover:text-white",
+                    ].join(" ")
+                }
             >
-              <Icon size={20} />
+                {({ isActive }) => (
+                    <>
+                        <Icon
+                            size={20}
+                            strokeWidth={isActive ? 2.3 : 2}
+                            className={
+                                isActive
+                                    ? "text-white"
+                                    : "text-slate-400 group-hover:text-white"
+                            }
+                        />
 
-              <span
-                className="
-                  text-sm
-                  font-medium
-                "
-              >
-                {item.name}
-              </span>
+                        <span>{item.label}</span>
+                    </>
+                )}
             </NavLink>
-          );
-        })}
-      </nav>
+        );
+    };
 
-      {/* ============================
-          Bottom User Section
-      ============================ */}
+    // ============================================================
+    // RENDER
+    // ============================================================
 
-      <div
-        className="
-          p-4
-          bg-[#0f172a]
-          border-t
-          border-gray-700
-          flex-shrink-0
-        "
-      >
-        <div
-          className="
-            flex
-            items-center
-            gap-3
-            mb-4
-          "
-        >
-          <div
+    return (
+        <aside
             className="
-              w-10
-              h-10
-              rounded-full
-              bg-blue-600
-              flex
-              items-center
-              justify-center
-              font-bold
-              text-white
-            "
-          >
-            M
-          </div>
-
-          <div>
-            <h3
-              className="
+                fixed
+                left-0
+                top-0
+                z-40
+                flex
+                h-screen
+                w-64
+                flex-col
+                border-r
+                border-slate-800
+                bg-slate-950
                 text-white
-                font-semibold
-                text-sm
-              "
-            >
-              Manager
-            </h3>
-
-            <p
-              className="
-                text-gray-400
-                text-xs
-              "
-            >
-              Project Manager
-            </p>
-          </div>
-        </div>
-
-        {/* ============================
-            Logout Button
-        ============================ */}
-
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="
-            w-full
-            flex
-            items-center
-            justify-center
-            gap-2
-            py-2
-            rounded-lg
-            bg-red-600
-            hover:bg-red-700
-            active:bg-red-800
-            text-white
-            transition
-            duration-200
-            cursor-pointer
-          "
+            "
         >
-          <LogOut size={18} />
+            {/* ==================================================
+                LOGO / BRAND
+            ================================================== */}
 
-          <span>
-            Logout
-          </span>
-        </button>
-      </div>
-    </aside>
-  );
+            <div className="flex h-20 shrink-0 items-center border-b border-slate-800 px-6">
+                <div className="flex items-center gap-3">
+                    <div
+                        className="
+                            flex
+                            h-10
+                            w-10
+                            items-center
+                            justify-center
+                            rounded-xl
+                            bg-slate-800
+                            text-white
+                        "
+                    >
+                        <Sparkles
+                            size={21}
+                            strokeWidth={2}
+                        />
+                    </div>
+
+                    <div>
+                        <h1 className="text-base font-bold tracking-wide">
+                            AIPMS
+                        </h1>
+
+                        <p className="text-xs text-slate-500">
+                            Manager
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* ==================================================
+                NAVIGATION
+            ================================================== */}
+
+            <nav className="flex-1 overflow-y-auto px-3 py-5">
+                {/* MAIN ITEMS */}
+
+                <div className="space-y-1">
+                    {navigationItems.map(renderNavigationItem)}
+                </div>
+
+                {/* ==================================================
+                    SEPARATOR
+                ================================================== */}
+
+                <div className="my-5 px-3">
+                    <div className="h-px bg-slate-800" />
+                </div>
+
+                {/* ==================================================
+                    BOTTOM ITEMS
+                ================================================== */}
+
+                <div className="space-y-1">
+                    {bottomNavigationItems.map(renderNavigationItem)}
+                </div>
+
+                {/* ==================================================
+                    LOGOUT
+                ================================================== */}
+
+                <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="
+                        group
+                        mt-1
+                        flex
+                        w-full
+                        items-center
+                        gap-3
+                        rounded-xl
+                        px-4
+                        py-3
+                        text-left
+                        text-sm
+                        font-medium
+                        text-slate-400
+                        transition-all
+                        duration-200
+                        hover:bg-red-500/10
+                        hover:text-red-400
+                    "
+                >
+                    <LogOut
+                        size={20}
+                        strokeWidth={2}
+                        className="
+                            text-slate-400
+                            transition-colors
+                            group-hover:text-red-400
+                        "
+                    />
+
+                    <span>Logout</span>
+                </button>
+            </nav>
+
+            {/* ==================================================
+                FOOTER
+            ================================================== */}
+
+            <div className="shrink-0 border-t border-slate-800 px-5 py-4">
+                <p className="text-center text-xs text-slate-600">
+                    AI-Powered Project Management
+                </p>
+            </div>
+        </aside>
+    );
 }
 
 export default ManagerSidebar;
