@@ -1487,6 +1487,10 @@ function CreateUserDialog({
                         </div>
 
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                            {console.log(
+    "ACCOUNT STATUS OPTIONS:",
+    ACCOUNT_STATUSES
+)}
                             <SelectField
                                 label="Account Status"
                                 required
@@ -1645,6 +1649,13 @@ function CreateUserDialog({
 
                                 <CardContent>
                                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                        {console.log(
+    "DROPDOWN OPTIONS:",
+    contributorTypes.map((type) => ({
+        value: type.id,
+        label: type.name,
+    }))
+)}
                                         <SelectField
                                             label="Contributor Type"
                                             required
@@ -1667,15 +1678,12 @@ function CreateUserDialog({
                                                     : "Select contributor type"
                                             }
                                             options={contributorTypes.map(
-                                                (
-                                                    type
-                                                ) => ({
-                                                    value:
-                                                        type.id,
-                                                    label:
-                                                        type.name,
-                                                })
-                                            )}
+    (type) => ({
+        value: type.id,
+        label: type.name,
+    })
+)}
+
                                             error={
                                                 errors.contributorType
                                             }

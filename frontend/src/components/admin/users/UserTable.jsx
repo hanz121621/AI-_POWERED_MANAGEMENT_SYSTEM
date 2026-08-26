@@ -167,9 +167,9 @@ function UserTable({
 
        BACKEND ENUM:
 
-       Admin       = 0
-       Manager     = 1
-       Contributor = 2
+       Admin       = 1
+       Manager     = 2
+       Contributor = 3
     ===================================================== */
 
     const getRawRole = (user) => {
@@ -185,9 +185,9 @@ function UserTable({
 
        Backend:
 
-       Role.Admin       = 0
-       Role.Manager     = 1
-       Role.Contributor = 2
+       Role.Admin       = 1
+       Role.Manager     = 2
+       Role.Contributor = 3
     ===================================================== */
 
     const getAccountCategory = (user) => {
@@ -197,12 +197,12 @@ function UserTable({
             normalizeText(rawRole);
 
         /* -------------------------------------------------
-           ADMIN = 0
+           ADMIN = 1
         ------------------------------------------------- */
 
         if (
-            rawRole === 0 ||
-            normalizedRole === "0" ||
+            rawRole === 1 ||
+            normalizedRole === "1" ||
             normalizedRole === "admin" ||
             normalizedRole === "administrator" ||
             normalizedRole === "system admin" ||
@@ -213,12 +213,12 @@ function UserTable({
         }
 
         /* -------------------------------------------------
-           MANAGER = 1
+           MANAGER = 2
         ------------------------------------------------- */
 
         if (
-            rawRole === 1 ||
-            normalizedRole === "1" ||
+            rawRole === 2 ||
+            normalizedRole === "2" ||
             normalizedRole === "manager" ||
             normalizedRole === "project manager" ||
             normalizedRole === "team manager"
@@ -227,12 +227,12 @@ function UserTable({
         }
 
         /* -------------------------------------------------
-           CONTRIBUTOR = 2
+           CONTRIBUTOR = 3
         ------------------------------------------------- */
 
         if (
-            rawRole === 2 ||
-            normalizedRole === "2" ||
+            rawRole === 3 ||
+            normalizedRole === "3" ||
             normalizedRole === "contributor" ||
             normalizedRole === "contribution" ||
             normalizedRole === "team member"
