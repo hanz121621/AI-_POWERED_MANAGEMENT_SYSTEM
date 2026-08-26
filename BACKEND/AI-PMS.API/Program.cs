@@ -23,6 +23,10 @@ using AI_PMS.Application.Interfaces.Teams;
 using AI_PMS.Application.Services.Teams;
 using AI_PMS.Application.Interfaces.Repositories.Teams;
 using AI_PMS.Infrastructure.Repositories.Teams;
+using AI_PMS.Application.Interfaces.Repositories.Teams;
+using AI_PMS.Application.Interfaces.Teams;
+using AI_PMS.Application.Services.Teams;
+using AI_PMS.Infrastructure.Repositories.Teams;
 
 using AI_PMS.Infrastructure.Repositories.Activities;
 using AI_PMS.Infrastructure.Repositories.Projects;
@@ -221,7 +225,16 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
 builder.Services.AddScoped<IUserPermissionRepository, UserPermissionRepository>();
     
-    
+    builder.Services.AddScoped<
+    ITeamLeaderWorkMonitoringRepository,
+    TeamLeaderWorkMonitoringRepository>();
+
+builder.Services.AddScoped<
+    ITeamLeaderWorkMonitoringService,
+    TeamLeaderWorkMonitoringService>();
+    builder.Services.AddScoped<
+    ITeamMemberRequestRepository,
+    TeamMemberRequestRepository>();
 
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddEndpointsApiExplorer();
