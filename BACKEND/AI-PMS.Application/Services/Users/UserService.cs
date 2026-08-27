@@ -114,7 +114,7 @@ namespace AI_PMS.Application.Services.Users
                 }
             }
 
-          // =====================================================
+ // =====================================================
 // CONTRIBUTOR VALIDATION
 // =====================================================
 
@@ -131,41 +131,41 @@ if (dto.Role == Role.Contributor)
     }
 
     // -----------------------------------------------------
-    // CONTRIBUTOR SUBTYPE IS REQUIRED
+    // CHECK WHETHER THE CONTRIBUTOR TYPE HAS SUBTYPES
     // -----------------------------------------------------
 
-    if (!dto.ContributorSubTypeId.HasValue)
+    var hasSubTypes =
+        await _userRepository
+            .ContributorTypeHasSubTypesAsync(
+                dto.ContributorTypeId.Value);
+
+    // -----------------------------------------------------
+    // SUBTYPE IS REQUIRED ONLY IF THE TYPE HAS SUBTYPES
+    // -----------------------------------------------------
+
+    if (hasSubTypes && !dto.ContributorSubTypeId.HasValue)
     {
         throw new InvalidOperationException(
-            "Contributor Sub Type is required for Contributor users.");
+            "Contributor Sub Type is required for this Contributor Type.");
     }
 
     // -----------------------------------------------------
-    // VALIDATE TYPE + SUBTYPE RELATIONSHIP
-    // -----------------------------------------------------
-    //
-    // Example:
-    //
-    // Type:
-    // Developer
-    //
-    // Subtype:
-    // Backend Developer
-    //
-    // Backend Developer MUST belong to Developer.
-    //
+    // IF SUBTYPE WAS PROVIDED, VALIDATE RELATIONSHIP
     // -----------------------------------------------------
 
-    var classificationExists =
-        await _userRepository
-            .ContributorClassificationExistsAsync(
-                dto.ContributorTypeId.Value,
-                dto.ContributorSubTypeId.Value);
-
-    if (!classificationExists)
+    if (dto.ContributorSubTypeId.HasValue)
     {
-        throw new InvalidOperationException(
-            "The selected Contributor Sub Type does not belong to the selected Contributor Type.");
+        var classificationExists =
+            await _userRepository
+                .ContributorClassificationExistsAsync(
+                    dto.ContributorTypeId.Value,
+                    dto.ContributorSubTypeId.Value);
+
+        if (!classificationExists)
+        {
+            throw new InvalidOperationException(
+                "The selected Contributor Sub Type does not belong to the selected Contributor Type.");
+        }
     }
 }
 
@@ -379,12 +379,7 @@ if (dto.Role == Role.Contributor)
                         "A user with this phone number already exists.");
                 }
             }
-
-            // =====================================================
-            // CONTRIBUTOR VALIDATION
-            // =====================================================
-
-           // =====================================================
+   // =====================================================
 // CONTRIBUTOR VALIDATION
 // =====================================================
 
@@ -398,16 +393,6 @@ if (dto.Role == Role.Contributor)
     {
         throw new InvalidOperationException(
             "Contributor Type is required for Contributor users.");
-    }
-
-    // -----------------------------------------------------
-    // CONTRIBUTOR SUBTYPE IS REQUIRED
-    // -----------------------------------------------------
-
-    if (!dto.ContributorSubTypeId.HasValue)
-    {
-        throw new InvalidOperationException(
-            "Contributor Sub Type is required for Contributor users.");
     }
 
     // -----------------------------------------------------
@@ -426,34 +411,60 @@ if (dto.Role == Role.Contributor)
     }
 
     // -----------------------------------------------------
-    // VALIDATE CONTRIBUTOR SUBTYPE
+    // CHECK WHETHER CONTRIBUTOR TYPE HAS SUBTYPES
     // -----------------------------------------------------
 
-    var contributorSubTypeExists =
+    var hasSubTypes =
         await _userRepository
-            .ContributorSubTypeExistsAsync(
-                dto.ContributorSubTypeId.Value);
+            .ContributorTypeHasSubTypesAsync(
+                dto.ContributorTypeId.Value);
 
-    if (!contributorSubTypeExists)
+    // -----------------------------------------------------
+    // SUBTYPE IS REQUIRED ONLY IF TYPE HAS SUBTYPES
+    // -----------------------------------------------------
+
+    if (hasSubTypes && !dto.ContributorSubTypeId.HasValue)
     {
         throw new InvalidOperationException(
-            "The selected Contributor Sub Type does not exist or is inactive.");
+            "Contributor Sub Type is required for this Contributor Type.");
     }
 
     // -----------------------------------------------------
-    // VALIDATE TYPE ↔ SUBTYPE RELATIONSHIP
+    // IF SUBTYPE WAS PROVIDED, VALIDATE IT
     // -----------------------------------------------------
 
-    var classificationExists =
-        await _userRepository
-            .ContributorClassificationExistsAsync(
-                dto.ContributorTypeId.Value,
-                dto.ContributorSubTypeId.Value);
-
-    if (!classificationExists)
+    if (dto.ContributorSubTypeId.HasValue)
     {
-        throw new InvalidOperationException(
-            "The selected Contributor Sub Type does not belong to the selected Contributor Type.");
+        // -------------------------------------------------
+        // VALIDATE CONTRIBUTOR SUBTYPE EXISTS
+        // -------------------------------------------------
+
+        var contributorSubTypeExists =
+            await _userRepository
+                .ContributorSubTypeExistsAsync(
+                    dto.ContributorSubTypeId.Value);
+
+        if (!contributorSubTypeExists)
+        {
+            throw new InvalidOperationException(
+                "The selected Contributor Sub Type does not exist or is inactive.");
+        }
+
+        // -------------------------------------------------
+        // VALIDATE TYPE ↔ SUBTYPE RELATIONSHIP
+        // -------------------------------------------------
+
+        var classificationExists =
+            await _userRepository
+                .ContributorClassificationExistsAsync(
+                    dto.ContributorTypeId.Value,
+                    dto.ContributorSubTypeId.Value);
+
+        if (!classificationExists)
+        {
+            throw new InvalidOperationException(
+                "The selected Contributor Sub Type does not belong to the selected Contributor Type.");
+        }
     }
 }
 

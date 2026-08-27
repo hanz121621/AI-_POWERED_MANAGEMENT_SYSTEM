@@ -141,7 +141,18 @@ public class UserRepository : IUserRepository
             .OrderBy(u => u.FullName)
             .ToListAsync();
     }
+// =========================================================
+// CHECK WHETHER CONTRIBUTOR TYPE HAS ACTIVE SUBTYPES
+// =========================================================
 
+public async Task<bool> ContributorTypeHasSubTypesAsync(
+    Guid contributorTypeId)
+{
+    return await _context.ContributorSubTypes
+        .AnyAsync(cst =>
+            cst.ContributorTypeId == contributorTypeId &&
+            cst.IsActive);
+}
         // =========================================================
     // CHECK CONTRIBUTOR TYPE EXISTS
     // =========================================================

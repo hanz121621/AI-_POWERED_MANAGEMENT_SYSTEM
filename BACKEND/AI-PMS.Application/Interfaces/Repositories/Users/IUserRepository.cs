@@ -29,7 +29,9 @@ public interface IUserRepository
     // =========================================================
     // CONTRIBUTOR CLASSIFICATION
     // =========================================================
-
+Task<bool> ContributorTypeHasSubTypesAsync(
+    Guid contributorTypeId);
+    
     Task<bool> ContributorTypeExistsAsync(
         Guid contributorTypeId);
 
