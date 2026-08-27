@@ -1643,25 +1643,60 @@ function TeamManagement() {
     // CURRENT SELECTED CONTRIBUTOR TYPE
     // ========================================================
 
-    const selectedContributorType =
-        contributorTypes.find(
-            (type) =>
-                String(type.id) ===
+  // ========================================================
+// CREATE TEAM CONTRIBUTOR TYPES
+// Only Staff and Developer
+// ========================================================
+console.log(
+    "ALL CONTRIBUTOR TYPES:",
+    contributorTypes
+);
+const createTeamContributorTypes =
+    contributorTypes.filter(
+        (type) => {
+            const name =
                 String(
-                    memberForm.contributorTypeId
+                    type.name ||
+                    type.displayName ||
+                    ""
                 )
-        );
+                    .trim()
+                    .toLowerCase();
 
-    const currentSubTypes =
-        selectedContributorType?.subTypes ||
-        selectedContributorType?.contributorSubTypes ||
-        [];
+            return (
+                name === "staff" ||
+                name === "developer"
+            );
+        }
+    );
 
-    // ========================================================
-    // RENDER
-    // ========================================================
+// ========================================================
+// CURRENT SELECTED CONTRIBUTOR TYPE
+// ========================================================
 
-    return (
+const selectedContributorType =
+    createTeamContributorTypes.find(
+        (type) =>
+            String(type.id) ===
+            String(
+                memberForm.contributorTypeId
+            )
+    );
+
+// ========================================================
+// CURRENT SUBTYPES
+// ========================================================
+
+const currentSubTypes =
+    selectedContributorType?.subTypes ||
+    selectedContributorType?.contributorSubTypes ||
+    [];
+
+// ========================================================
+// RENDER
+// ========================================================
+
+return (
         <div className="min-h-full bg-background p-4 text-foreground sm:p-6 lg:p-8">
 
             {/* ==================================================
@@ -2220,7 +2255,7 @@ function TeamManagement() {
                                                 Select contributor type
                                             </option>
 
-                                            {contributorTypes.map(
+                                        {createTeamContributorTypes.map(
                                                 (type) => (
                                                     <option
                                                         key={type.id}

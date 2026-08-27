@@ -220,9 +220,16 @@ function CreateUserDialog({
                 );
 
             console.log(
-                "CONTRIBUTOR TYPES RESPONSE:",
-                response.data
-            );
+    "========== RAW CONTRIBUTOR TYPES =========="
+);
+
+console.log(
+    JSON.stringify(response.data, null, 2)
+);
+
+console.log(
+    "==========================================="
+);
 
             const data =
                 response?.data;
@@ -238,30 +245,36 @@ function CreateUserDialog({
                     ? data.result
                     : [];
 
-            const normalizedTypes =
-                types
-                    .map((type) => ({
-                        id:
-                            type?.id ??
-                            type?.Id ??
-                            type?.contributorTypeId ??
-                            type?.ContributorTypeId,
+                    console.log(
+    "RAW CONTRIBUTOR TYPES:",
+    JSON.stringify(types, null, 2)
+);
+           const normalizedTypes =
+    types
+        .map((type) => ({
+            id:
+                type?.id ??
+                type?.Id ??
+                type?.contributorTypeId ??
+                type?.ContributorTypeId,
 
-                        name:
-                            type?.name ??
-                            type?.Name ??
-                            type?.typeName ??
-                            type?.TypeName ??
-                            "",
-                    }))
-                    .filter(
-                        (type) =>
-                            type.id !== null &&
-                            type.id !== undefined &&
-                            String(
-                                type.name
-                            ).trim() !== ""
-                    );
+            name:
+                type?.name ??
+                type?.Name ??
+                type?.typeName ??
+                type?.TypeName ??
+                type?.contributorTypeName ??
+                type?.ContributorTypeName ??
+                type?.displayName ??
+                type?.DisplayName ??
+                "",
+        }))
+        .filter(
+            (type) =>
+                type.id !== null &&
+                type.id !== undefined &&
+                String(type.name).trim() !== ""
+        );
 
             console.log(
                 "NORMALIZED CONTRIBUTOR TYPES:",
@@ -825,14 +838,11 @@ if (!isTeamLeader) {
                     "Please select a contributor type.";
             }
 
-            const isTeamLeader =
-    form.contributorType
-        ?.trim()
-        .toLowerCase() === "team leader";
+         const requiresSubtype =
+    contributorSubTypes.length > 0;
 
 if (
-    form.contributorTypeId &&
-    !isTeamLeader &&
+    requiresSubtype &&
     !form.contributorSubTypeId
 ) {
     newErrors.contributorSubType =
@@ -1720,7 +1730,8 @@ const isOtherSubType =
                                             }
                                         />
 
-                               {form.contributorTypeId && !isTeamLeader && (
+                               {form.contributorTypeId &&
+    contributorSubTypes.length > 0 && (
     <SelectField
         label="Contributor Subtype"
         required
@@ -2196,6 +2207,20 @@ function SelectField({
     error,
     disabled = false,
 }) {
+    const selectedOption = options.find((option) => {
+        const optionValue =
+            typeof option === "object"
+                ? option.value
+                : option;
+
+        return String(optionValue) === String(value);
+    });
+
+    const selectedLabel =
+        typeof selectedOption === "object"
+            ? selectedOption.label
+            : selectedOption;
+
     return (
         <div className="space-y-2">
             <Label>
@@ -2233,12 +2258,9 @@ function SelectField({
                         <span className="text-muted-foreground">
                             {icon}
                         </span>
-
-                        <SelectValue
-                            placeholder={
-                                placeholder
-                            }
-                        />
+<SelectValue placeholder={placeholder}>
+    {selectedLabel}
+</SelectValue>
                     </div>
                 </SelectTrigger>
 
