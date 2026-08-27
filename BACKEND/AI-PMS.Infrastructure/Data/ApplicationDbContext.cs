@@ -15,6 +15,9 @@ using AI_PMS.Domain.Entities.NotificationSettings;
 using AI_PMS.Domain.Entities.AISettings;
 using AI_PMS.Domain.Entities.DashboardSettings;
 using AI_PMS.Application.Interfaces.Data;
+using AI_PMS.Domain.Entities.Communication;
+using AI_PMS.Domain.Entities.Notifications;
+using AI_PMS.Domain.Entities.Risks;
 
 
 
@@ -56,6 +59,20 @@ namespace AI_PMS.Infrastructure.Data
             Set<TeamMember>();
             public DbSet<TeamMemberRequest> TeamMemberRequests =>
     Set<TeamMemberRequest>();
+    public DbSet<Message> Messages =>
+    Set<Message>();
+
+public DbSet<MessageMention> MessageMentions =>
+    Set<MessageMention>();
+
+public DbSet<Notification> Notifications =>
+    Set<Notification>();
+
+public DbSet<NotificationType> NotificationTypes =>
+    Set<NotificationType>();
+
+public DbSet<RiskIssue> RiskIssues =>
+    Set<RiskIssue>();
 
         public DbSet<ActivityLog> ActivityLogs { get; set; } = null!;
 
