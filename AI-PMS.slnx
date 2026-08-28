@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="AI-PMS.API/AI-PMS.API.csproj" />
+  <Project Path="AI-PMS.Application/AI-PMS.Application.csproj" />
+  <Project Path="AI-PMS.Domain/AI-PMS.Domain.csproj" />
+  <Project Path="AI-PMS.Infrastructure/AI-PMS.Infrastructure.csproj" />
+</Solution>

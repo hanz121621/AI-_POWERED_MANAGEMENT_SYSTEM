@@ -1,0 +1,1278 @@
+﻿{
+    "openapi":  "3.0.4",
+    "info":  {
+                 "title":  "AI-PMS.API",
+                 "version":  "1.0"
+             },
+    "paths":  {
+                  "/api/AIConfiguration":  {
+                                               "get":  {
+                                                           "tags":  [
+                                                                        "AIConfiguration"
+                                                                    ],
+                                                           "responses":  {
+                                                                             "200":  {
+                                                                                         "description":  "OK"
+                                                                                     }
+                                                                         }
+                                                       },
+                                               "put":  {
+                                                           "tags":  [
+                                                                        "AIConfiguration"
+                                                                    ],
+                                                           "requestBody":  {
+                                                                               "content":  {
+                                                                                               "application/json":  {
+                                                                                                                        "schema":  {
+                                                                                                                                       "$ref":  "#/components/schemas/AIConfigurationDto"
+                                                                                                                                   }
+                                                                                                                    },
+                                                                                               "text/json":  {
+                                                                                                                 "schema":  {
+                                                                                                                                "$ref":  "#/components/schemas/AIConfigurationDto"
+                                                                                                                            }
+                                                                                                             },
+                                                                                               "application/*+json":  {
+                                                                                                                          "schema":  {
+                                                                                                                                         "$ref":  "#/components/schemas/AIConfigurationDto"
+                                                                                                                                     }
+                                                                                                                      }
+                                                                                           }
+                                                                           },
+                                                           "responses":  {
+                                                                             "200":  {
+                                                                                         "description":  "OK"
+                                                                                     }
+                                                                         }
+                                                       }
+                                           },
+                  "/api/AISuggestion":  {
+                                            "get":  {
+                                                        "tags":  [
+                                                                     "AISuggestion"
+                                                                 ],
+                                                        "responses":  {
+                                                                          "200":  {
+                                                                                      "description":  "OK"
+                                                                                  }
+                                                                      }
+                                                    },
+                                            "post":  {
+                                                         "tags":  [
+                                                                      "AISuggestion"
+                                                                  ],
+                                                         "requestBody":  {
+                                                                             "content":  {
+                                                                                             "application/json":  {
+                                                                                                                      "schema":  {
+                                                                                                                                     "$ref":  "#/components/schemas/AISuggestionDto"
+                                                                                                                                 }
+                                                                                                                  },
+                                                                                             "text/json":  {
+                                                                                                               "schema":  {
+                                                                                                                              "$ref":  "#/components/schemas/AISuggestionDto"
+                                                                                                                          }
+                                                                                                           },
+                                                                                             "application/*+json":  {
+                                                                                                                        "schema":  {
+                                                                                                                                       "$ref":  "#/components/schemas/AISuggestionDto"
+                                                                                                                                   }
+                                                                                                                    }
+                                                                                         }
+                                                                         },
+                                                         "responses":  {
+                                                                           "200":  {
+                                                                                       "description":  "OK"
+                                                                                   }
+                                                                       }
+                                                     }
+                                        },
+                  "/api/AISuggestion/{id}":  {
+                                                 "get":  {
+                                                             "tags":  [
+                                                                          "AISuggestion"
+                                                                      ],
+                                                             "parameters":  [
+                                                                                {
+                                                                                    "name":  "id",
+                                                                                    "in":  "path",
+                                                                                    "required":  true,
+                                                                                    "schema":  {
+                                                                                                   "type":  "string",
+                                                                                                   "format":  "uuid"
+                                                                                               }
+                                                                                }
+                                                                            ],
+                                                             "responses":  {
+                                                                               "200":  {
+                                                                                           "description":  "OK"
+                                                                                       }
+                                                                           }
+                                                         }
+                                             },
+                  "/api/AISuggestion/{id}/read":  {
+                                                      "put":  {
+                                                                  "tags":  [
+                                                                               "AISuggestion"
+                                                                           ],
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "id",
+                                                                                         "in":  "path",
+                                                                                         "required":  true,
+                                                                                         "schema":  {
+                                                                                                        "type":  "string",
+                                                                                                        "format":  "uuid"
+                                                                                                    }
+                                                                                     }
+                                                                                 ],
+                                                                  "responses":  {
+                                                                                    "200":  {
+                                                                                                "description":  "OK"
+                                                                                            }
+                                                                                }
+                                                              }
+                                                  },
+                  "/api/AIUsageStatistics":  {
+                                                 "get":  {
+                                                             "tags":  [
+                                                                          "AIUsageStatistics"
+                                                                      ],
+                                                             "responses":  {
+                                                                               "200":  {
+                                                                                           "description":  "OK",
+                                                                                           "content":  {
+                                                                                                           "text/plain":  {
+                                                                                                                              "schema":  {
+                                                                                                                                             "$ref":  "#/components/schemas/AIUsageStatisticsResponse"
+                                                                                                                                         }
+                                                                                                                          },
+                                                                                                           "application/json":  {
+                                                                                                                                    "schema":  {
+                                                                                                                                                   "$ref":  "#/components/schemas/AIUsageStatisticsResponse"
+                                                                                                                                               }
+                                                                                                                                },
+                                                                                                           "text/json":  {
+                                                                                                                             "schema":  {
+                                                                                                                                            "$ref":  "#/components/schemas/AIUsageStatisticsResponse"
+                                                                                                                                        }
+                                                                                                                         }
+                                                                                                       }
+                                                                                       }
+                                                                           }
+                                                         }
+                                             },
+                  "/api/BottleneckDetection":  {
+                                                   "post":  {
+                                                                "tags":  [
+                                                                             "BottleneckDetection"
+                                                                         ],
+                                                                "requestBody":  {
+                                                                                    "content":  {
+                                                                                                    "application/json":  {
+                                                                                                                             "schema":  {
+                                                                                                                                            "$ref":  "#/components/schemas/BottleneckRequest"
+                                                                                                                                        }
+                                                                                                                         },
+                                                                                                    "text/json":  {
+                                                                                                                      "schema":  {
+                                                                                                                                     "$ref":  "#/components/schemas/BottleneckRequest"
+                                                                                                                                 }
+                                                                                                                  },
+                                                                                                    "application/*+json":  {
+                                                                                                                               "schema":  {
+                                                                                                                                              "$ref":  "#/components/schemas/BottleneckRequest"
+                                                                                                                                          }
+                                                                                                                           }
+                                                                                                }
+                                                                                },
+                                                                "responses":  {
+                                                                                  "200":  {
+                                                                                              "description":  "OK",
+                                                                                              "content":  {
+                                                                                                              "text/plain":  {
+                                                                                                                                 "schema":  {
+                                                                                                                                                "$ref":  "#/components/schemas/BottleneckResponse"
+                                                                                                                                            }
+                                                                                                                             },
+                                                                                                              "application/json":  {
+                                                                                                                                       "schema":  {
+                                                                                                                                                      "$ref":  "#/components/schemas/BottleneckResponse"
+                                                                                                                                                  }
+                                                                                                                                   },
+                                                                                                              "text/json":  {
+                                                                                                                                "schema":  {
+                                                                                                                                               "$ref":  "#/components/schemas/BottleneckResponse"
+                                                                                                                                           }
+                                                                                                                            }
+                                                                                                          }
+                                                                                          }
+                                                                              }
+                                                            }
+                                               },
+                  "/api/BottleneckDetection/project/{projectId}":  {
+                                                                       "post":  {
+                                                                                    "tags":  [
+                                                                                                 "BottleneckDetection"
+                                                                                             ],
+                                                                                    "parameters":  [
+                                                                                                       {
+                                                                                                           "name":  "projectId",
+                                                                                                           "in":  "path",
+                                                                                                           "required":  true,
+                                                                                                           "schema":  {
+                                                                                                                          "type":  "string",
+                                                                                                                          "format":  "uuid"
+                                                                                                                      }
+                                                                                                       }
+                                                                                                   ],
+                                                                                    "responses":  {
+                                                                                                      "200":  {
+                                                                                                                  "description":  "OK",
+                                                                                                                  "content":  {
+                                                                                                                                  "text/plain":  {
+                                                                                                                                                     "schema":  {
+                                                                                                                                                                    "$ref":  "#/components/schemas/BottleneckResponse"
+                                                                                                                                                                }
+                                                                                                                                                 },
+                                                                                                                                  "application/json":  {
+                                                                                                                                                           "schema":  {
+                                                                                                                                                                          "$ref":  "#/components/schemas/BottleneckResponse"
+                                                                                                                                                                      }
+                                                                                                                                                       },
+                                                                                                                                  "text/json":  {
+                                                                                                                                                    "schema":  {
+                                                                                                                                                                   "$ref":  "#/components/schemas/BottleneckResponse"
+                                                                                                                                                               }
+                                                                                                                                                }
+                                                                                                                              }
+                                                                                                              }
+                                                                                                  }
+                                                                                }
+                                                                   },
+                  "/api/DeadlinePrediction":  {
+                                                  "post":  {
+                                                               "tags":  [
+                                                                            "DeadlinePrediction"
+                                                                        ],
+                                                               "requestBody":  {
+                                                                                   "content":  {
+                                                                                                   "application/json":  {
+                                                                                                                            "schema":  {
+                                                                                                                                           "$ref":  "#/components/schemas/DeadlinePredictionRequest"
+                                                                                                                                       }
+                                                                                                                        },
+                                                                                                   "text/json":  {
+                                                                                                                     "schema":  {
+                                                                                                                                    "$ref":  "#/components/schemas/DeadlinePredictionRequest"
+                                                                                                                                }
+                                                                                                                 },
+                                                                                                   "application/*+json":  {
+                                                                                                                              "schema":  {
+                                                                                                                                             "$ref":  "#/components/schemas/DeadlinePredictionRequest"
+                                                                                                                                         }
+                                                                                                                          }
+                                                                                               }
+                                                                               },
+                                                               "responses":  {
+                                                                                 "200":  {
+                                                                                             "description":  "OK"
+                                                                                         }
+                                                                             }
+                                                           }
+                                              },
+                  "/api/DeadlinePrediction/project/{projectId}":  {
+                                                                      "post":  {
+                                                                                   "tags":  [
+                                                                                                "DeadlinePrediction"
+                                                                                            ],
+                                                                                   "parameters":  [
+                                                                                                      {
+                                                                                                          "name":  "projectId",
+                                                                                                          "in":  "path",
+                                                                                                          "required":  true,
+                                                                                                          "schema":  {
+                                                                                                                         "type":  "string",
+                                                                                                                         "format":  "uuid"
+                                                                                                                     }
+                                                                                                      }
+                                                                                                  ],
+                                                                                   "responses":  {
+                                                                                                     "200":  {
+                                                                                                                 "description":  "OK"
+                                                                                                             }
+                                                                                                 }
+                                                                               }
+                                                                  },
+                  "/api/ProjectProgress":  {
+                                               "post":  {
+                                                            "tags":  [
+                                                                         "ProjectProgress"
+                                                                     ],
+                                                            "requestBody":  {
+                                                                                "content":  {
+                                                                                                "application/json":  {
+                                                                                                                         "schema":  {
+                                                                                                                                        "$ref":  "#/components/schemas/ProjectProgressRequest"
+                                                                                                                                    }
+                                                                                                                     },
+                                                                                                "text/json":  {
+                                                                                                                  "schema":  {
+                                                                                                                                 "$ref":  "#/components/schemas/ProjectProgressRequest"
+                                                                                                                             }
+                                                                                                              },
+                                                                                                "application/*+json":  {
+                                                                                                                           "schema":  {
+                                                                                                                                          "$ref":  "#/components/schemas/ProjectProgressRequest"
+                                                                                                                                      }
+                                                                                                                       }
+                                                                                            }
+                                                                            },
+                                                            "responses":  {
+                                                                              "200":  {
+                                                                                          "description":  "OK"
+                                                                                      }
+                                                                          }
+                                                        }
+                                           },
+                  "/api/ProjectProgress/project/{projectId}":  {
+                                                                   "post":  {
+                                                                                "tags":  [
+                                                                                             "ProjectProgress"
+                                                                                         ],
+                                                                                "parameters":  [
+                                                                                                   {
+                                                                                                       "name":  "projectId",
+                                                                                                       "in":  "path",
+                                                                                                       "required":  true,
+                                                                                                       "schema":  {
+                                                                                                                      "type":  "string",
+                                                                                                                      "format":  "uuid"
+                                                                                                                  }
+                                                                                                   }
+                                                                                               ],
+                                                                                "responses":  {
+                                                                                                  "200":  {
+                                                                                                              "description":  "OK"
+                                                                                                          }
+                                                                                              }
+                                                                            }
+                                                               },
+                  "/api/Recommendation":  {
+                                              "post":  {
+                                                           "tags":  [
+                                                                        "Recommendation"
+                                                                    ],
+                                                           "requestBody":  {
+                                                                               "content":  {
+                                                                                               "application/json":  {
+                                                                                                                        "schema":  {
+                                                                                                                                       "$ref":  "#/components/schemas/RecommendationRequest"
+                                                                                                                                   }
+                                                                                                                    },
+                                                                                               "text/json":  {
+                                                                                                                 "schema":  {
+                                                                                                                                "$ref":  "#/components/schemas/RecommendationRequest"
+                                                                                                                            }
+                                                                                                             },
+                                                                                               "application/*+json":  {
+                                                                                                                          "schema":  {
+                                                                                                                                         "$ref":  "#/components/schemas/RecommendationRequest"
+                                                                                                                                     }
+                                                                                                                      }
+                                                                                           }
+                                                                           },
+                                                           "responses":  {
+                                                                             "200":  {
+                                                                                         "description":  "OK",
+                                                                                         "content":  {
+                                                                                                         "text/plain":  {
+                                                                                                                            "schema":  {
+                                                                                                                                           "$ref":  "#/components/schemas/RecommendationResponse"
+                                                                                                                                       }
+                                                                                                                        },
+                                                                                                         "application/json":  {
+                                                                                                                                  "schema":  {
+                                                                                                                                                 "$ref":  "#/components/schemas/RecommendationResponse"
+                                                                                                                                             }
+                                                                                                                              },
+                                                                                                         "text/json":  {
+                                                                                                                           "schema":  {
+                                                                                                                                          "$ref":  "#/components/schemas/RecommendationResponse"
+                                                                                                                                      }
+                                                                                                                       }
+                                                                                                     }
+                                                                                     }
+                                                                         }
+                                                       }
+                                          },
+                  "/api/RiskPrediction":  {
+                                              "post":  {
+                                                           "tags":  [
+                                                                        "RiskPrediction"
+                                                                    ],
+                                                           "requestBody":  {
+                                                                               "content":  {
+                                                                                               "application/json":  {
+                                                                                                                        "schema":  {
+                                                                                                                                       "$ref":  "#/components/schemas/RiskPredictionRequest"
+                                                                                                                                   }
+                                                                                                                    },
+                                                                                               "text/json":  {
+                                                                                                                 "schema":  {
+                                                                                                                                "$ref":  "#/components/schemas/RiskPredictionRequest"
+                                                                                                                            }
+                                                                                                             },
+                                                                                               "application/*+json":  {
+                                                                                                                          "schema":  {
+                                                                                                                                         "$ref":  "#/components/schemas/RiskPredictionRequest"
+                                                                                                                                     }
+                                                                                                                      }
+                                                                                           }
+                                                                           },
+                                                           "responses":  {
+                                                                             "200":  {
+                                                                                         "description":  "OK",
+                                                                                         "content":  {
+                                                                                                         "text/plain":  {
+                                                                                                                            "schema":  {
+                                                                                                                                           "$ref":  "#/components/schemas/RiskPredictionResponse"
+                                                                                                                                       }
+                                                                                                                        },
+                                                                                                         "application/json":  {
+                                                                                                                                  "schema":  {
+                                                                                                                                                 "$ref":  "#/components/schemas/RiskPredictionResponse"
+                                                                                                                                             }
+                                                                                                                              },
+                                                                                                         "text/json":  {
+                                                                                                                           "schema":  {
+                                                                                                                                          "$ref":  "#/components/schemas/RiskPredictionResponse"
+                                                                                                                                      }
+                                                                                                                       }
+                                                                                                     }
+                                                                                     }
+                                                                         }
+                                                       }
+                                          },
+                  "/api/TaskAnalysis":  {
+                                            "post":  {
+                                                         "tags":  [
+                                                                      "TaskAnalysis"
+                                                                  ],
+                                                         "requestBody":  {
+                                                                             "content":  {
+                                                                                             "application/json":  {
+                                                                                                                      "schema":  {
+                                                                                                                                     "$ref":  "#/components/schemas/TaskAnalysisRequest"
+                                                                                                                                 }
+                                                                                                                  },
+                                                                                             "text/json":  {
+                                                                                                               "schema":  {
+                                                                                                                              "$ref":  "#/components/schemas/TaskAnalysisRequest"
+                                                                                                                          }
+                                                                                                           },
+                                                                                             "application/*+json":  {
+                                                                                                                        "schema":  {
+                                                                                                                                       "$ref":  "#/components/schemas/TaskAnalysisRequest"
+                                                                                                                                   }
+                                                                                                                    }
+                                                                                         }
+                                                                         },
+                                                         "responses":  {
+                                                                           "200":  {
+                                                                                       "description":  "OK",
+                                                                                       "content":  {
+                                                                                                       "text/plain":  {
+                                                                                                                          "schema":  {
+                                                                                                                                         "$ref":  "#/components/schemas/TaskAnalysisResponse"
+                                                                                                                                     }
+                                                                                                                      },
+                                                                                                       "application/json":  {
+                                                                                                                                "schema":  {
+                                                                                                                                               "$ref":  "#/components/schemas/TaskAnalysisResponse"
+                                                                                                                                           }
+                                                                                                                            },
+                                                                                                       "text/json":  {
+                                                                                                                         "schema":  {
+                                                                                                                                        "$ref":  "#/components/schemas/TaskAnalysisResponse"
+                                                                                                                                    }
+                                                                                                                     }
+                                                                                                   }
+                                                                                   }
+                                                                       }
+                                                     }
+                                        },
+                  "/api/TaskDecomposition":  {
+                                                 "post":  {
+                                                              "tags":  [
+                                                                           "TaskDecomposition"
+                                                                       ],
+                                                              "requestBody":  {
+                                                                                  "content":  {
+                                                                                                  "application/json":  {
+                                                                                                                           "schema":  {
+                                                                                                                                          "$ref":  "#/components/schemas/TaskDecompositionRequest"
+                                                                                                                                      }
+                                                                                                                       },
+                                                                                                  "text/json":  {
+                                                                                                                    "schema":  {
+                                                                                                                                   "$ref":  "#/components/schemas/TaskDecompositionRequest"
+                                                                                                                               }
+                                                                                                                },
+                                                                                                  "application/*+json":  {
+                                                                                                                             "schema":  {
+                                                                                                                                            "$ref":  "#/components/schemas/TaskDecompositionRequest"
+                                                                                                                                        }
+                                                                                                                         }
+                                                                                              }
+                                                                              },
+                                                              "responses":  {
+                                                                                "200":  {
+                                                                                            "description":  "OK",
+                                                                                            "content":  {
+                                                                                                            "text/plain":  {
+                                                                                                                               "schema":  {
+                                                                                                                                              "$ref":  "#/components/schemas/TaskDecompositionResponse"
+                                                                                                                                          }
+                                                                                                                           },
+                                                                                                            "application/json":  {
+                                                                                                                                     "schema":  {
+                                                                                                                                                    "$ref":  "#/components/schemas/TaskDecompositionResponse"
+                                                                                                                                                }
+                                                                                                                                 },
+                                                                                                            "text/json":  {
+                                                                                                                              "schema":  {
+                                                                                                                                             "$ref":  "#/components/schemas/TaskDecompositionResponse"
+                                                                                                                                         }
+                                                                                                                          }
+                                                                                                        }
+                                                                                        }
+                                                                            }
+                                                          }
+                                             },
+                  "/api/TaskSize":  {
+                                        "post":  {
+                                                     "tags":  [
+                                                                  "TaskSize"
+                                                              ],
+                                                     "requestBody":  {
+                                                                         "content":  {
+                                                                                         "application/json":  {
+                                                                                                                  "schema":  {
+                                                                                                                                 "$ref":  "#/components/schemas/TaskDecompositionRequest"
+                                                                                                                             }
+                                                                                                              },
+                                                                                         "text/json":  {
+                                                                                                           "schema":  {
+                                                                                                                          "$ref":  "#/components/schemas/TaskDecompositionRequest"
+                                                                                                                      }
+                                                                                                       },
+                                                                                         "application/*+json":  {
+                                                                                                                    "schema":  {
+                                                                                                                                   "$ref":  "#/components/schemas/TaskDecompositionRequest"
+                                                                                                                               }
+                                                                                                                }
+                                                                                     }
+                                                                     },
+                                                     "responses":  {
+                                                                       "200":  {
+                                                                                   "description":  "OK",
+                                                                                   "content":  {
+                                                                                                   "text/plain":  {
+                                                                                                                      "schema":  {
+                                                                                                                                     "$ref":  "#/components/schemas/TaskSizeResponse"
+                                                                                                                                 }
+                                                                                                                  },
+                                                                                                   "application/json":  {
+                                                                                                                            "schema":  {
+                                                                                                                                           "$ref":  "#/components/schemas/TaskSizeResponse"
+                                                                                                                                       }
+                                                                                                                        },
+                                                                                                   "text/json":  {
+                                                                                                                     "schema":  {
+                                                                                                                                    "$ref":  "#/components/schemas/TaskSizeResponse"
+                                                                                                                                }
+                                                                                                                 }
+                                                                                               }
+                                                                               }
+                                                                   }
+                                                 }
+                                    },
+                  "/api/TeamPerformance":  {
+                                               "post":  {
+                                                            "tags":  [
+                                                                         "TeamPerformance"
+                                                                     ],
+                                                            "requestBody":  {
+                                                                                "content":  {
+                                                                                                "application/json":  {
+                                                                                                                         "schema":  {
+                                                                                                                                        "$ref":  "#/components/schemas/TeamPerformanceRequest"
+                                                                                                                                    }
+                                                                                                                     },
+                                                                                                "text/json":  {
+                                                                                                                  "schema":  {
+                                                                                                                                 "$ref":  "#/components/schemas/TeamPerformanceRequest"
+                                                                                                                             }
+                                                                                                              },
+                                                                                                "application/*+json":  {
+                                                                                                                           "schema":  {
+                                                                                                                                          "$ref":  "#/components/schemas/TeamPerformanceRequest"
+                                                                                                                                      }
+                                                                                                                       }
+                                                                                            }
+                                                                            },
+                                                            "responses":  {
+                                                                              "200":  {
+                                                                                          "description":  "OK"
+                                                                                      }
+                                                                          }
+                                                        }
+                                           },
+                  "/api/TeamPerformance/project/{projectId}":  {
+                                                                   "post":  {
+                                                                                "tags":  [
+                                                                                             "TeamPerformance"
+                                                                                         ],
+                                                                                "parameters":  [
+                                                                                                   {
+                                                                                                       "name":  "projectId",
+                                                                                                       "in":  "path",
+                                                                                                       "required":  true,
+                                                                                                       "schema":  {
+                                                                                                                      "type":  "string",
+                                                                                                                      "format":  "uuid"
+                                                                                                                  }
+                                                                                                   }
+                                                                                               ],
+                                                                                "responses":  {
+                                                                                                  "200":  {
+                                                                                                              "description":  "OK"
+                                                                                                          }
+                                                                                              }
+                                                                            }
+                                                               }
+              },
+    "components":  {
+                       "schemas":  {
+                                       "AIConfigurationDto":  {
+                                                                  "type":  "object",
+                                                                  "properties":  {
+                                                                                     "id":  {
+                                                                                                "type":  "string",
+                                                                                                "format":  "uuid"
+                                                                                            },
+                                                                                     "isAIEnabled":  {
+                                                                                                         "type":  "boolean"
+                                                                                                     },
+                                                                                     "enableRecommendations":  {
+                                                                                                                   "type":  "boolean"
+                                                                                                               },
+                                                                                     "enableRiskPrediction":  {
+                                                                                                                  "type":  "boolean"
+                                                                                                              },
+                                                                                     "analysisFrequencyMinutes":  {
+                                                                                                                      "type":  "integer",
+                                                                                                                      "format":  "int32"
+                                                                                                                  },
+                                                                                     "enableNotifications":  {
+                                                                                                                 "type":  "boolean"
+                                                                                                             },
+                                                                                     "model":  {
+                                                                                                   "type":  "string",
+                                                                                                   "nullable":  true
+                                                                                               }
+                                                                                 },
+                                                                  "additionalProperties":  false
+                                                              },
+                                       "AISuggestionDto":  {
+                                                               "type":  "object",
+                                                               "properties":  {
+                                                                                  "id":  {
+                                                                                             "type":  "string",
+                                                                                             "format":  "uuid"
+                                                                                         },
+                                                                                  "projectId":  {
+                                                                                                    "type":  "string",
+                                                                                                    "format":  "uuid",
+                                                                                                    "nullable":  true
+                                                                                                },
+                                                                                  "type":  {
+                                                                                               "type":  "string",
+                                                                                               "nullable":  true
+                                                                                           },
+                                                                                  "title":  {
+                                                                                                "type":  "string",
+                                                                                                "nullable":  true
+                                                                                            },
+                                                                                  "description":  {
+                                                                                                      "type":  "string",
+                                                                                                      "nullable":  true
+                                                                                                  },
+                                                                                  "priority":  {
+                                                                                                   "type":  "string",
+                                                                                                   "nullable":  true
+                                                                                               },
+                                                                                  "isRead":  {
+                                                                                                 "type":  "boolean"
+                                                                                             },
+                                                                                  "createdAt":  {
+                                                                                                    "type":  "string",
+                                                                                                    "format":  "date-time"
+                                                                                                }
+                                                                              },
+                                                               "additionalProperties":  false
+                                                           },
+                                       "AIUsageStatisticsResponse":  {
+                                                                         "type":  "object",
+                                                                         "properties":  {
+                                                                                            "totalSuggestions":  {
+                                                                                                                     "type":  "integer",
+                                                                                                                     "format":  "int32"
+                                                                                                                 },
+                                                                                            "unreadSuggestions":  {
+                                                                                                                      "type":  "integer",
+                                                                                                                      "format":  "int32"
+                                                                                                                  },
+                                                                                            "readSuggestions":  {
+                                                                                                                    "type":  "integer",
+                                                                                                                    "format":  "int32"
+                                                                                                                },
+                                                                                            "taskDecompositionCount":  {
+                                                                                                                           "type":  "integer",
+                                                                                                                           "format":  "int32"
+                                                                                                                       },
+                                                                                            "riskPredictionCount":  {
+                                                                                                                        "type":  "integer",
+                                                                                                                        "format":  "int32"
+                                                                                                                    },
+                                                                                            "recommendationCount":  {
+                                                                                                                        "type":  "integer",
+                                                                                                                        "format":  "int32"
+                                                                                                                    },
+                                                                                            "bottleneckDetectionCount":  {
+                                                                                                                             "type":  "integer",
+                                                                                                                             "format":  "int32"
+                                                                                                                         },
+                                                                                            "suggestionsByType":  {
+                                                                                                                      "type":  "object",
+                                                                                                                      "additionalProperties":  {
+                                                                                                                                                   "type":  "integer",
+                                                                                                                                                   "format":  "int32"
+                                                                                                                                               },
+                                                                                                                      "nullable":  true
+                                                                                                                  },
+                                                                                            "suggestionsByPriority":  {
+                                                                                                                          "type":  "object",
+                                                                                                                          "additionalProperties":  {
+                                                                                                                                                       "type":  "integer",
+                                                                                                                                                       "format":  "int32"
+                                                                                                                                                   },
+                                                                                                                          "nullable":  true
+                                                                                                                      },
+                                                                                            "lastSuggestionCreatedAt":  {
+                                                                                                                            "type":  "string",
+                                                                                                                            "format":  "date-time",
+                                                                                                                            "nullable":  true
+                                                                                                                        }
+                                                                                        },
+                                                                         "additionalProperties":  false
+                                                                     },
+                                       "BottleneckItem":  {
+                                                              "type":  "object",
+                                                              "properties":  {
+                                                                                 "taskTitle":  {
+                                                                                                   "type":  "string",
+                                                                                                   "nullable":  true
+                                                                                               },
+                                                                                 "reason":  {
+                                                                                                "type":  "string",
+                                                                                                "nullable":  true
+                                                                                            },
+                                                                                 "severity":  {
+                                                                                                  "type":  "string",
+                                                                                                  "nullable":  true
+                                                                                              },
+                                                                                 "suggestedActions":  {
+                                                                                                          "type":  "array",
+                                                                                                          "items":  {
+                                                                                                                        "type":  "string"
+                                                                                                                    },
+                                                                                                          "nullable":  true
+                                                                                                      }
+                                                                             },
+                                                              "additionalProperties":  false
+                                                          },
+                                       "BottleneckRequest":  {
+                                                                 "type":  "object",
+                                                                 "properties":  {
+                                                                                    "projectName":  {
+                                                                                                        "type":  "string",
+                                                                                                        "nullable":  true
+                                                                                                    },
+                                                                                    "tasks":  {
+                                                                                                  "type":  "array",
+                                                                                                  "items":  {
+                                                                                                                "$ref":  "#/components/schemas/BottleneckTaskDto"
+                                                                                                            },
+                                                                                                  "nullable":  true
+                                                                                              }
+                                                                                },
+                                                                 "additionalProperties":  false
+                                                             },
+                                       "BottleneckResponse":  {
+                                                                  "type":  "object",
+                                                                  "properties":  {
+                                                                                     "bottlenecks":  {
+                                                                                                         "type":  "array",
+                                                                                                         "items":  {
+                                                                                                                       "$ref":  "#/components/schemas/BottleneckItem"
+                                                                                                                   },
+                                                                                                         "nullable":  true
+                                                                                                     },
+                                                                                     "recommendations":  {
+                                                                                                             "type":  "array",
+                                                                                                             "items":  {
+                                                                                                                           "type":  "string"
+                                                                                                                       },
+                                                                                                             "nullable":  true
+                                                                                                         }
+                                                                                 },
+                                                                  "additionalProperties":  false
+                                                              },
+                                       "BottleneckTaskDto":  {
+                                                                 "type":  "object",
+                                                                 "properties":  {
+                                                                                    "title":  {
+                                                                                                  "type":  "string",
+                                                                                                  "nullable":  true
+                                                                                              },
+                                                                                    "status":  {
+                                                                                                   "type":  "string",
+                                                                                                   "nullable":  true
+                                                                                               },
+                                                                                    "complexity":  {
+                                                                                                       "type":  "string",
+                                                                                                       "nullable":  true
+                                                                                                   },
+                                                                                    "estimatedHours":  {
+                                                                                                           "type":  "integer",
+                                                                                                           "format":  "int32"
+                                                                                                       },
+                                                                                    "assignedTo":  {
+                                                                                                       "type":  "string",
+                                                                                                       "nullable":  true
+                                                                                                   }
+                                                                                },
+                                                                 "additionalProperties":  false
+                                                             },
+                                       "DeadlinePredictionRequest":  {
+                                                                         "type":  "object",
+                                                                         "properties":  {
+                                                                                            "projectName":  {
+                                                                                                                "type":  "string",
+                                                                                                                "nullable":  true
+                                                                                                            },
+                                                                                            "projectDeadline":  {
+                                                                                                                    "type":  "string",
+                                                                                                                    "format":  "date-time",
+                                                                                                                    "nullable":  true
+                                                                                                                },
+                                                                                            "totalTasks":  {
+                                                                                                               "type":  "integer",
+                                                                                                               "format":  "int32"
+                                                                                                           },
+                                                                                            "completedTasks":  {
+                                                                                                                   "type":  "integer",
+                                                                                                                   "format":  "int32"
+                                                                                                               },
+                                                                                            "remainingTasks":  {
+                                                                                                                   "type":  "integer",
+                                                                                                                   "format":  "int32"
+                                                                                                               },
+                                                                                            "inProgressTasks":  {
+                                                                                                                    "type":  "integer",
+                                                                                                                    "format":  "int32"
+                                                                                                                },
+                                                                                            "blockedTasks":  {
+                                                                                                                 "type":  "integer",
+                                                                                                                 "format":  "int32"
+                                                                                                             },
+                                                                                            "overdueTasks":  {
+                                                                                                                 "type":  "integer",
+                                                                                                                 "format":  "int32"
+                                                                                                             },
+                                                                                            "totalEstimatedHours":  {
+                                                                                                                        "type":  "integer",
+                                                                                                                        "format":  "int32"
+                                                                                                                    },
+                                                                                            "totalActualHours":  {
+                                                                                                                     "type":  "integer",
+                                                                                                                     "format":  "int32"
+                                                                                                                 },
+                                                                                            "completionRate":  {
+                                                                                                                   "type":  "number",
+                                                                                                                   "format":  "double"
+                                                                                                               }
+                                                                                        },
+                                                                         "additionalProperties":  false
+                                                                     },
+                                       "ProjectProgressRequest":  {
+                                                                      "type":  "object",
+                                                                      "properties":  {
+                                                                                         "projectName":  {
+                                                                                                             "type":  "string",
+                                                                                                             "nullable":  true
+                                                                                                         },
+                                                                                         "totalTasks":  {
+                                                                                                            "type":  "integer",
+                                                                                                            "format":  "int32"
+                                                                                                        },
+                                                                                         "completedTasks":  {
+                                                                                                                "type":  "integer",
+                                                                                                                "format":  "int32"
+                                                                                                            },
+                                                                                         "inProgressTasks":  {
+                                                                                                                 "type":  "integer",
+                                                                                                                 "format":  "int32"
+                                                                                                             },
+                                                                                         "blockedTasks":  {
+                                                                                                              "type":  "integer",
+                                                                                                              "format":  "int32"
+                                                                                                          },
+                                                                                         "remainingTasks":  {
+                                                                                                                "type":  "integer",
+                                                                                                                "format":  "int32"
+                                                                                                            },
+                                                                                         "completionRate":  {
+                                                                                                                "type":  "number",
+                                                                                                                "format":  "double"
+                                                                                                            },
+                                                                                         "totalSprints":  {
+                                                                                                              "type":  "integer",
+                                                                                                              "format":  "int32"
+                                                                                                          },
+                                                                                         "completedSprints":  {
+                                                                                                                  "type":  "integer",
+                                                                                                                  "format":  "int32"
+                                                                                                              },
+                                                                                         "activeSprints":  {
+                                                                                                               "type":  "integer",
+                                                                                                               "format":  "int32"
+                                                                                                           },
+                                                                                         "totalEstimatedHours":  {
+                                                                                                                     "type":  "integer",
+                                                                                                                     "format":  "int32"
+                                                                                                                 },
+                                                                                         "totalActualHours":  {
+                                                                                                                  "type":  "integer",
+                                                                                                                  "format":  "int32"
+                                                                                                              }
+                                                                                     },
+                                                                      "additionalProperties":  false
+                                                                  },
+                                       "RecommendationRequest":  {
+                                                                     "type":  "object",
+                                                                     "properties":  {
+                                                                                        "title":  {
+                                                                                                      "type":  "string",
+                                                                                                      "nullable":  true
+                                                                                                  },
+                                                                                        "description":  {
+                                                                                                            "type":  "string",
+                                                                                                            "nullable":  true
+                                                                                                        },
+                                                                                        "complexity":  {
+                                                                                                           "type":  "string",
+                                                                                                           "nullable":  true
+                                                                                                       },
+                                                                                        "estimatedHours":  {
+                                                                                                               "type":  "integer",
+                                                                                                               "format":  "int32"
+                                                                                                           }
+                                                                                    },
+                                                                     "additionalProperties":  false
+                                                                 },
+                                       "RecommendationResponse":  {
+                                                                      "type":  "object",
+                                                                      "properties":  {
+                                                                                         "recommendations":  {
+                                                                                                                 "type":  "array",
+                                                                                                                 "items":  {
+                                                                                                                               "type":  "string"
+                                                                                                                           },
+                                                                                                                 "nullable":  true
+                                                                                                             },
+                                                                                         "suggestedActions":  {
+                                                                                                                  "type":  "array",
+                                                                                                                  "items":  {
+                                                                                                                                "type":  "string"
+                                                                                                                            },
+                                                                                                                  "nullable":  true
+                                                                                                              }
+                                                                                     },
+                                                                      "additionalProperties":  false
+                                                                  },
+                                       "RiskPredictionRequest":  {
+                                                                     "type":  "object",
+                                                                     "properties":  {
+                                                                                        "title":  {
+                                                                                                      "type":  "string",
+                                                                                                      "nullable":  true
+                                                                                                  },
+                                                                                        "description":  {
+                                                                                                            "type":  "string",
+                                                                                                            "nullable":  true
+                                                                                                        },
+                                                                                        "complexity":  {
+                                                                                                           "type":  "string",
+                                                                                                           "nullable":  true
+                                                                                                       },
+                                                                                        "estimatedHours":  {
+                                                                                                               "type":  "integer",
+                                                                                                               "format":  "int32"
+                                                                                                           }
+                                                                                    },
+                                                                     "additionalProperties":  false
+                                                                 },
+                                       "RiskPredictionResponse":  {
+                                                                      "type":  "object",
+                                                                      "properties":  {
+                                                                                         "riskLevel":  {
+                                                                                                           "type":  "string",
+                                                                                                           "nullable":  true
+                                                                                                       },
+                                                                                         "riskScore":  {
+                                                                                                           "type":  "integer",
+                                                                                                           "format":  "int32"
+                                                                                                       },
+                                                                                         "risks":  {
+                                                                                                       "type":  "array",
+                                                                                                       "items":  {
+                                                                                                                     "type":  "string"
+                                                                                                                 },
+                                                                                                       "nullable":  true
+                                                                                                   },
+                                                                                         "recommendations":  {
+                                                                                                                 "type":  "array",
+                                                                                                                 "items":  {
+                                                                                                                               "type":  "string"
+                                                                                                                           },
+                                                                                                                 "nullable":  true
+                                                                                                             }
+                                                                                     },
+                                                                      "additionalProperties":  false
+                                                                  },
+                                       "SubtaskDto":  {
+                                                          "type":  "object",
+                                                          "properties":  {
+                                                                             "title":  {
+                                                                                           "type":  "string",
+                                                                                           "nullable":  true
+                                                                                       },
+                                                                             "description":  {
+                                                                                                 "type":  "string",
+                                                                                                 "nullable":  true
+                                                                                             },
+                                                                             "complexity":  {
+                                                                                                "type":  "string",
+                                                                                                "nullable":  true
+                                                                                            },
+                                                                             "estimatedHours":  {
+                                                                                                    "type":  "number",
+                                                                                                    "format":  "double"
+                                                                                                },
+                                                                             "dependencies":  {
+                                                                                                  "type":  "array",
+                                                                                                  "items":  {
+                                                                                                                "type":  "string"
+                                                                                                            },
+                                                                                                  "nullable":  true
+                                                                                              }
+                                                                         },
+                                                          "additionalProperties":  false
+                                                      },
+                                       "TaskAnalysisRequest":  {
+                                                                   "type":  "object",
+                                                                   "properties":  {
+                                                                                      "title":  {
+                                                                                                    "type":  "string",
+                                                                                                    "nullable":  true
+                                                                                                },
+                                                                                      "description":  {
+                                                                                                          "type":  "string",
+                                                                                                          "nullable":  true
+                                                                                                      }
+                                                                                  },
+                                                                   "additionalProperties":  false
+                                                               },
+                                       "TaskAnalysisResponse":  {
+                                                                    "type":  "object",
+                                                                    "properties":  {
+                                                                                       "size":  {
+                                                                                                    "$ref":  "#/components/schemas/TaskSize"
+                                                                                                },
+                                                                                       "reason":  {
+                                                                                                      "type":  "string",
+                                                                                                      "nullable":  true
+                                                                                                  },
+                                                                                       "subtasks":  {
+                                                                                                        "type":  "array",
+                                                                                                        "items":  {
+                                                                                                                      "$ref":  "#/components/schemas/SubtaskDto"
+                                                                                                                  },
+                                                                                                        "nullable":  true
+                                                                                                    }
+                                                                                   },
+                                                                    "additionalProperties":  false
+                                                                },
+                                       "TaskDecompositionRequest":  {
+                                                                        "type":  "object",
+                                                                        "properties":  {
+                                                                                           "title":  {
+                                                                                                         "type":  "string",
+                                                                                                         "nullable":  true
+                                                                                                     },
+                                                                                           "description":  {
+                                                                                                               "type":  "string",
+                                                                                                               "nullable":  true
+                                                                                                           }
+                                                                                       },
+                                                                        "additionalProperties":  false
+                                                                    },
+                                       "TaskDecompositionResponse":  {
+                                                                         "type":  "object",
+                                                                         "properties":  {
+                                                                                            "subtasks":  {
+                                                                                                             "type":  "array",
+                                                                                                             "items":  {
+                                                                                                                           "$ref":  "#/components/schemas/SubtaskDto"
+                                                                                                                       },
+                                                                                                             "nullable":  true
+                                                                                                         }
+                                                                                        },
+                                                                         "additionalProperties":  false
+                                                                     },
+                                       "TaskSize":  {
+                                                        "enum":  [
+                                                                     0,
+                                                                     1,
+                                                                     2,
+                                                                     3
+                                                                 ],
+                                                        "type":  "integer",
+                                                        "format":  "int32"
+                                                    },
+                                       "TaskSizeResponse":  {
+                                                                "type":  "object",
+                                                                "properties":  {
+                                                                                   "size":  {
+                                                                                                "$ref":  "#/components/schemas/TaskSize"
+                                                                                            },
+                                                                                   "reason":  {
+                                                                                                  "type":  "string",
+                                                                                                  "nullable":  true
+                                                                                              }
+                                                                               },
+                                                                "additionalProperties":  false
+                                                            },
+                                       "TeamMemberPerformanceDto":  {
+                                                                        "type":  "object",
+                                                                        "properties":  {
+                                                                                           "memberName":  {
+                                                                                                              "type":  "string",
+                                                                                                              "nullable":  true
+                                                                                                          },
+                                                                                           "totalTasks":  {
+                                                                                                              "type":  "integer",
+                                                                                                              "format":  "int32"
+                                                                                                          },
+                                                                                           "completedTasks":  {
+                                                                                                                  "type":  "integer",
+                                                                                                                  "format":  "int32"
+                                                                                                              },
+                                                                                           "inProgressTasks":  {
+                                                                                                                   "type":  "integer",
+                                                                                                                   "format":  "int32"
+                                                                                                               },
+                                                                                           "blockedTasks":  {
+                                                                                                                "type":  "integer",
+                                                                                                                "format":  "int32"
+                                                                                                            },
+                                                                                           "overdueTasks":  {
+                                                                                                                "type":  "integer",
+                                                                                                                "format":  "int32"
+                                                                                                            },
+                                                                                           "estimatedHours":  {
+                                                                                                                  "type":  "integer",
+                                                                                                                  "format":  "int32"
+                                                                                                              },
+                                                                                           "actualHours":  {
+                                                                                                               "type":  "integer",
+                                                                                                               "format":  "int32"
+                                                                                                           },
+                                                                                           "completionRate":  {
+                                                                                                                  "type":  "number",
+                                                                                                                  "format":  "double"
+                                                                                                              }
+                                                                                       },
+                                                                        "additionalProperties":  false
+                                                                    },
+                                       "TeamPerformanceRequest":  {
+                                                                      "type":  "object",
+                                                                      "properties":  {
+                                                                                         "projectName":  {
+                                                                                                             "type":  "string",
+                                                                                                             "nullable":  true
+                                                                                                         },
+                                                                                         "teamMembers":  {
+                                                                                                             "type":  "array",
+                                                                                                             "items":  {
+                                                                                                                           "$ref":  "#/components/schemas/TeamMemberPerformanceDto"
+                                                                                                                       },
+                                                                                                             "nullable":  true
+                                                                                                         }
+                                                                                     },
+                                                                      "additionalProperties":  false
+                                                                  }
+                                   }
+                   },
+    "tags":  [
+                 {
+                     "name":  "AIConfiguration"
+                 },
+                 {
+                     "name":  "AISuggestion"
+                 },
+                 {
+                     "name":  "AIUsageStatistics"
+                 },
+                 {
+                     "name":  "BottleneckDetection"
+                 },
+                 {
+                     "name":  "DeadlinePrediction"
+                 },
+                 {
+                     "name":  "ProjectProgress"
+                 },
+                 {
+                     "name":  "Recommendation"
+                 },
+                 {
+                     "name":  "RiskPrediction"
+                 },
+                 {
+                     "name":  "TaskAnalysis"
+                 },
+                 {
+                     "name":  "TaskDecomposition"
+                 },
+                 {
+                     "name":  "TaskSize"
+                 },
+                 {
+                     "name":  "TeamPerformance"
+                 }
+             ]
+}
