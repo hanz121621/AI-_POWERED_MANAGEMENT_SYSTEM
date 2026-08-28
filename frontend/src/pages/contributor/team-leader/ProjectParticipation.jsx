@@ -16,29 +16,36 @@ import {
 // PROJECT USE CASE COMPONENTS
 // ============================================================
 
+
+
+
+// ============================================================
+// PROJECT USE CASE COMPONENTS
+// ============================================================
+
 // CONT-PROJECT-001
-import ViewAssignedProjects from "@/components/contributor/project/ViewAssignedProjects";
+import ViewAssignedProjects from "@/components/contributor/teamleader/project/ViewAssignedProjects";
 
 // CONT-PROJECT-002
-import ViewProjectDetails from "@/components/contributor/project/ViewProjectDetails";
+import ViewProjectDetails from "@/components/contributor/teamleader/project/ViewProjectDetails";
 
 // CONT-PROJECT-003
-import ViewProjectTeam from "@/components/contributor/project/ViewProjectTeam";
+import ViewProjectTeam from "@/components/contributor/teamleader/project/ViewProjectTeam";
 
 // CONT-PROJECT-004
-import ViewProjectTasks from "@/components/contributor/project/ViewProjectTasks";
+import ViewProjectTasks from "@/components/contributor/teamleader/project/ViewProjectTasks";
 
 // CONT-PROJECT-005
-import ViewProjectProgress from "@/components/contributor/project/ViewProjectProgress";
+import ViewProjectProgress from "@/components/contributor/teamleader/project/ViewProjectProgress";
 
 // CONT-PROJECT-006
-import ParticipateProjectCommunication from "@/components/contributor/project/ParticipateProjectCommunication";
+import ParticipateProjectCommunication from "@/components/contributor/teamleader/project/ParticipateProjectCommunication";
 
 // CONT-PROJECT-007
-import ViewProjectFiles from "@/components/contributor/project/ViewProjectFiles";
+import ViewProjectFiles from "@/components/contributor/teamleader/project/ViewProjectFiles";
 
 // CONT-PROJECT-008
-import RequestProjectAssistance from "@/components/contributor/project/RequestProjectAssistance";
+import RequestProjectAssistance from "@/components/contributor/teamleader/project/RequestProjectAssistance";
 
 // ============================================================
 // PAGE

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -6,21 +5,25 @@ import {
     BarChart3,
     ChevronDown,
     ClipboardList,
+    FileText,
     Gauge,
+    HelpCircle,
     LayoutDashboard,
     MessageSquare,
     UsersRound,
     Workflow,
+    FolderKanban,
     X,
 } from "lucide-react";
-
-
 
 function TeamLeaderSidebar({
     isOpen = true,
     onClose,
 }) {
     const [teamLeaderOpen, setTeamLeaderOpen] =
+        useState(true);
+
+    const [projectParticipationOpen, setProjectParticipationOpen] =
         useState(true);
 
     /* ========================================================
@@ -57,6 +60,53 @@ function TeamLeaderSidebar({
             label: "View Team Performance",
             path: "/team-leader/team-performance",
             icon: BarChart3,
+        },
+    ];
+
+    /* ========================================================
+       PROJECT PARTICIPATION SUB MENU
+    ======================================================== */
+
+    const projectParticipationItems = [
+        {
+            label: "View Assigned Projects",
+            icon: FolderKanban,
+            section: "assigned-projects",
+        },
+        {
+            label: "View Project Details",
+            icon: FileText,
+            section: "details",
+        },
+        {
+            label: "View Project Team",
+            icon: UsersRound,
+            section: "team",
+        },
+        {
+            label: "View Project Tasks",
+            icon: ClipboardList,
+            section: "tasks",
+        },
+        {
+            label: "View Project Progress",
+            icon: Gauge,
+            section: "progress",
+        },
+        {
+            label: "Participate in Project Communication",
+            icon: MessageSquare,
+            section: "communication",
+        },
+        {
+            label: "View Project Files",
+            icon: FileText,
+            section: "files",
+        },
+        {
+            label: "Request Project Assistance",
+            icon: HelpCircle,
+            section: "assistance",
         },
     ];
 
@@ -126,6 +176,36 @@ function TeamLeaderSidebar({
                   `
         }
         `;
+
+    /* ========================================================
+       PROJECT SUB ITEM CLASS
+    ======================================================== */
+
+    const projectSubItemClass =
+        `
+        group
+        flex
+        w-full
+        items-center
+        gap-3
+        rounded-lg
+        px-3
+        py-2
+        text-xs
+        transition-all
+        duration-200
+        text-slate-400
+        hover:bg-blue-950/60
+        hover:text-white
+        `;
+
+    /* ========================================================
+       PROJECT PARTICIPATION MAIN BUTTON
+    ======================================================== */
+
+    const isProjectParticipationPage =
+        window.location.pathname ===
+            "/team-leader/project-participation";
 
     return (
         <>
@@ -198,7 +278,6 @@ function TeamLeaderSidebar({
                     "
                 >
                     <div className="flex items-center gap-3">
-                        {/* LOGO */}
 
                         <div
                             className="
@@ -213,12 +292,8 @@ function TeamLeaderSidebar({
                                 shadow-sm
                             "
                         >
-                            <UsersRound
-                                className="h-5 w-5"
-                            />
+                            <UsersRound className="h-5 w-5" />
                         </div>
-
-                        {/* TITLE */}
 
                         <div>
                             <p
@@ -329,7 +404,8 @@ function TeamLeaderSidebar({
                     ================================================== */}
 
                     <div>
-                        {/* DROPDOWN BUTTON */}
+
+                        {/* TEAM LEADER BUTTON */}
 
                         <button
                             type="button"
@@ -358,7 +434,13 @@ function TeamLeaderSidebar({
                                 teamLeaderOpen
                             }
                         >
-                            <span className="flex items-center gap-3">
+                            <span
+                                className="
+                                    flex
+                                    items-center
+                                    gap-3
+                                "
+                            >
                                 <UsersRound
                                     className="
                                         h-5
@@ -391,7 +473,7 @@ function TeamLeaderSidebar({
                         </button>
 
                         {/* ==================================================
-                            DROPDOWN CONTENT
+                            TEAM LEADER CONTENT
                         ================================================== */}
 
                         {teamLeaderOpen && (
@@ -405,6 +487,10 @@ function TeamLeaderSidebar({
                                     pl-2
                                 "
                             >
+                                {/* ==================================================
+                                    TEAM LEADER FEATURES
+                                ================================================== */}
+
                                 {teamLeaderItems.map(
                                     (item) => {
                                         const Icon =
@@ -442,6 +528,171 @@ function TeamLeaderSidebar({
                                         );
                                     }
                                 )}
+
+                                {/* ==================================================
+                                    PROJECT PARTICIPATION
+                                ================================================== */}
+
+                                <div className="pt-1">
+
+                                    {/* PROJECT PARTICIPATION BUTTON */}
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setProjectParticipationOpen(
+                                                (current) =>
+                                                    !current
+                                            )
+                                        }
+                                        className={`
+                                            flex
+                                            w-full
+                                            items-center
+                                            justify-between
+                                            rounded-lg
+                                            px-3
+                                            py-2.5
+                                            text-sm
+                                            font-semibold
+                                            transition-all
+                                            duration-200
+
+                                            ${
+                                                isProjectParticipationPage
+                                                    ? "bg-blue-600 text-white"
+                                                    : "text-slate-300 hover:bg-blue-950/70 hover:text-white"
+                                            }
+                                        `}
+                                        aria-expanded={
+                                            projectParticipationOpen
+                                        }
+                                    >
+                                        <span
+                                            className="
+                                                flex
+                                                items-center
+                                                gap-3
+                                            "
+                                        >
+                                            <FolderKanban
+                                                className="
+                                                    h-4
+                                                    w-4
+                                                    shrink-0
+                                                    text-blue-400
+                                                "
+                                            />
+
+                                            <span>
+                                                Project Participation
+                                            </span>
+                                        </span>
+
+                                        <ChevronDown
+                                            className={`
+                                                h-4
+                                                w-4
+                                                text-slate-400
+                                                transition-transform
+                                                duration-200
+
+                                                ${
+                                                    projectParticipationOpen
+                                                        ? "rotate-180"
+                                                        : ""
+                                                }
+                                            `}
+                                        />
+                                    </button>
+
+                                    {/* ==================================================
+                                        PROJECT PARTICIPATION SUB MENU
+                                    ================================================== */}
+
+                                    {projectParticipationOpen && (
+                                        <div
+                                            className="
+                                                ml-5
+                                                mt-1
+                                                space-y-1
+                                                border-l
+                                                border-blue-900
+                                                pl-2
+                                            "
+                                        >
+                                            {/* ==================================================
+                                                MAIN PROJECT PARTICIPATION PAGE
+                                            ================================================== */}
+
+                                            <NavLink
+                                                to="/team-leader/project-participation"
+                                                onClick={onClose}
+                                                className={`
+                                                    ${projectSubItemClass}
+
+                                                    ${
+                                                        isProjectParticipationPage
+                                                            ? "bg-blue-600/80 text-white"
+                                                            : ""
+                                                    }
+                                                `}
+                                            >
+                                                <FolderKanban
+                                                    className="
+                                                        h-4
+                                                        w-4
+                                                        shrink-0
+                                                    "
+                                                />
+
+                                                <span>
+                                                    Project Participation
+                                                </span>
+                                            </NavLink>
+
+                                            {/* ==================================================
+                                                8 PROJECT USE CASES
+                                            ================================================== */}
+
+                                            {projectParticipationItems.map(
+                                                (item) => {
+                                                    const Icon =
+                                                        item.icon;
+
+                                                    return (
+                                                        <NavLink
+                                                            key={
+                                                                item.section
+                                                            }
+                                                            to={`/team-leader/project-participation?section=${item.section}`}
+                                                            onClick={
+                                                                onClose
+                                                            }
+                                                            className={
+                                                                projectSubItemClass
+                                                            }
+                                                        >
+                                                            <Icon
+                                                                className="
+                                                                    h-3.5
+                                                                    w-3.5
+                                                                    shrink-0
+                                                                "
+                                                            />
+
+                                                            <span>
+                                                                {
+                                                                    item.label
+                                                                }
+                                                            </span>
+                                                        </NavLink>
+                                                    );
+                                                }
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -486,9 +737,7 @@ function TeamLeaderSidebar({
                                     bg-blue-600
                                 "
                             >
-                                <UsersRound
-                                    className="h-4 w-4"
-                                />
+                                <UsersRound className="h-4 w-4" />
                             </div>
 
                             <div className="min-w-0">

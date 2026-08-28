@@ -35,9 +35,14 @@ import SystemAdministration from "../pages/admin/SystemAdministration";
 import ProfileManagement from "../pages/admin/ProfileManagement";
 import Settings from "../pages/admin/Settings";
 
-import SystemSettings from "../components/admin/system-administration/SystemSettings";
-import NotificationSettings from "../components/admin/system-administration/NotificationSettings";
-import SecuritySettings from "../components/admin/system-administration/SecuritySettings";
+import SystemSettings
+    from "../components/admin/system-administration/SystemSettings";
+
+import NotificationSettings
+    from "../components/admin/system-administration/NotificationSettings";
+
+import SecuritySettings
+    from "../components/admin/system-administration/SecuritySettings";
 
 // ============================================================
 // MANAGER
@@ -50,48 +55,136 @@ import SprintManagement from "../pages/manager/SprintManagement";
 import TaskManagement from "../pages/manager/TaskManagement";
 
 // ============================================================
-// STAFF
+// STAFF / CONTRIBUTOR
 // ============================================================
 
 import StaffLayout from "../layouts/StaffLayout";
-import StaffDashboard from "../pages/contributor/staff/StaffDashboard";
 
-import AddTaskComment from "../components/contributor/staff/AddTaskComment";
-import PerformSpecializedWork from "../components/contributor/staff/PerformSpecializedWork";
-import SubmitCompletedWork from "../components/contributor/staff/SubmitCompletedWork";
-import UpdateTaskStatus from "../components/contributor/staff/UpdateTaskStatus";
-import UploadWorkFiles from "../components/contributor/staff/UploadWorkFiles";
-import ViewMyWork from "../components/contributor/staff/ViewMyWork";
+import StaffDashboard
+    from "../pages/contributor/staff/StaffDashboard";
+
+import AddTaskComment
+    from "../components/contributor/staff/AddTaskComment";
+
+import PerformSpecializedWork
+    from "../components/contributor/staff/PerformSpecializedWork";
+
+import SubmitCompletedWork
+    from "../components/contributor/staff/SubmitCompletedWork";
+
+import UpdateTaskStatus
+    from "../components/contributor/staff/UpdateTaskStatus";
+
+import UploadWorkFiles
+    from "../components/contributor/staff/UploadWorkFiles";
+
+import ViewMyWork
+    from "../components/contributor/staff/ViewMyWork";
 
 // ============================================================
 // DEVELOPER
 // ============================================================
 
-import DeveloperLayout from "../layouts/DeveloperLayout";
-import DeveloperDashboard from "../pages/contributor/developer/DeveloperDashboard";
+import DeveloperLayout
+    from "../layouts/DeveloperLayout";
 
-import AddTechnicalComments from "../components/contributor/developer/AddTechnicalComments";
-import ParticipateTechnicalReview from "../components/contributor/developer/ParticipateTechnicalReview";
-import PerformDevelopmentTask from "../components/contributor/developer/PerformDevelopmentTask";
+import DeveloperDashboard
+    from "../pages/contributor/developer/DeveloperDashboard";
 
-import ReportTechnicalBlocker from "../components/contributor/developer/ReportTechnicalBlocker";
-import SubmitDevelopmentWork from "../components/contributor/developer/SubmitDevelopmentWork";
-import UpdateDevelopmentTaskStatus from "../components/contributor/developer/UpdateDevelopmentTaskStatus";
-import ViewDevelopmentWork from "../components/contributor/developer/ViewDevelopmentWork";
+import AddTechnicalComments
+    from "../components/contributor/developer/AddTechnicalComments";
+
+import ParticipateTechnicalReview
+    from "../components/contributor/developer/ParticipateTechnicalReview";
+
+import PerformDevelopmentTask
+    from "../components/contributor/developer/PerformDevelopmentTask";
+
+import ReportTechnicalBlocker
+    from "../components/contributor/developer/ReportTechnicalBlocker";
+
+import SubmitDevelopmentWork
+    from "../components/contributor/developer/SubmitDevelopmentWork";
+
+import UpdateDevelopmentTaskStatus
+    from "../components/contributor/developer/UpdateDevelopmentTaskStatus";
+
+import ViewDevelopmentWork
+    from "../components/contributor/developer/ViewDevelopmentWork";
 
 // ============================================================
 // TEAM LEADER
 // ============================================================
 
-import TeamLeaderLayout from "../layouts/TeamLeaderLayout";
-import TeamLeaderDashboard from "../pages/contributor/team-leader/TeamLeaderDashboard";
+import TeamLeaderLayout
+    from "../layouts/TeamLeaderLayout";
 
-import ViewAssignedTeam from "../components/contributor/teamleader/ViewAssignedTeam";
-import ViewTeamTasks from "../components/contributor/teamleader/ViewTeamTasks";
-import MonitorTeamProgress from "../components/contributor/teamleader/MonitorTeamProgress";
-import CoordinateTeamWork from "../components/contributor/teamleader/CoordinateTeamWork";
-import CommunicateWithManager from "../components/contributor/teamleader/CommunicateWithManager";
-import ViewTeamPerformance from "../components/contributor/teamleader/ViewTeamPerformance";
+import TeamLeaderDashboard
+    from "../pages/contributor/team-leader/TeamLeaderDashboard";
+
+import ViewAssignedTeam
+    from "../components/contributor/teamleader/ViewAssignedTeam";
+
+import ViewTeamTasks
+    from "../components/contributor/teamleader/ViewTeamTasks";
+
+import MonitorTeamProgress
+    from "../components/contributor/teamleader/MonitorTeamProgress";
+
+import CoordinateTeamWork
+    from "../components/contributor/teamleader/CoordinateTeamWork";
+
+import CommunicateWithManager
+    from "../components/contributor/teamleader/CommunicateWithManager";
+
+import ViewTeamPerformance
+    from "../components/contributor/teamleader/ViewTeamPerformance";
+
+// ============================================================
+// PROJECT PARTICIPATION
+// ============================================================
+
+// Main Project Participation page
+import ProjectParticipation
+    from "../pages/contributor/team-leader/ProjectParticipation";
+
+// ============================================================
+// PROJECT PARTICIPATION COMPONENTS
+// Actual folder:
+// src/components/contributor/teamleader/project/
+// ============================================================
+
+// CONT-PROJECT-001
+import ViewAssignedProjects
+    from "../components/contributor/teamleader/project/ViewAssignedProjects";
+
+// CONT-PROJECT-002
+import ViewProjectDetails
+    from "../components/contributor/teamleader/project/ViewProjectDetails";
+
+// CONT-PROJECT-003
+import ViewProjectTeam
+    from "../components/contributor/teamleader/project/ViewProjectTeam";
+
+// CONT-PROJECT-004
+import ViewProjectTasks
+    from "../components/contributor/teamleader/project/ViewProjectTasks";
+
+// CONT-PROJECT-005
+import ViewProjectProgress
+    from "../components/contributor/teamleader/project/ViewProjectProgress";
+
+// CONT-PROJECT-006
+import ParticipateProjectCommunication
+    from "../components/contributor/teamleader/project/ParticipateProjectCommunication";
+
+// CONT-PROJECT-007
+import ViewProjectFiles
+    from "../components/contributor/teamleader/project/ViewProjectFiles";
+
+// CONT-PROJECT-008
+import RequestProjectAssistance
+    from "../components/contributor/teamleader/project/RequestProjectAssistance";
 
 // ============================================================
 // APP ROUTES
@@ -143,7 +236,7 @@ function AppRoutes() {
                         index
                         element={
                             <Navigate
-                                to="dashboard"
+                                to="/admin/dashboard"
                                 replace
                             />
                         }
@@ -210,7 +303,6 @@ function AppRoutes() {
                     />
                 </Route>
 
-
                 {/* ==================================================
                     MANAGER
                 ================================================== */}
@@ -223,7 +315,7 @@ function AppRoutes() {
                         index
                         element={
                             <Navigate
-                                to="dashboard"
+                                to="/manager/dashboard"
                                 replace
                             />
                         }
@@ -250,7 +342,6 @@ function AppRoutes() {
                     />
                 </Route>
 
-
                 {/* ==================================================
                     STAFF
                 ================================================== */}
@@ -263,20 +354,16 @@ function AppRoutes() {
                         index
                         element={
                             <Navigate
-                                to="dashboard"
+                                to="/staff/dashboard"
                                 replace
                             />
                         }
                     />
 
-                    {/* STAFF DASHBOARD */}
-
                     <Route
                         path="dashboard"
                         element={<StaffDashboard />}
                     />
-
-                    {/* STAFF FEATURES */}
 
                     <Route
                         path="my-work"
@@ -309,7 +396,6 @@ function AppRoutes() {
                     />
                 </Route>
 
-
                 {/* ==================================================
                     DEVELOPER
                 ================================================== */}
@@ -318,46 +404,30 @@ function AppRoutes() {
                     path="/developer"
                     element={<DeveloperLayout />}
                 >
-                    {/* /developer → /developer/dashboard */}
-
                     <Route
                         index
                         element={
                             <Navigate
-                                to="dashboard"
+                                to="/developer/dashboard"
                                 replace
                             />
                         }
                     />
-
-                    {/* ==================================================
-                        DEVELOPER DASHBOARD
-                    ================================================== */}
 
                     <Route
                         path="dashboard"
                         element={<DeveloperDashboard />}
                     />
 
-                    {/* ==================================================
-                        DEVELOPER FEATURES
-                    ================================================== */}
-
-                    {/* My Development Work */}
-
                     <Route
                         path="my-work"
                         element={<ViewDevelopmentWork />}
                     />
 
-                    {/* Development Tasks */}
-
                     <Route
                         path="tasks"
                         element={<PerformDevelopmentTask />}
                     />
-
-                    {/* Task Status */}
 
                     <Route
                         path="task-status"
@@ -366,16 +436,12 @@ function AppRoutes() {
                         }
                     />
 
-                    {/* Technical Blockers */}
-
                     <Route
                         path="blockers"
                         element={
                             <ReportTechnicalBlocker />
                         }
                     />
-
-                    {/* Submit Work */}
 
                     <Route
                         path="submissions"
@@ -384,16 +450,12 @@ function AppRoutes() {
                         }
                     />
 
-                    {/* Technical Reviews */}
-
                     <Route
                         path="reviews"
                         element={
                             <ParticipateTechnicalReview />
                         }
                     />
-
-                    {/* Technical Comments */}
 
                     <Route
                         path="comments"
@@ -403,7 +465,6 @@ function AppRoutes() {
                     />
                 </Route>
 
-
                 {/* ==================================================
                     TEAM LEADER
                 ================================================== */}
@@ -412,24 +473,33 @@ function AppRoutes() {
                     path="/team-leader"
                     element={<TeamLeaderLayout />}
                 >
+
+                    {/* ==================================================
+                        TEAM LEADER ROOT
+                    ================================================== */}
+
                     <Route
                         index
                         element={
                             <Navigate
-                                to="dashboard"
+                                to="/team-leader/dashboard"
                                 replace
                             />
                         }
                     />
 
-                    {/* TEAM LEADER DASHBOARD */}
+                    {/* ==================================================
+                        DASHBOARD
+                    ================================================== */}
 
                     <Route
                         path="dashboard"
                         element={<TeamLeaderDashboard />}
                     />
 
-                    {/* TEAM LEADER FEATURES */}
+                    {/* ==================================================
+                        TEAM LEADER FEATURES
+                    ================================================== */}
 
                     <Route
                         path="assigned-team"
@@ -460,10 +530,103 @@ function AppRoutes() {
                         path="team-performance"
                         element={<ViewTeamPerformance />}
                     />
+
+                    {/* ==================================================
+                        PROJECT PARTICIPATION MAIN PAGE
+                    ================================================== */}
+
+                    <Route
+                        path="project-participation"
+                        element={<ProjectParticipation />}
+                    />
+
+                    {/* ==================================================
+                        CONT-PROJECT-001
+                        VIEW ASSIGNED PROJECTS
+                    ================================================== */}
+
+                    <Route
+                        path="project-participation/assigned-projects"
+                        element={<ViewAssignedProjects />}
+                    />
+
+                    {/* ==================================================
+                        CONT-PROJECT-002
+                        VIEW PROJECT DETAILS
+                    ================================================== */}
+
+                    <Route
+                        path="project-participation/details"
+                        element={<ViewProjectDetails />}
+                    />
+
+                    {/* ==================================================
+                        CONT-PROJECT-003
+                        VIEW PROJECT TEAM
+                    ================================================== */}
+
+                    <Route
+                        path="project-participation/team"
+                        element={<ViewProjectTeam />}
+                    />
+
+                    {/* ==================================================
+                        CONT-PROJECT-004
+                        VIEW PROJECT TASKS
+                    ================================================== */}
+
+                    <Route
+                        path="project-participation/tasks"
+                        element={<ViewProjectTasks />}
+                    />
+
+                    {/* ==================================================
+                        CONT-PROJECT-005
+                        VIEW PROJECT PROGRESS
+                    ================================================== */}
+
+                    <Route
+                        path="project-participation/progress"
+                        element={<ViewProjectProgress />}
+                    />
+
+                    {/* ==================================================
+                        CONT-PROJECT-006
+                        PARTICIPATE IN PROJECT COMMUNICATION
+                    ================================================== */}
+
+                    <Route
+                        path="project-participation/communication"
+                        element={
+                            <ParticipateProjectCommunication />
+                        }
+                    />
+
+                    {/* ==================================================
+                        CONT-PROJECT-007
+                        VIEW PROJECT FILES
+                    ================================================== */}
+
+                    <Route
+                        path="project-participation/files"
+                        element={<ViewProjectFiles />}
+                    />
+
+                    {/* ==================================================
+                        CONT-PROJECT-008
+                        REQUEST PROJECT ASSISTANCE
+                    ================================================== */}
+
+                    <Route
+                        path="project-participation/assistance"
+                        element={
+                            <RequestProjectAssistance />
+                        }
+                    />
+
                 </Route>
 
             </Route>
-
 
             {/* ==================================================
                 404
