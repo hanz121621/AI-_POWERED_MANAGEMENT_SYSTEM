@@ -7,13 +7,17 @@ public class AIPreference
 {
     public Guid Id { get; set; }
 
-    // Owner of these AI preferences
+    // =========================================================
+    // OWNER
+    // =========================================================
+
     public Guid UserId { get; set; }
 
     public User User { get; set; } = null!;
 
     // =========================================================
-    // AI CONFIGURATION
+    // GENERAL AI CONFIGURATION
+    // Admin / system-level AI settings
     // =========================================================
 
     public bool IsAIEnabled { get; set; }
@@ -30,8 +34,29 @@ public class AIPreference
     // AI data usage
     public bool AllowAIDataUsage { get; set; }
 
-    // Analysis frequency in minutes
+    // General AI analysis frequency
     public int AnalysisFrequencyMinutes { get; set; }
+
+    // =========================================================
+    // MANAGER AI PREFERENCES
+    // User-specific AI presentation and usage preferences
+    // =========================================================
+
+    // Enable/disable AI delay warnings
+    public bool DelayWarningsEnabled { get; set; }
+
+    // How frequently AI summaries are presented
+    public int SummaryFrequencyMinutes { get; set; }
+
+    // Whether AI recommendations are displayed to the Manager
+    public bool RecommendationDisplayEnabled { get; set; }
+
+    // Whether AI insights are visible to the Manager
+    public bool AIInsightsVisible { get; set; }
+
+    // AI notification priority
+    // normal / high / low
+    public string AINotificationPriority { get; set; } = "normal";
 
     // =========================================================
     // AUDIT

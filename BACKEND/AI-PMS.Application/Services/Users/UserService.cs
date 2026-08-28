@@ -6,6 +6,7 @@ using AI_PMS.Application.Interfaces.Repositories.Users;
 using AI_PMS.Application.Interfaces.Security;
 using AI_PMS.Domain.Entities.Users;
 using AI_PMS.Domain.Enums;
+using System.ComponentModel.DataAnnotations;
 
 
 
@@ -695,142 +696,270 @@ if (dto.Role == Role.Contributor)
             return MapToDto(user);
         }
 
-        // =========================================================
-        // UPDATE MY PROFILE
-        // =========================================================
+// =========================================================
+// UPDATE MY PROFILE
+// =========================================================
 
-        public async Task<bool> UpdateMyProfileAsync(
-            Guid userId,
-            UpdateProfileDto dto)
-        {
-            if (dto == null)
-            {
-                throw new ArgumentNullException(nameof(dto));
-            }
+public async Task<bool> UpdateMyProfileAsync(
+    Guid userId,
+    UpdateProfileDto dto)
+{
+    // =====================================================
+    // VALIDATE REQUEST
+    // =====================================================
 
-            var user =
-                await _userRepository.GetByIdAsync(userId);
+    if (dto == null)
+    {
+        throw new ArgumentNullException(nameof(dto));
+    }
 
-            if (user == null)
-            {
-                return false;
-            }
+    if (userId == Guid.Empty)
+    {
+        throw new UnauthorizedAccessException(
+            "Invalid user identity.");
+    }
 
-            if (!FullNameValidator.IsValid(dto.FullName))
-            {
-                throw new InvalidOperationException(
-                    "Please enter a valid full name containing at least first name and father's name.");
-            }
+    // =====================================================
+    // GET CURRENT AUTHENTICATED USER
+    // =====================================================
 
-            var normalizedName =
-                dto.FullName.Trim();
+    var user =
+        await _userRepository.GetByIdAsync(userId);
 
-            var normalizedPhone =
-                string.IsNullOrWhiteSpace(dto.PhoneNumber)
-                    ? null
-                    : dto.PhoneNumber.Trim();
+    if (user == null)
+    {
+        return false;
+    }
 
-            var normalizedBio =
-                string.IsNullOrWhiteSpace(dto.Bio)
-                    ? null
-                    : dto.Bio.Trim();
+    // =====================================================
+    // FULL NAME VALIDATION
+    // =====================================================
 
-            // -----------------------------------------------------
-            // PHONE DUPLICATE CHECK
-            // -----------------------------------------------------
+    if (string.IsNullOrWhiteSpace(dto.FullName))
+    {
+        throw new InvalidOperationException(
+            "Full name is required.");
+    }
 
-            if (!string.IsNullOrWhiteSpace(normalizedPhone))
-            {
-                var users =
-                    await _userRepository.GetAllAsync();
+    if (!FullNameValidator.IsValid(dto.FullName))
+    {
+        throw new InvalidOperationException(
+            "Please enter a valid full name containing at least first name and father's name.");
+    }
 
-                var phoneExists =
-                    users.Any(u =>
-                        u.Id != userId
-                        &&
-                        !string.IsNullOrWhiteSpace(
-                            u.PhoneNumber)
-                        &&
-                        string.Equals(
-                            u.PhoneNumber.Trim(),
-                            normalizedPhone,
-                            StringComparison.OrdinalIgnoreCase));
+    var normalizedName =
+        dto.FullName.Trim();
 
-                if (phoneExists)
-                {
-                    throw new InvalidOperationException(
-                        "A user with this phone number already exists.");
-                }
-            }
+    if (normalizedName.Length > 100)
+    {
+        throw new InvalidOperationException(
+            "Full name cannot exceed 100 characters.");
+    }
 
-            // -----------------------------------------------------
-            // NO CHANGE CHECK
-            // -----------------------------------------------------
+    // =====================================================
+    // EMAIL VALIDATION
+    // =====================================================
 
-            var noChanges =
+    if (string.IsNullOrWhiteSpace(dto.Email))
+    {
+        throw new InvalidOperationException(
+            "Email address is required.");
+    }
+
+    var normalizedEmail =
+        dto.Email.Trim().ToLowerInvariant();
+
+    if (!new EmailAddressAttribute()
+        .IsValid(normalizedEmail))
+    {
+        throw new InvalidOperationException(
+            "Please enter a valid email address.");
+    }
+
+    if (normalizedEmail.Length > 150)
+    {
+        throw new InvalidOperationException(
+            "Email address cannot exceed 150 characters.");
+    }
+
+    // =====================================================
+    // EMAIL DUPLICATE CHECK
+    // =====================================================
+
+    var existingUser =
+        await _userRepository.GetByEmailAsync(
+            normalizedEmail);
+
+    if (existingUser != null &&
+        existingUser.Id != userId)
+    {
+        throw new InvalidOperationException(
+            "A user with this email already exists.");
+    }
+
+    // =====================================================
+    // PHONE NORMALIZATION
+    // =====================================================
+
+    var normalizedPhone =
+        string.IsNullOrWhiteSpace(dto.PhoneNumber)
+            ? null
+            : dto.PhoneNumber.Trim();
+
+    // =====================================================
+    // PHONE DUPLICATE CHECK
+    // =====================================================
+
+    if (!string.IsNullOrWhiteSpace(normalizedPhone))
+    {
+        var users =
+            await _userRepository.GetAllAsync();
+
+        var phoneExists =
+            users.Any(u =>
+                u.Id != userId &&
+                !string.IsNullOrWhiteSpace(
+                    u.PhoneNumber) &&
                 string.Equals(
-                    user.FullName?.Trim(),
-                    normalizedName,
-                    StringComparison.OrdinalIgnoreCase)
-
-                &&
-
-                string.Equals(
-                    user.PhoneNumber?.Trim(),
+                    u.PhoneNumber.Trim(),
                     normalizedPhone,
-                    StringComparison.OrdinalIgnoreCase)
+                    StringComparison.OrdinalIgnoreCase));
 
-                &&
-
-                string.Equals(
-                    user.Bio?.Trim(),
-                    normalizedBio,
-                    StringComparison.OrdinalIgnoreCase)
-
-                &&
-
-                string.Equals(
-                    user.ProfileImage,
-                    dto.ProfileImage,
-                    StringComparison.Ordinal);
-
-            if (noChanges)
-            {
-                throw new InvalidOperationException(
-                    "No changes were made. The submitted profile information is already the same.");
-            }
-
-            // -----------------------------------------------------
-            // APPLY
-            // -----------------------------------------------------
-
-            user.FullName =
-                normalizedName;
-
-            user.PhoneNumber =
-                normalizedPhone;
-
-            user.Bio =
-                normalizedBio;
-
-            user.ProfileImage =
-                dto.ProfileImage;
-
-            user.UpdatedAt =
-                DateTime.UtcNow;
-
-            await _userRepository.UpdateAsync(user);
-
-            await _activityLogService.CreateAsync(
-                userId,
-                "PROFILE_UPDATED",
-                "Profile",
-                userId,
-                "User",
-                "User updated their profile.");
-
-            return true;
+        if (phoneExists)
+        {
+            throw new InvalidOperationException(
+                "A user with this phone number already exists.");
         }
+    }
+
+    // =====================================================
+    // BIO NORMALIZATION
+    // =====================================================
+
+    var normalizedBio =
+        string.IsNullOrWhiteSpace(dto.Bio)
+            ? null
+            : dto.Bio.Trim();
+
+    if (normalizedBio != null &&
+        normalizedBio.Length > 500)
+    {
+        throw new InvalidOperationException(
+            "Bio cannot exceed 500 characters.");
+    }
+
+    // =====================================================
+    // PROFILE IMAGE
+    // =====================================================
+
+    var normalizedProfileImage =
+        string.IsNullOrWhiteSpace(dto.ProfileImage)
+            ? null
+            : dto.ProfileImage.Trim();
+
+    // =====================================================
+    // NO CHANGE CHECK
+    // =====================================================
+
+    var noChanges =
+        string.Equals(
+            user.FullName?.Trim(),
+            normalizedName,
+            StringComparison.OrdinalIgnoreCase)
+
+        &&
+
+        string.Equals(
+            user.Email?.Trim(),
+            normalizedEmail,
+            StringComparison.OrdinalIgnoreCase)
+
+        &&
+
+        string.Equals(
+            user.PhoneNumber?.Trim(),
+            normalizedPhone,
+            StringComparison.OrdinalIgnoreCase)
+
+        &&
+
+        string.Equals(
+            user.Bio?.Trim(),
+            normalizedBio,
+            StringComparison.OrdinalIgnoreCase)
+
+        &&
+
+        string.Equals(
+            user.ProfileImage?.Trim(),
+            normalizedProfileImage,
+            StringComparison.Ordinal);
+
+    if (noChanges)
+    {
+        throw new InvalidOperationException(
+            "No changes were made. The submitted profile information is already the same.");
+    }
+
+    // =====================================================
+    // APPLY PROFILE CHANGES
+    // =====================================================
+
+    user.FullName =
+        normalizedName;
+
+    user.Email =
+        normalizedEmail;
+
+    user.PhoneNumber =
+        normalizedPhone;
+
+    user.Bio =
+        normalizedBio;
+
+    user.ProfileImage =
+        normalizedProfileImage;
+
+    // =====================================================
+    // IMPORTANT SECURITY RULE
+    // =====================================================
+    //
+    // DO NOT modify:
+    //
+    // user.Role
+    // user.IsActive
+    // user.ContributorTypeId
+    // user.ContributorSubTypeId
+    //
+    // Profile update must preserve the user's
+    // existing role, permissions and relationships.
+    //
+
+    user.UpdatedAt =
+        DateTime.UtcNow;
+
+    // =====================================================
+    // SAVE
+    // =====================================================
+
+    await _userRepository.UpdateAsync(user);
+
+    // =====================================================
+    // ACTIVITY / AUDIT LOG
+    // =====================================================
+
+    await _activityLogService.CreateAsync(
+        userId,
+        "PROFILE_UPDATED",
+        "Profile",
+        userId,
+        "User",
+        "User updated their profile.");
+
+    return true;
+}
+
+
 
         // =========================================================
         // ENTITY → DTO

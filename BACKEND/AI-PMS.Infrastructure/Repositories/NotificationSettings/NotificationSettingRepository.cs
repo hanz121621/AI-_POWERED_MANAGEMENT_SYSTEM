@@ -17,13 +17,15 @@ public class NotificationSettingRepository
     }
 
     // =========================================================
-    // GET
+    // GET USER SETTINGS
     // =========================================================
 
-    public async Task<NotificationSetting?> GetAsync()
+    public async Task<NotificationSetting?> GetAsync(
+        Guid userId)
     {
         return await _context.NotificationSettings
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(
+                x => x.UserId == userId);
     }
 
     // =========================================================

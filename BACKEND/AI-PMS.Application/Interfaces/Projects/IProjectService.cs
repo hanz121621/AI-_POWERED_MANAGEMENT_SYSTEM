@@ -48,23 +48,30 @@ Task<ProjectUpdateResultDto> UpdateDeadlineAsync(
 
         Task<ProjectUpdateResultDto> UpdateAsync(
             Guid id,
-            UpdateProjectDto dto);
+            UpdateProjectDto dto,
+          Guid updatedBy);
 
 
         // =========================================================
         // DELETE PROJECT
         // =========================================================
 
-        Task<bool> DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(
+    Guid id,
+    Guid deletedBy);
 
 
         // =========================================================
         // APPROVE / REJECT PROJECT
         // =========================================================
 
-        Task<bool> ApproveAsync(Guid id);
+       Task<bool> ApproveAsync(
+    Guid id,
+    Guid approvedBy);
 
-        Task<bool> RejectAsync(Guid id);
+Task<bool> RejectAsync(
+    Guid id,
+    Guid rejectedBy);
 
 
         // =========================================================
@@ -87,10 +94,12 @@ Task<ProjectUpdateResultDto> UpdateDeadlineAsync(
         // =========================================================
 
         Task<ProjectUpdateResultDto> ArchiveAsync(
-            Guid projectId);
+    Guid projectId,
+    Guid archivedBy);
 
-        Task<ProjectUpdateResultDto> RestoreAsync(
-            Guid projectId);
+Task<ProjectUpdateResultDto> RestoreAsync(
+    Guid projectId,
+    Guid restoredBy);
 
 Task<ProjectDto?> UpdateTimelineAsync(
     Guid projectId,
@@ -102,7 +111,8 @@ Task<ProjectDto?> UpdateTimelineAsync(
         // =========================================================
 
         Task<bool> AssignManagerAsync(
-            Guid projectId,
-            Guid managerId);
+    Guid projectId,
+    Guid managerId,
+    Guid assignedBy);
     }
 }

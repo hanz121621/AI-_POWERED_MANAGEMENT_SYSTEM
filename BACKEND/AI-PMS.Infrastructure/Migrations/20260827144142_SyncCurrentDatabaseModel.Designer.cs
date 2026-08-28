@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AI_PMS.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260826220657_AddActivityLogs")]
-    partial class AddActivityLogs
+    [Migration("20260827144142_SyncCurrentDatabaseModel")]
+    partial class SyncCurrentDatabaseModel
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -68,7 +68,7 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("AIPreference");
+                    b.ToTable("AIPreferences");
                 });
 
             modelBuilder.Entity("AI_PMS.Domain.Entities.Activities.ActivityLog", b =>
@@ -99,6 +99,12 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Property<string>("EntityType")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TeamId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -194,6 +200,69 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Communication.Message", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ReceiverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ReceiverId");
+
+                    b.HasIndex("SenderId");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Communication.MessageMention", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MentionedUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MentionedUserId");
+
+                    b.HasIndex("MessageId");
+
+                    b.ToTable("MessageMentions");
+                });
+
             modelBuilder.Entity("AI_PMS.Domain.Entities.DashboardSettings.DashboardPreference", b =>
                 {
                     b.Property<Guid>("Id")
@@ -239,7 +308,7 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("DashboardPreference");
+                    b.ToTable("DashboardPreferences");
                 });
 
             modelBuilder.Entity("AI_PMS.Domain.Entities.NotificationSettings.NotificationSetting", b =>
@@ -281,6 +350,93 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("NotificationSettings");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Notifications.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("NotificationTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RelatedEntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RelatedEntityType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("SprintId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TeamId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NotificationTypeId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Notifications.NotificationType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("NotificationTypes");
                 });
 
             modelBuilder.Entity("AI_PMS.Domain.Entities.Permissions.Permission", b =>
@@ -395,9 +551,15 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Property<DateTime>("Deadline")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<Guid?>("ManagerId")
                         .HasColumnType("uuid");
@@ -593,9 +755,6 @@ namespace AI_PMS.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
-                    b.Property<Guid?>("ProjectId")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid>("ToStatusId")
                         .HasColumnType("uuid");
 
@@ -608,14 +767,197 @@ namespace AI_PMS.Infrastructure.Migrations
 
                     b.HasIndex("IsAllowed");
 
-                    b.HasIndex("ProjectId");
-
                     b.HasIndex("ToStatusId");
 
                     b.HasIndex("FromStatusId", "ToStatusId")
                         .IsUnique();
 
                     b.ToTable("ProjectStatusTransitions", (string)null);
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Risks.RiskIssue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("PriorityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ReportedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ReportedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResolutionInformation")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SeverityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SprintId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StatusId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TaskId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("TypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PriorityId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ReportedById");
+
+                    b.HasIndex("ResolvedById");
+
+                    b.HasIndex("SeverityId");
+
+                    b.HasIndex("SprintId");
+
+                    b.HasIndex("StatusId");
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("TypeId");
+
+                    b.ToTable("RiskIssues");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Risks.RiskIssuePriority", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RiskIssuePriority");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Risks.RiskIssueSeverity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RiskIssueSeverity");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Risks.RiskIssueStatus", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RiskIssueStatus");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Risks.RiskIssueType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RiskIssueType");
                 });
 
             modelBuilder.Entity("AI_PMS.Domain.Entities.SecuritySettings.SecuritySetting", b =>
@@ -1154,8 +1496,6 @@ namespace AI_PMS.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("TeamId", "UserId", "Status");
-
                     b.HasIndex("TeamId", "UserId", "Status", "RequestType");
 
                     b.ToTable("TeamMemberRequests", (string)null);
@@ -1263,6 +1603,60 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Communication.Message", b =>
+                {
+                    b.HasOne("AI_PMS.Domain.Entities.Projects.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AI_PMS.Domain.Entities.Users.User", "Receiver")
+                        .WithMany()
+                        .HasForeignKey("ReceiverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AI_PMS.Domain.Entities.Users.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AI_PMS.Domain.Entities.Teams.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("Receiver");
+
+                    b.Navigation("Sender");
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Communication.MessageMention", b =>
+                {
+                    b.HasOne("AI_PMS.Domain.Entities.Users.User", "MentionedUser")
+                        .WithMany()
+                        .HasForeignKey("MentionedUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AI_PMS.Domain.Entities.Communication.Message", "Message")
+                        .WithMany()
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MentionedUser");
+
+                    b.Navigation("Message");
+                });
+
             modelBuilder.Entity("AI_PMS.Domain.Entities.DashboardSettings.DashboardPreference", b =>
                 {
                     b.HasOne("AI_PMS.Domain.Entities.Users.User", null)
@@ -1270,6 +1664,31 @@ namespace AI_PMS.Infrastructure.Migrations
                         .HasForeignKey("AI_PMS.Domain.Entities.DashboardSettings.DashboardPreference", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Notifications.Notification", b =>
+                {
+                    b.HasOne("AI_PMS.Domain.Entities.Notifications.NotificationType", "NotificationType")
+                        .WithMany("Notifications")
+                        .HasForeignKey("NotificationTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AI_PMS.Domain.Entities.Projects.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId");
+
+                    b.HasOne("AI_PMS.Domain.Entities.Users.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("NotificationType");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("AI_PMS.Domain.Entities.Permissions.RolePermission", b =>
@@ -1332,10 +1751,6 @@ namespace AI_PMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("AI_PMS.Domain.Entities.Projects.Project", null)
-                        .WithMany("StatusTransitions")
-                        .HasForeignKey("ProjectId");
-
                     b.HasOne("AI_PMS.Domain.Entities.Projects.ProjectStatusDefinition", "ToStatus")
                         .WithMany("ToTransitions")
                         .HasForeignKey("ToStatusId")
@@ -1345,6 +1760,75 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Navigation("FromStatus");
 
                     b.Navigation("ToStatus");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Risks.RiskIssue", b =>
+                {
+                    b.HasOne("AI_PMS.Domain.Entities.Risks.RiskIssuePriority", "Priority")
+                        .WithMany("RiskIssues")
+                        .HasForeignKey("PriorityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AI_PMS.Domain.Entities.Projects.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AI_PMS.Domain.Entities.Users.User", "ReportedBy")
+                        .WithMany()
+                        .HasForeignKey("ReportedById")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AI_PMS.Domain.Entities.Users.User", "ResolvedBy")
+                        .WithMany()
+                        .HasForeignKey("ResolvedById");
+
+                    b.HasOne("AI_PMS.Domain.Entities.Risks.RiskIssueSeverity", "Severity")
+                        .WithMany("RiskIssues")
+                        .HasForeignKey("SeverityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AI_PMS.Domain.Entities.Sprints.Sprint", "Sprint")
+                        .WithMany()
+                        .HasForeignKey("SprintId");
+
+                    b.HasOne("AI_PMS.Domain.Entities.Risks.RiskIssueStatus", "Status")
+                        .WithMany("RiskIssues")
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AI_PMS.Domain.Entities.Tasks.TaskItem", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskId");
+
+                    b.HasOne("AI_PMS.Domain.Entities.Risks.RiskIssueType", "Type")
+                        .WithMany("RiskIssues")
+                        .HasForeignKey("TypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Priority");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("ReportedBy");
+
+                    b.Navigation("ResolvedBy");
+
+                    b.Navigation("Severity");
+
+                    b.Navigation("Sprint");
+
+                    b.Navigation("Status");
+
+                    b.Navigation("Task");
+
+                    b.Navigation("Type");
                 });
 
             modelBuilder.Entity("AI_PMS.Domain.Entities.Sprints.Sprint", b =>
@@ -1478,6 +1962,11 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Navigation("ContributorType");
                 });
 
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Notifications.NotificationType", b =>
+                {
+                    b.Navigation("Notifications");
+                });
+
             modelBuilder.Entity("AI_PMS.Domain.Entities.Permissions.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
@@ -1488,8 +1977,6 @@ namespace AI_PMS.Infrastructure.Migrations
             modelBuilder.Entity("AI_PMS.Domain.Entities.Projects.Project", b =>
                 {
                     b.Navigation("Specification");
-
-                    b.Navigation("StatusTransitions");
                 });
 
             modelBuilder.Entity("AI_PMS.Domain.Entities.Projects.ProjectStatusDefinition", b =>
@@ -1499,6 +1986,26 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Navigation("Projects");
 
                     b.Navigation("ToTransitions");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Risks.RiskIssuePriority", b =>
+                {
+                    b.Navigation("RiskIssues");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Risks.RiskIssueSeverity", b =>
+                {
+                    b.Navigation("RiskIssues");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Risks.RiskIssueStatus", b =>
+                {
+                    b.Navigation("RiskIssues");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.Risks.RiskIssueType", b =>
+                {
+                    b.Navigation("RiskIssues");
                 });
 
             modelBuilder.Entity("AI_PMS.Domain.Entities.Teams.ContributorSubType", b =>

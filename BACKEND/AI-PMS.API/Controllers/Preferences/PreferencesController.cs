@@ -36,6 +36,10 @@ public class PreferencesController : ControllerBase
         return Ok(result);
     }
 
+    // =========================================================
+    // UPDATE DASHBOARD PREFERENCE
+    // =========================================================
+
     [HttpPut("dashboard")]
     public async Task<ActionResult<DashboardPreferenceDto>>
         UpdateDashboardPreference(
@@ -47,6 +51,40 @@ public class PreferencesController : ControllerBase
             await _service.UpdateDashboardPreferenceAsync(
                 userId,
                 dto);
+
+        return Ok(result);
+    }
+
+    // =========================================================
+    // GET AVAILABLE DASHBOARD WIDGETS
+    // =========================================================
+
+    [HttpGet("dashboard/widgets")]
+    public async Task<ActionResult<List<DashboardWidgetDto>>>
+        GetAvailableDashboardWidgets()
+    {
+        var userId = GetUserId();
+
+        var result =
+            await _service.GetAvailableDashboardWidgetsAsync(
+                userId);
+
+        return Ok(result);
+    }
+
+    // =========================================================
+    // RESET DASHBOARD PREFERENCES
+    // =========================================================
+
+    [HttpPost("dashboard/reset")]
+    public async Task<ActionResult<DashboardPreferenceDto>>
+        ResetDashboardPreference()
+    {
+        var userId = GetUserId();
+
+        var result =
+            await _service.ResetDashboardPreferenceAsync(
+                userId);
 
         return Ok(result);
     }
@@ -66,6 +104,10 @@ public class PreferencesController : ControllerBase
 
         return Ok(result);
     }
+
+    // =========================================================
+    // UPDATE AI PREFERENCE
+    // =========================================================
 
     [HttpPut("ai")]
     public async Task<ActionResult<AIPreferenceDto>>

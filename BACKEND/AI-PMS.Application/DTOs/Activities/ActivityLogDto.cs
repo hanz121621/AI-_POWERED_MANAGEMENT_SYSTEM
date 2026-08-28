@@ -8,6 +8,10 @@ namespace AI_PMS.Application.DTOs.Activities
 
         public string UserName { get; set; } = string.Empty;
 
+        public Guid? ProjectId { get; set; }
+
+        public Guid? TeamId { get; set; }
+
         public string Action { get; set; } = string.Empty;
 
         public string? ActivityType { get; set; }

@@ -48,7 +48,6 @@ namespace AI_PMS.Domain.Entities.Projects
         public DateTime StartDate { get; set; }
 
         public DateTime Deadline { get; set; }
-
         // =========================================================
         // PROJECT PROGRESS
         // =========================================================
@@ -69,6 +68,10 @@ namespace AI_PMS.Domain.Entities.Projects
 
         public DateTime? ArchivedAt { get; set; }
 
+        public bool IsDeleted { get; set; } = false;
+
+        public DateTime? DeletedAt { get; set; }
+
         // =========================================================
         // RELATIONSHIPS
         // =========================================================
@@ -81,8 +84,6 @@ namespace AI_PMS.Domain.Entities.Projects
         // One Project has one Specification
         public ProjectSpecification? Specification { get; set; }
 
-        // Project -> Status Transitions
-        public ICollection<ProjectStatusTransition> StatusTransitions { get; set; }
-            = new List<ProjectStatusTransition>();
+        
     }
 }

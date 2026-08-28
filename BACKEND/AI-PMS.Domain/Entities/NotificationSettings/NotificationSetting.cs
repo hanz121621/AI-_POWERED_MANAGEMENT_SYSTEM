@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using AI_PMS.Domain.Entities.Users;
 
 namespace AI_PMS.Domain.Entities.NotificationSettings;
 
@@ -7,29 +8,55 @@ public class NotificationSetting
     [Key]
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    [Required]
-    public bool NotificationsEnabled { get; set; }
+    // =========================================================
+    // OWNER
+    // Each authenticated user has their own settings
+    // =========================================================
 
     [Required]
-    public bool EmailNotificationsEnabled { get; set; }
+    public Guid UserId { get; set; }
+
+    public User? User { get; set; }
+
+    // =========================================================
+    // GENERAL NOTIFICATIONS
+    // =========================================================
 
     [Required]
-    public bool InSystemNotificationsEnabled { get; set; }
+    public bool NotificationsEnabled { get; set; } = true;
+
+    // =========================================================
+    // NOTIFICATION CHANNELS
+    // =========================================================
 
     [Required]
-    public bool TaskAssignmentAlertsEnabled { get; set; }
+    public bool EmailNotificationsEnabled { get; set; } = true;
 
     [Required]
-    public bool ProjectDeadlineRemindersEnabled { get; set; }
+    public bool InSystemNotificationsEnabled { get; set; } = true;
+
+    // =========================================================
+    // NOTIFICATION TYPES
+    // =========================================================
 
     [Required]
-    public bool SprintUpdateNotificationsEnabled { get; set; }
+    public bool TaskAssignmentAlertsEnabled { get; set; } = true;
 
     [Required]
-    public bool AiRecommendationAlertsEnabled { get; set; }
+    public bool ProjectDeadlineRemindersEnabled { get; set; } = true;
 
     [Required]
-    public bool UserActivityNotificationsEnabled { get; set; }
+    public bool SprintUpdateNotificationsEnabled { get; set; } = true;
+
+    [Required]
+    public bool AiRecommendationAlertsEnabled { get; set; } = true;
+
+    [Required]
+    public bool UserActivityNotificationsEnabled { get; set; } = true;
+
+    // =========================================================
+    // AUDIT
+    // =========================================================
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

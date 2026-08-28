@@ -1,8 +1,9 @@
 using AI_PMS.Application.DTOs.Activities;
 using AI_PMS.Application.Interfaces.Activities;
-using AI_PMS.Domain.Entities.Activities;
 using AI_PMS.Application.Interfaces.Repositories.Activities;
+using AI_PMS.Application.Interfaces.Projects;
 using AI_PMS.Application.Interfaces.Repositories.Users;
+using AI_PMS.Domain.Entities.Activities;
 
 namespace AI_PMS.Application.Services.Activities
 {
@@ -10,13 +11,16 @@ namespace AI_PMS.Application.Services.Activities
     {
         private readonly IActivityLogRepository _activityLogRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IProjectRepository _projectRepository;
 
         public ActivityLogService(
             IActivityLogRepository activityLogRepository,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            IProjectRepository projectRepository)
         {
             _activityLogRepository = activityLogRepository;
             _userRepository = userRepository;
+            _projectRepository = projectRepository;
         }
 
         // =========================================================
@@ -29,16 +33,24 @@ namespace AI_PMS.Application.Services.Activities
             string? activityType = null,
             Guid? entityId = null,
             string? entityType = null,
-            string? description = null)
+            string? description = null,
+            Guid? projectId = null,
+            Guid? teamId = null)
         {
             var activity = new ActivityLog
             {
                 UserId = userId,
+                ProjectId = projectId,
+                TeamId = teamId,
+
                 Action = action.Trim(),
                 ActivityType = activityType?.Trim(),
+
                 EntityId = entityId,
                 EntityType = entityType?.Trim(),
+
                 Description = description?.Trim(),
+
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -104,6 +116,149 @@ namespace AI_PMS.Application.Services.Activities
         }
 
         // =========================================================
+        // COMM-004
+        // GET MANAGER ACTIVITY FEED
+        // =========================================================
+
+        public async Task<List<ActivityLogDto>> GetManagerFeedAsync(
+            Guid managerId,
+            Guid? projectId = null,
+            Guid? teamId = null,
+            string? activityType = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null)
+        {
+            // -----------------------------------------------------
+            // 1. Find projects assigned to this Manager
+            // -----------------------------------------------------
+
+            var projects =
+                await _projectRepository.GetByManagerAsync(managerId);
+
+            if (projects == null || projects.Count == 0)
+            {
+                return new List<ActivityLogDto>();
+            }
+
+            var authorizedProjectIds =
+                projects
+                    .Select(p => p.Id)
+                    .ToList();
+
+            // -----------------------------------------------------
+            // 2. If a project filter was supplied, verify access
+            // -----------------------------------------------------
+
+            if (projectId.HasValue)
+            {
+                if (!authorizedProjectIds.Contains(projectId.Value))
+                {
+                    // Do not expose unauthorized project information.
+                    return new List<ActivityLogDto>();
+                }
+
+                authorizedProjectIds =
+                    new List<Guid> { projectId.Value };
+            }
+
+            // -----------------------------------------------------
+            // 3. Retrieve activities only from authorized projects
+            // -----------------------------------------------------
+
+            var activities =
+                await _activityLogRepository.GetByProjectsAsync(
+                    authorizedProjectIds);
+
+            // -----------------------------------------------------
+            // 4. Apply filters to actual stored activity records
+            // -----------------------------------------------------
+
+            if (teamId.HasValue)
+            {
+                activities = activities
+                    .Where(a => a.TeamId == teamId.Value)
+                    .ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(activityType))
+            {
+                activities = activities
+                    .Where(a =>
+                        a.ActivityType != null &&
+                        a.ActivityType.Equals(
+                            activityType.Trim(),
+                            StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            if (startDate.HasValue)
+            {
+                activities = activities
+                    .Where(a => a.CreatedAt >= startDate.Value)
+                    .ToList();
+            }
+
+            if (endDate.HasValue)
+            {
+                activities = activities
+                    .Where(a => a.CreatedAt <= endDate.Value)
+                    .ToList();
+            }
+
+            // -----------------------------------------------------
+            // 5. Return newest activity first
+            // -----------------------------------------------------
+
+            activities = activities
+                .OrderByDescending(a => a.CreatedAt)
+                .ToList();
+
+            return await MapListAsync(activities);
+        }
+
+        // =========================================================
+        // COMM-004
+        // GET SINGLE ACTIVITY
+        // =========================================================
+
+        public async Task<ActivityLogDto?> GetManagerActivityByIdAsync(
+            Guid managerId,
+            Guid activityId)
+        {
+            var activity =
+                await _activityLogRepository.GetByIdAsync(activityId);
+
+            if (activity == null)
+            {
+                return null;
+            }
+
+            // -----------------------------------------------------
+            // Activity must belong to a project
+            // authorized for this Manager.
+            // -----------------------------------------------------
+
+            if (!activity.ProjectId.HasValue)
+            {
+                return null;
+            }
+
+            var projects =
+                await _projectRepository.GetByManagerAsync(managerId);
+
+            var authorized =
+                projects.Any(p =>
+                    p.Id == activity.ProjectId.Value);
+
+            if (!authorized)
+            {
+                return null;
+            }
+
+            return await MapToDtoAsync(activity);
+        }
+
+        // =========================================================
         // MAP ENTITY → DTO
         // =========================================================
 
@@ -116,13 +271,21 @@ namespace AI_PMS.Application.Services.Activities
             return new ActivityLogDto
             {
                 Id = activity.Id,
+
                 UserId = activity.UserId,
                 UserName = user?.FullName ?? "Unknown User",
+
+                ProjectId = activity.ProjectId,
+                TeamId = activity.TeamId,
+
                 Action = activity.Action,
                 ActivityType = activity.ActivityType,
+
                 EntityId = activity.EntityId,
                 EntityType = activity.EntityType,
+
                 Description = activity.Description,
+
                 CreatedAt = activity.CreatedAt
             };
         }

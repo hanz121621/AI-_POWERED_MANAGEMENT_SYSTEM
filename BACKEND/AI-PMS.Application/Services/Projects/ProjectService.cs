@@ -1,7 +1,7 @@
 using AI_PMS.Application.DTOs.Projects;
 using AI_PMS.Application.Interfaces.Projects;
 using AI_PMS.Domain.Entities.Projects;
-
+using AI_PMS.Application.Interfaces.Activities;
 
 namespace AI_PMS.Application.Services.Projects
 {
@@ -9,10 +9,12 @@ namespace AI_PMS.Application.Services.Projects
     {
         private readonly IProjectRepository _projectRepository;
         
-
-        public ProjectService(IProjectRepository projectRepository)
+         private readonly IActivityLogService _activityLogService;
+        public ProjectService(IProjectRepository projectRepository,
+        IActivityLogService activityLogService)
         {
             _projectRepository = projectRepository;
+            _activityLogService = activityLogService;
         }
 
         // =========================================================
@@ -94,8 +96,34 @@ namespace AI_PMS.Application.Services.Projects
 
             await _projectRepository.AddAsync(project);
 
+            await _activityLogService.CreateAsync(
+    createdBy,
+    "Project Created",
+    "Project",
+    project.Id,
+    "Project",
+    $"Project '{project.Name}' was created.",
+    project.Id,
+    project.TeamId);
+
             return await GetByIdAsync(project.Id);
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // =========================================================
 // PM-004
 // VIEW ASSIGNED PROJECTS
@@ -299,6 +327,18 @@ public async Task<ProjectDto?> UpdateTimelineAsync(
     // ---------------------------------------------------------
 
     await _projectRepository.UpdateTimelineAsync(project);
+    
+    await _activityLogService.CreateAsync(
+    managerId,
+    "Project Timeline Updated",
+    "Project",
+    project.Id,
+    "Project",
+    $"Project '{project.Name}' timeline was updated. "
+        + $"Start: {project.StartDate:yyyy-MM-dd}, "
+        + $"Deadline: {project.Deadline:yyyy-MM-dd}.",
+    project.Id,
+    project.TeamId);
 
     // ---------------------------------------------------------
     // Return updated project
@@ -502,6 +542,20 @@ public async Task<ProjectUpdateResultDto> UpdateDeadlineAsync(
 
     await _projectRepository.UpdateDeadlineAsync(project);
 
+    await _activityLogService.CreateAsync(
+    managerId,
+    "Project Deadline Updated",
+    "Project",
+    project.Id,
+    "Project",
+    $"Project '{project.Name}' deadline was changed to "
+        + $"{project.Deadline:yyyy-MM-dd}."
+        + (!string.IsNullOrWhiteSpace(dto.Reason)
+            ? $" Reason: {dto.Reason.Trim()}"
+            : string.Empty),
+    project.Id,
+    project.TeamId);
+
     // =====================================================
     // 11. GET UPDATED PROJECT
     // =====================================================
@@ -532,7 +586,9 @@ public async Task<ProjectUpdateResultDto> UpdateDeadlineAsync(
 }// =========================================================
 // ARCHIVE PROJECT
 // =========================================================
-public async Task<ProjectUpdateResultDto> ArchiveAsync(Guid id)
+public async Task<ProjectUpdateResultDto> ArchiveAsync(
+    Guid id,
+    Guid archivedBy)
 {
     var project = await _projectRepository.GetByIdAsync(id);
 
@@ -584,6 +640,16 @@ public async Task<ProjectUpdateResultDto> ArchiveAsync(Guid id)
     project.UpdatedAt = DateTime.UtcNow;
 
     await _projectRepository.UpdateAsync(project);
+    await _activityLogService.CreateAsync(
+    archivedBy,
+    "Project Archived",
+    "Project",
+    project.Id,
+    "Project",
+    $"Project '{project.Name}' was archived.",
+    project.Id,
+    project.TeamId);
+    
 
     return new ProjectUpdateResultDto
     {
@@ -594,7 +660,9 @@ public async Task<ProjectUpdateResultDto> ArchiveAsync(Guid id)
 }// =========================================================
 // RESTORE PROJECT
 // =========================================================
-public async Task<ProjectUpdateResultDto> RestoreAsync(Guid id)
+public async Task<ProjectUpdateResultDto> RestoreAsync(
+    Guid id,
+    Guid restoredBy)
 {
     var project = await _projectRepository.GetByIdAsync(id);
 
@@ -646,6 +714,16 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(Guid id)
     project.UpdatedAt = DateTime.UtcNow;
 
     await _projectRepository.UpdateAsync(project);
+    
+    await _activityLogService.CreateAsync(
+    restoredBy,
+    "Project Restored",
+    "Project",
+    project.Id,
+    "Project",
+    $"Project '{project.Name}' was restored.",
+    project.Id,
+    project.TeamId);
 
     return new ProjectUpdateResultDto
     {
@@ -720,8 +798,9 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(Guid id)
         // =========================================================
 
         public async Task<ProjectUpdateResultDto> UpdateAsync(
-            Guid id,
-            UpdateProjectDto dto)
+    Guid id,
+    UpdateProjectDto dto,
+    Guid updatedBy)
         {
             if (dto == null)
             {
@@ -877,6 +956,16 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(Guid id)
 
             await _projectRepository.UpdateAsync(project);
 
+            await _activityLogService.CreateAsync(
+    updatedBy,
+    "Project Updated",
+    "Project",
+    project.Id,
+    "Project",
+    $"Project '{project.Name}' was updated.",
+    project.Id,
+    project.TeamId);
+
             return new ProjectUpdateResultDto
             {
                 Success = true,
@@ -889,26 +978,62 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(Guid id)
         // =========================================================
         // DELETE
         // =========================================================
+// =========================================================
+// DELETE PROJECT — SOFT DELETE
+// COMM-004
+// =========================================================
 
-        public async Task<bool> DeleteAsync(Guid id)
-        {
-            var project =
-                await _projectRepository.GetByIdAsync(id);
+public async Task<bool> DeleteAsync(
+    Guid id,
+    Guid deletedBy)
+{
+    if (id == Guid.Empty)
+        return false;
 
-            if (project == null)
-                return false;
+    if (deletedBy == Guid.Empty)
+        throw new UnauthorizedAccessException(
+            "Invalid user identity.");
 
-            await _projectRepository.DeleteAsync(project);
+    var project =
+        await _projectRepository.GetByIdAsync(id);
 
-            return true;
-        }
+    if (project == null)
+        return false;
 
+    // Already deleted
+    if (project.IsDeleted)
+        return false;
+
+    // Soft delete
+    project.IsDeleted = true;
+    project.DeletedAt = DateTime.UtcNow;
+    project.UpdatedAt = DateTime.UtcNow;
+
+    // Save project without physically deleting it
+    await _projectRepository.UpdateAsync(project);
+
+    // COMM-004:
+    // Record the real project action in Activity Log
+    await _activityLogService.CreateAsync(
+        deletedBy,
+        "Project Deleted",
+        "Project",
+        project.Id,
+        "Project",
+        $"Project '{project.Name}' was deleted.",
+        project.Id,
+        project.TeamId);
+
+    return true;
+}
 
         // =========================================================
         // APPROVE
         // =========================================================
 
-        public async Task<bool> ApproveAsync(Guid id)
+       public async Task<bool> ApproveAsync(
+    Guid id,
+    Guid approvedBy)
         {
             var project =
                 await _projectRepository.GetByIdAsync(id);
@@ -938,6 +1063,15 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(Guid id)
             project.UpdatedAt = DateTime.UtcNow;
 
             await _projectRepository.UpdateAsync(project);
+            await _activityLogService.CreateAsync(
+    approvedBy,
+    "Project Approved",
+    "Project",
+    project.Id,
+    "Project",
+    $"Project '{project.Name}' was approved.",
+    project.Id,
+    project.TeamId);
 
             return true;
         }
@@ -947,7 +1081,9 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(Guid id)
         // REJECT
         // =========================================================
 
-        public async Task<bool> RejectAsync(Guid id)
+     public async Task<bool> RejectAsync(
+    Guid id,
+    Guid rejectedBy)   
         {
             var project =
                 await _projectRepository.GetByIdAsync(id);
@@ -977,6 +1113,15 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(Guid id)
             project.UpdatedAt = DateTime.UtcNow;
 
             await _projectRepository.UpdateAsync(project);
+             await _activityLogService.CreateAsync(
+    rejectedBy,
+    "Project Rejected",
+    "Project",
+    project.Id,
+    "Project",
+    $"Project '{project.Name}' was rejected.",
+    project.Id,
+    project.TeamId);
 
             return true;
         }
@@ -1167,6 +1312,17 @@ public async Task<ProjectUpdateResultDto> ChangeStatusAsync(
 
     await _projectRepository.UpdateAsync(project);
 
+    await _activityLogService.CreateAsync(
+    managerId,
+    "Project Status Changed",
+    "Project",
+    project.Id,
+    "Project",
+    $"Project '{project.Name}' status changed to '{targetStatus.Name}'."
+        + (notes != null ? $" Notes: {notes}" : string.Empty),
+    project.Id,
+    project.TeamId);
+
     // =====================================================
     // 12. RETRIEVE UPDATED PROJECT
     // =====================================================
@@ -1200,8 +1356,9 @@ public async Task<ProjectUpdateResultDto> ChangeStatusAsync(
         // =========================================================
 
         public async Task<bool> AssignManagerAsync(
-            Guid projectId,
-            Guid managerId)
+    Guid projectId,
+    Guid managerId,
+    Guid assignedBy)
         {
             var project =
                 await _projectRepository.GetByIdAsync(projectId);
@@ -1216,6 +1373,15 @@ public async Task<ProjectUpdateResultDto> ChangeStatusAsync(
             project.UpdatedAt = DateTime.UtcNow;
 
             await _projectRepository.UpdateAsync(project);
+            await _activityLogService.CreateAsync(
+    assignedBy,
+    "Manager Assigned",
+    "Project",
+    project.Id,
+    "Project",
+    $"Manager '{managerId}' was assigned to project '{project.Name}'.",
+    project.Id,
+    project.TeamId);
 
             return true;
         }

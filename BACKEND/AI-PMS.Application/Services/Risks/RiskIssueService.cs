@@ -2,7 +2,6 @@ using AI_PMS.Application.DTOs.Risks;
 using AI_PMS.Application.Interfaces.Repositories.Risks;
 using AI_PMS.Application.Interfaces.Risks;
 using AI_PMS.Domain.Entities.Risks;
-using AI_PMS.Domain.Entities.Risks;
 
 
 

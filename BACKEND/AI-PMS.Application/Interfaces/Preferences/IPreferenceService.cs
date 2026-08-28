@@ -5,17 +5,45 @@ namespace AI_PMS.Application.Interfaces.Preferences;
 
 public interface IPreferenceService
 {
-    Task<DashboardPreferenceDto> GetDashboardPreferenceAsync(
-        Guid userId);
+    // =========================================================
+    // DASHBOARD PREFERENCES
+    // =========================================================
 
-    Task<DashboardPreferenceDto> UpdateDashboardPreferenceAsync(
-        Guid userId,
-        UpdateDashboardPreferenceDto dto);
+    Task<DashboardPreferenceDto>
+        GetDashboardPreferenceAsync(
+            Guid userId);
 
-    Task<AIPreferenceDto> GetAIPreferenceAsync(
-        Guid userId);
+    Task<DashboardPreferenceDto>
+        UpdateDashboardPreferenceAsync(
+            Guid userId,
+            UpdateDashboardPreferenceDto dto);
 
-    Task<AIPreferenceDto> UpdateAIPreferenceAsync(
-        Guid userId,
-        UpdateAIPreferenceDto dto);
+    // =========================================================
+    // AVAILABLE DASHBOARD WIDGETS
+    // =========================================================
+
+    Task<List<DashboardWidgetDto>>
+        GetAvailableDashboardWidgetsAsync(
+            Guid userId);
+
+    // =========================================================
+    // RESET DASHBOARD
+    // =========================================================
+
+    Task<DashboardPreferenceDto>
+        ResetDashboardPreferenceAsync(
+            Guid userId);
+
+    // =========================================================
+    // AI PREFERENCES
+    // =========================================================
+
+    Task<AIPreferenceDto>
+        GetAIPreferenceAsync(
+            Guid userId);
+
+    Task<AIPreferenceDto>
+        UpdateAIPreferenceAsync(
+            Guid userId,
+            UpdateAIPreferenceDto dto);
 }

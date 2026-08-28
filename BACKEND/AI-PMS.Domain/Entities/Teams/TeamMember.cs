@@ -1,3 +1,4 @@
+
 using System.ComponentModel.DataAnnotations;
 using AI_PMS.Domain.Entities.Users;
 
@@ -8,10 +9,18 @@ namespace AI_PMS.Domain.Entities.Teams
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
 
+        // =========================================================
+        // TEAM
+        // =========================================================
+
         [Required]
         public Guid TeamId { get; set; }
 
         public Team? Team { get; set; }
+
+        // =========================================================
+        // USER
+        // =========================================================
 
         [Required]
         public Guid UserId { get; set; }

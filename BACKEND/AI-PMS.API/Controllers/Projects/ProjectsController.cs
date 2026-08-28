@@ -456,10 +456,22 @@ namespace AI_PMS.API.Controllers.Projects
 
             try
             {
-                var result =
-                    await _projectService.UpdateAsync(
-                        id,
-                        dto);
+
+var updatedBy = GetCurrentUserId();
+
+if (!updatedBy.HasValue)
+{
+    return Unauthorized(new
+    {
+        message = "Unable to identify current user."
+    });
+}
+
+var result =
+    await _projectService.UpdateAsync(
+        id,
+        dto,
+        updatedBy.Value);
 
                 if (!result.Success)
                 {
@@ -492,44 +504,77 @@ namespace AI_PMS.API.Controllers.Projects
             }
         }
 
-        // =========================================================
-        // DELETE PROJECT
-        // PROJ-005
-        // =========================================================
+                  // =========================================================
+// DELETE PROJECT
+// COMM-004
+// SOFT DELETE + ACTIVITY LOG
+// =========================================================
 
-        [HttpDelete("{id:guid}")]
-        public async Task<IActionResult> Delete(Guid id)
+[HttpDelete("{id:guid}")]
+public async Task<IActionResult> Delete(Guid id)
+{
+    try
+    {
+        // =====================================================
+        // GET AUTHENTICATED USER
+        // =====================================================
+
+        var deletedBy = GetCurrentUserId();
+
+        if (!deletedBy.HasValue)
         {
-            try
+            return Unauthorized(new
             {
-                var deleted =
-                    await _projectService.DeleteAsync(id);
-
-                if (!deleted)
-                {
-                    return NotFound(new
-                    {
-                        message = "Project not found."
-                    });
-                }
-
-                return Ok(new
-                {
-                    message =
-                        "Project deleted successfully."
-                });
-            }
-            catch
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new
-                    {
-                        message =
-                            "Unable to delete project. Please try again."
-                    });
-            }
+                message = "Unable to identify current user."
+            });
         }
+
+        // =====================================================
+        // SOFT DELETE PROJECT
+        // =====================================================
+
+        var deleted =
+            await _projectService.DeleteAsync(
+                id,
+                deletedBy.Value);
+
+        if (!deleted)
+        {
+            return NotFound(new
+            {
+                message =
+                    "Project not found or has already been deleted."
+            });
+        }
+
+        // =====================================================
+        // SUCCESS
+        // =====================================================
+
+        return Ok(new
+        {
+            message =
+                "Project deleted successfully."
+        });
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+        return Unauthorized(new
+        {
+            message = ex.Message
+        });
+    }
+    catch (Exception)
+    {
+        return StatusCode(
+            StatusCodes.Status500InternalServerError,
+            new
+            {
+                message =
+                    "Unable to delete project. Please try again."
+            });
+    }
+}
 
         // =========================================================
         // APPROVE PROJECT
@@ -540,8 +585,20 @@ namespace AI_PMS.API.Controllers.Projects
         {
             try
             {
-                var approved =
-                    await _projectService.ApproveAsync(id);
+                var approvedBy = GetCurrentUserId();
+
+if (!approvedBy.HasValue)
+{
+    return Unauthorized(new
+    {
+        message = "Unable to identify current user."
+    });
+}
+
+var approved =
+    await _projectService.ApproveAsync(
+        id,
+        approvedBy.Value);
 
                 if (!approved)
                 {
@@ -579,8 +636,20 @@ namespace AI_PMS.API.Controllers.Projects
         {
             try
             {
-                var rejected =
-                    await _projectService.RejectAsync(id);
+               var rejectedBy = GetCurrentUserId();
+
+if (!rejectedBy.HasValue)
+{
+    return Unauthorized(new
+    {
+        message = "Unable to identify current user."
+    });
+}
+
+var rejected =
+    await _projectService.RejectAsync(
+        id,
+        rejectedBy.Value);
 
                 if (!rejected)
                 {
@@ -734,10 +803,21 @@ public async Task<IActionResult> ChangeStatus(
 
             try
             {
-                var assigned =
-                    await _projectService.AssignManagerAsync(
-                        id,
-                        request.ManagerId);
+                var assignedBy = GetCurrentUserId();
+
+if (!assignedBy.HasValue)
+{
+    return Unauthorized(new
+    {
+        message = "Unable to identify current user."
+    });
+}
+
+var assigned =
+    await _projectService.AssignManagerAsync(
+        id,
+        request.ManagerId,
+        assignedBy.Value);
 
                 if (!assigned)
                 {
