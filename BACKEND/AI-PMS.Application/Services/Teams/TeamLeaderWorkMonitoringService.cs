@@ -163,7 +163,7 @@ namespace AI_PMS.Application.Services.Teams
             // TASK ASSIGNMENT
             //
             // A task is considered assigned when:
-            // - it has an AssignedDeveloperId
+            // - it has an AssignedContributorSDId
             // - it was created by the current Team Leader
             //
             // This reflects the defined workflow:
@@ -174,7 +174,7 @@ namespace AI_PMS.Application.Services.Teams
             var tasksAssigned =
                 tasks.Count(t =>
                     t.CreatedBy == teamLeader.UserId &&
-                    t.AssignedDeveloperId.HasValue);
+                    t.AssignedContributorSDId.HasValue);
 
             // -----------------------------------------------------
             // COMPLETED
@@ -228,7 +228,7 @@ namespace AI_PMS.Application.Services.Teams
 
             var assignedTasks =
                 tasks.Where(t =>
-                    t.AssignedDeveloperId.HasValue);
+                    t.AssignedContributorSDId.HasValue);
 
             var assignedWorkItems =
                 assignedTasks.Count();
@@ -388,3 +388,4 @@ namespace AI_PMS.Application.Services.Teams
         }
     }
 }
+

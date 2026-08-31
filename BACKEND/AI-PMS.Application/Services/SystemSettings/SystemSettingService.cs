@@ -135,6 +135,9 @@ public class SystemSettingService : ISystemSettingService
             SessionTimeoutMinutes =
                 setting.SessionTimeoutMinutes,
 
+            AvailableLanguages =
+                setting.AvailableLanguages,
+
             MaxFileUploadSizeMb =
                 setting.MaxFileUploadSizeMb,
 

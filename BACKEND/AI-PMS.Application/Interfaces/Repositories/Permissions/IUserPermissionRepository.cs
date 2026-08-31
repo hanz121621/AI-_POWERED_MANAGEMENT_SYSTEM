@@ -10,3 +10,4 @@ public interface IUserPermissionRepository
     Task UpdateAsync(UserPermission userPermission);
     Task DeleteAsync(UserPermission userPermission);
 }
+

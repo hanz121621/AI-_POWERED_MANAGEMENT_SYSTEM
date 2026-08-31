@@ -4,6 +4,7 @@ using AI_PMS.Application.Interfaces.Communication;
 using AI_PMS.Application.Interfaces.Repositories.Communication;
 using AI_PMS.Application.Interfaces.Repositories.Teams;
 using AI_PMS.Application.Interfaces.Projects;
+using AI_PMS.Application.Interfaces.Repositories.Projects;
 
 namespace AI_PMS.Application.Services.Communication
 {
@@ -23,14 +24,44 @@ namespace AI_PMS.Application.Services.Communication
             _teamRepository = teamRepository;
         }
 
+        // =========================================================
+        // SEND MESSAGE TO TEAM LEADER
+        // =========================================================
+
         public async Task<MessageResponseDto>
             SendMessageToTeamLeaderAsync(
                 Guid managerId,
                 SendTeamLeaderMessageDto request)
         {
-            // =====================================================
-            // VALIDATE MESSAGE
-            // =====================================================
+            if (managerId == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "Invalid manager identity.");
+            }
+
+            if (request == null)
+            {
+                throw new ArgumentException(
+                    "Message information is required.");
+            }
+
+            if (request.ProjectId == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "Project ID is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Title))
+            {
+                throw new ArgumentException(
+                    "Message title cannot be empty.");
+            }
+
+            if (request.Title.Trim().Length > 200)
+            {
+                throw new ArgumentException(
+                    "Message title cannot exceed 200 characters.");
+            }
 
             if (string.IsNullOrWhiteSpace(request.Message))
             {
@@ -38,6 +69,7 @@ namespace AI_PMS.Application.Services.Communication
                     "Message cannot be empty.");
             }
 
+            var title = request.Title.Trim();
             var messageContent = request.Message.Trim();
 
             if (messageContent.Length > 5000)
@@ -74,7 +106,7 @@ namespace AI_PMS.Application.Services.Communication
             // VERIFY TEAM
             // =====================================================
 
-            if (project.TeamId == null)
+            if (!project.TeamId.HasValue)
             {
                 throw new InvalidOperationException(
                     "No Team is currently assigned to this project.");
@@ -110,50 +142,62 @@ namespace AI_PMS.Application.Services.Communication
             // CREATE MESSAGE
             // =====================================================
 
-            var message = new AI_PMS.Domain.Entities.Communication.Message
-            {
-                SenderId = managerId,
+            var message =
+                new AI_PMS.Domain.Entities.Communication.Message
+                {
+                    Id = Guid.NewGuid(),
 
-                ReceiverId = teamLeader.UserId,
+                    SenderId = managerId,
 
-                ProjectId = request.ProjectId,
+                    ReceiverId = teamLeader.UserId,
 
-                TeamId = teamId,
+                    ProjectId = request.ProjectId,
 
-                Content = messageContent,
+                    TeamId = teamId,
 
-                CreatedAt = DateTime.UtcNow
-            };
+                    TaskId = request.TaskId,
+
+                    Title = title,
+
+                    Content = messageContent,
+
+                    IsRead = false,
+
+                    ReadAt = null,
+
+                    CreatedAt = DateTime.UtcNow
+                };
 
             await _messageRepository.AddAsync(message);
 
-            // =====================================================
-            // RESPONSE
-            // =====================================================
-
-            return new MessageResponseDto
-            {
-                Id = message.Id,
-
-                SenderId = message.SenderId,
-
-                ReceiverId = message.ReceiverId,
-
-                ProjectId = message.ProjectId,
-
-                TeamId = message.TeamId,
-
-                Message = message.Content,
-
-                CreatedAt = message.CreatedAt
-            };
+            return MapToResponse(message);
         }
+
+        // =========================================================
+        // GET MANAGER CONVERSATION
+        // =========================================================
 
         public async Task<List<MessageResponseDto>>
             GetConversationAsync(
                 Guid managerId,
                 Guid projectId)
         {
+            if (managerId == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "Invalid manager identity.");
+            }
+
+            if (projectId == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "Invalid project.");
+            }
+
+            // =====================================================
+            // GET PROJECT
+            // =====================================================
+
             var project =
                 await _projectRepository.GetByIdAsync(
                     projectId);
@@ -164,17 +208,29 @@ namespace AI_PMS.Application.Services.Communication
                     "Project was not found.");
             }
 
+            // =====================================================
+            // VERIFY MANAGER ACCESS
+            // =====================================================
+
             if (project.ManagerId != managerId)
             {
                 throw new UnauthorizedAccessException(
                     "You are not authorized to access this conversation.");
             }
 
-            if (project.TeamId == null)
+            // =====================================================
+            // VERIFY TEAM
+            // =====================================================
+
+            if (!project.TeamId.HasValue)
             {
                 throw new InvalidOperationException(
                     "No Team is currently assigned to this project.");
             }
+
+            // =====================================================
+            // GET TEAM LEADER
+            // =====================================================
 
             var teamLeader =
                 await _teamRepository.GetTeamLeaderAsync(
@@ -186,6 +242,10 @@ namespace AI_PMS.Application.Services.Communication
                     "No Team Leader is currently assigned to this Team.");
             }
 
+            // =====================================================
+            // GET CONVERSATION
+            // =====================================================
+
             var messages =
                 await _messageRepository
                     .GetConversationAsync(
@@ -194,18 +254,199 @@ namespace AI_PMS.Application.Services.Communication
                         projectId);
 
             return messages
-                .Select(m => new MessageResponseDto
-                {
-                    Id = m.Id,
-                    SenderId = m.SenderId,
-                    ReceiverId = m.ReceiverId,
-                    ProjectId = m.ProjectId,
-                    TeamId = m.TeamId,
-                    Message = m.Content,
-                    CreatedAt = m.CreatedAt
-                })
+                .Select(MapToResponse)
                 .ToList();
+        }
+
+        // =========================================================
+        // GET MY INBOX
+        // DEV-COMM-001 / STAFF-COMM-001
+        // =========================================================
+
+        public async Task<List<MessageResponseDto>>
+            GetMyInboxAsync(Guid userId)
+        {
+            if (userId == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "Invalid user identity.");
+            }
+
+            var messages =
+                await _messageRepository
+                    .GetInboxAsync(userId);
+
+            return messages
+                .Select(MapToResponse)
+                .ToList();
+        }
+
+        // =========================================================
+        // GET SINGLE MESSAGE
+        // =========================================================
+
+        public async Task<MessageResponseDto?>
+            GetMessageByIdAsync(
+                Guid userId,
+                Guid messageId)
+        {
+            if (userId == Guid.Empty ||
+                messageId == Guid.Empty)
+            {
+                return null;
+            }
+
+            var message =
+                await _messageRepository
+                    .GetByIdAsync(messageId);
+
+            if (message == null)
+            {
+                return null;
+            }
+
+            // =====================================================
+            // ONLY SENDER OR RECEIVER CAN ACCESS
+            // =====================================================
+
+            if (message.SenderId != userId &&
+                message.ReceiverId != userId)
+            {
+                throw new UnauthorizedAccessException(
+                    "Access denied.");
+            }
+
+            return MapToResponse(message);
+        }
+
+        // =========================================================
+        // MARK MESSAGE AS READ
+        // =========================================================
+
+        public async Task<(bool Success, string Message)>
+            MarkAsReadAsync(
+                Guid userId,
+                Guid messageId)
+        {
+            if (userId == Guid.Empty)
+            {
+                return (
+                    false,
+                    "Invalid user identity.");
+            }
+
+            if (messageId == Guid.Empty)
+            {
+                return (
+                    false,
+                    "Invalid message.");
+            }
+
+            var message =
+                await _messageRepository
+                    .GetByIdAsync(messageId);
+
+            if (message == null)
+            {
+                return (
+                    false,
+                    "Message not found.");
+            }
+
+            // =====================================================
+            // ONLY RECEIVER CAN MARK MESSAGE AS READ
+            // =====================================================
+
+            if (message.ReceiverId != userId)
+            {
+                return (
+                    false,
+                    "Access denied.");
+            }
+
+            // =====================================================
+            // ALREADY READ
+            // =====================================================
+
+            if (message.IsRead)
+            {
+                return (
+                    true,
+                    "Message is already marked as read.");
+            }
+
+            // =====================================================
+            // MARK READ
+            // =====================================================
+
+            message.IsRead = true;
+
+            message.ReadAt = DateTime.UtcNow;
+
+            await _messageRepository.UpdateAsync(message);
+
+            return (
+                true,
+                "Message marked as read.");
+        }
+
+        // =========================================================
+        // GET UNREAD COUNT
+        // =========================================================
+
+        public async Task<int>
+            GetUnreadCountAsync(Guid userId)
+        {
+            if (userId == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "Invalid user identity.");
+            }
+
+            return await _messageRepository
+                .GetUnreadCountAsync(userId);
+        }
+
+        // =========================================================
+        // ENTITY -> DTO
+        // =========================================================
+
+        private static MessageResponseDto
+            MapToResponse(
+                AI_PMS.Domain.Entities.Communication.Message message)
+        {
+            return new MessageResponseDto
+            {
+                Id = message.Id,
+
+                SenderId = message.SenderId,
+
+                SenderName =
+                    message.Sender?.FullName
+                    ?? string.Empty,
+
+                ReceiverId = message.ReceiverId,
+
+                ReceiverName =
+                    message.Receiver?.FullName
+                    ?? string.Empty,
+
+                ProjectId = message.ProjectId,
+
+                TeamId = message.TeamId,
+
+                TaskId = message.TaskId,
+
+                Title = message.Title,
+
+                Message = message.Content,
+
+                IsRead = message.IsRead,
+
+                ReadAt = message.ReadAt,
+
+                CreatedAt = message.CreatedAt
+            };
         }
     }
 }
-

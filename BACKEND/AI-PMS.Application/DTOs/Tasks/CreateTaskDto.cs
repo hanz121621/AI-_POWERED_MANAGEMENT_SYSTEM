@@ -15,7 +15,7 @@ namespace AI_PMS.Application.DTOs.Tasks
         [MaxLength(1000)]
         public string Description { get; set; } = string.Empty;
 
-        public Guid? AssignedDeveloperId { get; set; }
+        public Guid? AssignedContributorSDId { get; set; }
 
         public TaskPriority Priority { get; set; }
             = TaskPriority.Medium;
@@ -27,3 +27,4 @@ namespace AI_PMS.Application.DTOs.Tasks
         public DateTime DueDate { get; set; }
     }
 }
+

@@ -1,3 +1,4 @@
+
 using AI_PMS.Application.DTOs.Users;
 using AI_PMS.Application.Interfaces.Activities;
 using AI_PMS.Application.Interfaces.Users;
@@ -7,8 +8,6 @@ using AI_PMS.Application.Interfaces.Security;
 using AI_PMS.Domain.Entities.Users;
 using AI_PMS.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
-
-
 
 namespace AI_PMS.Application.Services.Users
 {
@@ -60,12 +59,40 @@ namespace AI_PMS.Application.Services.Users
                     "Please enter a valid full name containing at least first name and father's name.");
             }
 
+            var normalizedName =
+                dto.FullName.Trim();
+
+            if (normalizedName.Length > 100)
+            {
+                throw new InvalidOperationException(
+                    "Full name cannot exceed 100 characters.");
+            }
+
             // -----------------------------------------------------
-            // NORMALIZE EMAIL
+            // EMAIL VALIDATION
             // -----------------------------------------------------
+
+            if (string.IsNullOrWhiteSpace(dto.Email))
+            {
+                throw new InvalidOperationException(
+                    "Email address is required.");
+            }
 
             var normalizedEmail =
                 dto.Email.Trim().ToLowerInvariant();
+
+            if (!new EmailAddressAttribute()
+                .IsValid(normalizedEmail))
+            {
+                throw new InvalidOperationException(
+                    "Please enter a valid email address.");
+            }
+
+            if (normalizedEmail.Length > 150)
+            {
+                throw new InvalidOperationException(
+                    "Email address cannot exceed 150 characters.");
+            }
 
             // -----------------------------------------------------
             // EMAIL DUPLICATE CHECK
@@ -81,7 +108,7 @@ namespace AI_PMS.Application.Services.Users
             }
 
             // -----------------------------------------------------
-            // NORMALIZE PHONE
+            // PHONE NORMALIZATION
             // -----------------------------------------------------
 
             var normalizedPhone =
@@ -115,60 +142,132 @@ namespace AI_PMS.Application.Services.Users
                 }
             }
 
- // =====================================================
-// CONTRIBUTOR VALIDATION
-// =====================================================
+            // =====================================================
+            // BIO
+            // =====================================================
 
-if (dto.Role == Role.Contributor)
-{
-    // -----------------------------------------------------
-    // CONTRIBUTOR TYPE IS REQUIRED
-    // -----------------------------------------------------
+            var normalizedBio =
+                string.IsNullOrWhiteSpace(dto.Bio)
+                    ? null
+                    : dto.Bio.Trim();
 
-    if (!dto.ContributorTypeId.HasValue)
-    {
-        throw new InvalidOperationException(
-            "Contributor Type is required for Contributor users.");
-    }
+            if (normalizedBio != null &&
+                normalizedBio.Length > 500)
+            {
+                throw new InvalidOperationException(
+                    "Bio cannot exceed 500 characters.");
+            }
 
-    // -----------------------------------------------------
-    // CHECK WHETHER THE CONTRIBUTOR TYPE HAS SUBTYPES
-    // -----------------------------------------------------
+            // =====================================================
+            // TECHNICAL SKILLS
+            // =====================================================
 
-    var hasSubTypes =
-        await _userRepository
-            .ContributorTypeHasSubTypesAsync(
-                dto.ContributorTypeId.Value);
+            var normalizedTechnicalSkills =
+                string.IsNullOrWhiteSpace(dto.TechnicalSkills)
+                    ? null
+                    : dto.TechnicalSkills.Trim();
 
-    // -----------------------------------------------------
-    // SUBTYPE IS REQUIRED ONLY IF THE TYPE HAS SUBTYPES
-    // -----------------------------------------------------
+            if (normalizedTechnicalSkills != null &&
+                normalizedTechnicalSkills.Length > 2000)
+            {
+                throw new InvalidOperationException(
+                    "Technical skills cannot exceed 2000 characters.");
+            }
 
-    if (hasSubTypes && !dto.ContributorSubTypeId.HasValue)
-    {
-        throw new InvalidOperationException(
-            "Contributor Sub Type is required for this Contributor Type.");
-    }
+            // =====================================================
+            // PROFILE IMAGE
+            // =====================================================
 
-    // -----------------------------------------------------
-    // IF SUBTYPE WAS PROVIDED, VALIDATE RELATIONSHIP
-    // -----------------------------------------------------
+            var normalizedProfileImage =
+                string.IsNullOrWhiteSpace(dto.ProfileImage)
+                    ? null
+                    : dto.ProfileImage.Trim();
 
-    if (dto.ContributorSubTypeId.HasValue)
-    {
-        var classificationExists =
-            await _userRepository
-                .ContributorClassificationExistsAsync(
-                    dto.ContributorTypeId.Value,
-                    dto.ContributorSubTypeId.Value);
+            // =====================================================
+            // CONTRIBUTOR VALIDATION
+            // =====================================================
 
-        if (!classificationExists)
-        {
-            throw new InvalidOperationException(
-                "The selected Contributor Sub Type does not belong to the selected Contributor Type.");
-        }
-    }
-}
+            if (dto.Role == Role.Contributor)
+            {
+                // -------------------------------------------------
+                // CONTRIBUTOR TYPE IS REQUIRED
+                // -------------------------------------------------
+
+                if (!dto.ContributorTypeId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "Contributor Type is required for Contributor users.");
+                }
+
+                // -------------------------------------------------
+                // VALIDATE CONTRIBUTOR TYPE
+                // -------------------------------------------------
+
+                var contributorTypeExists =
+                    await _userRepository
+                        .ContributorTypeExistsAsync(
+                            dto.ContributorTypeId.Value);
+
+                if (!contributorTypeExists)
+                {
+                    throw new InvalidOperationException(
+                        "The selected Contributor Type does not exist or is inactive.");
+                }
+
+                // -------------------------------------------------
+                // CHECK WHETHER TYPE HAS SUBTYPES
+                // -------------------------------------------------
+
+                var hasSubTypes =
+                    await _userRepository
+                        .ContributorTypeHasSubTypesAsync(
+                            dto.ContributorTypeId.Value);
+
+                // -------------------------------------------------
+                // SUBTYPE REQUIRED IF TYPE HAS SUBTYPES
+                // -------------------------------------------------
+
+                if (hasSubTypes &&
+                    !dto.ContributorSubTypeId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "Contributor Sub Type is required for this Contributor Type.");
+                }
+
+                // -------------------------------------------------
+                // VALIDATE SUBTYPE
+                // -------------------------------------------------
+
+                if (dto.ContributorSubTypeId.HasValue)
+                {
+                    var contributorSubTypeExists =
+                        await _userRepository
+                            .ContributorSubTypeExistsAsync(
+                                dto.ContributorSubTypeId.Value);
+
+                    if (!contributorSubTypeExists)
+                    {
+                        throw new InvalidOperationException(
+                            "The selected Contributor Sub Type does not exist or is inactive.");
+                    }
+
+                    // ---------------------------------------------
+                    // VALIDATE TYPE ↔ SUBTYPE RELATIONSHIP
+                    // ---------------------------------------------
+
+                    var classificationExists =
+                        await _userRepository
+                            .ContributorClassificationExistsAsync(
+                                dto.ContributorTypeId.Value,
+                                dto.ContributorSubTypeId.Value);
+
+                    if (!classificationExists)
+                    {
+                        throw new InvalidOperationException(
+                            "The selected Contributor Sub Type does not belong to the selected Contributor Type.");
+                    }
+                }
+            }
 
             // =====================================================
             // NON-CONTRIBUTOR USERS
@@ -193,7 +292,7 @@ if (dto.Role == Role.Contributor)
                 Id = Guid.NewGuid(),
 
                 FullName =
-                    dto.FullName.Trim(),
+                    normalizedName,
 
                 Email =
                     normalizedEmail,
@@ -205,8 +304,6 @@ if (dto.Role == Role.Contributor)
                 Role =
                     dto.Role,
 
-                // IMPORTANT:
-                // Save the status received from frontend.
                 IsActive =
                     dto.IsActive,
 
@@ -214,17 +311,17 @@ if (dto.Role == Role.Contributor)
                     normalizedPhone,
 
                 Bio =
-                    string.IsNullOrWhiteSpace(dto.Bio)
-                        ? null
-                        : dto.Bio.Trim(),
+                    normalizedBio,
 
-                // IMPORTANT:
-                // Save contributor type.
+                TechnicalSkills =
+                    normalizedTechnicalSkills,
+
+                ProfileImage =
+                    normalizedProfileImage,
+
                 ContributorTypeId =
                     contributorTypeId,
 
-                // IMPORTANT:
-                // Save contributor subtype.
                 ContributorSubTypeId =
                     contributorSubTypeId,
 
@@ -298,9 +395,9 @@ if (dto.Role == Role.Contributor)
                 return false;
             }
 
-            // -----------------------------------------------------
+            // =====================================================
             // FULL NAME
-            // -----------------------------------------------------
+            // =====================================================
 
             if (!FullNameValidator.IsValid(dto.FullName))
             {
@@ -311,51 +408,106 @@ if (dto.Role == Role.Contributor)
             var normalizedName =
                 dto.FullName.Trim();
 
-            // -----------------------------------------------------
+            if (normalizedName.Length > 100)
+            {
+                throw new InvalidOperationException(
+                    "Full name cannot exceed 100 characters.");
+            }
+
+            // =====================================================
             // EMAIL
-            // -----------------------------------------------------
+            // =====================================================
+
+            if (string.IsNullOrWhiteSpace(dto.Email))
+            {
+                throw new InvalidOperationException(
+                    "Email address is required.");
+            }
 
             var normalizedEmail =
                 dto.Email.Trim().ToLowerInvariant();
 
-            // -----------------------------------------------------
+            if (!new EmailAddressAttribute()
+                .IsValid(normalizedEmail))
+            {
+                throw new InvalidOperationException(
+                    "Please enter a valid email address.");
+            }
+
+            if (normalizedEmail.Length > 150)
+            {
+                throw new InvalidOperationException(
+                    "Email address cannot exceed 150 characters.");
+            }
+
+            // =====================================================
             // PHONE
-            // -----------------------------------------------------
+            // =====================================================
 
             var normalizedPhone =
                 string.IsNullOrWhiteSpace(dto.PhoneNumber)
                     ? null
                     : dto.PhoneNumber.Trim();
 
-            // -----------------------------------------------------
+            // =====================================================
             // BIO
-            // -----------------------------------------------------
+            // =====================================================
 
             var normalizedBio =
                 string.IsNullOrWhiteSpace(dto.Bio)
                     ? null
                     : dto.Bio.Trim();
 
-            // -----------------------------------------------------
+            if (normalizedBio != null &&
+                normalizedBio.Length > 500)
+            {
+                throw new InvalidOperationException(
+                    "Bio cannot exceed 500 characters.");
+            }
+
+            // =====================================================
+            // TECHNICAL SKILLS
+            // =====================================================
+
+            var normalizedTechnicalSkills =
+                string.IsNullOrWhiteSpace(dto.TechnicalSkills)
+                    ? null
+                    : dto.TechnicalSkills.Trim();
+
+            if (normalizedTechnicalSkills != null &&
+                normalizedTechnicalSkills.Length > 2000)
+            {
+                throw new InvalidOperationException(
+                    "Technical skills cannot exceed 2000 characters.");
+            }
+
+            // =====================================================
+            // PROFILE IMAGE
+            // =====================================================
+
+            var normalizedProfileImage =
+                string.IsNullOrWhiteSpace(dto.ProfileImage)
+                    ? null
+                    : dto.ProfileImage.Trim();
+
+            // =====================================================
             // EMAIL DUPLICATE CHECK
-            // -----------------------------------------------------
+            // =====================================================
 
             var existingUser =
                 await _userRepository.GetByEmailAsync(
                     normalizedEmail);
 
-            if (
-                existingUser != null
-                &&
+            if (existingUser != null &&
                 existingUser.Id != id)
             {
                 throw new InvalidOperationException(
                     "A user with this email already exists.");
             }
 
-            // -----------------------------------------------------
+            // =====================================================
             // PHONE DUPLICATE CHECK
-            // -----------------------------------------------------
+            // =====================================================
 
             if (!string.IsNullOrWhiteSpace(normalizedPhone))
             {
@@ -380,94 +532,96 @@ if (dto.Role == Role.Contributor)
                         "A user with this phone number already exists.");
                 }
             }
-   // =====================================================
-// CONTRIBUTOR VALIDATION
-// =====================================================
 
-if (dto.Role == Role.Contributor)
-{
-    // -----------------------------------------------------
-    // CONTRIBUTOR TYPE IS REQUIRED
-    // -----------------------------------------------------
+            // =====================================================
+            // CONTRIBUTOR VALIDATION
+            // =====================================================
 
-    if (!dto.ContributorTypeId.HasValue)
-    {
-        throw new InvalidOperationException(
-            "Contributor Type is required for Contributor users.");
-    }
+            if (dto.Role == Role.Contributor)
+            {
+                // -------------------------------------------------
+                // CONTRIBUTOR TYPE IS REQUIRED
+                // -------------------------------------------------
 
-    // -----------------------------------------------------
-    // VALIDATE CONTRIBUTOR TYPE
-    // -----------------------------------------------------
+                if (!dto.ContributorTypeId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "Contributor Type is required for Contributor users.");
+                }
 
-    var contributorTypeExists =
-        await _userRepository
-            .ContributorTypeExistsAsync(
-                dto.ContributorTypeId.Value);
+                // -------------------------------------------------
+                // VALIDATE CONTRIBUTOR TYPE
+                // -------------------------------------------------
 
-    if (!contributorTypeExists)
-    {
-        throw new InvalidOperationException(
-            "The selected Contributor Type does not exist or is inactive.");
-    }
+                var contributorTypeExists =
+                    await _userRepository
+                        .ContributorTypeExistsAsync(
+                            dto.ContributorTypeId.Value);
 
-    // -----------------------------------------------------
-    // CHECK WHETHER CONTRIBUTOR TYPE HAS SUBTYPES
-    // -----------------------------------------------------
+                if (!contributorTypeExists)
+                {
+                    throw new InvalidOperationException(
+                        "The selected Contributor Type does not exist or is inactive.");
+                }
 
-    var hasSubTypes =
-        await _userRepository
-            .ContributorTypeHasSubTypesAsync(
-                dto.ContributorTypeId.Value);
+                // -------------------------------------------------
+                // CHECK WHETHER TYPE HAS SUBTYPES
+                // -------------------------------------------------
 
-    // -----------------------------------------------------
-    // SUBTYPE IS REQUIRED ONLY IF TYPE HAS SUBTYPES
-    // -----------------------------------------------------
+                var hasSubTypes =
+                    await _userRepository
+                        .ContributorTypeHasSubTypesAsync(
+                            dto.ContributorTypeId.Value);
 
-    if (hasSubTypes && !dto.ContributorSubTypeId.HasValue)
-    {
-        throw new InvalidOperationException(
-            "Contributor Sub Type is required for this Contributor Type.");
-    }
+                // -------------------------------------------------
+                // SUBTYPE REQUIRED IF TYPE HAS SUBTYPES
+                // -------------------------------------------------
 
-    // -----------------------------------------------------
-    // IF SUBTYPE WAS PROVIDED, VALIDATE IT
-    // -----------------------------------------------------
+                if (hasSubTypes &&
+                    !dto.ContributorSubTypeId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "Contributor Sub Type is required for this Contributor Type.");
+                }
 
-    if (dto.ContributorSubTypeId.HasValue)
-    {
-        // -------------------------------------------------
-        // VALIDATE CONTRIBUTOR SUBTYPE EXISTS
-        // -------------------------------------------------
+                // -------------------------------------------------
+                // VALIDATE SUBTYPE
+                // -------------------------------------------------
 
-        var contributorSubTypeExists =
-            await _userRepository
-                .ContributorSubTypeExistsAsync(
-                    dto.ContributorSubTypeId.Value);
+                if (dto.ContributorSubTypeId.HasValue)
+                {
+                    var contributorSubTypeExists =
+                        await _userRepository
+                            .ContributorSubTypeExistsAsync(
+                                dto.ContributorSubTypeId.Value);
 
-        if (!contributorSubTypeExists)
-        {
-            throw new InvalidOperationException(
-                "The selected Contributor Sub Type does not exist or is inactive.");
-        }
+                    if (!contributorSubTypeExists)
+                    {
+                        throw new InvalidOperationException(
+                            "The selected Contributor Sub Type does not exist or is inactive.");
+                    }
 
-        // -------------------------------------------------
-        // VALIDATE TYPE ↔ SUBTYPE RELATIONSHIP
-        // -------------------------------------------------
+                    // ---------------------------------------------
+                    // VALIDATE TYPE ↔ SUBTYPE RELATIONSHIP
+                    // ---------------------------------------------
 
-        var classificationExists =
-            await _userRepository
-                .ContributorClassificationExistsAsync(
-                    dto.ContributorTypeId.Value,
-                    dto.ContributorSubTypeId.Value);
+                    var classificationExists =
+                        await _userRepository
+                            .ContributorClassificationExistsAsync(
+                                dto.ContributorTypeId.Value,
+                                dto.ContributorSubTypeId.Value);
 
-        if (!classificationExists)
-        {
-            throw new InvalidOperationException(
-                "The selected Contributor Sub Type does not belong to the selected Contributor Type.");
-        }
-    }
-}
+                    if (!classificationExists)
+                    {
+                        throw new InvalidOperationException(
+                            "The selected Contributor Sub Type does not belong to the selected Contributor Type.");
+                    }
+                }
+            }
+
+            // =====================================================
+            // NON-CONTRIBUTOR USERS
+            // =====================================================
 
             Guid? contributorTypeId =
                 dto.Role == Role.Contributor
@@ -498,6 +652,34 @@ if (dto.Role == Role.Contributor)
 
                 &&
 
+                string.Equals(
+                    user.TechnicalSkills?.Trim(),
+                    normalizedTechnicalSkills,
+                    StringComparison.OrdinalIgnoreCase)
+
+                &&
+
+                string.Equals(
+                    user.PhoneNumber?.Trim(),
+                    normalizedPhone,
+                    StringComparison.OrdinalIgnoreCase)
+
+                &&
+
+                string.Equals(
+                    user.Bio?.Trim(),
+                    normalizedBio,
+                    StringComparison.OrdinalIgnoreCase)
+
+                &&
+
+                string.Equals(
+                    user.ProfileImage?.Trim(),
+                    normalizedProfileImage,
+                    StringComparison.Ordinal)
+
+                &&
+
                 user.Role == dto.Role
 
                 &&
@@ -512,21 +694,7 @@ if (dto.Role == Role.Contributor)
                 &&
 
                 user.ContributorSubTypeId ==
-                    contributorSubTypeId
-
-                &&
-
-                string.Equals(
-                    user.PhoneNumber?.Trim(),
-                    normalizedPhone,
-                    StringComparison.OrdinalIgnoreCase)
-
-                &&
-
-                string.Equals(
-                    user.Bio?.Trim(),
-                    normalizedBio,
-                    StringComparison.OrdinalIgnoreCase);
+                    contributorSubTypeId;
 
             if (noChanges)
             {
@@ -543,6 +711,12 @@ if (dto.Role == Role.Contributor)
 
             user.Email =
                 normalizedEmail;
+
+            user.TechnicalSkills =
+                normalizedTechnicalSkills;
+
+            user.ProfileImage =
+                normalizedProfileImage;
 
             user.Role =
                 dto.Role;
@@ -677,6 +851,20 @@ if (dto.Role == Role.Contributor)
         public async Task<UserDto?> GetMyProfileAsync(
             Guid userId)
         {
+            // =====================================================
+            // VALIDATE USER ID
+            // =====================================================
+
+            if (userId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException(
+                    "Invalid user identity.");
+            }
+
+            // =====================================================
+            // GET USER
+            // =====================================================
+
             var user =
                 await _userRepository.GetByIdAsync(userId);
 
@@ -684,6 +872,82 @@ if (dto.Role == Role.Contributor)
             {
                 return null;
             }
+
+            // =====================================================
+            // GET TEAM MEMBERSHIPS
+            // =====================================================
+
+            var teamMemberships =
+                await _userRepository
+                    .GetActiveTeamMembershipsAsync(userId);
+
+            // =====================================================
+            // GET ASSIGNED PROJECTS
+            // =====================================================
+
+            var projects =
+                await _userRepository
+                    .GetAssignedProjectsAsync(userId);
+
+            // =====================================================
+            // MAP USER
+            // =====================================================
+
+            var profile =
+                MapToDto(user);
+
+            // =====================================================
+            // TEAM
+            // =====================================================
+
+            // A user can technically belong to more than one team,
+            // so we expose the first active team as the primary
+            // displayed team.
+
+            var primaryTeam =
+                teamMemberships.FirstOrDefault();
+
+            if (primaryTeam?.Team != null)
+            {
+                profile.TeamId =
+                    primaryTeam.Team.Id;
+
+                profile.TeamName =
+                    primaryTeam.Team.Name;
+            }
+
+            // =====================================================
+            // ASSIGNED PROJECTS
+            // =====================================================
+
+            profile.AssignedProjects =
+                projects.Select(project => new UserProjectDto
+                {
+                    Id =
+                        project.Id,
+
+                    Name =
+                        project.Name,
+
+                    Description =
+                        project.Description,
+
+                    Priority =
+                        project.Priority,
+
+                    ProgressPercentage =
+                        project.ProgressPercentage,
+
+                    StartDate =
+                        project.StartDate,
+
+                    Deadline =
+                        project.Deadline
+                }).ToList();
+
+            // =====================================================
+            // ACTIVITY LOG
+            // =====================================================
 
             await _activityLogService.CreateAsync(
                 userId,
@@ -693,273 +957,299 @@ if (dto.Role == Role.Contributor)
                 "User",
                 "User viewed their profile.");
 
-            return MapToDto(user);
+            return profile;
         }
 
-// =========================================================
-// UPDATE MY PROFILE
-// =========================================================
+        // =========================================================
+        // UPDATE MY PROFILE
+        // =========================================================
 
-public async Task<bool> UpdateMyProfileAsync(
-    Guid userId,
-    UpdateProfileDto dto)
-{
-    // =====================================================
-    // VALIDATE REQUEST
-    // =====================================================
-
-    if (dto == null)
-    {
-        throw new ArgumentNullException(nameof(dto));
-    }
-
-    if (userId == Guid.Empty)
-    {
-        throw new UnauthorizedAccessException(
-            "Invalid user identity.");
-    }
-
-    // =====================================================
-    // GET CURRENT AUTHENTICATED USER
-    // =====================================================
-
-    var user =
-        await _userRepository.GetByIdAsync(userId);
-
-    if (user == null)
-    {
-        return false;
-    }
-
-    // =====================================================
-    // FULL NAME VALIDATION
-    // =====================================================
-
-    if (string.IsNullOrWhiteSpace(dto.FullName))
-    {
-        throw new InvalidOperationException(
-            "Full name is required.");
-    }
-
-    if (!FullNameValidator.IsValid(dto.FullName))
-    {
-        throw new InvalidOperationException(
-            "Please enter a valid full name containing at least first name and father's name.");
-    }
-
-    var normalizedName =
-        dto.FullName.Trim();
-
-    if (normalizedName.Length > 100)
-    {
-        throw new InvalidOperationException(
-            "Full name cannot exceed 100 characters.");
-    }
-
-    // =====================================================
-    // EMAIL VALIDATION
-    // =====================================================
-
-    if (string.IsNullOrWhiteSpace(dto.Email))
-    {
-        throw new InvalidOperationException(
-            "Email address is required.");
-    }
-
-    var normalizedEmail =
-        dto.Email.Trim().ToLowerInvariant();
-
-    if (!new EmailAddressAttribute()
-        .IsValid(normalizedEmail))
-    {
-        throw new InvalidOperationException(
-            "Please enter a valid email address.");
-    }
-
-    if (normalizedEmail.Length > 150)
-    {
-        throw new InvalidOperationException(
-            "Email address cannot exceed 150 characters.");
-    }
-
-    // =====================================================
-    // EMAIL DUPLICATE CHECK
-    // =====================================================
-
-    var existingUser =
-        await _userRepository.GetByEmailAsync(
-            normalizedEmail);
-
-    if (existingUser != null &&
-        existingUser.Id != userId)
-    {
-        throw new InvalidOperationException(
-            "A user with this email already exists.");
-    }
-
-    // =====================================================
-    // PHONE NORMALIZATION
-    // =====================================================
-
-    var normalizedPhone =
-        string.IsNullOrWhiteSpace(dto.PhoneNumber)
-            ? null
-            : dto.PhoneNumber.Trim();
-
-    // =====================================================
-    // PHONE DUPLICATE CHECK
-    // =====================================================
-
-    if (!string.IsNullOrWhiteSpace(normalizedPhone))
-    {
-        var users =
-            await _userRepository.GetAllAsync();
-
-        var phoneExists =
-            users.Any(u =>
-                u.Id != userId &&
-                !string.IsNullOrWhiteSpace(
-                    u.PhoneNumber) &&
-                string.Equals(
-                    u.PhoneNumber.Trim(),
-                    normalizedPhone,
-                    StringComparison.OrdinalIgnoreCase));
-
-        if (phoneExists)
+        public async Task<bool> UpdateMyProfileAsync(
+            Guid userId,
+            UpdateProfileDto dto)
         {
-            throw new InvalidOperationException(
-                "A user with this phone number already exists.");
+            // =====================================================
+            // VALIDATE REQUEST
+            // =====================================================
+
+            if (dto == null)
+            {
+                throw new ArgumentNullException(nameof(dto));
+            }
+
+            if (userId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException(
+                    "Invalid user identity.");
+            }
+
+            // =====================================================
+            // GET CURRENT AUTHENTICATED USER
+            // =====================================================
+
+            var user =
+                await _userRepository.GetByIdAsync(userId);
+
+            if (user == null)
+            {
+                return false;
+            }
+
+            // =====================================================
+            // FULL NAME VALIDATION
+            // =====================================================
+
+            if (string.IsNullOrWhiteSpace(dto.FullName))
+            {
+                throw new InvalidOperationException(
+                    "Full name is required.");
+            }
+
+            if (!FullNameValidator.IsValid(dto.FullName))
+            {
+                throw new InvalidOperationException(
+                    "Please enter a valid full name containing at least first name and father's name.");
+            }
+
+            var normalizedName =
+                dto.FullName.Trim();
+
+            if (normalizedName.Length > 100)
+            {
+                throw new InvalidOperationException(
+                    "Full name cannot exceed 100 characters.");
+            }
+
+            // =====================================================
+            // EMAIL VALIDATION
+            // =====================================================
+
+            if (string.IsNullOrWhiteSpace(dto.Email))
+            {
+                throw new InvalidOperationException(
+                    "Email address is required.");
+            }
+
+            var normalizedEmail =
+                dto.Email.Trim().ToLowerInvariant();
+
+            if (!new EmailAddressAttribute()
+                .IsValid(normalizedEmail))
+            {
+                throw new InvalidOperationException(
+                    "Please enter a valid email address.");
+            }
+
+            if (normalizedEmail.Length > 150)
+            {
+                throw new InvalidOperationException(
+                    "Email address cannot exceed 150 characters.");
+            }
+
+            // =====================================================
+            // EMAIL DUPLICATE CHECK
+            // =====================================================
+
+            var existingUser =
+                await _userRepository.GetByEmailAsync(
+                    normalizedEmail);
+
+            if (existingUser != null &&
+                existingUser.Id != userId)
+            {
+                throw new InvalidOperationException(
+                    "A user with this email already exists.");
+            }
+
+            // =====================================================
+            // PHONE NORMALIZATION
+            // =====================================================
+
+            var normalizedPhone =
+                string.IsNullOrWhiteSpace(dto.PhoneNumber)
+                    ? null
+                    : dto.PhoneNumber.Trim();
+
+            // =====================================================
+            // PHONE DUPLICATE CHECK
+            // =====================================================
+
+            if (!string.IsNullOrWhiteSpace(normalizedPhone))
+            {
+                var users =
+                    await _userRepository.GetAllAsync();
+
+                var phoneExists =
+                    users.Any(u =>
+                        u.Id != userId
+                        &&
+                        !string.IsNullOrWhiteSpace(
+                            u.PhoneNumber)
+                        &&
+                        string.Equals(
+                            u.PhoneNumber.Trim(),
+                            normalizedPhone,
+                            StringComparison.OrdinalIgnoreCase));
+
+                if (phoneExists)
+                {
+                    throw new InvalidOperationException(
+                        "A user with this phone number already exists.");
+                }
+            }
+
+            // =====================================================
+            // BIO NORMALIZATION
+            // =====================================================
+
+            var normalizedBio =
+                string.IsNullOrWhiteSpace(dto.Bio)
+                    ? null
+                    : dto.Bio.Trim();
+
+            if (normalizedBio != null &&
+                normalizedBio.Length > 500)
+            {
+                throw new InvalidOperationException(
+                    "Bio cannot exceed 500 characters.");
+            }
+
+            // =====================================================
+            // TECHNICAL SKILLS
+            // =====================================================
+
+            var normalizedTechnicalSkills =
+                string.IsNullOrWhiteSpace(dto.TechnicalSkills)
+                    ? null
+                    : dto.TechnicalSkills.Trim();
+
+            if (normalizedTechnicalSkills != null &&
+                normalizedTechnicalSkills.Length > 2000)
+            {
+                throw new InvalidOperationException(
+                    "Technical skills cannot exceed 2000 characters.");
+            }
+
+            // =====================================================
+            // PROFILE IMAGE
+            // =====================================================
+
+            var normalizedProfileImage =
+                string.IsNullOrWhiteSpace(dto.ProfileImage)
+                    ? null
+                    : dto.ProfileImage.Trim();
+
+            // =====================================================
+            // NO CHANGE CHECK
+            // =====================================================
+
+            var noChanges =
+                string.Equals(
+                    user.FullName?.Trim(),
+                    normalizedName,
+                    StringComparison.OrdinalIgnoreCase)
+
+                &&
+
+                string.Equals(
+                    user.Email?.Trim(),
+                    normalizedEmail,
+                    StringComparison.OrdinalIgnoreCase)
+
+                &&
+
+                string.Equals(
+                    user.PhoneNumber?.Trim(),
+                    normalizedPhone,
+                    StringComparison.OrdinalIgnoreCase)
+
+                &&
+
+                string.Equals(
+                    user.Bio?.Trim(),
+                    normalizedBio,
+                    StringComparison.OrdinalIgnoreCase)
+
+                &&
+
+                string.Equals(
+                    user.TechnicalSkills?.Trim(),
+                    normalizedTechnicalSkills,
+                    StringComparison.OrdinalIgnoreCase)
+
+                &&
+
+                string.Equals(
+                    user.ProfileImage?.Trim(),
+                    normalizedProfileImage,
+                    StringComparison.Ordinal);
+
+            if (noChanges)
+            {
+                throw new InvalidOperationException(
+                    "No changes were made. The submitted profile information is already the same.");
+            }
+
+            // =====================================================
+            // APPLY PROFILE CHANGES
+            // =====================================================
+
+            user.FullName =
+                normalizedName;
+
+            user.Email =
+                normalizedEmail;
+
+            user.PhoneNumber =
+                normalizedPhone;
+
+            user.Bio =
+                normalizedBio;
+
+            user.TechnicalSkills =
+                normalizedTechnicalSkills;
+
+            user.ProfileImage =
+                normalizedProfileImage;
+
+            // =====================================================
+            // IMPORTANT SECURITY RULE
+            // =====================================================
+            //
+            // DO NOT modify:
+            //
+            // user.Role
+            // user.IsActive
+            // user.ContributorTypeId
+            // user.ContributorSubTypeId
+            //
+            // Profile update must preserve the user's
+            // existing role, permissions and relationships.
+            //
+
+            user.UpdatedAt =
+                DateTime.UtcNow;
+
+            // =====================================================
+            // SAVE
+            // =====================================================
+
+            await _userRepository.UpdateAsync(user);
+
+            // =====================================================
+            // ACTIVITY / AUDIT LOG
+            // =====================================================
+
+            await _activityLogService.CreateAsync(
+                userId,
+                "PROFILE_UPDATED",
+                "Profile",
+                userId,
+                "User",
+                "User updated their profile.");
+
+            return true;
         }
-    }
-
-    // =====================================================
-    // BIO NORMALIZATION
-    // =====================================================
-
-    var normalizedBio =
-        string.IsNullOrWhiteSpace(dto.Bio)
-            ? null
-            : dto.Bio.Trim();
-
-    if (normalizedBio != null &&
-        normalizedBio.Length > 500)
-    {
-        throw new InvalidOperationException(
-            "Bio cannot exceed 500 characters.");
-    }
-
-    // =====================================================
-    // PROFILE IMAGE
-    // =====================================================
-
-    var normalizedProfileImage =
-        string.IsNullOrWhiteSpace(dto.ProfileImage)
-            ? null
-            : dto.ProfileImage.Trim();
-
-    // =====================================================
-    // NO CHANGE CHECK
-    // =====================================================
-
-    var noChanges =
-        string.Equals(
-            user.FullName?.Trim(),
-            normalizedName,
-            StringComparison.OrdinalIgnoreCase)
-
-        &&
-
-        string.Equals(
-            user.Email?.Trim(),
-            normalizedEmail,
-            StringComparison.OrdinalIgnoreCase)
-
-        &&
-
-        string.Equals(
-            user.PhoneNumber?.Trim(),
-            normalizedPhone,
-            StringComparison.OrdinalIgnoreCase)
-
-        &&
-
-        string.Equals(
-            user.Bio?.Trim(),
-            normalizedBio,
-            StringComparison.OrdinalIgnoreCase)
-
-        &&
-
-        string.Equals(
-            user.ProfileImage?.Trim(),
-            normalizedProfileImage,
-            StringComparison.Ordinal);
-
-    if (noChanges)
-    {
-        throw new InvalidOperationException(
-            "No changes were made. The submitted profile information is already the same.");
-    }
-
-    // =====================================================
-    // APPLY PROFILE CHANGES
-    // =====================================================
-
-    user.FullName =
-        normalizedName;
-
-    user.Email =
-        normalizedEmail;
-
-    user.PhoneNumber =
-        normalizedPhone;
-
-    user.Bio =
-        normalizedBio;
-
-    user.ProfileImage =
-        normalizedProfileImage;
-
-    // =====================================================
-    // IMPORTANT SECURITY RULE
-    // =====================================================
-    //
-    // DO NOT modify:
-    //
-    // user.Role
-    // user.IsActive
-    // user.ContributorTypeId
-    // user.ContributorSubTypeId
-    //
-    // Profile update must preserve the user's
-    // existing role, permissions and relationships.
-    //
-
-    user.UpdatedAt =
-        DateTime.UtcNow;
-
-    // =====================================================
-    // SAVE
-    // =====================================================
-
-    await _userRepository.UpdateAsync(user);
-
-    // =====================================================
-    // ACTIVITY / AUDIT LOG
-    // =====================================================
-
-    await _activityLogService.CreateAsync(
-        userId,
-        "PROFILE_UPDATED",
-        "Profile",
-        userId,
-        "User",
-        "User updated their profile.");
-
-    return true;
-}
-
-
 
         // =========================================================
         // ENTITY → DTO
@@ -970,6 +1260,10 @@ public async Task<bool> UpdateMyProfileAsync(
         {
             return new UserDto
             {
+                // =================================================
+                // BASIC INFORMATION
+                // =================================================
+
                 Id =
                     user.Id,
 
@@ -979,11 +1273,19 @@ public async Task<bool> UpdateMyProfileAsync(
                 Email =
                     user.Email,
 
+                // =================================================
+                // SYSTEM ROLE
+                // =================================================
+
                 Role =
                     user.Role,
 
                 IsActive =
                     user.IsActive,
+
+                // =================================================
+                // CONTACT / PROFILE
+                // =================================================
 
                 PhoneNumber =
                     user.PhoneNumber,
@@ -995,7 +1297,14 @@ public async Task<bool> UpdateMyProfileAsync(
                     user.Bio,
 
                 // =================================================
-                // CONTRIBUTOR TYPE
+                // PROFESSIONAL INFORMATION
+                // =================================================
+
+                TechnicalSkills =
+                    user.TechnicalSkills,
+
+                // =================================================
+                // CONTRIBUTOR CLASSIFICATION
                 // =================================================
 
                 ContributorTypeId =
@@ -1004,15 +1313,18 @@ public async Task<bool> UpdateMyProfileAsync(
                 ContributorTypeName =
                     user.ContributorType?.Name,
 
-                // =================================================
-                // CONTRIBUTOR SUBTYPE
-                // =================================================
-
                 ContributorSubTypeId =
                     user.ContributorSubTypeId,
 
                 ContributorSubTypeName =
                     user.ContributorSubType?.Name,
+
+                // =================================================
+                // LOGIN INFORMATION
+                // =================================================
+
+                LastLoginAt =
+                    user.LastLoginAt,
 
                 // =================================================
                 // AUDIT

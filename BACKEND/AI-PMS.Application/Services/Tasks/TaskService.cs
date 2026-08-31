@@ -66,30 +66,30 @@ private readonly IUserRepository _userRepository;
         return false;
     }
 
-    // 5. If a developer was selected,
-    //    verify that the user is an active Developer
-    if (dto.AssignedDeveloperId.HasValue)
+    // 5. If a contributor was selected,
+    //    verify that the user is an active contributor
+    if (dto.AssignedContributorSDId.HasValue)
     {
-        var developer =
+        var contributor =
             await _userRepository.GetByIdAsync(
-                dto.AssignedDeveloperId.Value);
+                dto.AssignedContributorSDId.Value);
 
-        if (developer == null)
+        if (contributor == null)
         {
             throw new InvalidOperationException(
-                "Developer not found.");
+                "contributor not found.");
         }
 
-        if (developer.Role != Role.Contributor)
+        if (contributor.Role != Role.Contributor)
         {
             throw new InvalidOperationException(
-                "The selected user must have the Developer role.");
+                "The selected user must have the contributor role.");
         }
 
-        if (!developer.IsActive)
+        if (!contributor.IsActive)
         {
             throw new InvalidOperationException(
-                "The selected Developer is inactive.");
+                "The selected contributor is inactive.");
         }
     }
 
@@ -116,8 +116,8 @@ private readonly IUserRepository _userRepository;
 
         Description = dto.Description,
 
-        AssignedDeveloperId =
-            dto.AssignedDeveloperId,
+        AssignedContributorSDId =
+            dto.AssignedContributorSDId,
 
         Priority = dto.Priority,
 
@@ -138,7 +138,76 @@ private readonly IUserRepository _userRepository;
 
     return true;
 }
+          // =========================================================
+// GET MY WORK
+// Current logged-in Contributor
+// =========================================================
+public async Task<IEnumerable<TaskDto>> GetMyWorkAsync(
+    Guid contributorSDId)
+{
+    var contributor =
+        await _userRepository.GetByIdAsync(contributorSDId);
 
+    if (contributor == null)
+    {
+        throw new InvalidOperationException(
+            "Contributor not found.");
+    }
+
+    if (contributor.Role != Role.Contributor)
+    {
+        throw new InvalidOperationException(
+            "Only Contributors can access My Work.");
+    }
+
+    if (!contributor.IsActive)
+    {
+        throw new InvalidOperationException(
+            "Contributor account is inactive.");
+    }
+
+    var tasks =
+        await _taskRepository
+            .GetContributorSDTasksAsync(contributorSDId);
+
+    return tasks.Select(MapToDto);
+}                       
+// =========================================================
+// GET MY SPRINT TASKS
+// Developer / Staff
+// =========================================================
+public async Task<object?> GetMySprintTasksAsync(
+    Guid userId,
+    Guid sprintId)
+{
+    // Verify user
+    var user = await _userRepository.GetByIdAsync(userId);
+
+    if (user == null || !user.IsActive)
+        return null;
+
+    // Get sprint
+    var sprint = await _sprintRepository.GetByIdAsync(sprintId);
+
+    if (sprint == null)
+        return null;
+
+    // Get tasks belonging to sprint
+    var tasks = await _taskRepository.GetSprintTasksAsync(sprintId);
+
+    // Only tasks assigned to the logged-in contributor
+    var myTasks = tasks
+        .Where(t => t.AssignedContributorSDId == userId)
+        .Select(MapToDto)
+        .ToList();
+
+    return new
+    {
+        Sprint = sprint,
+        Tasks = myTasks,
+        TaskCount = myTasks.Count
+    };
+}
         // =========================================================
         // GET ALL TASKS
         // =========================================================
@@ -178,20 +247,20 @@ private readonly IUserRepository _userRepository;
         }
 
         // =========================================================
-        // GET TASKS BY DEVELOPER
+        // GET TASKS BY contributor
         // =========================================================
-        public async Task<IEnumerable<TaskDto>> GetDeveloperTasksAsync(
-            Guid developerId)
+        public async Task<IEnumerable<TaskDto>> GetContributorSDTasksAsync(
+            Guid contributorSDId)
         {
             var tasks =
                 await _taskRepository
-                    .GetDeveloperTasksAsync(developerId);
+                    .GetContributorSDTasksAsync(contributorSDId);
 
             return tasks.Select(MapToDto);
         }
 
           // =========================================================
-// GET USERS AVAILABLE FOR TASK ASSIGNMENT
+// GET CONTRIBUTORS AVAILABLE FOR TASK ASSIGNMENT
 // =========================================================
 public async Task<IEnumerable<UserDto>> GetAssignableUsersAsync()
 {
@@ -313,23 +382,23 @@ public async Task<IEnumerable<UserDto>> GetAssignableUsersAsync()
             }
 
             // -----------------------------------------------------
-            // Validate developer
+            // Validate contributor
             // -----------------------------------------------------
-            if (dto.AssignedDeveloperId.HasValue)
+            if (dto.AssignedContributorSDId.HasValue)
             {
-                var developer =
+                var contributor =
                     await _userRepository.GetByIdAsync(
-                        dto.AssignedDeveloperId.Value);
+                        dto.AssignedContributorSDId.Value);
 
-                if (developer == null)
+                if (contributor == null)
                 {
                     return (
                         null,
-                        "Assigned developer not found."
+                        "Assigned contributor not found."
                     );
                 }
 
-                if (developer.Role != Domain.Enums.Role.Contributor)
+                if (contributor.Role != Domain.Enums.Role.Contributor)
                 {
                     return (
                         null,
@@ -380,8 +449,8 @@ public async Task<IEnumerable<UserDto>> GetAssignableUsersAsync()
                     StringComparison.Ordinal);
 
             bool developerChanged =
-                task.AssignedDeveloperId !=
-                dto.AssignedDeveloperId;
+                task.AssignedContributorSDId !=
+                dto.AssignedContributorSDId;
 
             bool priorityChanged =
                 task.Priority != dto.Priority;
@@ -424,8 +493,8 @@ public async Task<IEnumerable<UserDto>> GetAssignableUsersAsync()
             // -----------------------------------------------------
             task.Title = newTitle;
             task.Description = newDescription;
-            task.AssignedDeveloperId =
-                dto.AssignedDeveloperId;
+            task.AssignedContributorSDId =
+                dto.AssignedContributorSDId;
             task.Priority = dto.Priority;
             task.Status = dto.Status;
             task.EstimatedHours =
@@ -444,7 +513,186 @@ public async Task<IEnumerable<UserDto>> GetAssignableUsersAsync()
                 MapToDto(task),
                 "Task updated successfully."
             );
-        }
+        } 
+           // =========================================================
+// UPDATE MY TASK STATUS
+// Developer / Staff Contributor
+// =========================================================
+public async Task<(TaskDto? Task, string Message)>
+    UpdateMyTaskStatusAsync(
+        Guid userId,
+        Guid taskId,
+        UpdateTaskStatusDto dto)
+{
+    // ---------------------------------------------------------
+    // 1. Verify logged-in user
+    // ---------------------------------------------------------
+    var contributor =
+        await _userRepository.GetByIdAsync(userId);
+
+    if (contributor == null)
+    {
+        return (
+            null,
+            "Contributor not found."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 2. Must be Contributor
+    // ---------------------------------------------------------
+    if (contributor.Role != Role.Contributor)
+    {
+        return (
+            null,
+            "Only Contributors can update task status."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 3. Contributor must be active
+    // ---------------------------------------------------------
+    if (!contributor.IsActive)
+    {
+        return (
+            null,
+            "Contributor account is inactive."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 4. Find task
+    // ---------------------------------------------------------
+    var task =
+        await _taskRepository.GetByIdAsync(taskId);
+
+    if (task == null)
+    {
+        return (
+            null,
+            "Task not found."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 5. Verify task is assigned to this contributor
+    // ---------------------------------------------------------
+    if (task.AssignedContributorSDId != userId)
+    {
+        return (
+            null,
+            "You cannot update this task."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 6. Completed tasks cannot be modified
+    // ---------------------------------------------------------
+    if (task.Status == ProjectTaskStatus.Completed)
+    {
+        return (
+            null,
+            "This task cannot be modified."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 7. Validate status value
+    // ---------------------------------------------------------
+    if (!Enum.IsDefined(
+        typeof(ProjectTaskStatus),
+        dto.Status))
+    {
+        return (
+            null,
+            "Invalid task status."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 8. Check whether anything changed
+    // ---------------------------------------------------------
+    if (task.Status == dto.Status)
+    {
+        return (
+            MapToDto(task),
+            "The task already has this status."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 9. Validate status transition
+    // ---------------------------------------------------------
+    bool validTransition =
+        IsValidStatusTransition(
+            task.Status,
+            dto.Status);
+
+    if (!validTransition)
+    {
+        return (
+            null,
+            "This status change is not allowed."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // 10. Update status
+    // ---------------------------------------------------------
+    task.Status = dto.Status;
+
+    // ---------------------------------------------------------
+    // 11. Update timestamp
+    // ---------------------------------------------------------
+    task.UpdatedAt = DateTime.UtcNow;
+
+    // ---------------------------------------------------------
+    // 12. Save
+    // ---------------------------------------------------------
+    await _taskRepository.UpdateAsync(task);
+
+    // ---------------------------------------------------------
+    // 13. Return updated task
+    // ---------------------------------------------------------
+    return (
+        MapToDto(task),
+        "Task status updated successfully."
+    );
+}
+
+// =========================================================
+// VALIDATE TASK STATUS TRANSITION
+// =========================================================
+private static bool IsValidStatusTransition(
+    ProjectTaskStatus currentStatus,
+    ProjectTaskStatus newStatus)
+{
+    return currentStatus switch
+    {
+        ProjectTaskStatus.Todo =>
+            newStatus == ProjectTaskStatus.InProgress ||
+            newStatus == ProjectTaskStatus.Blocked,
+
+        ProjectTaskStatus.InProgress =>
+            newStatus == ProjectTaskStatus.InReview ||
+            newStatus == ProjectTaskStatus.Blocked ||
+            newStatus == ProjectTaskStatus.Todo,
+
+        ProjectTaskStatus.InReview =>
+            newStatus == ProjectTaskStatus.Completed ||
+            newStatus == ProjectTaskStatus.InProgress ||
+            newStatus == ProjectTaskStatus.Blocked,
+
+        ProjectTaskStatus.Blocked =>
+            newStatus == ProjectTaskStatus.InProgress ||
+            newStatus == ProjectTaskStatus.Todo,
+
+        ProjectTaskStatus.Completed =>
+            false,
+
+        _ => false
+    };
+}
 
         // =========================================================
         // DELETE TASK
@@ -476,8 +724,8 @@ public async Task<IEnumerable<UserDto>> GetAssignableUsersAsync()
 
         CreatedBy = task.CreatedBy,
 
-        AssignedDeveloperId =
-            task.AssignedDeveloperId,
+        AssignedContributorSDId =
+            task.AssignedContributorSDId,
 
         Priority = task.Priority,
         Status = task.Status,
@@ -491,3 +739,6 @@ public async Task<IEnumerable<UserDto>> GetAssignableUsersAsync()
         
     }
 }
+
+
+

@@ -71,15 +71,15 @@ namespace AI_PMS.Application.Services.Reports
                 //
                 // TaskItem currently contains SprintId rather than
                 // TeamId, so team membership is determined through
-                // AssignedDeveloperId.
+                // AssignedContributorSDId.
                 // =====================================================
 
                 var teamTasks =
                     allTasks
                         .Where(t =>
-                            t.AssignedDeveloperId.HasValue &&
+                            t.AssignedContributorSDId.HasValue &&
                             memberUserIds.Contains(
-                                t.AssignedDeveloperId.Value))
+                                t.AssignedContributorSDId.Value))
                         .ToList();
 
                 // =====================================================
@@ -300,7 +300,7 @@ namespace AI_PMS.Application.Services.Reports
             var userTasks =
                 teamTasks
                     .Where(t =>
-                        t.AssignedDeveloperId ==
+                        t.AssignedContributorSDId ==
                         member.UserId)
                     .ToList();
 

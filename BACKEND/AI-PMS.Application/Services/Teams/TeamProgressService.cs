@@ -287,7 +287,7 @@ namespace AI_PMS.Application.Services.Teams
 
             var assignedTasks =
                 tasks.Where(t =>
-                    t.AssignedDeveloperId.HasValue)
+                    t.AssignedContributorSDId.HasValue)
                 .ToList();
 
             result.AssignedWorkItems =
@@ -370,3 +370,4 @@ namespace AI_PMS.Application.Services.Teams
         }
     }
 }
+

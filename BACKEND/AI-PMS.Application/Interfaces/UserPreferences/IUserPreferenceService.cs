@@ -4,10 +4,17 @@ namespace AI_PMS.Application.Interfaces.UserPreferences;
 
 public interface IUserPreferenceService
 {
+
+         // =========================================================
+// GET SUPPORTED LANGUAGES
+// =========================================================
+
+Task<List<string>> GetSupportedLanguagesAsync();
+
     // =========================================================
     // GET USER PREFERENCES
     // =========================================================
-
+ 
     Task<UserPreferenceDto> GetAsync(
         Guid userId);
 

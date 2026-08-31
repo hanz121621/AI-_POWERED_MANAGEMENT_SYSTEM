@@ -22,3 +22,4 @@ namespace AI_PMS.Application.DTOs.Contributors
         public DateTime? UpdatedAt { get; set; }
     }
 }
+

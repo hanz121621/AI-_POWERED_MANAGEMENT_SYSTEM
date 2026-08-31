@@ -18,6 +18,8 @@ using AI_PMS.Domain.Entities.Tasks;
 using AI_PMS.Domain.Entities.Teams;
 using AI_PMS.Domain.Entities.Users;
 using AI_PMS.Domain.Entities.UserPreferences;
+using AI_PMS.Domain.Entities.TaskComments;
+using AI_PMS.Domain.Entities.TaskSubmissions;
 
 using AI_PMS.Infrastructure.Configurations.Activities;
 
@@ -89,7 +91,8 @@ namespace AI_PMS.Infrastructure.Data
 
         public DbSet<SubTask> SubTasks =>
             Set<SubTask>();
-
+        public DbSet<TaskComment> TaskComments { get; set; }
+        public DbSet<TaskSubmission> TaskSubmissions { get; set; }
         // =========================================================
         // PERMISSIONS
         // =========================================================
@@ -459,6 +462,31 @@ modelBuilder.Entity<DashboardPreferenceWidget>(entity =>
                     tm.UserId
                 })
                 .IsUnique();
+                modelBuilder.Entity<MessageMention>(b =>
+{
+    b.HasKey(x => x.Id);
+
+    b.HasOne(x => x.Message)
+        .WithMany()
+        .HasForeignKey(x => x.MessageId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+    b.HasOne(x => x.TaskComment)
+        .WithMany(x => x.Mentions)
+        .HasForeignKey(x => x.TaskCommentId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+    b.HasOne(x => x.MentionedUser)
+        .WithMany()
+        .HasForeignKey(x => x.MentionedUserId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+    b.HasIndex(x => x.MessageId);
+
+    b.HasIndex(x => x.TaskCommentId);
+
+    b.HasIndex(x => x.MentionedUserId);
+});
 
             // =====================================================
             // TEAM MEMBER REQUEST
@@ -664,23 +692,76 @@ modelBuilder.Entity<DashboardPreference>(entity =>
             // AI PREFERENCE
             // =====================================================
 
-            modelBuilder.Entity<AIPreference>(entity =>
-            {
-                entity.HasKey(x => x.Id);
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+        // =====================================================
+// AI PREFERENCE
+// =====================================================
 
-                entity.HasIndex(x => x.UserId)
-                    .IsUnique();
+modelBuilder.Entity<AIPreference>(entity =>
+{
+    entity.HasKey(x => x.Id);
 
-                entity.Property(x => x.SuggestionApprovalMode)
-                    .IsRequired()
-                    .HasMaxLength(50);
+    // One AI preference record per user
+    entity.HasIndex(x => x.UserId)
+        .IsUnique();
 
-                entity.HasOne(x => x.User)
-                    .WithOne()
-                    .HasForeignKey<AIPreference>(
-                        x => x.UserId)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
+    // =====================================================
+    // GENERAL AI CONFIGURATION
+    // =====================================================
+
+    entity.Property(x => x.SuggestionApprovalMode)
+        .IsRequired()
+        .HasMaxLength(50);
+
+    entity.Property(x => x.AnalysisFrequencyMinutes)
+        .IsRequired();
+
+    // =====================================================
+    // MANAGER AI PREFERENCES
+    // =====================================================
+
+    entity.Property(x => x.SummaryFrequencyMinutes)
+        .IsRequired();
+
+    entity.Property(x => x.AINotificationPriority)
+        .IsRequired()
+        .HasMaxLength(20);
+
+    // =====================================================
+    // AUDIT
+    // =====================================================
+
+    entity.Property(x => x.CreatedAt)
+        .IsRequired();
+
+    entity.Property(x => x.UpdatedAt)
+        .IsRequired();
+
+    // =====================================================
+    // USER RELATIONSHIP
+    // =====================================================
+
+    entity.HasOne(x => x.User)
+        .WithOne()
+        .HasForeignKey<AIPreference>(x => x.UserId)
+        .OnDelete(DeleteBehavior.Cascade);
+});
 
             // =====================================================
             // AUTOMATIC ENTITY CONFIGURATIONS

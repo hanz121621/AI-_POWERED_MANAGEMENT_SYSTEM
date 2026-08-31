@@ -255,7 +255,7 @@ namespace AI_PMS.Infrastructure.Repositories.Activities
             {
                 tasksQuery =
                     tasksQuery.Where(
-                        t => t.AssignedDeveloperId == userId.Value);
+                        t => t.AssignedContributorSDId == userId.Value);
             }
 
             // --------------------------------------------------------
@@ -709,7 +709,7 @@ public async Task<int> GetTotalTasksAsync(
     if (userId.HasValue)
     {
         query = query.Where(
-            t => t.AssignedDeveloperId == userId.Value);
+            t => t.AssignedContributorSDId == userId.Value);
     }
 
     if (startDate.HasValue)
@@ -754,7 +754,7 @@ public async Task<int> GetCompletedTasksAsync(
     if (userId.HasValue)
     {
         query = query.Where(
-            t => t.AssignedDeveloperId == userId.Value);
+            t => t.AssignedContributorSDId == userId.Value);
     }
 
     if (startDate.HasValue)
@@ -800,7 +800,7 @@ public async Task<int> GetInProgressTasksAsync(
     if (userId.HasValue)
     {
         query = query.Where(
-            t => t.AssignedDeveloperId == userId.Value);
+            t => t.AssignedContributorSDId == userId.Value);
     }
 
     if (startDate.HasValue)
@@ -846,7 +846,7 @@ public async Task<int> GetTodoTasksAsync(
     if (userId.HasValue)
     {
         query = query.Where(
-            t => t.AssignedDeveloperId == userId.Value);
+            t => t.AssignedContributorSDId == userId.Value);
     }
 
     if (startDate.HasValue)

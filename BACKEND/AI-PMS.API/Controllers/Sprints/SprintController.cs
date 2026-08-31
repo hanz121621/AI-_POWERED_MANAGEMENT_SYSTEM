@@ -10,7 +10,7 @@ namespace AI_PMS.API.Controllers.Sprints
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Manager")]
+    [Authorize]
     public class SprintController : ControllerBase
     {
         private readonly ISprintService _sprintService;
@@ -196,6 +196,179 @@ namespace AI_PMS.API.Controllers.Sprints
             });
         }
 
+                                 // =========================================================
+// SPRINT PARTICIPATION
+// Developer + Staff
+// =========================================================
+
+// =========================================================
+// DEV-SPRINT-001 / STAFF-SPRINT-001
+// VIEW MY SPRINTS
+//
+// GET: api/Sprint/my-sprints
+// =========================================================
+
+[HttpGet("my-sprints")]
+[Authorize(Roles = "Contributor")]
+public async Task<IActionResult> GetMySprints()
+{
+    var contributorId =
+        GetCurrentContributorId();
+
+    if (!contributorId.HasValue)
+    {
+        return Unauthorized(new
+        {
+            message = "Invalid contributor identity."
+        });
+    }
+
+    try
+    {
+        var sprints =
+            await _sprintService
+                .GetMySprintsAsync(
+                    contributorId.Value);
+
+        if (!sprints.Any())
+        {
+            return Ok(new
+            {
+                message = "No active sprint available.",
+                sprints = Array.Empty<SprintDto>()
+            });
+        }
+
+        return Ok(sprints);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return BadRequest(new
+        {
+            message = ex.Message
+        });
+    }
+}
+
+
+// =========================================================
+// DEV-SPRINT-001 / STAFF-SPRINT-001
+// VIEW MY SPRINT TASKS
+//
+// GET:
+// api/Sprint/my-sprints/{sprintId}
+// =========================================================
+
+[HttpGet("my-sprints/{sprintId:guid}")]
+[Authorize(Roles = "Contributor")]
+public async Task<IActionResult> GetMySprintTasks(
+    Guid sprintId)
+{
+    var contributorId =
+        GetCurrentContributorId();
+
+    if (!contributorId.HasValue)
+    {
+        return Unauthorized(new
+        {
+            message = "Invalid contributor identity."
+        });
+    }
+
+    if (sprintId == Guid.Empty)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid sprint."
+        });
+    }
+
+    try
+    {
+        var result =
+            await _sprintService
+                .GetMySprintTasksAsync(
+                    contributorId.Value,
+                    sprintId);
+
+        if (result == null)
+        {
+            return NotFound(new
+            {
+                message = "Sprint not found."
+            });
+        }
+
+        return Ok(result);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return BadRequest(new
+        {
+            message = ex.Message
+        });
+    }
+}
+
+
+// =========================================================
+// DEV-SPRINT-002 / STAFF-SPRINT-002
+// VIEW MY SPRINT GOALS AND PROGRESS
+//
+// GET:
+// api/Sprint/my-sprints/{sprintId}/progress
+// =========================================================
+
+[HttpGet("my-sprints/{sprintId:guid}/progress")]
+[Authorize(Roles = "Contributor")]
+public async Task<IActionResult> GetMySprintProgress(
+    Guid sprintId)
+{
+    var contributorId =
+        GetCurrentContributorId();
+
+    if (!contributorId.HasValue)
+    {
+        return Unauthorized(new
+        {
+            message = "Invalid contributor identity."
+        });
+    }
+
+    if (sprintId == Guid.Empty)
+    {
+        return BadRequest(new
+        {
+            message = "Invalid sprint."
+        });
+    }
+
+    try
+    {
+        var result =
+            await _sprintService
+                .GetMySprintProgressAsync(
+                    contributorId.Value,
+                    sprintId);
+
+        if (result == null)
+        {
+            return NotFound(new
+            {
+                message = "Sprint not found."
+            });
+        }
+
+        return Ok(result);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return BadRequest(new
+        {
+            message = ex.Message
+        });
+    }
+}
         // =========================================================
         // SPRINT-003
         // ASSIGN SPRINT TO TEAM
@@ -495,5 +668,25 @@ namespace AI_PMS.API.Controllers.Sprints
                 ? managerId
                 : null;
         }
+           // =========================================================
+// CURRENT CONTRIBUTOR ID
+// =========================================================
+
+private Guid? GetCurrentContributorId()
+{
+    var userIdClaim =
+        User.FindFirstValue(
+            ClaimTypes.NameIdentifier)
+        ?? User.FindFirstValue("sub");
+
+    if (string.IsNullOrWhiteSpace(userIdClaim))
+        return null;
+
+    return Guid.TryParse(
+        userIdClaim,
+        out var contributorId)
+        ? contributorId
+        : null;
+}
     }
 }

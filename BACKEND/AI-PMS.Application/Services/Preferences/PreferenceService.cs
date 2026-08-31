@@ -533,7 +533,7 @@ public async Task<DashboardPreferenceDto>
         // UPDATE
         // =====================================================
 
-        preference.IsAIEnabled = dto.AIEnabled;
+        preference.IsAIEnabled = dto.IsAIEnabled;
         preference.EnableRecommendations =
             dto.RecommendationsEnabled;
 
@@ -557,6 +557,10 @@ public async Task<DashboardPreferenceDto>
 // UPDATE MANAGER AI PREFERENCES
 // =====================================================
 
+// =====================================================
+// UPDATE MANAGER AI PREFERENCES
+// =====================================================
+
 preference.DelayWarningsEnabled =
     dto.DelayWarningsEnabled;
 
@@ -569,12 +573,28 @@ preference.RecommendationDisplayEnabled =
 preference.AIInsightsVisible =
     dto.AIInsightsVisible;
 
+var notificationPriority =
+    dto.AINotificationPriority
+        .Trim()
+        .ToLowerInvariant();
+
+if (notificationPriority != "low" &&
+    notificationPriority != "normal" &&
+    notificationPriority != "high")
+{
+    throw new ArgumentException(
+        "AINotificationPriority must be low, normal, or high.");
+}
+
 preference.AINotificationPriority =
-    dto.AINotificationPriority.Trim().ToLowerInvariant();
+    notificationPriority;
 
-        await _context.SaveChangesAsync();
+preference.UpdatedAt =
+    DateTime.UtcNow;
 
-        return MapAIPreference(preference);
+await _context.SaveChangesAsync();
+
+return MapAIPreference(preference);
     }
 
     // =========================================================

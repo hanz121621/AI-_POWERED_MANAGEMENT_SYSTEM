@@ -39,6 +39,8 @@ using AI_PMS.Application.Interfaces.Tasks;
 using AI_PMS.Application.Interfaces.Teams;
 using AI_PMS.Application.Interfaces.UserPreferences;
 using AI_PMS.Application.Interfaces.Users;
+using AI_PMS.Application.Interfaces.Reports;
+using AI_PMS.Application.Services.Reports;
 
 using AI_PMS.Application.Services.Activities;
 using AI_PMS.Application.Services.Auth;
@@ -56,6 +58,14 @@ using AI_PMS.Application.Services.Tasks;
 using AI_PMS.Application.Services.Teams;
 using AI_PMS.Application.Services.UserPreferences;
 using AI_PMS.Application.Services.Users;
+
+using AI_PMS.Application.Interfaces.Repositories.TaskComments;
+using AI_PMS.Application.Interfaces.TaskComments;
+using AI_PMS.Application.Services.TaskComments;
+using AI_PMS.Application.Interfaces.Repositories.TaskSubmissions;
+using AI_PMS.Application.Interfaces.TaskSubmissions;
+using AI_PMS.Application.Services.TaskSubmissions;
+
 
 using AI_PMS.Application.Users.Commands.CreateUser;
 using AI_PMS.Application.Validators.SystemSettings;
@@ -79,6 +89,12 @@ using AI_PMS.Infrastructure.Repositories.Users;
 using AI_PMS.Infrastructure.Repositories.UserPreferences;
 using AI_PMS.Infrastructure.Repositories.NotificationSettings;
 using AI_PMS.Infrastructure.Security;
+using AI_PMS.Infrastructure.Repositories.TaskComments;
+using AI_PMS.Infrastructure.Repositories.TaskSubmissions;
+
+
+
+
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -120,6 +136,10 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<PasswordHasher>();
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<RefreshTokenService>();
+
+builder.Services.AddScoped<
+    IContributorReportService,
+    ContributorReportService>();
 
 // =========================================================
 // AUTH REPOSITORIES
@@ -246,6 +266,13 @@ builder.Services.AddScoped<
     IProjectSpecificationService,
     ProjectSpecificationService>();
 
+    builder.Services.AddScoped<
+    IProjectService, ProjectService>();
+
+builder.Services.AddScoped<
+IProjectAssignmentService, 
+ProjectAssignmentService>();
+
 // =========================================================
 // SPRINT MANAGEMENT
 // =========================================================
@@ -270,6 +297,22 @@ builder.Services.AddScoped<
     ITaskService,
     TaskService>();
 
+
+  builder.Services.AddScoped<
+    ITaskCommentRepository,
+    TaskCommentRepository>();
+
+    builder.Services.AddScoped<
+    ITaskCommentService,
+    TaskCommentService>();
+
+    builder.Services.AddScoped<
+    ITaskSubmissionRepository,
+    TaskSubmissionRepository>();
+
+builder.Services.AddScoped<
+    ITaskSubmissionService,
+    TaskSubmissionService>();
 // =========================================================
 // SUBTASK MANAGEMENT
 // =========================================================
@@ -377,6 +420,14 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     INotificationSettingService,
     NotificationSettingService>();
+
+    builder.Services.AddScoped<
+    IMessageRepository,
+    MessageRepository>();
+
+builder.Services.AddScoped<
+    IMessageService,
+    MessageService>();
 
 // =========================================================
 // SYSTEM SETTINGS

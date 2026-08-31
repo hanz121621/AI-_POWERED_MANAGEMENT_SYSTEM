@@ -1,4 +1,6 @@
 using AI_PMS.Domain.Entities.Users;
+using AI_PMS.Domain.Entities.Projects;
+using AI_PMS.Domain.Entities.Teams;
 
 namespace AI_PMS.Application.Interfaces.Repositories.Users;
 
@@ -41,4 +43,9 @@ Task<bool> ContributorTypeHasSubTypesAsync(
     Task<bool> ContributorClassificationExistsAsync(
         Guid contributorTypeId,
         Guid contributorSubTypeId);
+        Task<List<TeamMember>> GetActiveTeamMembershipsAsync(
+    Guid userId);
+
+Task<List<Project>> GetAssignedProjectsAsync(
+    Guid userId);
 }

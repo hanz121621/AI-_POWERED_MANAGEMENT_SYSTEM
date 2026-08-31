@@ -1,5 +1,6 @@
 using AI_PMS.Application.DTOs.Projects;
 using AI_PMS.Application.Interfaces.Projects;
+using AI_PMS.Application.Interfaces.Repositories.Projects;
 using AI_PMS.Domain.Entities.Projects;
 using AI_PMS.Application.Interfaces.Activities;
 

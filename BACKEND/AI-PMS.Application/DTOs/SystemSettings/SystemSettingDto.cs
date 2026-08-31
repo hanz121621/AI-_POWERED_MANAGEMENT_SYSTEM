@@ -14,6 +14,8 @@ public class SystemSettingDto
 
     public int SessionTimeoutMinutes { get; set; }
 
+    public string AvailableLanguages { get; set; } = string.Empty;
+
     public long MaxFileUploadSizeMb { get; set; }
 
     public bool MaintenanceMode { get; set; }

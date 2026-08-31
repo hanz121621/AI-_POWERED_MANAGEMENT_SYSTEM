@@ -1,3 +1,4 @@
+
 using AI_PMS.Application.DTOs.NotificationSettings;
 using AI_PMS.Application.Interfaces.Activities;
 using AI_PMS.Application.Interfaces.Repositories.NotificationSettings;
@@ -55,11 +56,23 @@ public class NotificationSettingService
 
                 UserId = userId,
 
+                // =================================================
+                // GENERAL
+                // =================================================
+
                 NotificationsEnabled = true,
+
+                // =================================================
+                // CHANNELS
+                // =================================================
 
                 EmailNotificationsEnabled = true,
 
                 InSystemNotificationsEnabled = true,
+
+                // =================================================
+                // NOTIFICATION TYPES
+                // =================================================
 
                 TaskAssignmentAlertsEnabled = true,
 
@@ -70,6 +83,10 @@ public class NotificationSettingService
                 AiRecommendationAlertsEnabled = true,
 
                 UserActivityNotificationsEnabled = true,
+
+                // =================================================
+                // AUDIT
+                // =================================================
 
                 CreatedAt = DateTime.UtcNow,
 
@@ -109,7 +126,7 @@ public class NotificationSettingService
                 .GetAsync(userId);
 
         // -----------------------------------------------------
-        // CREATE DEFAULT SETTINGS IF NONE EXIST
+        // CREATE SETTINGS IF NONE EXIST
         // -----------------------------------------------------
 
         if (setting == null)
@@ -120,14 +137,26 @@ public class NotificationSettingService
 
                 UserId = userId,
 
+                // =================================================
+                // GENERAL
+                // =================================================
+
                 NotificationsEnabled =
                     request.NotificationsEnabled,
+
+                // =================================================
+                // CHANNELS
+                // =================================================
 
                 EmailNotificationsEnabled =
                     request.EmailNotificationsEnabled,
 
                 InSystemNotificationsEnabled =
                     request.InSystemNotificationsEnabled,
+
+                // =================================================
+                // NOTIFICATION TYPES
+                // =================================================
 
                 TaskAssignmentAlertsEnabled =
                     request.TaskAssignmentAlertsEnabled,
@@ -144,6 +173,10 @@ public class NotificationSettingService
                 UserActivityNotificationsEnabled =
                     request.UserActivityNotificationsEnabled,
 
+                // =================================================
+                // AUDIT
+                // =================================================
+
                 CreatedAt = DateTime.UtcNow,
 
                 UpdatedAt = DateTime.UtcNow
@@ -159,14 +192,26 @@ public class NotificationSettingService
             // APPLY USER'S CHANGES
             // -------------------------------------------------
 
+            // =================================================
+            // GENERAL
+            // =================================================
+
             setting.NotificationsEnabled =
                 request.NotificationsEnabled;
+
+            // =================================================
+            // CHANNELS
+            // =================================================
 
             setting.EmailNotificationsEnabled =
                 request.EmailNotificationsEnabled;
 
             setting.InSystemNotificationsEnabled =
                 request.InSystemNotificationsEnabled;
+
+            // =================================================
+            // NOTIFICATION TYPES
+            // =================================================
 
             setting.TaskAssignmentAlertsEnabled =
                 request.TaskAssignmentAlertsEnabled;
@@ -182,6 +227,10 @@ public class NotificationSettingService
 
             setting.UserActivityNotificationsEnabled =
                 request.UserActivityNotificationsEnabled;
+
+            // =================================================
+            // AUDIT
+            // =================================================
 
             setting.UpdatedAt =
                 DateTime.UtcNow;
@@ -216,14 +265,26 @@ public class NotificationSettingService
             Id =
                 setting.Id,
 
+            // =================================================
+            // GENERAL
+            // =================================================
+
             NotificationsEnabled =
                 setting.NotificationsEnabled,
+
+            // =================================================
+            // CHANNELS
+            // =================================================
 
             EmailNotificationsEnabled =
                 setting.EmailNotificationsEnabled,
 
             InSystemNotificationsEnabled =
                 setting.InSystemNotificationsEnabled,
+
+            // =================================================
+            // NOTIFICATION TYPES
+            // =================================================
 
             TaskAssignmentAlertsEnabled =
                 setting.TaskAssignmentAlertsEnabled,
@@ -239,6 +300,10 @@ public class NotificationSettingService
 
             UserActivityNotificationsEnabled =
                 setting.UserActivityNotificationsEnabled,
+
+            // =================================================
+            // AUDIT
+            // =================================================
 
             CreatedAt =
                 setting.CreatedAt,

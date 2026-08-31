@@ -35,9 +35,20 @@ namespace AI_PMS.Application.DTOs.Users
         [MaxLength(20)]
         public string? PhoneNumber { get; set; }
 
-        
-
         [MaxLength(500)]
         public string? Bio { get; set; }
+
+        // =====================================================
+        // PROFESSIONAL INFORMATION
+        // =====================================================
+
+        [MaxLength(2000)]
+        public string? TechnicalSkills { get; set; }
+
+        // =====================================================
+        // PROFILE IMAGE
+        // =====================================================
+
+        public string? ProfileImage { get; set; }
     }
 }

@@ -65,3 +65,4 @@ namespace AI_PMS.Application.Interfaces.Users
             UpdateProfileDto dto);
     }
 }
+

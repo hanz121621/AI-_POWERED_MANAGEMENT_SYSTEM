@@ -83,39 +83,271 @@ public async Task<IActionResult> CreateTask(
             return Ok(tasks);
         }
         // =====================================================
+                   // =====================================================
+// MY WORK
+// Developer / Staff Contributor
+// =====================================================
 
+// GET: api/tasks/my-work
+[HttpGet("my-work")]
+[Authorize(Roles = "Contributor")]
+public async Task<IActionResult> GetMyWork()
+{
+    var userIdClaim =
+        User.FindFirst(ClaimTypes.NameIdentifier);
 
-        // GET: api/tasks/{id}
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetTaskById(Guid id)
+    if (userIdClaim == null ||
+        !Guid.TryParse(userIdClaim.Value, out var contributorSDId))
+    {
+        return Unauthorized(new
         {
-            var task =
-                await _taskService.GetTaskByIdAsync(id);
+            message = "Invalid user."
+        });
+    }
 
-            if (task == null)
-                return NotFound("Task not found.");
+    try
+    {
+        var tasks =
+            await _taskService.GetMyWorkAsync(
+                contributorSDId);
 
-            return Ok(task);
+        return Ok(tasks);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return BadRequest(new
+        {
+            message = ex.Message
+        });
+    }
+}
+// =====================================================
+// VIEW MY SPRINT TASKS
+// Developer / Staff
+// =====================================================
+
+// GET: api/tasks/my-sprint/{sprintId}
+[HttpGet("my-sprint/{sprintId}")]
+[Authorize(Roles = "Contributor")]
+public async Task<IActionResult> GetMySprintTasks(Guid sprintId)
+{
+    var userIdClaim =
+        User.FindFirst(ClaimTypes.NameIdentifier);
+
+    if (userIdClaim == null)
+    {
+        return Unauthorized(new
+        {
+            message = "Invalid user."
+        });
+    }
+
+    if (!Guid.TryParse(userIdClaim.Value, out var userId))
+    {
+        return Unauthorized(new
+        {
+            message = "Invalid user ID."
+        });
+    }
+
+    try
+    {
+        var result =
+            await _taskService.GetMySprintTasksAsync(
+                userId,
+                sprintId);
+
+        if (result == null)
+        {
+            return NotFound(new
+            {
+                message = "Sprint not found or unavailable."
+            });
         }
 
-        // GET: api/tasks/sprint/{sprintId}
-        [HttpGet("sprint/{sprintId}")]
-        public async Task<IActionResult> GetSprintTasks(
-            Guid sprintId)
+        return Ok(result);
+    }
+    catch
+    {
+        return StatusCode(500, new
         {
-            var tasks =
-                await _taskService.GetSprintTasksAsync(sprintId);
+            message =
+                "Unable to load sprint information. Please try again."
+        });
+    }
+}
 
-            return Ok(tasks);
+         // =====================================================
+// UPDATE MY TASK STATUS
+// Developer / Staff Contributor
+// =====================================================
+
+// PUT: api/tasks/{id}/status
+[HttpPut("{id}/status")]
+[Authorize(Roles = "Contributor")]
+public async Task<IActionResult> UpdateMyTaskStatus(
+    Guid id,
+    [FromBody] UpdateTaskStatusDto dto)
+{
+    // -------------------------------------------------
+    // Get logged-in user
+    // -------------------------------------------------
+    var userIdClaim =
+        User.FindFirst(ClaimTypes.NameIdentifier);
+
+    if (userIdClaim == null ||
+        !Guid.TryParse(
+            userIdClaim.Value,
+            out var userId))
+    {
+        return Unauthorized(new
+        {
+            message = "Invalid user."
+        });
+    }
+
+    try
+    {
+        // -------------------------------------------------
+        // Update task status
+        // -------------------------------------------------
+        var result =
+            await _taskService.UpdateMyTaskStatusAsync(
+                userId,
+                id,
+                dto);
+
+        // -------------------------------------------------
+        // Task not found
+        // -------------------------------------------------
+        if (result.Message == "Task not found.")
+        {
+            return NotFound(new
+            {
+                message = result.Message
+            });
         }
 
-        // GET: api/tasks/developer/{developerId}
+        // -------------------------------------------------
+        // Access denied
+        // -------------------------------------------------
+        if (result.Message ==
+            "You cannot update this task.")
+        {
+            return Forbid();
+        }
+
+        // -------------------------------------------------
+        // Completed task
+        // -------------------------------------------------
+        if (result.Message ==
+            "This task cannot be modified.")
+        {
+            return Conflict(new
+            {
+                message = result.Message
+            });
+        }
+
+        // -------------------------------------------------
+        // Invalid transition
+        // -------------------------------------------------
+        if (result.Message ==
+            "This status change is not allowed.")
+        {
+            return BadRequest(new
+            {
+                message = result.Message
+            });
+        }
+
+        // -------------------------------------------------
+        // Same status
+        // -------------------------------------------------
+        if (result.Message ==
+            "The task already has this status.")
+        {
+            return Ok(new
+            {
+                message = result.Message,
+                task = result.Task
+            });
+        }
+
+        // -------------------------------------------------
+        // Successful update
+        // -------------------------------------------------
+        return Ok(new
+        {
+            message = result.Message,
+            task = result.Task
+        });
+    }
+    catch (Exception)
+    {
+        return StatusCode(500, new
+        {
+            message =
+                "Unable to update task status. Please try again."
+        });
+    }
+}
+
+// =====================================================
+// VIEW TASK BY ID
+// =====================================================
+
+// GET: api/tasks/{id}
+[HttpGet("{id}")]
+public async Task<IActionResult> GetTaskById(Guid id)
+{
+    var task =
+        await _taskService.GetTaskByIdAsync(id);
+
+    if (task == null)
+    {
+        return NotFound(new
+        {
+            message = "Task not found."
+        });
+    }
+
+    // -----------------------------------------------
+    // If current user is a Contributor,
+    // they can only view their own task.
+    // -----------------------------------------------
+    if (User.IsInRole("Contributor"))
+    {
+        var userIdClaim =
+            User.FindFirst(ClaimTypes.NameIdentifier);
+
+        if (userIdClaim == null ||
+            !Guid.TryParse(
+                userIdClaim.Value,
+                out var userId))
+        {
+            return Unauthorized(new
+            {
+                message = "Invalid user."
+            });
+        }
+
+        if (task.AssignedContributorSDId != userId)
+        {
+            return Forbid();
+        }
+    }
+
+    return Ok(task);
+}
+
+        // GET: api/tasks/contributor/{developerId}
         [HttpGet("developer/{developerId}")]
-        public async Task<IActionResult> GetDeveloperTasks(
+        public async Task<IActionResult> GetContributorTasks(
             Guid developerId)
         {
             var tasks =
-                await _taskService.GetDeveloperTasksAsync(
+                await _taskService.GetContributorSDTasksAsync(
                     developerId);
 
             return Ok(tasks);
@@ -176,7 +408,7 @@ public async Task<IActionResult> UpdateTask(
             });
         }
         // =====================================================
-// GET ASSIGNABLE DEVELOPERS
+// GET ASSIGNABLE CONTRIBUTORS
 // Manager only
 // =====================================================
 
@@ -192,3 +424,4 @@ public async Task<IActionResult> GetAssignableUsers()
 }
     }
 }
+

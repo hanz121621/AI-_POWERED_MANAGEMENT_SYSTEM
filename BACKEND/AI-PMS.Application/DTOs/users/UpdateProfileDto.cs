@@ -1,4 +1,3 @@
-
 using System.ComponentModel.DataAnnotations;
 
 namespace AI_PMS.Application.DTOs.Users
@@ -22,5 +21,12 @@ namespace AI_PMS.Application.DTOs.Users
         public string? Bio { get; set; }
 
         public string? ProfileImage { get; set; }
+
+        // =========================================================
+        // PROFESSIONAL INFORMATION
+        // =========================================================
+
+        [MaxLength(2000)]
+        public string? TechnicalSkills { get; set; }
     }
 }

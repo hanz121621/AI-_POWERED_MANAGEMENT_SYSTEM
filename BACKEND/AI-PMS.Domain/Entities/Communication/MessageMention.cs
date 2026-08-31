@@ -1,4 +1,6 @@
+
 using System.ComponentModel.DataAnnotations;
+using AI_PMS.Domain.Entities.TaskComments;
 using AI_PMS.Domain.Entities.Users;
 
 namespace AI_PMS.Domain.Entities.Communication
@@ -9,13 +11,20 @@ namespace AI_PMS.Domain.Entities.Communication
         public Guid Id { get; set; } = Guid.NewGuid();
 
         // =========================================================
-        // MESSAGE
+        // PROJECT DISCUSSION MESSAGE
         // =========================================================
 
-        [Required]
-        public Guid MessageId { get; set; }
+        public Guid? MessageId { get; set; }
 
         public Message? Message { get; set; }
+
+        // =========================================================
+        // TASK COMMENT
+        // =========================================================
+
+        public Guid? TaskCommentId { get; set; }
+
+        public TaskComment? TaskComment { get; set; }
 
         // =========================================================
         // MENTIONED USER
@@ -27,7 +36,7 @@ namespace AI_PMS.Domain.Entities.Communication
         public User? MentionedUser { get; set; }
 
         // =========================================================
-        // AUDIT
+        // CREATED
         // =========================================================
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
