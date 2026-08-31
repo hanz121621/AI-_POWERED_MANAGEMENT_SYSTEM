@@ -1,4 +1,3 @@
-
 using AI_PMS.Application.DTOs.NotificationSettings;
 using AI_PMS.Application.Interfaces.Activities;
 using AI_PMS.Application.Interfaces.Repositories.NotificationSettings;
@@ -45,11 +44,13 @@ public class NotificationSettingService
                 .GetAsync(userId);
 
         // -----------------------------------------------------
-        // CREATE DEFAULT SETTINGS IF NONE EXIST
+        // CREATE DEFAULT SETTINGS
         // -----------------------------------------------------
 
         if (setting == null)
         {
+            var now = DateTime.UtcNow;
+
             setting = new NotificationSetting
             {
                 Id = Guid.NewGuid(),
@@ -76,21 +77,31 @@ public class NotificationSettingService
 
                 TaskAssignmentAlertsEnabled = true,
 
-                ProjectDeadlineRemindersEnabled = true,
+                TaskStatusUpdateNotificationsEnabled = true,
+
+                CommentAndMentionNotificationsEnabled = true,
+
+                TeamLeaderMessageNotificationsEnabled = true,
+
+                UserActivityNotificationsEnabled = true,
 
                 SprintUpdateNotificationsEnabled = true,
 
-                AiRecommendationAlertsEnabled = true,
+                ProjectDeadlineRemindersEnabled = true,
 
-                UserActivityNotificationsEnabled = true,
+                ReviewRequestNotificationsEnabled = true,
+
+                ProjectAnnouncementNotificationsEnabled = true,
+
+                AiRecommendationAlertsEnabled = true,
 
                 // =================================================
                 // AUDIT
                 // =================================================
 
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = now,
 
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = now
             };
 
             setting =
@@ -126,11 +137,13 @@ public class NotificationSettingService
                 .GetAsync(userId);
 
         // -----------------------------------------------------
-        // CREATE SETTINGS IF NONE EXIST
+        // CREATE IF NOT EXISTS
         // -----------------------------------------------------
 
         if (setting == null)
         {
+            var now = DateTime.UtcNow;
+
             setting = new NotificationSetting
             {
                 Id = Guid.NewGuid(),
@@ -161,25 +174,40 @@ public class NotificationSettingService
                 TaskAssignmentAlertsEnabled =
                     request.TaskAssignmentAlertsEnabled,
 
-                ProjectDeadlineRemindersEnabled =
-                    request.ProjectDeadlineRemindersEnabled,
+                TaskStatusUpdateNotificationsEnabled =
+                    request.TaskStatusUpdateNotificationsEnabled,
+
+                CommentAndMentionNotificationsEnabled =
+                    request.CommentAndMentionNotificationsEnabled,
+
+                TeamLeaderMessageNotificationsEnabled =
+                    request.TeamLeaderMessageNotificationsEnabled,
+
+                UserActivityNotificationsEnabled =
+                    request.UserActivityNotificationsEnabled,
 
                 SprintUpdateNotificationsEnabled =
                     request.SprintUpdateNotificationsEnabled,
 
+                ProjectDeadlineRemindersEnabled =
+                    request.ProjectDeadlineRemindersEnabled,
+
+                ReviewRequestNotificationsEnabled =
+                    request.ReviewRequestNotificationsEnabled,
+
+                ProjectAnnouncementNotificationsEnabled =
+                    request.ProjectAnnouncementNotificationsEnabled,
+
                 AiRecommendationAlertsEnabled =
                     request.AiRecommendationAlertsEnabled,
-
-                UserActivityNotificationsEnabled =
-                    request.UserActivityNotificationsEnabled,
 
                 // =================================================
                 // AUDIT
                 // =================================================
 
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = now,
 
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = now
             };
 
             setting =
@@ -188,20 +216,16 @@ public class NotificationSettingService
         }
         else
         {
-            // -------------------------------------------------
-            // APPLY USER'S CHANGES
-            // -------------------------------------------------
-
-            // =================================================
+            // =====================================================
             // GENERAL
-            // =================================================
+            // =====================================================
 
             setting.NotificationsEnabled =
                 request.NotificationsEnabled;
 
-            // =================================================
+            // =====================================================
             // CHANNELS
-            // =================================================
+            // =====================================================
 
             setting.EmailNotificationsEnabled =
                 request.EmailNotificationsEnabled;
@@ -209,28 +233,43 @@ public class NotificationSettingService
             setting.InSystemNotificationsEnabled =
                 request.InSystemNotificationsEnabled;
 
-            // =================================================
+            // =====================================================
             // NOTIFICATION TYPES
-            // =================================================
+            // =====================================================
 
             setting.TaskAssignmentAlertsEnabled =
                 request.TaskAssignmentAlertsEnabled;
 
-            setting.ProjectDeadlineRemindersEnabled =
-                request.ProjectDeadlineRemindersEnabled;
+            setting.TaskStatusUpdateNotificationsEnabled =
+                request.TaskStatusUpdateNotificationsEnabled;
 
-            setting.SprintUpdateNotificationsEnabled =
-                request.SprintUpdateNotificationsEnabled;
+            setting.CommentAndMentionNotificationsEnabled =
+                request.CommentAndMentionNotificationsEnabled;
 
-            setting.AiRecommendationAlertsEnabled =
-                request.AiRecommendationAlertsEnabled;
+            setting.TeamLeaderMessageNotificationsEnabled =
+                request.TeamLeaderMessageNotificationsEnabled;
 
             setting.UserActivityNotificationsEnabled =
                 request.UserActivityNotificationsEnabled;
 
-            // =================================================
+            setting.SprintUpdateNotificationsEnabled =
+                request.SprintUpdateNotificationsEnabled;
+
+            setting.ProjectDeadlineRemindersEnabled =
+                request.ProjectDeadlineRemindersEnabled;
+
+            setting.ReviewRequestNotificationsEnabled =
+                request.ReviewRequestNotificationsEnabled;
+
+            setting.ProjectAnnouncementNotificationsEnabled =
+                request.ProjectAnnouncementNotificationsEnabled;
+
+            setting.AiRecommendationAlertsEnabled =
+                request.AiRecommendationAlertsEnabled;
+
+            // =====================================================
             // AUDIT
-            // =================================================
+            // =====================================================
 
             setting.UpdatedAt =
                 DateTime.UtcNow;
@@ -262,8 +301,7 @@ public class NotificationSettingService
     {
         return new NotificationSettingDto
         {
-            Id =
-                setting.Id,
+            Id = setting.Id,
 
             // =================================================
             // GENERAL
@@ -289,17 +327,32 @@ public class NotificationSettingService
             TaskAssignmentAlertsEnabled =
                 setting.TaskAssignmentAlertsEnabled,
 
-            ProjectDeadlineRemindersEnabled =
-                setting.ProjectDeadlineRemindersEnabled,
+            TaskStatusUpdateNotificationsEnabled =
+                setting.TaskStatusUpdateNotificationsEnabled,
+
+            CommentAndMentionNotificationsEnabled =
+                setting.CommentAndMentionNotificationsEnabled,
+
+            TeamLeaderMessageNotificationsEnabled =
+                setting.TeamLeaderMessageNotificationsEnabled,
+
+            UserActivityNotificationsEnabled =
+                setting.UserActivityNotificationsEnabled,
 
             SprintUpdateNotificationsEnabled =
                 setting.SprintUpdateNotificationsEnabled,
 
+            ProjectDeadlineRemindersEnabled =
+                setting.ProjectDeadlineRemindersEnabled,
+
+            ReviewRequestNotificationsEnabled =
+                setting.ReviewRequestNotificationsEnabled,
+
+            ProjectAnnouncementNotificationsEnabled =
+                setting.ProjectAnnouncementNotificationsEnabled,
+
             AiRecommendationAlertsEnabled =
                 setting.AiRecommendationAlertsEnabled,
-
-            UserActivityNotificationsEnabled =
-                setting.UserActivityNotificationsEnabled,
 
             // =================================================
             // AUDIT

@@ -10,7 +10,7 @@ namespace AI_PMS.API.Controllers.Communication
     [ApiController]
     [Route("api/communication/messages")]
     [Authorize(Roles = "Manager,Contributor")]
-    public class MessageController : ControllerBase
+public class MessageController : ControllerBase
     {
         private readonly IMessageService _messageService;
 
@@ -25,10 +25,11 @@ namespace AI_PMS.API.Controllers.Communication
         // POST: api/communication/messages/team-leader
         // =========================================================
 
-        [HttpPost("team-leader")]
-        public async Task<ActionResult<MessageResponseDto>>
-            SendMessageToTeamLeader(
-                [FromBody] SendTeamLeaderMessageDto request)
+     [Authorize(Roles = "Manager")]
+[HttpPost("team-leader")]
+public async Task<ActionResult<MessageResponseDto>>
+    SendMessageToTeamLeader(
+        [FromBody] SendTeamLeaderMessageDto request)
         {
             var userIdClaim =
                 User.FindFirstValue(

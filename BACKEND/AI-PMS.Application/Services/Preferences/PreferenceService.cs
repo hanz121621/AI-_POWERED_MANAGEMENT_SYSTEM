@@ -486,116 +486,227 @@ public async Task<DashboardPreferenceDto>
         return MapAIPreference(preference);
     }
 
-    public async Task<AIPreferenceDto> UpdateAIPreferenceAsync(
-        Guid userId,
-        UpdateAIPreferenceDto dto)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+public async Task<AIPreferenceDto> UpdateAIPreferenceAsync(
+    Guid userId,
+    UpdateAIPreferenceDto dto)
+{
+    // =========================================================
+    // VALIDATION
+    // =========================================================
+
+    if (userId == Guid.Empty)
     {
-        var preference = await _context.AIPreferences
-            .FirstOrDefaultAsync(x => x.UserId == userId);
+        throw new UnauthorizedAccessException(
+            "Access denied.");
+    }
 
-        if (preference == null)
+    if (dto == null)
+    {
+        throw new ArgumentNullException(nameof(dto));
+    }
+
+    // =========================================================
+    // GET EXISTING AI PREFERENCE
+    // =========================================================
+
+    var preference = await _context.AIPreferences
+        .FirstOrDefaultAsync(x => x.UserId == userId);
+
+    // =========================================================
+    // CREATE DEFAULT PREFERENCE IF IT DOES NOT EXIST
+    // =========================================================
+
+    if (preference == null)
+    {
+        preference = new AIPreference
         {
-            preference = new AIPreference
-            {
-                UserId = userId,
-                CreatedAt = DateTime.UtcNow
-            };
+            UserId = userId,
 
-            await _context.AIPreferences.AddAsync(preference);
-        }
+            // =====================================================
+            // GENERAL AI DEFAULTS
+            // =====================================================
 
-        // =====================================================
-        // VALIDATION
-        // =====================================================
+            IsAIEnabled = true,
+            EnableRecommendations = true,
+            EnableRiskAnalysis = true,
+            EnableNotifications = true,
 
-        var approvalMode =
-            dto.SuggestionApprovalMode.Trim().ToLower();
+            SuggestionApprovalMode = "manual",
 
-        var allowedApprovalModes = new[]
-        {
-            "manual",
-            "automatic"
+            AllowAIDataUsage = true,
+
+            AnalysisFrequencyMinutes = 60,
+
+            // =====================================================
+            // MANAGER AI DEFAULTS
+            // =====================================================
+
+            DelayWarningsEnabled = true,
+
+            SummaryFrequencyMinutes = 60,
+
+            RecommendationDisplayEnabled = true,
+
+            AIInsightsVisible = true,
+
+            AINotificationPriority = "normal",
+
+            // =====================================================
+            // AUDIT
+            // =====================================================
+
+            CreatedAt = DateTime.UtcNow,
+
+            UpdatedAt = DateTime.UtcNow
         };
 
-        if (!allowedApprovalModes.Contains(approvalMode))
-        {
-            throw new ArgumentException(
-                "Invalid suggestion approval mode.");
-        }
-
-        if (dto.AnalysisFrequencyMinutes <= 0)
-        {
-            throw new ArgumentException(
-                "Analysis frequency must be greater than zero.");
-        }
-
-        // =====================================================
-        // UPDATE
-        // =====================================================
-
-        preference.IsAIEnabled = dto.IsAIEnabled;
-        preference.EnableRecommendations =
-            dto.RecommendationsEnabled;
-
-        preference.EnableRiskAnalysis =
-            dto.RiskAnalysisEnabled;
-
-        preference.EnableNotifications =
-            dto.AIAlertsEnabled;
-
-        preference.SuggestionApprovalMode =
-            approvalMode;
-
-        preference.AllowAIDataUsage =
-            dto.AllowAIDataUsage;
-
-        preference.AnalysisFrequencyMinutes =
-            dto.AnalysisFrequencyMinutes;
-
-        preference.UpdatedAt = DateTime.UtcNow;
-        // =====================================================
-// UPDATE MANAGER AI PREFERENCES
-// =====================================================
-
-// =====================================================
-// UPDATE MANAGER AI PREFERENCES
-// =====================================================
-
-preference.DelayWarningsEnabled =
-    dto.DelayWarningsEnabled;
-
-preference.SummaryFrequencyMinutes =
-    dto.SummaryFrequencyMinutes;
-
-preference.RecommendationDisplayEnabled =
-    dto.RecommendationDisplayEnabled;
-
-preference.AIInsightsVisible =
-    dto.AIInsightsVisible;
-
-var notificationPriority =
-    dto.AINotificationPriority
-        .Trim()
-        .ToLowerInvariant();
-
-if (notificationPriority != "low" &&
-    notificationPriority != "normal" &&
-    notificationPriority != "high")
-{
-    throw new ArgumentException(
-        "AINotificationPriority must be low, normal, or high.");
-}
-
-preference.AINotificationPriority =
-    notificationPriority;
-
-preference.UpdatedAt =
-    DateTime.UtcNow;
-
-await _context.SaveChangesAsync();
-
-return MapAIPreference(preference);
+        await _context.AIPreferences.AddAsync(preference);
     }
+
+    // =========================================================
+    // VALIDATE SUGGESTION APPROVAL MODE
+    // =========================================================
+
+    var approvalMode =
+        string.IsNullOrWhiteSpace(dto.SuggestionApprovalMode)
+            ? "manual"
+            : dto.SuggestionApprovalMode
+                .Trim()
+                .ToLowerInvariant();
+
+    var allowedApprovalModes = new[]
+    {
+        "manual",
+        "automatic"
+    };
+
+    if (!allowedApprovalModes.Contains(approvalMode))
+    {
+        throw new ArgumentException(
+            "Invalid suggestion approval mode.");
+    }
+
+    // =========================================================
+    // VALIDATE ANALYSIS FREQUENCY
+    // =========================================================
+
+    if (dto.AnalysisFrequencyMinutes <= 0)
+    {
+        throw new ArgumentException(
+            "Analysis frequency must be greater than zero.");
+    }
+
+    // =========================================================
+    // VALIDATE SUMMARY FREQUENCY
+    // =========================================================
+
+    if (dto.SummaryFrequencyMinutes <= 0)
+    {
+        throw new ArgumentException(
+            "Summary frequency must be greater than zero.");
+    }
+
+    // =========================================================
+    // VALIDATE AI NOTIFICATION PRIORITY
+    // =========================================================
+
+    var notificationPriority =
+        string.IsNullOrWhiteSpace(dto.AINotificationPriority)
+            ? "normal"
+            : dto.AINotificationPriority
+                .Trim()
+                .ToLowerInvariant();
+
+    if (notificationPriority != "low" &&
+        notificationPriority != "normal" &&
+        notificationPriority != "high")
+    {
+        throw new ArgumentException(
+            "AINotificationPriority must be low, normal, or high.");
+    }
+
+    // =========================================================
+    // UPDATE GENERAL AI PREFERENCES
+    // =========================================================
+
+    preference.IsAIEnabled =
+        dto.IsAIEnabled;
+
+    preference.EnableRecommendations =
+        dto.RecommendationsEnabled;
+
+    preference.EnableRiskAnalysis =
+        dto.RiskAnalysisEnabled;
+
+    preference.EnableNotifications =
+        dto.AIAlertsEnabled;
+
+    preference.SuggestionApprovalMode =
+        approvalMode;
+
+    preference.AllowAIDataUsage =
+        dto.AllowAIDataUsage;
+
+    preference.AnalysisFrequencyMinutes =
+        dto.AnalysisFrequencyMinutes;
+
+    // =========================================================
+    // UPDATE MANAGER AI PREFERENCES
+    // =========================================================
+
+    preference.DelayWarningsEnabled =
+        dto.DelayWarningsEnabled;
+
+    preference.SummaryFrequencyMinutes =
+        dto.SummaryFrequencyMinutes;
+
+    preference.RecommendationDisplayEnabled =
+        dto.RecommendationDisplayEnabled;
+
+    preference.AIInsightsVisible =
+        dto.AIInsightsVisible;
+
+    preference.AINotificationPriority =
+        notificationPriority;
+
+    // =========================================================
+    // UPDATE TIMESTAMP
+    // =========================================================
+
+    preference.UpdatedAt =
+        DateTime.UtcNow;
+
+    // =========================================================
+    // SAVE
+    // =========================================================
+
+    await _context.SaveChangesAsync();
+
+    // =========================================================
+    // RETURN UPDATED PREFERENCE
+    // =========================================================
+
+    return MapAIPreference(preference);
+}
 
     // =========================================================
     // MAPPERS
@@ -821,16 +932,28 @@ private static string GetWidgetDescription(string key)
     };
 }    
 
+
+
+
+
+
+
+
+
 private static AIPreferenceDto MapAIPreference(
     AIPreference preference)
 {
     return new AIPreferenceDto
     {
+        // =========================================================
+        // OWNER
+        // =========================================================
+
         UserId = preference.UserId,
 
-        // =====================================================
+        // =========================================================
         // GENERAL AI CONFIGURATION
-        // =====================================================
+        // =========================================================
 
         AIEnabled =
             preference.IsAIEnabled,
@@ -845,7 +968,7 @@ private static AIPreferenceDto MapAIPreference(
             preference.EnableNotifications,
 
         SuggestionApprovalMode =
-            preference.SuggestionApprovalMode.ToLowerInvariant(),
+            preference.SuggestionApprovalMode,
 
         AllowAIDataUsage =
             preference.AllowAIDataUsage,
@@ -853,9 +976,9 @@ private static AIPreferenceDto MapAIPreference(
         AnalysisFrequencyMinutes =
             preference.AnalysisFrequencyMinutes,
 
-        // =====================================================
+        // =========================================================
         // MANAGER AI PREFERENCES
-        // =====================================================
+        // =========================================================
 
         DelayWarningsEnabled =
             preference.DelayWarningsEnabled,
@@ -870,11 +993,11 @@ private static AIPreferenceDto MapAIPreference(
             preference.AIInsightsVisible,
 
         AINotificationPriority =
-            preference.AINotificationPriority.ToLowerInvariant(),
+            preference.AINotificationPriority,
 
-        // =====================================================
+        // =========================================================
         // AUDIT
-        // =====================================================
+        // =========================================================
 
         UpdatedAt =
             preference.UpdatedAt

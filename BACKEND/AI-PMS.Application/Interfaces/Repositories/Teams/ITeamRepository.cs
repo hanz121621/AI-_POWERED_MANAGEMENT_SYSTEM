@@ -24,6 +24,10 @@ namespace AI_PMS.Application.Interfaces.Repositories.Teams
             Guid teamId,
             Guid userId);
 
+            Task<TeamMember?> GetTeamLeaderMembershipAsync(
+    Guid teamId,
+    Guid userId);
+
         Task<List<TeamMember>> GetAllMembersAsync(
             Guid teamId);
 

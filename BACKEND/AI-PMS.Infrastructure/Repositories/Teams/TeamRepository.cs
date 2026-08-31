@@ -52,7 +52,30 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
 
                 .FirstOrDefaultAsync(t => t.Id == id);
         }
+                
+                  // =========================================================
+// GET TEAM LEADER MEMBERSHIP
+// =========================================================
 
+public async Task<TeamMember?> GetTeamLeaderMembershipAsync(
+    Guid teamId,
+    Guid userId)
+{
+    return await _context.TeamMembers
+        .AsNoTracking()
+        .Include(tm => tm.User)
+        .Include(tm => tm.Team)
+        .Where(tm =>
+            tm.TeamId == teamId &&
+            tm.UserId == userId &&
+            tm.IsTeamLeader &&
+            tm.IsActive &&
+            tm.User != null &&
+            tm.User.IsActive &&
+            tm.Team != null &&
+            tm.Team.IsActive)
+        .FirstOrDefaultAsync();
+}
         // =========================================================
         // GET ALL TEAMS
         // =========================================================

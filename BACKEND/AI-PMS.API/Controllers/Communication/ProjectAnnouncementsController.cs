@@ -9,77 +9,145 @@ namespace AI_PMS.API.Controllers.Communication
     [ApiController]
     [Route("api/projects/{projectId:guid}/announcements")]
     [Authorize(Roles = "Manager")]
-    public class ProjectAnnouncementsController
-        : ControllerBase
+    public class ProjectAnnouncementsController : ControllerBase
     {
-        private readonly IProjectAnnouncementService
-            _announcementService;
+        private readonly IProjectAnnouncementService _announcementService;
 
         public ProjectAnnouncementsController(
             IProjectAnnouncementService announcementService)
         {
-            _announcementService =
-                announcementService;
+            _announcementService = announcementService;
         }
 
         // =========================================================
-        // SEND ANNOUNCEMENT
+        // SEND PROJECT ANNOUNCEMENT
+        //
+        // POST:
+        // api/projects/{projectId}/announcements
         // =========================================================
 
         [HttpPost]
-        public async Task<IActionResult>
+        public async Task<ActionResult<ProjectAnnouncementDto>>
             SendAnnouncement(
                 Guid projectId,
                 [FromBody] SendProjectAnnouncementDto request)
         {
-            var managerIdClaim =
-                User.FindFirstValue(
-                    ClaimTypes.NameIdentifier);
+            var userIdClaim =
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if (!Guid.TryParse(
-                    managerIdClaim,
-                    out var managerId))
+            if (!Guid.TryParse(userIdClaim, out var managerId))
             {
-                return Unauthorized();
+                return Unauthorized(new
+                {
+                    message = "Invalid authenticated user."
+                });
             }
 
-            request.ProjectId = projectId;
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest(new
+                    {
+                        message = "Announcement information is required."
+                    });
+                }
 
-            var result =
-                await _announcementService
-                    .SendAnnouncementAsync(
-                        managerId,
-                        request);
+                // Route project ID is authoritative.
+                request.ProjectId = projectId;
 
-            return Ok(result);
+                var result =
+                    await _announcementService
+                        .SendAnnouncementAsync(
+                            managerId,
+                            request);
+
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
         }
 
         // =========================================================
         // GET PROJECT ANNOUNCEMENTS
+        //
+        // GET:
+        // api/projects/{projectId}/announcements
         // =========================================================
 
         [HttpGet]
-        public async Task<IActionResult>
+        public async Task<ActionResult<List<ProjectAnnouncementDto>>>
             GetAnnouncements(Guid projectId)
         {
-            var managerIdClaim =
-                User.FindFirstValue(
-                    ClaimTypes.NameIdentifier);
+            var userIdClaim =
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if (!Guid.TryParse(
-                    managerIdClaim,
-                    out var managerId))
+            if (!Guid.TryParse(userIdClaim, out var managerId))
             {
-                return Unauthorized();
+                return Unauthorized(new
+                {
+                    message = "Invalid authenticated user."
+                });
             }
 
-            var result =
-                await _announcementService
-                    .GetProjectAnnouncementsAsync(
-                        managerId,
-                        projectId);
+            try
+            {
+                var result =
+                    await _announcementService
+                        .GetProjectAnnouncementsAsync(
+                            managerId,
+                            projectId);
 
-            return Ok(result);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
         }
     }
 }

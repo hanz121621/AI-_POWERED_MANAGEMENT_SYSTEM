@@ -1,6 +1,7 @@
 using AI_PMS.Application.DTOs.Communication;
 using AI_PMS.Application.Interfaces.Communication;
 using AI_PMS.Application.Interfaces.Projects;
+using  AI_PMS.Application.Interfaces.Repositories.Sprints;
 using AI_PMS.Application.Interfaces.Repositories.Projects;
 using AI_PMS.Application.Interfaces.Repositories.Communication;
 using AI_PMS.Application.Interfaces.Repositories.Notifications;

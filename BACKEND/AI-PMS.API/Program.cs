@@ -24,11 +24,20 @@ using AI_PMS.Application.Interfaces.Repositories.Contributors;
 using AI_PMS.Application.Interfaces.Repositories.NotificationSettings;
 using AI_PMS.Application.Interfaces.Repositories.Permissions;
 using AI_PMS.Application.Interfaces.Repositories.Projects;
+using AI_PMS.Application.Interfaces.Notifications;
+using AI_PMS.Application.Interfaces.Repositories.Notifications;
+using AI_PMS.Application.Services.Notifications;
+using AI_PMS.Application.Interfaces.Repositories.Reports;
+using AI_PMS.Application.Interfaces.Reports;
+using AI_PMS.Application.Services.Reports;
+using AI_PMS.Infrastructure.Repositories.Reports;
+using AI_PMS.Infrastructure.Repositories.Notifications;
 using AI_PMS.Application.Interfaces.Repositories.SecuritySettings;
 using AI_PMS.Application.Interfaces.Repositories.SubTasks;
 using AI_PMS.Application.Interfaces.Repositories.Tasks;
 using AI_PMS.Application.Interfaces.Repositories.Teams;
 using AI_PMS.Application.Interfaces.Repositories.Users;
+using AI_PMS.Application.Interfaces.Repositories.Sprints;
 using AI_PMS.Application.Interfaces.Repositories.UserPreferences;
 using AI_PMS.Application.Interfaces.Security;
 using AI_PMS.Application.Interfaces.SecuritySettings;
@@ -41,6 +50,8 @@ using AI_PMS.Application.Interfaces.UserPreferences;
 using AI_PMS.Application.Interfaces.Users;
 using AI_PMS.Application.Interfaces.Reports;
 using AI_PMS.Application.Services.Reports;
+using AI_PMS.Application.Interfaces.Teams;
+using AI_PMS.Application.Services.Teams;
 
 using AI_PMS.Application.Services.Activities;
 using AI_PMS.Application.Services.Auth;
@@ -141,6 +152,22 @@ builder.Services.AddScoped<
     IContributorReportService,
     ContributorReportService>();
 
+    builder.Services.AddScoped<
+    ITeamLeaderProjectService,
+    TeamLeaderProjectService>();
+
+    // =========================================================
+// TEAM LEADER SPRINT PARTICIPATION
+// =========================================================
+
+builder.Services.AddScoped<
+    ITeamLeaderSprintRepository,
+    TeamLeaderSprintRepository>();
+
+builder.Services.AddScoped<
+    ITeamLeaderSprintService,
+    TeamLeaderSprintService>();
+
 // =========================================================
 // AUTH REPOSITORIES
 // =========================================================
@@ -218,6 +245,14 @@ builder.Services.AddScoped<
     IContributorSubTypeService,
     ContributorSubTypeService>();
 
+    builder.Services.AddScoped<
+    ITeamLeaderTaskHistoryRepository,
+    TeamLeaderTaskHistoryRepository>();
+
+builder.Services.AddScoped<
+    ITeamLeaderTaskHistoryService,
+    TeamLeaderTaskHistoryService>();
+
 // =========================================================
 // TEAM MANAGEMENT
 // =========================================================
@@ -282,8 +317,8 @@ builder.Services.AddScoped<
     SprintRepository>();
 
 builder.Services.AddScoped<
-    ISprintService,
-    SprintService>();
+    AI_PMS.Application.Interfaces.Repositories.Sprints.ISprintRepository,
+    SprintRepository>();
 
 // =========================================================
 // TASK MANAGEMENT
@@ -353,6 +388,10 @@ builder.Services.AddScoped<
 // COMMUNICATION
 // =========================================================
 
+// ---------------------------------------------------------
+// PROJECT ANNOUNCEMENTS
+// ---------------------------------------------------------
+
 builder.Services.AddScoped<
     IProjectAnnouncementService,
     ProjectAnnouncementService>();
@@ -364,6 +403,42 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IProjectAnnouncementRecipientRepository,
     ProjectAnnouncementRecipientRepository>();
+
+// ---------------------------------------------------------
+// DIRECT MESSAGES
+// ---------------------------------------------------------
+
+builder.Services.AddScoped<
+    IMessageRepository,
+    MessageRepository>();
+
+builder.Services.AddScoped<
+    IMessageService,
+    MessageService>();
+
+    // =========================================================
+// NOTIFICATIONS
+// =========================================================
+
+builder.Services.AddScoped<
+    INotificationRepository,
+    NotificationRepository>();
+
+builder.Services.AddScoped<
+    INotificationService,
+    NotificationService>();
+
+// ---------------------------------------------------------
+// MESSAGE MENTIONS
+// ---------------------------------------------------------
+
+builder.Services.AddScoped<
+    IMessageMentionRepository,
+    MessageMentionRepository>();
+
+builder.Services.AddScoped<
+    IMentionService,
+    MentionService>();
 
 // =========================================================
 // DASHBOARD ANALYTICS
