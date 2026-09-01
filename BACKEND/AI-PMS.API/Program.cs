@@ -2,6 +2,7 @@
 using System.Text;
 
 using MediatR;
+using System.Security.Claims;
 
 using AI_PMS.API.Authorization;
 using AI_PMS.API.Services;
@@ -42,6 +43,8 @@ using AI_PMS.Application.Interfaces.Repositories.UserPreferences;
 using AI_PMS.Application.Interfaces.Security;
 using AI_PMS.Application.Interfaces.SecuritySettings;
 using AI_PMS.Application.Interfaces.Sprints;
+using AI_PMS.Application.Interfaces.Sprints;
+using AI_PMS.Application.Services.Sprints;
 using AI_PMS.Application.Interfaces.SubTasks;
 using AI_PMS.Application.Interfaces.SystemSettings;
 using AI_PMS.Application.Interfaces.Tasks;
@@ -155,6 +158,8 @@ builder.Services.AddScoped<
     builder.Services.AddScoped<
     ITeamLeaderProjectService,
     TeamLeaderProjectService>();
+
+    builder.Services.AddScoped<ISprintService, SprintService>();
 
     // =========================================================
 // TEAM LEADER SPRINT PARTICIPATION
@@ -604,36 +609,161 @@ builder.Services.AddCors(options =>
     });
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // =========================================================
 // JWT AUTHENTICATION
 // =========================================================
 
 builder.Services
-    .AddAuthentication(
-        JwtBearerDefaults.AuthenticationScheme)
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.TokenValidationParameters =
-            new TokenValidationParameters
+        var jwtKey = builder.Configuration["Jwt:Key"];
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+
+            IssuerSigningKey =
+                new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(jwtKey!)
+                ),
+
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+
+            ValidateLifetime = true,
+
+            NameClaimType = ClaimTypes.Name,
+            RoleClaimType = ClaimTypes.Role,
+
+            ClockSkew = TimeSpan.Zero
+        };
+
+        // =====================================================
+        // TEMPORARY JWT DEBUGGING
+        // =====================================================
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
             {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
+                Console.WriteLine(
+                    "========== JWT MESSAGE RECEIVED =========="
+                );
 
-                ValidIssuer =
-                    builder.Configuration["Jwt:Issuer"],
+                Console.WriteLine(
+                    $"Authorization Header: " +
+                    $"{context.Request.Headers.Authorization}"
+                );
 
-                ValidAudience =
-                    builder.Configuration["Jwt:Audience"],
+                return Task.CompletedTask;
+            },
 
-                IssuerSigningKey =
-                    new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(
-                            builder.Configuration["Jwt:Key"]!))
-            };
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine(
+                    "========== JWT TOKEN VALIDATED =========="
+                );
+
+                Console.WriteLine(
+                    $"User: {context.Principal?.Identity?.Name}"
+                );
+
+                Console.WriteLine(
+                    $"Authenticated: " +
+                    $"{context.Principal?.Identity?.IsAuthenticated}"
+                );
+
+                foreach (var claim in context.Principal?.Claims
+                             ?? Enumerable.Empty<Claim>())
+                {
+                    Console.WriteLine(
+                        $"CLAIM: {claim.Type} = {claim.Value}"
+                    );
+                }
+
+                return Task.CompletedTask;
+            },
+
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine(
+                    "========== JWT AUTHENTICATION FAILED =========="
+                );
+
+                Console.WriteLine(
+                    $"Exception: {context.Exception.Message}"
+                );
+
+                return Task.CompletedTask;
+            },
+
+            OnChallenge = context =>
+            {
+                Console.WriteLine(
+                    "========== JWT CHALLENGE =========="
+                );
+
+                Console.WriteLine(
+                    $"Error: {context.Error}"
+                );
+
+                Console.WriteLine(
+                    $"Error Description: " +
+                    $"{context.ErrorDescription}"
+                );
+
+                return Task.CompletedTask;
+            }
+        };
     });
-
 // =========================================================
 // BUILD APPLICATION
 // =========================================================

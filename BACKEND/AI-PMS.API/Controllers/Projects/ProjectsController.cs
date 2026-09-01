@@ -900,6 +900,124 @@ var assigned =
             }
         }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[HttpGet("debug-auth")]
+public IActionResult DebugAuth()
+{
+    return Ok(new
+    {
+        isAuthenticated = User.Identity?.IsAuthenticated,
+
+        name = User.Identity?.Name,
+
+        nameIdentifier =
+            User.FindFirstValue(ClaimTypes.NameIdentifier),
+
+        role =
+            User.FindFirstValue(ClaimTypes.Role),
+
+        allClaims = User.Claims.Select(c => new
+        {
+            type = c.Type,
+            value = c.Value
+        })
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         // =========================================================
         // GET ASSIGNED MANAGER
         // =========================================================
