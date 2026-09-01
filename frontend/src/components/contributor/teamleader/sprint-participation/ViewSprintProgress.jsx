@@ -342,4 +342,5 @@ function InsightCard({
             </p>
         </div>
     );
+    
 }
