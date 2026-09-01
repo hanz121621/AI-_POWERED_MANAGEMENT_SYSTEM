@@ -5,7 +5,7 @@ import { Outlet } from "react-router-dom";
 
 function TeamLeaderLayout() {
     return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-[#081b33]">
+        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#081b33]">
 
             {/* ==================================================
                 SIDEBAR
@@ -17,7 +17,7 @@ function TeamLeaderLayout() {
                 MAIN AREA
             ================================================== */}
 
-            <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
 
                 {/* ==================================================
                     NAVBAR
@@ -29,7 +29,7 @@ function TeamLeaderLayout() {
                     PAGE CONTENT
                 ================================================== */}
 
-                <main className="min-w-0 flex-1 p-4 sm:p-6">
+                <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
                     <Outlet />
                 </main>
 
@@ -39,3 +39,4 @@ function TeamLeaderLayout() {
 }
 
 export default TeamLeaderLayout;
+

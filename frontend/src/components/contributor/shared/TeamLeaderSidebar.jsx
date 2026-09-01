@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -13,8 +12,6 @@ import {
     Workflow,
     X,
 } from "lucide-react";
-
-
 
 function TeamLeaderSidebar({
     isOpen = true,
@@ -150,16 +147,21 @@ function TeamLeaderSidebar({
 
             {/* ==================================================
                 SIDEBAR
+
+                IMPORTANT:
+                - relative instead of fixed
+                - min-h-screen instead of h-screen
+
+                This allows the sidebar to move together with
+                the main page when the page itself is scrolled.
             ================================================== */}
 
             <aside
                 className={`
-                    fixed
-                    left-0
-                    top-0
+                    relative
                     z-50
                     flex
-                    h-screen
+                    min-h-screen
                     w-72
                     flex-col
                     border-r
@@ -265,12 +267,15 @@ function TeamLeaderSidebar({
 
                 {/* ==================================================
                     NAVIGATION
+
+                    IMPORTANT:
+                    Removed overflow-y-auto so the sidebar does
+                    not have its own separate scrollbar.
                 ================================================== */}
 
                 <nav
                     className="
                         flex-1
-                        overflow-y-auto
                         px-3
                         py-5
                     "
@@ -398,10 +403,10 @@ function TeamLeaderSidebar({
                             <div
                                 className="
                                     mt-1
+                                    ml-5
                                     space-y-1
                                     border-l
                                     border-blue-900
-                                    ml-5
                                     pl-2
                                 "
                             >
