@@ -1,4 +1,3 @@
-
 // ============================================================
 // APP ROUTES
 // AIPMS
@@ -174,30 +173,21 @@ import ViewMyWork
 // ============================================================
 // DEVELOPER
 //
-// IMPORTANT:
-//
-// Actual developer pages:
+// ACTUAL FILE STRUCTURE:
 //
 // src/pages/contributor/developer/
+//
+//     Communication.jsx
 //     Developer.jsx
 //     DeveloperDashboard.jsx
+//     DeveloperSettings.jsx
+//     Profile.jsx
+//     Projects.jsx
+//     Reports.jsx
+//     Settings.jsx
+//     SprintParticipation.jsx
+//     Tasks.jsx
 //
-// Actual developer components:
-//
-// src/components/contributor/developer/
-//     AddTechnicalComments.jsx
-//     ParticipateTechnicalReview.jsx
-//     PerformDevelopmentTask.jsx
-//     PerformSpecializedDevelopmentWork.jsx
-//     ReportTechnicalBlocker.jsx
-//     SubmitDevelopmentWork.jsx
-//     UpdateDevelopmentTaskStatus.jsx
-//     ViewDevelopmentWork.jsx
-//
-// Do NOT import nonexistent DeveloperProfileManagement,
-// DeveloperProjectParticipation, DeveloperTaskManagement,
-// DeveloperSprintParticipation, DeveloperCommunication,
-// ReportsMonitoring or SettingPreferences pages.
 // ============================================================
 
 import DeveloperLayout
@@ -209,33 +199,26 @@ import DeveloperDashboard
 import Developer
     from "../pages/contributor/developer/Developer";
 
-// ============================================================
-// DEVELOPER COMPONENTS
-// ============================================================
+import DeveloperCommunication
+    from "../pages/contributor/developer/Communication";
 
-import ViewDevelopmentWork
-    from "../components/contributor/developer/ViewDevelopmentWork";
+import DeveloperProfile
+    from "../pages/contributor/developer/Profile";
 
-import PerformDevelopmentTask
-    from "../components/contributor/developer/PerformDevelopmentTask";
+import DeveloperProjects
+    from "../pages/contributor/developer/Projects";
 
-import UpdateDevelopmentTaskStatus
-    from "../components/contributor/developer/UpdateDevelopmentTaskStatus";
+import DeveloperReports
+    from "../pages/contributor/developer/Reports";
 
-import ReportTechnicalBlocker
-    from "../components/contributor/developer/ReportTechnicalBlocker";
+import DeveloperSettings
+    from "../pages/contributor/developer/Settings";
 
-import SubmitDevelopmentWork
-    from "../components/contributor/developer/SubmitDevelopmentWork";
+import DeveloperSprintParticipation
+    from "../pages/contributor/developer/SprintParticipation";
 
-import ParticipateTechnicalReview
-    from "../components/contributor/developer/ParticipateTechnicalReview";
-
-import AddTechnicalComments
-    from "../components/contributor/developer/AddTechnicalComments";
-
-import PerformSpecializedDevelopmentWork
-    from "../components/contributor/developer/PerformSpecializedDevelopmentWork";
+import DeveloperTasks
+    from "../pages/contributor/developer/Tasks";
 
 // ============================================================
 // TEAM LEADER
@@ -314,6 +297,7 @@ function AppRoutes() {
                     path="/admin"
                     element={<AdminLayout />}
                 >
+
                     <Route
                         index
                         element={
@@ -383,6 +367,7 @@ function AppRoutes() {
                         path="settings"
                         element={<Settings />}
                     />
+
                 </Route>
 
                 {/* ==================================================
@@ -393,6 +378,7 @@ function AppRoutes() {
                     path="/manager"
                     element={<ManagerLayout />}
                 >
+
                     <Route
                         index
                         element={
@@ -423,6 +409,10 @@ function AppRoutes() {
                         element={<ManagerTeamManagement />}
                     />
 
+                    {/* ==============================
+                        COMMUNICATION
+                    ============================== */}
+
                     <Route
                         path="notifications"
                         element={<Notifications />}
@@ -442,6 +432,10 @@ function AppRoutes() {
                         path="project-announcement"
                         element={<SendProjectAnnouncement />}
                     />
+
+                    {/* ==============================
+                        AI
+                    ============================== */}
 
                     <Route
                         path="ai-features"
@@ -488,20 +482,36 @@ function AppRoutes() {
                         element={<AIDetectBottlenecks />}
                     />
 
+                    {/* ==============================
+                        REPORTS
+                    ============================== */}
+
                     <Route
                         path="reports"
                         element={<ManagerReports />}
                     />
+
+                    {/* ==============================
+                        PROFILE
+                    ============================== */}
 
                     <Route
                         path="profile"
                         element={<ManagerProfile />}
                     />
 
+                    {/* ==============================
+                        SETTINGS
+                    ============================== */}
+
                     <Route
                         path="settings"
                         element={<ManagerSettings />}
                     />
+
+                    {/* ==============================
+                        HELP
+                    ============================== */}
 
                     <Route
                         path="help"
@@ -512,10 +522,15 @@ function AppRoutes() {
                         }
                     />
 
+                    {/* ==============================
+                        LOGOUT
+                    ============================== */}
+
                     <Route
                         path="logout"
                         element={<Logout />}
                     />
+
                 </Route>
 
                 {/* ==================================================
@@ -526,6 +541,7 @@ function AppRoutes() {
                     path="/staff"
                     element={<StaffLayout />}
                 >
+
                     <Route
                         index
                         element={
@@ -570,6 +586,7 @@ function AppRoutes() {
                         path="upload-files"
                         element={<UploadWorkFiles />}
                     />
+
                 </Route>
 
                 {/* ==================================================
@@ -581,9 +598,9 @@ function AppRoutes() {
                     element={<DeveloperLayout />}
                 >
 
-                    {/* ==================================================
-                        DEVELOPER DEFAULT
-                    ================================================== */}
+                    {/* ==============================
+                        DEFAULT
+                    ============================== */}
 
                     <Route
                         index
@@ -595,104 +612,96 @@ function AppRoutes() {
                         }
                     />
 
-                    {/* ==================================================
-                        DEVELOPER DASHBOARD
+                    {/* ==============================
+                        DASHBOARD
                         /developer/dashboard
-                    ================================================== */}
+                    ============================== */}
 
                     <Route
                         path="dashboard"
                         element={<DeveloperDashboard />}
                     />
 
-                    {/* ==================================================
-                        DEVELOPER MAIN WORK PAGE
+                    {/* ==============================
+                        MAIN DEVELOPER WORK
                         /developer/work
-                    ================================================== */}
+                    ============================== */}
 
                     <Route
                         path="work"
                         element={<Developer />}
                     />
 
-                    {/* ==================================================
-                        DEVELOPER - VIEW DEVELOPMENT WORK
-                        /developer/view-work
-                    ================================================== */}
+                    {/* ==============================
+                        COMMUNICATION
+                        /developer/communication
+                    ============================== */}
 
                     <Route
-                        path="view-work"
-                        element={<ViewDevelopmentWork />}
+                        path="communication"
+                        element={<DeveloperCommunication />}
                     />
 
-                    {/* ==================================================
-                        DEVELOPER - PERFORM DEVELOPMENT TASK
-                        /developer/development-task
-                    ================================================== */}
+                    {/* ==============================
+                        PROFILE
+                        /developer/profile
+                    ============================== */}
 
                     <Route
-                        path="development-task"
-                        element={<PerformDevelopmentTask />}
+                        path="profile"
+                        element={<DeveloperProfile />}
                     />
 
-                    {/* ==================================================
-                        DEVELOPER - UPDATE DEVELOPMENT TASK STATUS
-                        /developer/update-task-status
-                    ================================================== */}
+                    {/* ==============================
+                        PROJECTS
+                        /developer/projects
+                    ============================== */}
 
                     <Route
-                        path="update-task-status"
-                        element={<UpdateDevelopmentTaskStatus />}
+                        path="projects"
+                        element={<DeveloperProjects />}
                     />
 
-                    {/* ==================================================
-                        DEVELOPER - REPORT TECHNICAL BLOCKER
-                        /developer/report-blocker
-                    ================================================== */}
+                    {/* ==============================
+                        REPORTS
+                        /developer/reports
+                    ============================== */}
 
                     <Route
-                        path="report-blocker"
-                        element={<ReportTechnicalBlocker />}
+                        path="reports"
+                        element={<DeveloperReports />}
                     />
 
-                    {/* ==================================================
-                        DEVELOPER - SUBMIT DEVELOPMENT WORK
-                        /developer/submit-work
-                    ================================================== */}
+                    {/* ==============================
+                        SETTINGS
+                        /developer/settings
+                    ============================== */}
 
                     <Route
-                        path="submit-work"
-                        element={<SubmitDevelopmentWork />}
+                        path="settings"
+                        element={<DeveloperSettings />}
                     />
 
-                    {/* ==================================================
-                        DEVELOPER - TECHNICAL REVIEW
-                        /developer/technical-review
-                    ================================================== */}
+                    {/* ==============================
+                        SPRINT PARTICIPATION
+                        /developer/sprint-participation
+                    ============================== */}
 
                     <Route
-                        path="technical-review"
-                        element={<ParticipateTechnicalReview />}
+                        path="sprint-participation"
+                        element={
+                            <DeveloperSprintParticipation />
+                        }
                     />
 
-                    {/* ==================================================
-                        DEVELOPER - TECHNICAL COMMENTS
-                        /developer/technical-comments
-                    ================================================== */}
+                    {/* ==============================
+                        TASK MANAGEMENT
+                        /developer/tasks
+                    ============================== */}
 
                     <Route
-                        path="technical-comments"
-                        element={<AddTechnicalComments />}
-                    />
-
-                    {/* ==================================================
-                        DEVELOPER - SPECIALIZED DEVELOPMENT WORK
-                        /developer/specialized-work
-                    ================================================== */}
-
-                    <Route
-                        path="specialized-work"
-                        element={<PerformSpecializedDevelopmentWork />}
+                        path="tasks"
+                        element={<DeveloperTasks />}
                     />
 
                 </Route>
@@ -705,6 +714,7 @@ function AppRoutes() {
                     path="/team-leader"
                     element={<TeamLeaderLayout />}
                 >
+
                     <Route
                         index
                         element={
@@ -717,7 +727,9 @@ function AppRoutes() {
 
                     <Route
                         path="dashboard"
-                        element={<TeamLeaderDashboard />}
+                        element={
+                            <TeamLeaderDashboard />
+                        }
                     />
 
                     <Route
@@ -747,13 +759,18 @@ function AppRoutes() {
 
                     <Route
                         path="manager-communication"
-                        element={<CommunicateWithManager />}
+                        element={
+                            <CommunicateWithManager />
+                        }
                     />
 
                     <Route
                         path="team-performance"
-                        element={<ViewTeamPerformance />}
+                        element={
+                            <ViewTeamPerformance />
+                        }
                     />
+
                 </Route>
 
             </Route>
