@@ -10,7 +10,15 @@ namespace AI_PMS.Application.Interfaces.Repositories.Teams
 
         Task<List<Team>> GetAllAsync();
 
-        Task<List<Team>> GetByManagerIdAsync(Guid managerId);
+        // =========================================================
+        // TEAM LEADER
+        // =========================================================
+
+        Task<TeamMember?> GetTeamLeaderAsync(
+            Guid teamId);
+
+        Task<List<Team>> GetByManagerIdAsync(
+            Guid managerId);
 
         Task<TeamMember?> GetTeamMemberAsync(
             Guid teamId,

@@ -1,405 +1,117 @@
+
+// ============================================================
+// AIPMS — START SPRINT MODAL
+//
+// Handles:
+// SP-004 — Start Sprint
+// ============================================================
+
 import React from "react";
-import {
-  X,
-  PlayCircle,
-  AlertTriangle,
-  CalendarDays,
-  CheckCircle2,
-} from "lucide-react";
+import { X, Play, AlertTriangle } from "lucide-react";
 
 function StartSprintModal({
-  open,
-  sprint,
-  onClose,
-  onConfirm,
+    isOpen,
+    onClose,
+    sprint,
+    onStarted,
 }) {
-  if (!open || !sprint) {
-    return null;
-  }
-
-  const hasTasks =
-    Number(sprint.tasks) > 0;
-
-  const hasValidDates =
-    sprint.startDate &&
-    sprint.endDate &&
-    new Date(sprint.endDate) >=
-      new Date(sprint.startDate);
-
-  const isAlreadyActive =
-    sprint.status === "Active";
-
-  const canStart =
-    !isAlreadyActive &&
-    hasTasks &&
-    hasValidDates;
-
-  const handleConfirm = () => {
-    if (!canStart) {
-      return;
+    if (!isOpen || !sprint) {
+        return null;
     }
 
-    if (onConfirm) {
-      onConfirm(sprint);
-    }
-  };
+    const handleStart = () => {
+        const startedSprint = {
+            ...sprint,
+            status: "Active",
+        };
 
-  return (
-    <div
-      className="
-        fixed
-        inset-0
-        z-[150]
-        flex
-        items-center
-        justify-center
-        p-4
-      "
-    >
-      {/* Overlay */}
+        if (typeof onStarted === "function") {
+            onStarted(startedSprint);
+        }
 
-      <div
-        className="
-          absolute
-          inset-0
-          bg-black/70
-          backdrop-blur-sm
-        "
-        onClick={onClose}
-      />
+        onClose();
+    };
 
-      {/* Modal */}
+    const canStart =
+        sprint.status === "Planning";
 
-      <div
-        className="
-          relative
-          z-10
-          w-full
-          max-w-lg
-          overflow-hidden
-          rounded-2xl
-          border
-          border-gray-800
-          bg-[#0f172a]
-          shadow-2xl
-        "
-      >
-        {/* Header */}
-
-        <div
-          className="
-            flex
-            items-center
-            justify-between
-            border-b
-            border-gray-800
-            px-6
-            py-5
-          "
-        >
-          <div className="flex items-center gap-3">
-
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
             <div
-              className="
-                flex
-                h-11
-                w-11
-                items-center
-                justify-center
-                rounded-xl
-                bg-green-500/10
-                text-green-400
-              "
+                className="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-xl"
+                role="dialog"
+                aria-modal="true"
             >
-              <PlayCircle size={22} />
-            </div>
+                <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                    <h2 className="text-lg font-semibold text-slate-900">
+                        Start Sprint
+                    </h2>
 
-            <div>
-              <h2
-                className="
-                  text-lg
-                  font-bold
-                  text-white
-                "
-              >
-                Start Sprint
-              </h2>
-
-              <p
-                className="
-                  mt-1
-                  text-xs
-                  text-gray-400
-                "
-              >
-                Activate this sprint for your team.
-              </p>
-            </div>
-
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="
-              rounded-lg
-              p-2
-              text-gray-400
-              transition
-              hover:bg-gray-800
-              hover:text-white
-            "
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Body */}
-
-        <div className="p-6">
-
-          {/* Sprint information */}
-
-          <div
-            className="
-              mb-5
-              rounded-xl
-              border
-              border-gray-800
-              bg-[#020617]/60
-              p-4
-            "
-          >
-            <h3
-              className="
-                text-base
-                font-semibold
-                text-white
-              "
-            >
-              {sprint.name}
-            </h3>
-
-            <p
-              className="
-                mt-1
-                text-xs
-                text-gray-500
-              "
-            >
-              Sprint #{sprint.id}
-            </p>
-
-            <div
-              className="
-                mt-4
-                grid
-                grid-cols-2
-                gap-3
-              "
-            >
-
-              <div>
-                <div className="flex items-center gap-2">
-                  <CalendarDays
-                    size={14}
-                    className="text-blue-400"
-                  />
-
-                  <span className="text-xs text-gray-500">
-                    Start
-                  </span>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+                    >
+                        <X size={19} />
+                    </button>
                 </div>
 
-                <p className="mt-1 text-sm font-medium text-white">
-                  {sprint.startDate || "Not set"}
-                </p>
-              </div>
+                <div className="px-6 py-6">
+                    {!canStart ? (
+                        <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                            <AlertTriangle
+                                size={19}
+                                className="mt-0.5 shrink-0 text-amber-600"
+                            />
 
-              <div>
-                <div className="flex items-center gap-2">
-                  <CalendarDays
-                    size={14}
-                    className="text-purple-400"
-                  />
+                            <p className="text-sm text-amber-800">
+                                This sprint cannot be started because
+                                its current status is{" "}
+                                <strong>{sprint.status}</strong>.
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <p className="text-sm text-slate-600">
+                                Are you ready to start{" "}
+                                <span className="font-semibold text-slate-900">
+                                    {sprint.name}
+                                </span>
+                                ?
+                            </p>
 
-                  <span className="text-xs text-gray-500">
-                    End
-                  </span>
+                            <p className="mt-3 text-sm text-slate-500">
+                                Starting the sprint will change its
+                                status from Planning to Active.
+                            </p>
+                        </>
+                    )}
+
+                    <div className="mt-6 flex justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                            Cancel
+                        </button>
+
+                        {canStart && (
+                            <button
+                                type="button"
+                                onClick={handleStart}
+                                className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
+                            >
+                                <Play size={17} />
+                                Start Sprint
+                            </button>
+                        )}
+                    </div>
                 </div>
-
-                <p className="mt-1 text-sm font-medium text-white">
-                  {sprint.endDate || "Not set"}
-                </p>
-              </div>
-
             </div>
-          </div>
-
-          {/* Warning */}
-
-          {!canStart && (
-            <div
-              className="
-                mb-5
-                flex
-                gap-3
-                rounded-xl
-                border
-                border-yellow-500/30
-                bg-yellow-500/10
-                p-4
-              "
-            >
-              <AlertTriangle
-                size={20}
-                className="
-                  mt-0.5
-                  shrink-0
-                  text-yellow-400
-                "
-              />
-
-              <div>
-                <p
-                  className="
-                    text-sm
-                    font-semibold
-                    text-yellow-300
-                  "
-                >
-                  Sprint cannot be started
-                </p>
-
-                {!hasTasks && (
-                  <p className="mt-1 text-xs text-yellow-400/80">
-                    Cannot start sprint without assigned tasks.
-                  </p>
-                )}
-
-                {!hasValidDates && (
-                  <p className="mt-1 text-xs text-yellow-400/80">
-                    Invalid sprint schedule.
-                  </p>
-                )}
-
-                {isAlreadyActive && (
-                  <p className="mt-1 text-xs text-yellow-400/80">
-                    Sprint is already started.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Confirmation */}
-
-          {canStart && (
-            <div
-              className="
-                flex
-                gap-3
-                rounded-xl
-                border
-                border-green-500/20
-                bg-green-500/5
-                p-4
-              "
-            >
-              <CheckCircle2
-                size={20}
-                className="
-                  mt-0.5
-                  shrink-0
-                  text-green-400
-                "
-              />
-
-              <p
-                className="
-                  text-sm
-                  leading-6
-                  text-gray-300
-                "
-              >
-                Starting this sprint will make its
-                tasks available to contributors and
-                begin sprint progress tracking.
-              </p>
-            </div>
-          )}
-
         </div>
-
-        {/* Footer */}
-
-        <div
-          className="
-            flex
-            flex-col-reverse
-            gap-3
-            border-t
-            border-gray-800
-            bg-[#0b1222]
-            px-6
-            py-4
-            sm:flex-row
-            sm:justify-end
-          "
-        >
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="
-              rounded-xl
-              border
-              border-gray-700
-              px-5
-              py-3
-              text-sm
-              font-semibold
-              text-gray-300
-              transition
-              hover:bg-gray-800
-              hover:text-white
-            "
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            disabled={!canStart}
-            onClick={handleConfirm}
-            className={`
-              flex
-              items-center
-              justify-center
-              gap-2
-              rounded-xl
-              px-5
-              py-3
-              text-sm
-              font-semibold
-              transition
-
-              ${
-                canStart
-                  ? "bg-green-600 text-white hover:bg-green-500 active:scale-[0.98]"
-                  : "cursor-not-allowed bg-gray-800 text-gray-500"
-              }
-            `}
-          >
-            <PlayCircle size={17} />
-
-            Start Sprint
-          </button>
-
-        </div>
-      </div>
-    </div>
-  );
+    );
 }
 
 export default StartSprintModal;
+

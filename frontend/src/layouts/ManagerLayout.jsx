@@ -1,31 +1,56 @@
-import React from "react";
+
+// ============================================================
+// AIPMS - MANAGER LAYOUT
+// ============================================================
+
 import { Outlet } from "react-router-dom";
 
 import ManagerSidebar from "@/components/manager/ManagerSidebar";
 import ManagerNavbar from "@/components/manager/ManagerNavbar";
 
 function ManagerLayout() {
-  return (
-    <div className="flex min-h-screen bg-[#020617]">
+    return (
+        <div className="flex min-h-screen bg-white">
 
-      {/* Sidebar */}
-      <ManagerSidebar />
+            {/* ==================================================
+                SIDEBAR
+            ================================================== */}
 
-      {/* Main Content */}
-      <div className="ml-64 flex-1">
+            <ManagerSidebar />
 
-        {/* Navbar */}
-        <ManagerNavbar />
+            {/* ==================================================
+                MAIN AREA
+            ================================================== */}
 
-        {/* Pages */}
-        <main className="min-h-screen bg-[#020617] p-6">
-          <Outlet />
-        </main>
+            <div className="ml-64 flex min-h-screen flex-1 flex-col bg-white">
 
-      </div>
+                {/* ==================================================
+                    NAVBAR
+                ================================================== */}
 
-    </div>
-  );
+                <ManagerNavbar />
+
+                {/* ==================================================
+                    PAGE CONTENT
+                ================================================== */}
+
+                <main
+                    className="
+                        min-h-[calc(100vh-80px)]
+                        flex-1
+                        bg-white
+                        p-6
+                        text-slate-900
+                    "
+                >
+                    <Outlet />
+                </main>
+
+            </div>
+
+        </div>
+    );
 }
 
 export default ManagerLayout;
+

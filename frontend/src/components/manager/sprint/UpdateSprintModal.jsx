@@ -1,723 +1,849 @@
+// ============================================================
+// AIPMS — UPDATE SPRINT MODAL
+//
+// SP-002 — Update Sprint
+//
+// Location:
+// src/components/manager/sprint/UpdateSprintModal.jsx
+//
+// Purpose:
+// Allows Manager to update:
+// - Sprint Name
+// - Start Date
+// - End Date
+// - Sprint Goal
+//
+// Compatible with SprintManagement.jsx
+// ============================================================
 
 import React, { useEffect, useState } from "react";
+
 import {
-  X,
-  Save,
-  CalendarDays,
-  Target,
-  FileText,
-  Activity,
-  Users,
-  ListChecks,
+    X,
+    Save,
+    AlertTriangle,
+    CalendarDays,
+    Target,
 } from "lucide-react";
 
-function UpdateSprintModal({
-  open,
-  sprint,
-  onClose,
-  onUpdate,
-}) {
-  const [formData, setFormData] = useState({
-    id: "",
-    name: "",
-    goal: "",
-    description: "",
-    status: "Planning",
-    priority: "Medium",
-    progress: 0,
-    tasks: 0,
-    completedTasks: 0,
-    team: 0,
-    startDate: "",
-    endDate: "",
-  });
+// ============================================================
+// DATE HELPER
+// ============================================================
 
-  // Fill the form when a sprint is selected
-  useEffect(() => {
-    if (sprint) {
-      setFormData({
-        id: sprint.id || "",
-        name: sprint.name || "",
-        goal: sprint.goal || "",
-        description: sprint.description || "",
-        status: sprint.status || "Planning",
-        priority: sprint.priority || "Medium",
-        progress: Number(sprint.progress) || 0,
-        tasks: Number(sprint.tasks) || 0,
-        completedTasks: Number(sprint.completedTasks) || 0,
-        team: Number(sprint.team) || 0,
-        startDate: sprint.startDate || "",
-        endDate: sprint.endDate || "",
-      });
+const convertDateToInputFormat = (dateValue) => {
+    if (!dateValue) {
+        return "";
     }
-  }, [sprint]);
 
-  if (!open || !sprint) {
-    return null;
-  }
+    const value = String(dateValue).trim();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+    // Already in YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value;
+    }
 
-    setFormData((current) => ({
-      ...current,
-      [name]: value,
-    }));
-  };
+    // Handle values such as:
+    // August 18, 2026
+    // August 10, 2026
+    const parsedDate = new Date(value);
 
-  const handleNumberChange = (e) => {
-    const { name, value } = e.target;
+    if (Number.isNaN(parsedDate.getTime())) {
+        return "";
+    }
 
-    setFormData((current) => ({
-      ...current,
-      [name]: Number(value),
-    }));
-  };
+    const year = parsedDate.getFullYear();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+    const month = String(
+        parsedDate.getMonth() + 1
+    ).padStart(2, "0");
 
-    const updatedSprint = {
-      ...formData,
-      progress: Math.min(
-        Math.max(Number(formData.progress) || 0, 0),
-        100
-      ),
-      tasks: Math.max(Number(formData.tasks) || 0, 0),
-      completedTasks: Math.max(
-        Number(formData.completedTasks) || 0,
-        0
-      ),
-      team: Math.max(Number(formData.team) || 0, 0),
+    const day = String(
+        parsedDate.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+};
+
+// ============================================================
+// DISPLAY DATE HELPER
+// ============================================================
+
+const formatDateForStorage = (dateValue) => {
+    if (!dateValue) {
+        return "";
+    }
+
+    const value = String(dateValue).trim();
+
+    // Keep existing YYYY-MM-DD values
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value;
+    }
+
+    const parsedDate = new Date(value);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return value;
+    }
+
+    return parsedDate.toLocaleDateString(
+        "en-US",
+        {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+        }
+    );
+};
+
+// ============================================================
+// COMPONENT
+// ============================================================
+
+function UpdateSprintModal({
+    onClose,
+    sprint,
+    onUpdated,
+}) {
+    // ========================================================
+    // FORM STATE
+    // ========================================================
+
+    const [formData, setFormData] = useState({
+        name: "",
+        startDate: "",
+        endDate: "",
+        goal: "",
+    });
+
+    // ========================================================
+    // ERROR STATE
+    // ========================================================
+
+    const [error, setError] = useState("");
+
+    // ========================================================
+    // SAVING STATE
+    // ========================================================
+
+    const [isSaving, setIsSaving] = useState(false);
+
+    // ========================================================
+    // LOAD SELECTED SPRINT
+    // ========================================================
+
+    useEffect(() => {
+        if (!sprint) {
+            return;
+        }
+
+        setFormData({
+            name: sprint.name || "",
+
+            startDate:
+                convertDateToInputFormat(
+                    sprint.startDate
+                ),
+
+            endDate:
+                convertDateToInputFormat(
+                    sprint.endDate
+                ),
+
+            goal: sprint.goal || "",
+        });
+
+        setError("");
+        setIsSaving(false);
+    }, [sprint]);
+
+    // ========================================================
+    // DO NOT RENDER WITHOUT SPRINT
+    // ========================================================
+
+    if (!sprint) {
+        return null;
+    }
+
+    // ========================================================
+    // HANDLE INPUT CHANGE
+    // ========================================================
+
+    const handleChange = (event) => {
+        const {
+            name,
+            value,
+        } = event.target;
+
+        setFormData((previous) => ({
+            ...previous,
+            [name]: value,
+        }));
+
+        setError("");
     };
 
-    onUpdate(updatedSprint);
-  };
+    // ========================================================
+    // VALIDATE FORM
+    // ========================================================
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div
-        className="
-          relative
-          flex
-          max-h-[90vh]
-          w-full
-          max-w-3xl
-          flex-col
-          overflow-hidden
-          rounded-2xl
-          border
-          border-gray-800
-          bg-[#0f172a]
-          shadow-2xl
-        "
-      >
+    const validateForm = () => {
+        const name =
+            String(formData.name || "").trim();
 
-        {/* =====================================================
-            HEADER
-        ===================================================== */}
+        const goal =
+            String(formData.goal || "").trim();
 
-        <div className="flex items-center justify-between border-b border-gray-800 px-6 py-5">
+        // ----------------------------------------------------
+        // NAME
+        // ----------------------------------------------------
 
-          <div>
-            <div className="flex items-center gap-3">
+        if (!name) {
+            return "Sprint name is required.";
+        }
 
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
-                <Activity size={20} />
-              </div>
+        if (name.length < 2) {
+            return "Sprint name must contain at least 2 characters.";
+        }
 
-              <div>
-                <h2 className="text-lg font-bold text-white">
-                  Update Sprint
-                </h2>
+        // ----------------------------------------------------
+        // START DATE
+        // ----------------------------------------------------
 
-                <p className="mt-1 text-xs text-gray-500">
-                  Edit sprint information and progress
-                </p>
-              </div>
+        if (!formData.startDate) {
+            return "Sprint start date is required.";
+        }
 
-            </div>
-          </div>
+        // ----------------------------------------------------
+        // END DATE
+        // ----------------------------------------------------
 
-          <button
-            type="button"
-            onClick={onClose}
+        if (!formData.endDate) {
+            return "Sprint end date is required.";
+        }
+
+        // ----------------------------------------------------
+        // DATE VALIDATION
+        // ----------------------------------------------------
+
+        const startDate = new Date(
+            `${formData.startDate}T00:00:00`
+        );
+
+        const endDate = new Date(
+            `${formData.endDate}T00:00:00`
+        );
+
+        if (
+            Number.isNaN(
+                startDate.getTime()
+            )
+        ) {
+            return "Sprint start date is invalid.";
+        }
+
+        if (
+            Number.isNaN(
+                endDate.getTime()
+            )
+        ) {
+            return "Sprint end date is invalid.";
+        }
+
+        if (endDate <= startDate) {
+            return "Sprint end date must be after the start date.";
+        }
+
+        // ----------------------------------------------------
+        // GOAL
+        // ----------------------------------------------------
+
+        if (!goal) {
+            return "Sprint goal is required.";
+        }
+
+        // ----------------------------------------------------
+        // VALIDATED DATA
+        // ----------------------------------------------------
+
+        return {
+            name,
+            startDate:
+                formData.startDate,
+            endDate:
+                formData.endDate,
+            goal,
+        };
+    };
+
+    // ========================================================
+    // HANDLE SUBMIT
+    // ========================================================
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        // Prevent double click
+        if (isSaving) {
+            return;
+        }
+
+        setError("");
+
+        // ----------------------------------------------------
+        // VALIDATE
+        // ----------------------------------------------------
+
+        const validationResult =
+            validateForm();
+
+        if (
+            typeof validationResult ===
+            "string"
+        ) {
+            setError(
+                validationResult
+            );
+            return;
+        }
+
+        // ----------------------------------------------------
+        // CHECK ID
+        // ----------------------------------------------------
+
+        if (
+            sprint.id === undefined ||
+            sprint.id === null
+        ) {
+            setError(
+                "The selected sprint does not have a valid ID."
+            );
+            return;
+        }
+
+        // ----------------------------------------------------
+        // CHECK UPDATE HANDLER
+        // ----------------------------------------------------
+
+        if (
+            typeof onUpdated !==
+            "function"
+        ) {
+            setError(
+                "The sprint update handler is not available."
+            );
+            return;
+        }
+
+        setIsSaving(true);
+
+        // ----------------------------------------------------
+        // UPDATED SPRINT
+        // ----------------------------------------------------
+
+        const updatedSprint = {
+            ...sprint,
+
+            name:
+                validationResult.name,
+
+            // Keep date format compatible
+            // with the existing SprintManagement
+            startDate:
+                formatDateForStorage(
+                    validationResult.startDate
+                ),
+
+            endDate:
+                formatDateForStorage(
+                    validationResult.endDate
+                ),
+
+            goal:
+                validationResult.goal,
+        };
+
+        // ----------------------------------------------------
+        // SEND TO PARENT
+        //
+        // SprintManagement expects:
+        //
+        // handleSprintUpdated(
+        //     sprintId,
+        //     updatedSprint
+        // )
+        // ----------------------------------------------------
+
+        try {
+            await onUpdated(
+                sprint.id,
+                updatedSprint
+            );
+
+            // Parent successfully updated sprint
+            onClose();
+        } catch (submitError) {
+            console.error(
+                "Failed to update sprint:",
+                submitError
+            );
+
+            setError(
+                submitError?.message ||
+                    "Failed to update the sprint. Please try again."
+            );
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // ========================================================
+    // RENDER
+    // ========================================================
+
+    return (
+        <div
             className="
-              flex
-              h-9
-              w-9
-              items-center
-              justify-center
-              rounded-lg
-              text-gray-400
-              transition
-              hover:bg-gray-800
-              hover:text-white
+                fixed inset-0 z-50
+                flex items-center justify-center
+                bg-black/40
+                px-4 py-6
             "
-          >
-            <X size={20} />
-          </button>
-
-        </div>
-
-        {/* =====================================================
-            FORM
-        ===================================================== */}
-
-        <form
-          onSubmit={handleSubmit}
-          className="overflow-y-auto px-6 py-6"
+            onMouseDown={(event) => {
+                if (
+                    event.target ===
+                    event.currentTarget &&
+                    !isSaving
+                ) {
+                    onClose();
+                }
+            }}
         >
-
-          <div className="space-y-6">
-
-            {/* =================================================
-                BASIC INFORMATION
-            ================================================= */}
-
-            <div>
-
-              <div className="mb-4 flex items-center gap-2">
-                <FileText
-                  size={17}
-                  className="text-blue-400"
-                />
-
-                <h3 className="text-sm font-semibold text-white">
-                  Basic Information
-                </h3>
-              </div>
-
-              <div className="grid gap-5 md:grid-cols-2">
-
-                {/* Sprint Name */}
-
-                <div className="md:col-span-2">
-
-                  <label className="mb-2 block text-xs font-medium text-gray-400">
-                    Sprint Name
-                  </label>
-
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    placeholder="Enter sprint name"
-                    className="
-                      w-full
-                      rounded-xl
-                      border
-                      border-gray-700
-                      bg-[#020617]
-                      px-4
-                      py-3
-                      text-sm
-                      text-white
-                      outline-none
-                      transition
-                      placeholder:text-gray-600
-                      focus:border-blue-500
-                      focus:ring-2
-                      focus:ring-blue-500/10
-                    "
-                  />
-
-                </div>
-
-                {/* Goal */}
-
-                <div className="md:col-span-2">
-
-                  <label className="mb-2 block text-xs font-medium text-gray-400">
-                    Sprint Goal
-                  </label>
-
-                  <div className="relative">
-
-                    <Target
-                      size={17}
-                      className="absolute left-4 top-3.5 text-gray-500"
-                    />
-
-                    <input
-                      type="text"
-                      name="goal"
-                      value={formData.goal}
-                      onChange={handleChange}
-                      placeholder="What should this sprint achieve?"
-                      className="
-                        w-full
-                        rounded-xl
-                        border
-                        border-gray-700
-                        bg-[#020617]
-                        py-3
-                        pl-11
-                        pr-4
-                        text-sm
-                        text-white
-                        outline-none
-                        transition
-                        placeholder:text-gray-600
-                        focus:border-blue-500
-                        focus:ring-2
-                        focus:ring-blue-500/10
-                      "
-                    />
-
-                  </div>
-
-                </div>
-
-                {/* Description */}
-
-                <div className="md:col-span-2">
-
-                  <label className="mb-2 block text-xs font-medium text-gray-400">
-                    Description
-                  </label>
-
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    rows={4}
-                    placeholder="Describe the sprint..."
-                    className="
-                      w-full
-                      resize-none
-                      rounded-xl
-                      border
-                      border-gray-700
-                      bg-[#020617]
-                      px-4
-                      py-3
-                      text-sm
-                      text-white
-                      outline-none
-                      transition
-                      placeholder:text-gray-600
-                      focus:border-blue-500
-                      focus:ring-2
-                      focus:ring-blue-500/10
-                    "
-                  />
-
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* =================================================
-                STATUS & PRIORITY
-            ================================================= */}
-
-            <div>
-
-              <div className="mb-4 flex items-center gap-2">
-                <Activity
-                  size={17}
-                  className="text-purple-400"
-                />
-
-                <h3 className="text-sm font-semibold text-white">
-                  Sprint Settings
-                </h3>
-              </div>
-
-              <div className="grid gap-5 md:grid-cols-2">
-
-                {/* Status */}
-
-                <div>
-
-                  <label className="mb-2 block text-xs font-medium text-gray-400">
-                    Status
-                  </label>
-
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    className="
-                      w-full
-                      rounded-xl
-                      border
-                      border-gray-700
-                      bg-[#020617]
-                      px-4
-                      py-3
-                      text-sm
-                      text-white
-                      outline-none
-                      focus:border-blue-500
-                    "
-                  >
-                    <option value="Planning">
-                      Planning
-                    </option>
-
-                    <option value="Active">
-                      Active
-                    </option>
-
-                    <option value="Completed">
-                      Completed
-                    </option>
-                  </select>
-
-                </div>
-
-                {/* Priority */}
-
-                <div>
-
-                  <label className="mb-2 block text-xs font-medium text-gray-400">
-                    Priority
-                  </label>
-
-                  <select
-                    name="priority"
-                    value={formData.priority}
-                    onChange={handleChange}
-                    className="
-                      w-full
-                      rounded-xl
-                      border
-                      border-gray-700
-                      bg-[#020617]
-                      px-4
-                      py-3
-                      text-sm
-                      text-white
-                      outline-none
-                      focus:border-blue-500
-                    "
-                  >
-                    <option value="Low">
-                      Low
-                    </option>
-
-                    <option value="Medium">
-                      Medium
-                    </option>
-
-                    <option value="High">
-                      High
-                    </option>
-                  </select>
-
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* =================================================
-                PROGRESS & TASKS
-            ================================================= */}
-
-            <div>
-
-              <div className="mb-4 flex items-center gap-2">
-                <ListChecks
-                  size={17}
-                  className="text-green-400"
-                />
-
-                <h3 className="text-sm font-semibold text-white">
-                  Progress & Tasks
-                </h3>
-              </div>
-
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-
-                {/* Progress */}
-
-                <div>
-
-                  <label className="mb-2 block text-xs font-medium text-gray-400">
-                    Progress (%)
-                  </label>
-
-                  <input
-                    type="number"
-                    name="progress"
-                    min="0"
-                    max="100"
-                    value={formData.progress}
-                    onChange={handleNumberChange}
-                    className="
-                      w-full
-                      rounded-xl
-                      border
-                      border-gray-700
-                      bg-[#020617]
-                      px-4
-                      py-3
-                      text-sm
-                      text-white
-                      outline-none
-                      focus:border-blue-500
-                    "
-                  />
-
-                </div>
-
-                {/* Tasks */}
-
-                <div>
-
-                  <label className="mb-2 block text-xs font-medium text-gray-400">
-                    Total Tasks
-                  </label>
-
-                  <input
-                    type="number"
-                    name="tasks"
-                    min="0"
-                    value={formData.tasks}
-                    onChange={handleNumberChange}
-                    className="
-                      w-full
-                      rounded-xl
-                      border
-                      border-gray-700
-                      bg-[#020617]
-                      px-4
-                      py-3
-                      text-sm
-                      text-white
-                      outline-none
-                      focus:border-blue-500
-                    "
-                  />
-
-                </div>
-
-                {/* Completed Tasks */}
-
-                <div>
-
-                  <label className="mb-2 block text-xs font-medium text-gray-400">
-                    Completed Tasks
-                  </label>
-
-                  <input
-                    type="number"
-                    name="completedTasks"
-                    min="0"
-                    value={formData.completedTasks}
-                    onChange={handleNumberChange}
-                    className="
-                      w-full
-                      rounded-xl
-                      border
-                      border-gray-700
-                      bg-[#020617]
-                      px-4
-                      py-3
-                      text-sm
-                      text-white
-                      outline-none
-                      focus:border-blue-500
-                    "
-                  />
-
-                </div>
-
-                {/* Team */}
-
-                <div>
-
-                  <label className="mb-2 block text-xs font-medium text-gray-400">
-                    Team Members
-                  </label>
-
-                  <div className="relative">
-
-                    <Users
-                      size={16}
-                      className="absolute left-3 top-3.5 text-gray-500"
-                    />
-
-                    <input
-                      type="number"
-                      name="team"
-                      min="0"
-                      value={formData.team}
-                      onChange={handleNumberChange}
-                      className="
-                        w-full
-                        rounded-xl
-                        border
-                        border-gray-700
-                        bg-[#020617]
-                        py-3
-                        pl-9
-                        pr-3
-                        text-sm
-                        text-white
-                        outline-none
-                        focus:border-blue-500
-                      "
-                    />
-
-                  </div>
-
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* =================================================
-                DATES
-            ================================================= */}
-
-            <div>
-
-              <div className="mb-4 flex items-center gap-2">
-                <CalendarDays
-                  size={17}
-                  className="text-yellow-400"
-                />
-
-                <h3 className="text-sm font-semibold text-white">
-                  Sprint Timeline
-                </h3>
-              </div>
-
-              <div className="grid gap-5 md:grid-cols-2">
-
-                {/* Start Date */}
-
-                <div>
-
-                  <label className="mb-2 block text-xs font-medium text-gray-400">
-                    Start Date
-                  </label>
-
-                  <input
-                    type="date"
-                    name="startDate"
-                    value={formData.startDate}
-                    onChange={handleChange}
-                    className="
-                      w-full
-                      rounded-xl
-                      border
-                      border-gray-700
-                      bg-[#020617]
-                      px-4
-                      py-3
-                      text-sm
-                      text-white
-                      outline-none
-                      focus:border-blue-500
-                    "
-                  />
-
-                </div>
-
-                {/* End Date */}
-
-                <div>
-
-                  <label className="mb-2 block text-xs font-medium text-gray-400">
-                    End Date
-                  </label>
-
-                  <input
-                    type="date"
-                    name="endDate"
-                    value={formData.endDate}
-                    onChange={handleChange}
-                    className="
-                      w-full
-                      rounded-xl
-                      border
-                      border-gray-700
-                      bg-[#020617]
-                      px-4
-                      py-3
-                      text-sm
-                      text-white
-                      outline-none
-                      focus:border-blue-500
-                    "
-                  />
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* =====================================================
-              FOOTER
-          ===================================================== */}
-
-          <div className="mt-8 flex flex-col-reverse gap-3 border-t border-gray-800 pt-5 sm:flex-row sm:justify-end">
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="
-                rounded-xl
-                border
-                border-gray-700
-                bg-gray-800/50
-                px-6
-                py-3
-                text-sm
-                font-semibold
-                text-gray-300
-                transition
-                hover:bg-gray-800
-                hover:text-white
-              "
+            {/* ==================================================
+                MODAL
+            ================================================== */}
+
+            <div
+                className="
+                    max-h-[90vh]
+                    w-full max-w-lg
+                    overflow-y-auto
+                    rounded-2xl
+                    border border-slate-200
+                    bg-white
+                    shadow-2xl
+                "
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="update-sprint-title"
             >
-              Cancel
-            </button>
+                {/* ==================================================
+                    HEADER
+                ================================================== */}
 
-            <button
-              type="submit"
-              className="
-                flex
-                items-center
-                justify-center
-                gap-2
-                rounded-xl
-                bg-blue-600
-                px-6
-                py-3
-                text-sm
-                font-semibold
-                text-white
-                shadow-lg
-                shadow-blue-600/10
-                transition
-                hover:bg-blue-500
-                active:scale-[0.98]
-              "
-            >
-              <Save size={17} />
-              Save Changes
-            </button>
+                <div
+                    className="
+                        flex items-start
+                        justify-between
+                        border-b border-slate-200
+                        bg-gradient-to-r
+                        from-violet-50
+                        via-white
+                        to-blue-50
+                        px-6 py-5
+                    "
+                >
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <div
+                                className="
+                                    flex h-10 w-10
+                                    items-center justify-center
+                                    rounded-xl
+                                    bg-violet-100
+                                    text-violet-600
+                                "
+                            >
+                                <CalendarDays
+                                    size={20}
+                                />
+                            </div>
 
-          </div>
+                            <div>
+                                <h2
+                                    id="update-sprint-title"
+                                    className="
+                                        text-lg
+                                        font-bold
+                                        text-slate-900
+                                    "
+                                >
+                                    Update Sprint
+                                </h2>
 
-        </form>
+                                <p
+                                    className="
+                                        mt-0.5
+                                        text-sm
+                                        text-slate-500
+                                    "
+                                >
+                                    Update the sprint schedule
+                                    and sprint goal.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
-      </div>
-    </div>
-  );
+                    {/* CLOSE */}
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={isSaving}
+                        aria-label="Close update sprint dialog"
+                        className="
+                            rounded-lg
+                            p-2
+                            text-slate-500
+                            transition
+                            hover:bg-slate-100
+                            hover:text-slate-700
+                            disabled:cursor-not-allowed
+                            disabled:opacity-50
+                        "
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {/* ==================================================
+                    FORM
+                ================================================== */}
+
+                <form
+                    onSubmit={handleSubmit}
+                    className="space-y-5 px-6 py-6"
+                >
+                    {/* ==================================================
+                        ERROR
+                    ================================================== */}
+
+                    {error && (
+                        <div
+                            role="alert"
+                            className="
+                                flex items-start
+                                gap-3
+                                rounded-xl
+                                border border-red-200
+                                bg-red-50
+                                px-4 py-3
+                                text-sm
+                                font-medium
+                                text-red-700
+                            "
+                        >
+                            <AlertTriangle
+                                size={18}
+                                className="
+                                    mt-0.5
+                                    shrink-0
+                                    text-red-600
+                                "
+                            />
+
+                            <span>
+                                {error}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* ==================================================
+                        SPRINT NAME
+                    ================================================== */}
+
+                    <div>
+                        <label
+                            htmlFor="update-sprint-name"
+                            className="
+                                mb-1.5
+                                block
+                                text-sm
+                                font-semibold
+                                text-slate-700
+                            "
+                        >
+                            Sprint Name
+                        </label>
+
+                        <input
+                            id="update-sprint-name"
+                            name="name"
+                            type="text"
+                            value={formData.name}
+                            onChange={handleChange}
+                            disabled={isSaving}
+                            placeholder="Enter sprint name"
+                            autoFocus
+                            className="
+                                w-full
+                                rounded-xl
+                                border border-slate-300
+                                bg-white
+                                px-3.5 py-3
+                                text-sm
+                                text-slate-900
+                                outline-none
+                                transition
+                                placeholder:text-slate-400
+                                focus:border-violet-500
+                                focus:ring-2
+                                focus:ring-violet-100
+                                disabled:cursor-not-allowed
+                                disabled:bg-slate-100
+                            "
+                        />
+                    </div>
+
+                    {/* ==================================================
+                        DATES
+                    ================================================== */}
+
+                    <div
+                        className="
+                            grid
+                            grid-cols-1
+                            gap-4
+                            sm:grid-cols-2
+                        "
+                    >
+                        {/* START DATE */}
+
+                        <div>
+                            <label
+                                htmlFor="update-sprint-start-date"
+                                className="
+                                    mb-1.5
+                                    block
+                                    text-sm
+                                    font-semibold
+                                    text-slate-700
+                                "
+                            >
+                                Start Date
+                            </label>
+
+                            <input
+                                id="update-sprint-start-date"
+                                name="startDate"
+                                type="date"
+                                value={
+                                    formData.startDate
+                                }
+                                onChange={handleChange}
+                                disabled={isSaving}
+                                className="
+                                    w-full
+                                    rounded-xl
+                                    border border-slate-300
+                                    bg-white
+                                    px-3.5 py-3
+                                    text-sm
+                                    text-slate-900
+                                    outline-none
+                                    transition
+                                    focus:border-violet-500
+                                    focus:ring-2
+                                    focus:ring-violet-100
+                                    disabled:cursor-not-allowed
+                                    disabled:bg-slate-100
+                                "
+                            />
+                        </div>
+
+                        {/* END DATE */}
+
+                        <div>
+                            <label
+                                htmlFor="update-sprint-end-date"
+                                className="
+                                    mb-1.5
+                                    block
+                                    text-sm
+                                    font-semibold
+                                    text-slate-700
+                                "
+                            >
+                                End Date
+                            </label>
+
+                            <input
+                                id="update-sprint-end-date"
+                                name="endDate"
+                                type="date"
+                                value={
+                                    formData.endDate
+                                }
+                                onChange={handleChange}
+                                disabled={isSaving}
+                                className="
+                                    w-full
+                                    rounded-xl
+                                    border border-slate-300
+                                    bg-white
+                                    px-3.5 py-3
+                                    text-sm
+                                    text-slate-900
+                                    outline-none
+                                    transition
+                                    focus:border-violet-500
+                                    focus:ring-2
+                                    focus:ring-violet-100
+                                    disabled:cursor-not-allowed
+                                    disabled:bg-slate-100
+                                "
+                            />
+                        </div>
+                    </div>
+
+                    {/* ==================================================
+                        SPRINT GOAL
+                    ================================================== */}
+
+                    <div>
+                        <label
+                            htmlFor="update-sprint-goal"
+                            className="
+                                mb-1.5
+                                flex items-center
+                                gap-2
+                                text-sm
+                                font-semibold
+                                text-slate-700
+                            "
+                        >
+                            <Target
+                                size={16}
+                                className="text-violet-600"
+                            />
+
+                            Sprint Goal
+                        </label>
+
+                        <textarea
+                            id="update-sprint-goal"
+                            name="goal"
+                            rows={4}
+                            value={formData.goal}
+                            onChange={handleChange}
+                            disabled={isSaving}
+                            placeholder="Describe what this sprint should accomplish..."
+                            className="
+                                w-full
+                                resize-none
+                                rounded-xl
+                                border border-slate-300
+                                bg-white
+                                px-3.5 py-3
+                                text-sm
+                                leading-6
+                                text-slate-900
+                                outline-none
+                                transition
+                                placeholder:text-slate-400
+                                focus:border-violet-500
+                                focus:ring-2
+                                focus:ring-violet-100
+                                disabled:cursor-not-allowed
+                                disabled:bg-slate-100
+                            "
+                        />
+                    </div>
+
+                    {/* ==================================================
+                        ACTIONS
+                    ================================================== */}
+
+                    <div
+                        className="
+                            flex
+                            justify-end
+                            gap-3
+                            border-t
+                            border-slate-200
+                            pt-5
+                        "
+                    >
+                        {/* CANCEL */}
+
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={isSaving}
+                            className="
+                                rounded-xl
+                                border border-slate-300
+                                bg-white
+                                px-5 py-2.5
+                                text-sm
+                                font-semibold
+                                text-slate-700
+                                transition
+                                hover:bg-slate-50
+                                disabled:cursor-not-allowed
+                                disabled:opacity-50
+                            "
+                        >
+                            Cancel
+                        </button>
+
+                        {/* SAVE */}
+
+                        <button
+                            type="submit"
+                            disabled={isSaving}
+                            className="
+                                inline-flex
+                                items-center
+                                justify-center
+                                gap-2
+                                rounded-xl
+                                bg-gradient-to-r
+                                from-violet-600
+                                to-blue-600
+                                px-5 py-2.5
+                                text-sm
+                                font-bold
+                                text-white
+                                shadow-sm
+                                transition
+                                hover:from-violet-700
+                                hover:to-blue-700
+                                hover:shadow-md
+                                focus:outline-none
+                                focus:ring-2
+                                focus:ring-violet-300
+                                focus:ring-offset-2
+                                disabled:cursor-not-allowed
+                                disabled:opacity-60
+                            "
+                        >
+                            <Save size={17} />
+
+                            {isSaving
+                                ? "Saving..."
+                                : "Save Changes"}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 }
+
+// ============================================================
+// DEFAULT EXPORT
+// ============================================================
 
 export default UpdateSprintModal;

@@ -219,6 +219,29 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
 
             await _context.SaveChangesAsync();
         }
+        // =========================================================
+// GET TEAM LEADER
+// =========================================================
+
+public async Task<TeamMember?> GetTeamLeaderAsync(
+    Guid teamId)
+{
+    if (teamId == Guid.Empty)
+    {
+        return null;
+    }
+
+    return await _context.TeamMembers
+        .AsNoTracking()
+        .Include(tm => tm.User)
+        .Include(tm => tm.ContributorType)
+        .Include(tm => tm.ContributorSubType)
+        .Where(tm =>
+            tm.TeamId == teamId &&
+            tm.IsTeamLeader &&
+            tm.IsActive)
+        .FirstOrDefaultAsync();
+}
 
         // =========================================================
         // UPDATE MEMBER
@@ -243,6 +266,7 @@ namespace AI_PMS.Infrastructure.Repositories.Teams
 
             await _context.SaveChangesAsync();
         }
+
 
         // =========================================================
         // UPDATE TEAM

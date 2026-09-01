@@ -1,4 +1,10 @@
+// ============================================================
+// AIPMS - MANAGER SIDEBAR
+// src/components/manager/ManagerSidebar.jsx
+// ============================================================
+
 import React from "react";
+
 import {
     LayoutDashboard,
     FolderKanban,
@@ -103,20 +109,20 @@ function ManagerSidebar() {
                     [
                         "group",
                         "flex",
+                        "w-full",
                         "items-center",
                         "gap-3",
-                        "w-full",
+                        "rounded-xl",
                         "px-4",
                         "py-3",
-                        "rounded-xl",
                         "text-sm",
                         "font-medium",
                         "transition-all",
                         "duration-200",
 
                         isActive
-                            ? "bg-slate-800 text-white shadow-sm"
-                            : "text-slate-400 hover:bg-slate-800/70 hover:text-white",
+                            ? "bg-slate-100 text-slate-900 shadow-sm"
+                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
                     ].join(" ")
                 }
             >
@@ -124,15 +130,19 @@ function ManagerSidebar() {
                     <>
                         <Icon
                             size={20}
-                            strokeWidth={isActive ? 2.3 : 2}
+                            strokeWidth={
+                                isActive ? 2.3 : 2
+                            }
                             className={
                                 isActive
-                                    ? "text-white"
-                                    : "text-slate-400 group-hover:text-white"
+                                    ? "text-slate-900"
+                                    : "text-slate-500 group-hover:text-slate-900"
                             }
                         />
 
-                        <span>{item.label}</span>
+                        <span>
+                            {item.label}
+                        </span>
                     </>
                 )}
             </NavLink>
@@ -155,17 +165,31 @@ function ManagerSidebar() {
                 w-64
                 flex-col
                 border-r
-                border-slate-800
-                bg-slate-950
-                text-white
+                border-slate-200
+                bg-white
+                text-slate-900
             "
         >
+
             {/* ==================================================
                 LOGO / BRAND
             ================================================== */}
 
-            <div className="flex h-20 shrink-0 items-center border-b border-slate-800 px-6">
+            <div
+                className="
+                    flex
+                    h-20
+                    shrink-0
+                    items-center
+                    border-b
+                    border-slate-200
+                    px-6
+                "
+            >
                 <div className="flex items-center gap-3">
+
+                    {/* LOGO ICON */}
+
                     <div
                         className="
                             flex
@@ -174,8 +198,8 @@ function ManagerSidebar() {
                             items-center
                             justify-center
                             rounded-xl
-                            bg-slate-800
-                            text-white
+                            bg-slate-100
+                            text-slate-700
                         "
                     >
                         <Sparkles
@@ -184,8 +208,10 @@ function ManagerSidebar() {
                         />
                     </div>
 
+                    {/* BRAND */}
+
                     <div>
-                        <h1 className="text-base font-bold tracking-wide">
+                        <h1 className="text-base font-bold tracking-wide text-slate-900">
                             AIPMS
                         </h1>
 
@@ -193,6 +219,7 @@ function ManagerSidebar() {
                             Manager
                         </p>
                     </div>
+
                 </div>
             </div>
 
@@ -201,10 +228,13 @@ function ManagerSidebar() {
             ================================================== */}
 
             <nav className="flex-1 overflow-y-auto px-3 py-5">
+
                 {/* MAIN ITEMS */}
 
                 <div className="space-y-1">
-                    {navigationItems.map(renderNavigationItem)}
+                    {navigationItems.map(
+                        renderNavigationItem
+                    )}
                 </div>
 
                 {/* ==================================================
@@ -212,7 +242,7 @@ function ManagerSidebar() {
                 ================================================== */}
 
                 <div className="my-5 px-3">
-                    <div className="h-px bg-slate-800" />
+                    <div className="h-px bg-slate-200" />
                 </div>
 
                 {/* ==================================================
@@ -220,7 +250,9 @@ function ManagerSidebar() {
                 ================================================== */}
 
                 <div className="space-y-1">
-                    {bottomNavigationItems.map(renderNavigationItem)}
+                    {bottomNavigationItems.map(
+                        renderNavigationItem
+                    )}
                 </div>
 
                 {/* ==================================================
@@ -243,36 +275,49 @@ function ManagerSidebar() {
                         text-left
                         text-sm
                         font-medium
-                        text-slate-400
+                        text-slate-600
                         transition-all
                         duration-200
-                        hover:bg-red-500/10
-                        hover:text-red-400
+                        hover:bg-red-50
+                        hover:text-red-600
                     "
                 >
                     <LogOut
                         size={20}
                         strokeWidth={2}
                         className="
-                            text-slate-400
+                            text-slate-500
                             transition-colors
-                            group-hover:text-red-400
+                            group-hover:text-red-600
                         "
                     />
 
-                    <span>Logout</span>
+                    <span>
+                        Logout
+                    </span>
                 </button>
+
             </nav>
 
             {/* ==================================================
                 FOOTER
             ================================================== */}
 
-            <div className="shrink-0 border-t border-slate-800 px-5 py-4">
-                <p className="text-center text-xs text-slate-600">
+            <div
+                className="
+                    shrink-0
+                    border-t
+                    border-slate-200
+                    bg-white
+                    px-5
+                    py-4
+                "
+            >
+                <p className="text-center text-xs text-slate-500">
                     AI-Powered Project Management
                 </p>
             </div>
+
         </aside>
     );
 }
