@@ -35,10 +35,7 @@ import ChangePassword from "../pages/Auth/ChangePassword";
 import AdminLayout from "../layouts/AdminLayout";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AdminUsers from "../pages/admin/AdminUsers";
-
-// Admin Team Management
 import AdminTeamManagement from "../pages/admin/TeamManagement";
-
 import ProjectOversight from "../pages/admin/ProjectOversight";
 import Reports from "../pages/admin/Reports";
 import AIAdministration from "../pages/admin/AIAdministration";
@@ -68,7 +65,6 @@ import ManagerDashboard from "../pages/manager/ManagerDashboard";
 import ProjectManagement from "../pages/manager/ProjectManagement";
 import SprintManagement from "../pages/manager/SprintManagement";
 
-// Manager Team Management
 import ManagerTeamManagement
     from "../pages/manager/TeamManagement";
 
@@ -107,11 +103,6 @@ import SendProjectAnnouncement
 // ============================================================
 // MANAGER REPORTS
 // ============================================================
-//
-// The React page is ReportsPage.jsx.
-//
-// Do NOT import the report service here.
-// ============================================================
 
 import ManagerReports
     from "../pages/manager/ReportsPage";
@@ -135,47 +126,38 @@ import ManagerSettings
 // ============================================================
 
 // AI-001 — View AI Features
-
 import AIFeatures
     from "../pages/manager/AIFeatures";
 
 // AI-002 — Predict Project Risk
-
 import AIPredictRisk
     from "../components/manager/ai/AIPredictRisk";
 
 // AI-003 — Generate Project Recommendations
-
 import AIGenerateRecommendations
     from "../components/manager/ai/AIGenerateRecommendations";
 
 // AI-004 — Analyze Team Performance
-
 import AITeamPerformance
     from "../components/manager/ai/AITeamPerformance";
 
 // AI-005 — Predict Project Progress
-
 import AIPredictProgress
     from "../components/manager/ai/AIPredictProgress";
 
 // AI-006 — AI Deadline Prediction
-
 import AIDeadlinePrediction
     from "../components/manager/ai/AIDeadlinePrediction";
 
 // AI-007 — AI Sprint Planning
-
 import AISprintPlanning
     from "../components/manager/ai/AISprintPlanning";
 
 // AI-008 — Automated Project Summary
-
 import AIAutomatedProjectSummary
     from "../components/manager/ai/AIAutomatedProjectSummary";
 
 // AI-009 — Detect Project Bottlenecks
-
 import AIDetectBottlenecks
     from "../components/manager/ai/AIDetectBottlenecks";
 
@@ -217,26 +199,26 @@ import DeveloperLayout
 import DeveloperDashboard
     from "../pages/contributor/developer/DeveloperDashboard";
 
-import AddTechnicalComments
-    from "../components/contributor/developer/AddTechnicalComments";
+import DeveloperProfileManagement
+    from "../pages/contributor/developer/DeveloperProfileManagement";
 
-import ParticipateTechnicalReview
-    from "../components/contributor/developer/ParticipateTechnicalReview";
+import DeveloperProjectParticipation
+    from "../pages/contributor/developer/DeveloperProjectParticipation";
 
-import PerformDevelopmentTask
-    from "../components/contributor/developer/PerformDevelopmentTask";
+import DeveloperTaskManagement
+    from "../pages/contributor/developer/DeveloperTaskManagement";
 
-import ReportTechnicalBlocker
-    from "../components/contributor/developer/ReportTechnicalBlocker";
+import DeveloperSprintParticipation
+    from "../pages/contributor/developer/DeveloperSprintParticipation";
 
-import SubmitDevelopmentWork
-    from "../components/contributor/developer/SubmitDevelopmentWork";
+import DeveloperCommunication
+    from "../pages/contributor/developer/DeveloperCommunication";
 
-import UpdateDevelopmentTaskStatus
-    from "../components/contributor/developer/UpdateDevelopmentTaskStatus";
+import DeveloperReportsMonitoring
+    from "../pages/contributor/developer/ReportsMonitoring";
 
-import ViewDevelopmentWork
-    from "../components/contributor/developer/ViewDevelopmentWork";
+import DeveloperSettingsPreferences
+    from "../pages/contributor/developer/SettingPreferences";
 
 // ============================================================
 // TEAM LEADER
@@ -265,6 +247,37 @@ import CommunicateWithManager
 
 import ViewTeamPerformance
     from "../components/contributor/teamleader/ViewTeamPerformance";
+
+// ============================================================
+// TEAM LEADER - PROJECT PARTICIPATION
+// ============================================================
+
+import ProjectParticipation
+    from "../pages/contributor/team-leader/ProjectParticipation";
+
+import ViewAssignedProjects
+    from "../components/contributor/teamleader/project/ViewAssignedProjects";
+
+import ViewProjectDetails
+    from "../components/contributor/teamleader/project/ViewProjectDetails";
+
+import ViewProjectTeam
+    from "../components/contributor/teamleader/project/ViewProjectTeam";
+
+import ViewProjectTasks
+    from "../components/contributor/teamleader/project/ViewProjectTasks";
+
+import ViewProjectProgress
+    from "../components/contributor/teamleader/project/ViewProjectProgress";
+
+import ParticipateProjectCommunication
+    from "../components/contributor/teamleader/project/ParticipateProjectCommunication";
+
+import ViewProjectFiles
+    from "../components/contributor/teamleader/project/ViewProjectFiles";
+
+import RequestProjectAssistance
+    from "../components/contributor/teamleader/project/RequestProjectAssistance";
 
 // ============================================================
 // APP ROUTES
@@ -306,7 +319,6 @@ function AppRoutes() {
                 path="/admin"
                 element={<AdminLayout />}
             >
-
                 {/* ADMIN DEFAULT */}
 
                 <Route
@@ -402,7 +414,6 @@ function AppRoutes() {
                     path="settings"
                     element={<Settings />}
                 />
-
             </Route>
 
             {/* ==================================================
@@ -413,10 +424,7 @@ function AppRoutes() {
                 path="/manager"
                 element={<ManagerLayout />}
             >
-
-                {/* ==================================================
-                    MANAGER DEFAULT
-                ================================================== */}
+                {/* MANAGER DEFAULT */}
 
                 <Route
                     index
@@ -428,209 +436,147 @@ function AppRoutes() {
                     }
                 />
 
-                {/* ==================================================
-                    MANAGER DASHBOARD
-                ================================================== */}
+                {/* MANAGER DASHBOARD */}
 
                 <Route
                     path="dashboard"
                     element={<ManagerDashboard />}
                 />
 
-                {/* ==================================================
-                    PROJECT MANAGEMENT
-                    PM-001 — PM-007
-                ================================================== */}
+                {/* PROJECT MANAGEMENT */}
 
                 <Route
                     path="projects"
                     element={<ProjectManagement />}
                 />
 
-                {/* ==================================================
-                    SPRINT MANAGEMENT
-                ================================================== */}
+                {/* SPRINT MANAGEMENT */}
 
                 <Route
                     path="sprints"
                     element={<SprintManagement />}
                 />
 
-                {/* ==================================================
-                    TEAM MANAGEMENT
-                ==================================================
-                    
-                    Manager Team Management page:
-                    src/pages/manager/TeamManagement.jsx
-
-                    URL:
-                    /manager/team
-                ================================================== */}
+                {/* TEAM MANAGEMENT */}
 
                 <Route
                     path="team"
                     element={<ManagerTeamManagement />}
                 />
 
-                {/* ==================================================
-                    NOTIFICATIONS
-                    COMM-001
-                ================================================== */}
+                {/* NOTIFICATIONS */}
 
                 <Route
                     path="notifications"
                     element={<Notifications />}
                 />
 
-                {/* ==================================================
-                    MESSAGES
-                    COMM-002
-                ================================================== */}
+                {/* MESSAGES */}
 
                 <Route
                     path="messages"
                     element={<ManagerMessages />}
                 />
 
-                {/* ==================================================
-                    ACTIVITY FEED
-                    COMM-004
-                ================================================== */}
+                {/* ACTIVITY FEED */}
 
                 <Route
                     path="activity-feed"
                     element={<ActivityFeed />}
                 />
 
-                {/* ==================================================
-                    PROJECT ANNOUNCEMENT
-                    COMM-005
-                ================================================== */}
+                {/* PROJECT ANNOUNCEMENT */}
 
                 <Route
                     path="project-announcement"
                     element={<SendProjectAnnouncement />}
                 />
 
-                {/* ==================================================
-                    AI FEATURES
-                ================================================== */}
+                {/* AI FEATURES */}
 
                 <Route
                     path="ai-features"
                     element={<AIFeatures />}
                 />
 
-                {/* ==================================================
-                    AI-002
-                    PREDICT PROJECT RISK
-                ================================================== */}
+                {/* AI PROJECT RISK */}
 
                 <Route
                     path="ai-risk"
                     element={<AIPredictRisk />}
                 />
 
-                {/* ==================================================
-                    AI-003
-                    GENERATE RECOMMENDATIONS
-                ================================================== */}
+                {/* AI RECOMMENDATIONS */}
 
                 <Route
                     path="ai-recommendations"
                     element={<AIGenerateRecommendations />}
                 />
 
-                {/* ==================================================
-                    AI-004
-                    TEAM PERFORMANCE
-                ================================================== */}
+                {/* AI TEAM PERFORMANCE */}
 
                 <Route
                     path="ai-team-performance"
                     element={<AITeamPerformance />}
                 />
 
-                {/* ==================================================
-                    AI-005
-                    PROJECT PROGRESS
-                ================================================== */}
+                {/* AI PROJECT PROGRESS */}
 
                 <Route
                     path="ai-progress"
                     element={<AIPredictProgress />}
                 />
 
-                {/* ==================================================
-                    AI-006
-                    DEADLINE PREDICTION
-                ================================================== */}
+                {/* AI DEADLINE */}
 
                 <Route
                     path="ai-deadline"
                     element={<AIDeadlinePrediction />}
                 />
 
-                {/* ==================================================
-                    AI-007
-                    SPRINT PLANNING
-                ================================================== */}
+                {/* AI SPRINT PLANNING */}
 
                 <Route
                     path="ai-sprint-planning"
                     element={<AISprintPlanning />}
                 />
 
-                {/* ==================================================
-                    AI-008
-                    AUTOMATED PROJECT SUMMARY
-                ================================================== */}
+                {/* AI PROJECT SUMMARY */}
 
                 <Route
                     path="ai-project-summary"
                     element={<AIAutomatedProjectSummary />}
                 />
 
-                {/* ==================================================
-                    AI-009
-                    BOTTLENECK DETECTION
-                ================================================== */}
+                {/* AI BOTTLENECKS */}
 
                 <Route
                     path="ai-bottlenecks"
                     element={<AIDetectBottlenecks />}
                 />
 
-                {/* ==================================================
-                    MANAGER REPORTS
-                ================================================== */}
+                {/* MANAGER REPORTS */}
 
                 <Route
                     path="reports"
                     element={<ManagerReports />}
                 />
 
-                {/* ==================================================
-                    MANAGER PROFILE
-                ================================================== */}
+                {/* MANAGER PROFILE */}
 
                 <Route
                     path="profile"
                     element={<ManagerProfile />}
                 />
 
-                {/* ==================================================
-                    MANAGER SETTINGS
-                ================================================== */}
+                {/* MANAGER SETTINGS */}
 
                 <Route
                     path="settings"
                     element={<ManagerSettings />}
                 />
 
-                {/* ==================================================
-                    HELP
-                ================================================== */}
+                {/* MANAGER HELP */}
 
                 <Route
                     path="help"
@@ -641,15 +587,12 @@ function AppRoutes() {
                     }
                 />
 
-                {/* ==================================================
-                    MANAGER LOGOUT
-                ================================================== */}
+                {/* MANAGER LOGOUT */}
 
                 <Route
                     path="logout"
                     element={<Logout />}
                 />
-
             </Route>
 
             {/* ==================================================
@@ -660,7 +603,6 @@ function AppRoutes() {
                 path="/staff"
                 element={<StaffLayout />}
             >
-
                 {/* STAFF DEFAULT */}
 
                 <Route
@@ -721,7 +663,6 @@ function AppRoutes() {
                     path="upload-files"
                     element={<UploadWorkFiles />}
                 />
-
             </Route>
 
             {/* ==================================================
@@ -732,7 +673,6 @@ function AppRoutes() {
                 path="/developer"
                 element={<DeveloperLayout />}
             >
-
                 {/* DEVELOPER DEFAULT */}
 
                 <Route
@@ -752,55 +692,68 @@ function AppRoutes() {
                     element={<DeveloperDashboard />}
                 />
 
-                {/* DEVELOPMENT WORK */}
+                {/* PROFILE MANAGEMENT */}
 
                 <Route
-                    path="my-work"
-                    element={<ViewDevelopmentWork />}
+                    path="profile-management"
+                    element={
+                        <DeveloperProfileManagement />
+                    }
                 />
 
-                {/* DEVELOPMENT TASKS */}
+                {/* PROJECT PARTICIPATION */}
 
                 <Route
-                    path="tasks"
-                    element={<PerformDevelopmentTask />}
+                    path="project-participation"
+                    element={
+                        <DeveloperProjectParticipation />
+                    }
                 />
 
-                {/* TASK STATUS */}
+                {/* TASK MANAGEMENT */}
 
                 <Route
-                    path="task-status"
-                    element={<UpdateDevelopmentTaskStatus />}
+                    path="task-management"
+                    element={
+                        <DeveloperTaskManagement />
+                    }
                 />
 
-                {/* TECHNICAL BLOCKERS */}
+                {/* SPRINT PARTICIPATION */}
 
                 <Route
-                    path="blockers"
-                    element={<ReportTechnicalBlocker />}
+                    path="sprint-participation"
+                    element={
+                        <DeveloperSprintParticipation />
+                    }
                 />
 
-                {/* SUBMIT DEVELOPMENT WORK */}
+                {/* COMMUNICATION */}
 
                 <Route
-                    path="submissions"
-                    element={<SubmitDevelopmentWork />}
+                    path="communication"
+                    element={
+                        <DeveloperCommunication />
+                    }
                 />
 
-                {/* TECHNICAL REVIEWS */}
+                {/* REPORTS AND MONITORING */}
 
                 <Route
-                    path="reviews"
-                    element={<ParticipateTechnicalReview />}
+                    path="reports-monitoring"
+                    element={
+                        <DeveloperReportsMonitoring />
+                    }
                 />
 
-                {/* TECHNICAL COMMENTS */}
+                {/* SETTINGS AND PREFERENCES */}
 
                 <Route
-                    path="comments"
-                    element={<AddTechnicalComments />}
+                    path="settings-preferences"
+                    element={
+                        <DeveloperSettingsPreferences />
+                    }
                 />
-
             </Route>
 
             {/* ==================================================
@@ -811,7 +764,6 @@ function AppRoutes() {
                 path="/team-leader"
                 element={<TeamLeaderLayout />}
             >
-
                 {/* TEAM LEADER DEFAULT */}
 
                 <Route
@@ -873,6 +825,74 @@ function AppRoutes() {
                     element={<ViewTeamPerformance />}
                 />
 
+                {/* ==================================================
+                    TEAM LEADER PROJECT PARTICIPATION
+                ================================================== */}
+
+                <Route
+                    path="project-participation"
+                    element={<ProjectParticipation />}
+                />
+
+                {/* VIEW ASSIGNED PROJECTS */}
+
+                <Route
+                    path="project-participation/assigned-projects"
+                    element={<ViewAssignedProjects />}
+                />
+
+                {/* VIEW PROJECT DETAILS */}
+
+                <Route
+                    path="project-participation/details"
+                    element={<ViewProjectDetails />}
+                />
+
+                {/* VIEW PROJECT TEAM */}
+
+                <Route
+                    path="project-participation/team"
+                    element={<ViewProjectTeam />}
+                />
+
+                {/* VIEW PROJECT TASKS */}
+
+                <Route
+                    path="project-participation/tasks"
+                    element={<ViewProjectTasks />}
+                />
+
+                {/* VIEW PROJECT PROGRESS */}
+
+                <Route
+                    path="project-participation/progress"
+                    element={<ViewProjectProgress />}
+                />
+
+                {/* PROJECT COMMUNICATION */}
+
+                <Route
+                    path="project-participation/communication"
+                    element={
+                        <ParticipateProjectCommunication />
+                    }
+                />
+
+                {/* VIEW PROJECT FILES */}
+
+                <Route
+                    path="project-participation/files"
+                    element={<ViewProjectFiles />}
+                />
+
+                {/* REQUEST PROJECT ASSISTANCE */}
+
+                <Route
+                    path="project-participation/assistance"
+                    element={
+                        <RequestProjectAssistance />
+                    }
+                />
             </Route>
 
             {/* ==================================================
