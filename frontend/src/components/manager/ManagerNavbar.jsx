@@ -1,6 +1,19 @@
 
 // ============================================================
-// AIPMS - MANAGER NAVBAR
+// MANAGER NAVBAR
+// AIPMS
+//
+// Features:
+// - Project Search
+// - Notifications
+// - Manager Profile
+//
+// COMM-001 — View Notifications
+//
+// IMPORTANT:
+// - Light theme only
+// - No dark: classes
+// - No dark background
 // ============================================================
 
 import React from "react";
@@ -8,17 +21,11 @@ import React from "react";
 import {
     Bell,
     Search,
-    Sun,
-    Moon,
 } from "lucide-react";
 
 import {
     useNavigate,
 } from "react-router-dom";
-
-import {
-    useManagerTheme,
-} from "@/contexts/useManagerTheme";
 
 // ============================================================
 // COMPONENT
@@ -26,11 +33,6 @@ import {
 
 function ManagerNavbar() {
     const navigate = useNavigate();
-
-    const {
-        theme,
-        toggleTheme,
-    } = useManagerTheme();
 
     // ========================================================
     // OPEN NOTIFICATIONS
@@ -57,19 +59,16 @@ function ManagerNavbar() {
             className="
                 sticky
                 top-0
-                z-40
+                z-30
                 flex
                 h-20
                 w-full
                 items-center
                 justify-between
                 border-b
-                border-border
-                bg-background
+                border-slate-200
+                bg-white
                 px-8
-                text-foreground
-                transition-colors
-                duration-300
             "
         >
 
@@ -86,7 +85,7 @@ function ManagerNavbar() {
                         left-3
                         top-1/2
                         -translate-y-1/2
-                        text-muted-foreground
+                        text-slate-400
                     "
                 />
 
@@ -97,72 +96,28 @@ function ManagerNavbar() {
                         w-full
                         rounded-lg
                         border
-                        border-border
-                        bg-muted
+                        border-slate-300
+                        bg-slate-50
                         py-3
                         pl-10
                         pr-4
-                        text-foreground
+                        text-slate-800
+                        placeholder:text-slate-400
                         outline-none
-                        placeholder:text-muted-foreground
+                        transition
+                        focus:border-blue-500
                         focus:ring-2
-                        focus:ring-ring
-                        transition-colors
-                        duration-300
+                        focus:ring-blue-200
                     "
                 />
 
             </div>
 
             {/* ==================================================
-                RIGHT SIDE
+                NOTIFICATION + PROFILE
             ================================================== */}
 
-            <div className="flex items-center gap-5">
-
-                {/* ==================================================
-                    THEME TOGGLE
-                ================================================== */}
-
-                <button
-                    type="button"
-                    onClick={toggleTheme}
-                    aria-label={
-                        theme === "dark"
-                            ? "Switch to light mode"
-                            : "Switch to dark mode"
-                    }
-                    title={
-                        theme === "dark"
-                            ? "Switch to light mode"
-                            : "Switch to dark mode"
-                    }
-                    className="
-                        flex
-                        h-10
-                        w-10
-                        items-center
-                        justify-center
-                        rounded-lg
-                        border
-                        border-border
-                        bg-muted
-                        text-foreground
-                        transition-all
-                        duration-300
-                        hover:bg-accent
-                        hover:text-accent-foreground
-                        focus:outline-none
-                        focus:ring-2
-                        focus:ring-ring
-                    "
-                >
-                    {theme === "dark" ? (
-                        <Sun size={20} />
-                    ) : (
-                        <Moon size={20} />
-                    )}
-                </button>
+            <div className="flex items-center gap-6">
 
                 {/* ==================================================
                     NOTIFICATIONS
@@ -177,17 +132,23 @@ function ManagerNavbar() {
                         relative
                         rounded-full
                         p-3
-                        text-muted-foreground
                         transition
-                        hover:bg-accent
-                        hover:text-accent-foreground
+                        hover:bg-slate-100
                         focus:outline-none
                         focus:ring-2
-                        focus:ring-ring
+                        focus:ring-blue-500
+                        focus:ring-offset-2
                     "
                 >
 
-                    <Bell size={22} />
+                    <Bell
+                        size={24}
+                        className="text-slate-700"
+                    />
+
+                    {/* ==================================================
+                        NOTIFICATION INDICATOR
+                    ================================================== */}
 
                     <span
                         className="
@@ -198,8 +159,8 @@ function ManagerNavbar() {
                             w-2
                             rounded-full
                             border-2
-                            border-background
-                            bg-red-500
+                            border-white
+                            bg-red-600
                         "
                     />
 
@@ -213,23 +174,24 @@ function ManagerNavbar() {
                     type="button"
                     onClick={handleProfileClick}
                     aria-label="Open manager profile"
-                    title="Manager Profile"
                     className="
                         flex
                         items-center
                         gap-3
                         rounded-lg
                         p-1
-                        text-left
                         transition
-                        hover:bg-accent
+                        hover:bg-slate-100
                         focus:outline-none
                         focus:ring-2
-                        focus:ring-ring
+                        focus:ring-blue-500
+                        focus:ring-offset-2
                     "
                 >
 
-                    {/* AVATAR */}
+                    {/* ==================================================
+                        AVATAR
+                    ================================================== */}
 
                     <div
                         className="
@@ -239,23 +201,35 @@ function ManagerNavbar() {
                             items-center
                             justify-center
                             rounded-full
-                            bg-primary
+                            bg-blue-600
                             font-bold
-                            text-primary-foreground
+                            text-white
                         "
                     >
                         M
                     </div>
 
-                    {/* MANAGER INFORMATION */}
+                    {/* ==================================================
+                        MANAGER INFORMATION
+                    ================================================== */}
 
-                    <div>
+                    <div className="text-left">
 
-                        <p className="font-semibold text-foreground">
+                        <p
+                            className="
+                                font-semibold
+                                text-slate-800
+                            "
+                        >
                             Manager
                         </p>
 
-                        <p className="text-sm text-muted-foreground">
+                        <p
+                            className="
+                                text-sm
+                                text-slate-500
+                            "
+                        >
                             manager@email.com
                         </p>
 
@@ -274,3 +248,4 @@ function ManagerNavbar() {
 // ============================================================
 
 export default ManagerNavbar;
+

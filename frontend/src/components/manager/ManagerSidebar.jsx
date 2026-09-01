@@ -1,4 +1,3 @@
-
 // ============================================================
 // AIPMS - MANAGER SIDEBAR
 // src/components/manager/ManagerSidebar.jsx
@@ -131,7 +130,9 @@ function ManagerSidebar() {
                     <>
                         <Icon
                             size={20}
-                            strokeWidth={isActive ? 2.3 : 2}
+                            strokeWidth={
+                                isActive ? 2.3 : 2
+                            }
                             className={
                                 isActive
                                     ? "text-slate-900"
@@ -139,7 +140,9 @@ function ManagerSidebar() {
                             }
                         />
 
-                        <span>{item.label}</span>
+                        <span>
+                            {item.label}
+                        </span>
                     </>
                 )}
             </NavLink>
@@ -167,6 +170,7 @@ function ManagerSidebar() {
                 text-slate-900
             "
         >
+
             {/* ==================================================
                 LOGO / BRAND
             ================================================== */}
@@ -183,6 +187,7 @@ function ManagerSidebar() {
                 "
             >
                 <div className="flex items-center gap-3">
+
                     {/* LOGO ICON */}
 
                     <div
@@ -197,7 +202,10 @@ function ManagerSidebar() {
                             text-slate-700
                         "
                     >
-                        <Sparkles size={21} strokeWidth={2} />
+                        <Sparkles
+                            size={21}
+                            strokeWidth={2}
+                        />
                     </div>
 
                     {/* BRAND */}
@@ -211,6 +219,7 @@ function ManagerSidebar() {
                             Manager
                         </p>
                     </div>
+
                 </div>
             </div>
 
@@ -219,10 +228,13 @@ function ManagerSidebar() {
             ================================================== */}
 
             <nav className="flex-1 overflow-y-auto px-3 py-5">
+
                 {/* MAIN ITEMS */}
 
                 <div className="space-y-1">
-                    {navigationItems.map(renderNavigationItem)}
+                    {navigationItems.map(
+                        renderNavigationItem
+                    )}
                 </div>
 
                 {/* ==================================================
@@ -238,7 +250,9 @@ function ManagerSidebar() {
                 ================================================== */}
 
                 <div className="space-y-1">
-                    {bottomNavigationItems.map(renderNavigationItem)}
+                    {bottomNavigationItems.map(
+                        renderNavigationItem
+                    )}
                 </div>
 
                 {/* ==================================================
@@ -278,8 +292,11 @@ function ManagerSidebar() {
                         "
                     />
 
-                    <span>Logout</span>
+                    <span>
+                        Logout
+                    </span>
                 </button>
+
             </nav>
 
             {/* ==================================================
@@ -300,6 +317,7 @@ function ManagerSidebar() {
                     AI-Powered Project Management
                 </p>
             </div>
+
         </aside>
     );
 }
