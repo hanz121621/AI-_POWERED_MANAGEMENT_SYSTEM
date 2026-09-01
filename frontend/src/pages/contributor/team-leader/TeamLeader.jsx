@@ -7,12 +7,17 @@ import {
     BarChart3,
 } from "lucide-react";
 
-import ViewAssignedTeam from "@/components/contributor/teamleader/ViewAssignedTeam";
-import ViewTeamTasks from "@/components/contributor/teamleader/ViewTeamTasks";
-import MonitorTeamProgress from "@/components/contributor/teamleader/MonitorTeamProgress";
-import CoordinateTeamWork from "@/components/contributor/teamleader/CoordinateTeamWork";
-import CommunicateWithManager from "@/components/contributor/teamleader/CommunicateWithManager";
-import ViewTeamPerformance from "@/components/contributor/teamleader/ViewTeamPerformance";
+import ViewAssignedTeam from "@/components/contributor/teamleader/team-management/ViewAssignedTeam";
+
+import ViewTeamTasks from "@/components/contributor/teamleader/team-management/ViewTeamTasks";
+
+import MonitorTeamProgress from "@/components/contributor/teamleader/team-management/MonitorTeamProgress";
+
+import CoordinateTeamWork from "@/components/contributor/teamleader/team-management/CoordinateTeamWork";
+
+import CommunicateWithManager from "@/components/contributor/teamleader/communication/CommunicateWithManager";
+
+import ViewTeamPerformance from "@/components/contributor/teamleader/team-management/ViewTeamPerformance";
 
 /* ============================================================
    TEAM LEADER PAGE
