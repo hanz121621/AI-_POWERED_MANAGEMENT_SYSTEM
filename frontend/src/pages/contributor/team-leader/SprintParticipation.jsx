@@ -4,8 +4,8 @@ import {
     TrendingUp,
 } from "lucide-react";
 
-import ViewSprintTasks from "@/components/contributor/teamleader/sprint-participation/ViewSprintTasks";
 import ViewSprintProgress from "@/components/contributor/teamleader/sprint-participation/ViewSprintProgress";
+import ViewSprintTasks from "@/components/contributor/teamleader/sprint-participation/ViewSprintTasks";
 
 export default function SprintParticipation() {
     return (
