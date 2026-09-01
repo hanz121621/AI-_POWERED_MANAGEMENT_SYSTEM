@@ -1,17 +1,14 @@
 
+
+
 import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
-    Activity,
-    AlertTriangle,
     BarChart3,
-    CheckCircle2,
     Code2,
-    FileCode2,
     FolderKanban,
-    GitPullRequest,
-    Home,
+    ListTodo,
     MessageSquare,
     Settings,
     ShieldCheck,
@@ -21,9 +18,39 @@ import {
 
 import { Button } from "@/components/ui/button";
 
-/* ============================================================
-   STORAGE HELPERS
-============================================================ */
+// ============================================================
+// DEVELOPER SIDEBAR
+// ============================================================
+//
+// Developer Navigation
+//
+// KEEP:
+// DEV-DASHBOARD
+// DEV-PROFILE
+// DEV-PROJECT
+// DEV-TASK
+// DEV-SPRINT
+// DEV-COMMUNICATION
+// DEV-REPORTS
+// DEV-SETTINGS
+//
+// REMOVED:
+// - My Development Work
+// - Development Tasks
+// - Specialized Development
+// - Task Status
+// - Submit Work
+// - Technical Blockers
+// - Technical Reviews
+// - Technical Comments
+// - My Progress
+//
+// ============================================================
+
+
+// ============================================================
+// STORAGE KEYS
+// ============================================================
 
 const USER_STORAGE_KEYS = [
     "user",
@@ -31,6 +58,11 @@ const USER_STORAGE_KEYS = [
     "currentUser",
     "authUser",
 ];
+
+
+// ============================================================
+// GET STORED USER
+// ============================================================
 
 function getStoredUser() {
     for (const key of USER_STORAGE_KEYS) {
@@ -60,9 +92,10 @@ function getStoredUser() {
     return null;
 }
 
-/* ============================================================
-   DEFAULT USER
-============================================================ */
+
+// ============================================================
+// DEFAULT USER
+// ============================================================
 
 const DEFAULT_USER = {
     id: null,
@@ -75,9 +108,10 @@ const DEFAULT_USER = {
     avatar: null,
 };
 
-/* ============================================================
-   HELPERS
-============================================================ */
+
+// ============================================================
+// USER HELPERS
+// ============================================================
 
 function getUserName(user) {
     return (
@@ -89,6 +123,7 @@ function getUserName(user) {
     );
 }
 
+
 function getUserRole(user) {
     return (
         user?.role ||
@@ -98,6 +133,7 @@ function getUserRole(user) {
     );
 }
 
+
 function getUserSpecialization(user) {
     return (
         user?.specialization ||
@@ -106,6 +142,7 @@ function getUserSpecialization(user) {
         "Development"
     );
 }
+
 
 function getInitials(name) {
     if (!name) {
@@ -129,84 +166,126 @@ function getInitials(name) {
     ).toUpperCase();
 }
 
-/* ============================================================
-   MAIN NAVIGATION
-============================================================ */
+
+// ============================================================
+// MAIN DEVELOPER NAVIGATION
+// ============================================================
+//
+// IMPORTANT:
+//
+// These paths should match AppRoutes.jsx.
+//
+// ============================================================
 
 const MAIN_NAVIGATION = [
+
+    // ========================================================
+    // 1. DASHBOARD
+    // ========================================================
+
     {
         label: "Dashboard",
-        path: "/developer",
-        icon: Home,
+        path: "/developer/dashboard",
+        icon: BarChart3,
         exact: true,
     },
+
+
+    // ========================================================
+    // 2. PROFILE MANAGEMENT
+    // ========================================================
+
     {
-        label: "My Development Work",
-        path: "/developer/my-work",
-        icon: Code2,
+        label: "Profile Management",
+        path: "/developer/profile-management",
+        icon: UserRound,
+        exact: true,
     },
+
+
+    // ========================================================
+    // 3. PROJECT PARTICIPATION
+    // ========================================================
+
     {
-        label: "Development Tasks",
-        path: "/developer/tasks",
-        icon: FileCode2,
+        label: "Project Participation",
+        path: "/developer/project-participation",
+        icon: FolderKanban,
+        exact: true,
     },
+
+
+    // ========================================================
+    // 4. TASK MANAGEMENT
+    // ========================================================
+
     {
-        label: "Task Status",
-        path: "/developer/task-status",
-        icon: Activity,
+        label: "Task Management",
+        path: "/developer/task-management",
+        icon: ListTodo,
+        exact: true,
     },
+
+
+    // ========================================================
+    // 5. SPRINT PARTICIPATION
+    // ========================================================
+
     {
-        label: "Technical Blockers",
-        path: "/developer/blockers",
-        icon: AlertTriangle,
+        label: "Sprint Participation",
+        path: "/developer/sprint-participation",
+        icon: ListTodo,
+        exact: true,
     },
+
+
+    // ========================================================
+    // 6. COMMUNICATION
+    // ========================================================
+
     {
-        label: "Submit Work",
-        path: "/developer/submissions",
-        icon: GitPullRequest,
-    },
-    {
-        label: "Technical Reviews",
-        path: "/developer/reviews",
-        icon: CheckCircle2,
-    },
-    {
-        label: "Technical Comments",
-        path: "/developer/comments",
+        label: "Communication",
+        path: "/developer/communication",
         icon: MessageSquare,
+        exact: true,
+    },
+
+
+    // ========================================================
+    // 7. REPORTS & MONITORING
+    // ========================================================
+
+    {
+        label: "Reports & Monitoring",
+        path: "/developer/reports-monitoring",
+        icon: BarChart3,
+        exact: true,
     },
 ];
 
-/* ============================================================
-   SECONDARY NAVIGATION
-============================================================ */
+
+// ============================================================
+// SECONDARY NAVIGATION
+// ============================================================
 
 const SECONDARY_NAVIGATION = [
+
+    // ========================================================
+    // 1. SETTINGS & PREFERENCES
+    // ========================================================
+
     {
-        label: "Projects",
-        path: "/developer/projects",
-        icon: FolderKanban,
-    },
-    {
-        label: "My Progress",
-        path: "/developer/progress",
-        icon: BarChart3,
-    },
-    {
-        label: "My Profile",
-        path: "/profile",
-        icon: UserRound,
-    },
-    {
-        label: "Settings",
-        path: "/settings",
+        label: "Settings & Preferences",
+        path: "/developer/settings-preferences",
         icon: Settings,
+        exact: true,
     },
 ];
 
-/* ============================================================
-   COMPONENT
-============================================================ */
+
+// ============================================================
+// COMPONENT
+// ============================================================
 
 function DeveloperSidebar({
     open = true,
@@ -215,6 +294,11 @@ function DeveloperSidebar({
 }) {
     const navigate = useNavigate();
     const location = useLocation();
+
+
+    // ========================================================
+    // USER
+    // ========================================================
 
     const user = useMemo(
         () => getStoredUser() || DEFAULT_USER,
@@ -241,9 +325,10 @@ function DeveloperSidebar({
         [userName]
     );
 
-    /* ========================================================
-       ACTIVE LINK
-    ======================================================== */
+
+    // ========================================================
+    // ACTIVE LINK
+    // ========================================================
 
     const isActive = (item) => {
         if (item.exact) {
@@ -258,11 +343,21 @@ function DeveloperSidebar({
         );
     };
 
-    /* ========================================================
-       NAVIGATION
-    ======================================================== */
+
+    // ========================================================
+    // NAVIGATION
+    // ========================================================
 
     const handleNavigation = (path) => {
+        if (!path) {
+            return;
+        }
+
+        console.log(
+            "Developer Sidebar Navigation:",
+            path
+        );
+
         navigate(path);
 
         if (onClose) {
@@ -270,9 +365,10 @@ function DeveloperSidebar({
         }
     };
 
-    /* ========================================================
-       RENDER
-    ======================================================== */
+
+    // ========================================================
+    // RENDER
+    // ========================================================
 
     return (
         <>
@@ -294,6 +390,7 @@ function DeveloperSidebar({
                     "
                 />
             )}
+
 
             {/* ==================================================
                 SIDEBAR
@@ -355,13 +452,14 @@ function DeveloperSidebar({
                         type="button"
                         onClick={() =>
                             handleNavigation(
-                                "/developer"
+                                "/developer/dashboard"
                             )
                         }
                         className={`
                             flex
                             items-center
                             gap-2.5
+
                             ${
                                 collapsed
                                     ? "mx-auto"
@@ -388,6 +486,7 @@ function DeveloperSidebar({
                         >
                             <Code2 className="h-4 w-4" />
                         </div>
+
 
                         {!collapsed && (
                             <div className="text-left">
@@ -417,7 +516,9 @@ function DeveloperSidebar({
 
                             </div>
                         )}
+
                     </button>
+
 
                     {/* MOBILE CLOSE */}
 
@@ -431,8 +532,10 @@ function DeveloperSidebar({
                             w-8
                             text-slate-500
                             hover:bg-slate-100
+
                             dark:text-slate-300
                             dark:hover:bg-blue-950/60
+
                             lg:hidden
                         "
                         aria-label="Close sidebar"
@@ -441,6 +544,7 @@ function DeveloperSidebar({
                     </Button>
 
                 </div>
+
 
                 {/* ==================================================
                     USER PROFILE
@@ -465,7 +569,7 @@ function DeveloperSidebar({
                         type="button"
                         onClick={() =>
                             handleNavigation(
-                                "/profile"
+                                "/developer/profile-management"
                             )
                         }
                         className={`
@@ -522,8 +626,15 @@ function DeveloperSidebar({
                             </div>
                         )}
 
+
                         {!collapsed && (
-                            <div className="min-w-0 flex-1 text-left">
+                            <div
+                                className="
+                                    min-w-0
+                                    flex-1
+                                    text-left
+                                "
+                            >
 
                                 <p
                                     className="
@@ -537,6 +648,7 @@ function DeveloperSidebar({
                                     {userName}
                                 </p>
 
+
                                 <p
                                     className="
                                         truncate
@@ -547,6 +659,7 @@ function DeveloperSidebar({
                                 >
                                     {userRole}
                                 </p>
+
 
                                 <div className="mt-0.5">
 
@@ -562,6 +675,7 @@ function DeveloperSidebar({
                                             text-[8px]
                                             font-semibold
                                             text-blue-700
+
                                             dark:bg-blue-950/60
                                             dark:text-blue-300
                                         "
@@ -578,8 +692,9 @@ function DeveloperSidebar({
 
                 </div>
 
+
                 {/* ==================================================
-                    NAVIGATION
+                    NAVIGATION AREA
                 ================================================== */}
 
                 <div
@@ -592,7 +707,7 @@ function DeveloperSidebar({
                 >
 
                     {/* ==================================================
-                        MAIN LABEL
+                        DEVELOPER WORKSPACE LABEL
                     ================================================== */}
 
                     {!collapsed && (
@@ -608,19 +723,22 @@ function DeveloperSidebar({
                                 dark:text-slate-500
                             "
                         >
-                            Development Workspace
+                            Developer Workspace
                         </p>
                     )}
+
 
                     {/* ==================================================
                         MAIN NAVIGATION
                     ================================================== */}
 
-                    <nav className="space-y-0.5">
+                    <nav
+                        className="space-y-0.5"
+                        aria-label="Developer navigation"
+                    >
 
                         {MAIN_NAVIGATION.map(
                             (item) => {
-
                                 const Icon =
                                     item.icon;
 
@@ -639,6 +757,11 @@ function DeveloperSidebar({
                                         title={
                                             collapsed
                                                 ? item.label
+                                                : undefined
+                                        }
+                                        aria-current={
+                                            active
+                                                ? "page"
                                                 : undefined
                                         }
                                         className={`
@@ -672,6 +795,7 @@ function DeveloperSidebar({
                                                         text-slate-700
                                                         hover:bg-slate-100
                                                         hover:text-slate-900
+
                                                         dark:text-slate-300
                                                         dark:hover:bg-blue-950/60
                                                         dark:hover:text-white
@@ -694,11 +818,13 @@ function DeveloperSidebar({
                                             `}
                                         />
 
+
                                         {!collapsed && (
                                             <span className="truncate">
                                                 {item.label}
                                             </span>
                                         )}
+
 
                                         {!collapsed &&
                                             active && (
@@ -721,6 +847,7 @@ function DeveloperSidebar({
 
                     </nav>
 
+
                     {/* ==================================================
                         DIVIDER
                     ================================================== */}
@@ -734,8 +861,9 @@ function DeveloperSidebar({
                         "
                     />
 
+
                     {/* ==================================================
-                        SECONDARY LABEL
+                        SETTINGS LABEL
                     ================================================== */}
 
                     {!collapsed && (
@@ -751,19 +879,22 @@ function DeveloperSidebar({
                                 dark:text-slate-500
                             "
                         >
-                            Workspace
+                            Preferences
                         </p>
                     )}
+
 
                     {/* ==================================================
                         SECONDARY NAVIGATION
                     ================================================== */}
 
-                    <nav className="space-y-0.5">
+                    <nav
+                        className="space-y-0.5"
+                        aria-label="Developer preferences navigation"
+                    >
 
                         {SECONDARY_NAVIGATION.map(
                             (item) => {
-
                                 const Icon =
                                     item.icon;
 
@@ -782,6 +913,11 @@ function DeveloperSidebar({
                                         title={
                                             collapsed
                                                 ? item.label
+                                                : undefined
+                                        }
+                                        aria-current={
+                                            active
+                                                ? "page"
                                                 : undefined
                                         }
                                         className={`
@@ -809,12 +945,16 @@ function DeveloperSidebar({
                                                     ? `
                                                         bg-blue-600
                                                         text-white
+                                                        shadow-sm
                                                     `
                                                     : `
                                                         text-slate-700
                                                         hover:bg-slate-100
+                                                        hover:text-slate-900
+
                                                         dark:text-slate-300
                                                         dark:hover:bg-blue-950/60
+                                                        dark:hover:text-white
                                                     `
                                             }
                                         `}
@@ -834,11 +974,27 @@ function DeveloperSidebar({
                                             `}
                                         />
 
+
                                         {!collapsed && (
                                             <span className="truncate">
                                                 {item.label}
                                             </span>
                                         )}
+
+
+                                        {!collapsed &&
+                                            active && (
+                                                <span
+                                                    className="
+                                                        ml-auto
+                                                        h-1
+                                                        w-1
+                                                        shrink-0
+                                                        rounded-full
+                                                        bg-white
+                                                    "
+                                                />
+                                            )}
 
                                     </button>
                                 );
@@ -848,6 +1004,7 @@ function DeveloperSidebar({
                     </nav>
 
                 </div>
+
 
                 {/* ==================================================
                     FOOTER
@@ -871,6 +1028,7 @@ function DeveloperSidebar({
                                 border-blue-100
                                 bg-blue-50
                                 p-2.5
+
                                 dark:border-blue-900/60
                                 dark:bg-blue-950/30
                             "
@@ -894,6 +1052,7 @@ function DeveloperSidebar({
                                     <ShieldCheck className="h-3.5 w-3.5" />
                                 </div>
 
+
                                 <div className="min-w-0">
 
                                     <p
@@ -907,6 +1066,7 @@ function DeveloperSidebar({
                                     >
                                         Developer Access
                                     </p>
+
 
                                     <p
                                         className="
@@ -926,6 +1086,7 @@ function DeveloperSidebar({
 
                         </div>
                     ) : (
+
                         <div className="flex justify-center">
 
                             <div
