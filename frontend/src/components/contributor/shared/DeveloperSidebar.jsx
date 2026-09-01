@@ -1,19 +1,22 @@
 
-
-
 import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
     BarChart3,
     Code2,
-    FolderKanban,
-    ListTodo,
-    MessageSquare,
-    Settings,
+    FileCode2,
+    Flag,
+    MessageSquareCode,
+    Send,
+    Settings2,
     ShieldCheck,
     UserRound,
+    Wrench,
     X,
+    CheckCircle2,
+    ClipboardCheck,
+    Activity,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -22,28 +25,35 @@ import { Button } from "@/components/ui/button";
 // DEVELOPER SIDEBAR
 // ============================================================
 //
-// Developer Navigation
+// IMPORTANT:
 //
-// KEEP:
-// DEV-DASHBOARD
-// DEV-PROFILE
-// DEV-PROJECT
-// DEV-TASK
-// DEV-SPRINT
-// DEV-COMMUNICATION
-// DEV-REPORTS
-// DEV-SETTINGS
+// These paths MUST match the routes currently defined in:
 //
-// REMOVED:
-// - My Development Work
-// - Development Tasks
-// - Specialized Development
-// - Task Status
-// - Submit Work
-// - Technical Blockers
-// - Technical Reviews
-// - Technical Comments
-// - My Progress
+// src/routes/AppRoutes.jsx
+//
+// CURRENTLY AVAILABLE DEVELOPER ROUTES:
+//
+// /developer/dashboard
+// /developer/work
+// /developer/view-work
+// /developer/development-task
+// /developer/update-task-status
+// /developer/report-blocker
+// /developer/submit-work
+// /developer/technical-review
+// /developer/technical-comments
+// /developer/specialized-work
+//
+// Do NOT use routes such as:
+//
+// /developer/sprint-participation
+// /developer/project-participation
+// /developer/profile-management
+// /developer/communication
+// /developer/reports-monitoring
+// /developer/settings-preferences
+//
+// until those routes are added to AppRoutes.jsx.
 //
 // ============================================================
 
@@ -171,9 +181,8 @@ function getInitials(name) {
 // MAIN DEVELOPER NAVIGATION
 // ============================================================
 //
-// IMPORTANT:
-//
-// These paths should match AppRoutes.jsx.
+// These are the EXACT paths currently available in
+// AppRoutes.jsx.
 //
 // ============================================================
 
@@ -192,73 +201,109 @@ const MAIN_NAVIGATION = [
 
 
     // ========================================================
-    // 2. PROFILE MANAGEMENT
+    // 2. DEVELOPER WORK
     // ========================================================
 
     {
-        label: "Profile Management",
-        path: "/developer/profile-management",
-        icon: UserRound,
+        label: "Developer Work",
+        path: "/developer/work",
+        icon: Code2,
         exact: true,
     },
 
 
     // ========================================================
-    // 3. PROJECT PARTICIPATION
+    // 3. VIEW DEVELOPMENT WORK
     // ========================================================
 
     {
-        label: "Project Participation",
-        path: "/developer/project-participation",
-        icon: FolderKanban,
+        label: "View Development Work",
+        path: "/developer/view-work",
+        icon: FileCode2,
         exact: true,
     },
 
 
     // ========================================================
-    // 4. TASK MANAGEMENT
+    // 4. PERFORM DEVELOPMENT TASK
     // ========================================================
 
     {
-        label: "Task Management",
-        path: "/developer/task-management",
-        icon: ListTodo,
+        label: "Development Task",
+        path: "/developer/development-task",
+        icon: Wrench,
         exact: true,
     },
 
 
     // ========================================================
-    // 5. SPRINT PARTICIPATION
+    // 5. UPDATE DEVELOPMENT TASK STATUS
     // ========================================================
 
     {
-        label: "Sprint Participation",
-        path: "/developer/sprint-participation",
-        icon: ListTodo,
+        label: "Update Task Status",
+        path: "/developer/update-task-status",
+        icon: Activity,
         exact: true,
     },
 
 
     // ========================================================
-    // 6. COMMUNICATION
+    // 6. REPORT TECHNICAL BLOCKER
     // ========================================================
 
     {
-        label: "Communication",
-        path: "/developer/communication",
-        icon: MessageSquare,
+        label: "Report Technical Blocker",
+        path: "/developer/report-blocker",
+        icon: Flag,
         exact: true,
     },
 
 
     // ========================================================
-    // 7. REPORTS & MONITORING
+    // 7. SUBMIT DEVELOPMENT WORK
     // ========================================================
 
     {
-        label: "Reports & Monitoring",
-        path: "/developer/reports-monitoring",
-        icon: BarChart3,
+        label: "Submit Development Work",
+        path: "/developer/submit-work",
+        icon: Send,
+        exact: true,
+    },
+
+
+    // ========================================================
+    // 8. TECHNICAL REVIEW
+    // ========================================================
+
+    {
+        label: "Technical Review",
+        path: "/developer/technical-review",
+        icon: ClipboardCheck,
+        exact: true,
+    },
+
+
+    // ========================================================
+    // 9. TECHNICAL COMMENTS
+    // ========================================================
+
+    {
+        label: "Technical Comments",
+        path: "/developer/technical-comments",
+        icon: MessageSquareCode,
+        exact: true,
+    },
+
+
+    // ========================================================
+    // 10. SPECIALIZED DEVELOPMENT WORK
+    // ========================================================
+
+    {
+        label: "Specialized Development Work",
+        path: "/developer/specialized-work",
+        icon: Settings2,
         exact: true,
     },
 ];
@@ -267,20 +312,19 @@ const MAIN_NAVIGATION = [
 // ============================================================
 // SECONDARY NAVIGATION
 // ============================================================
+//
+// There is currently NO dedicated settings route in the
+// AppRoutes.jsx code you provided.
+//
+// Therefore Settings is intentionally NOT included here.
+//
+// Add it only after creating a real route such as:
+//
+// /developer/settings
+//
+// ============================================================
 
-const SECONDARY_NAVIGATION = [
-
-    // ========================================================
-    // 1. SETTINGS & PREFERENCES
-    // ========================================================
-
-    {
-        label: "Settings & Preferences",
-        path: "/developer/settings-preferences",
-        icon: Settings,
-        exact: true,
-    },
-];
+const SECONDARY_NAVIGATION = [];
 
 
 // ============================================================
@@ -305,20 +349,24 @@ function DeveloperSidebar({
         []
     );
 
+
     const userName = useMemo(
         () => getUserName(user),
         [user]
     );
+
 
     const userRole = useMemo(
         () => getUserRole(user),
         [user]
     );
 
+
     const specialization = useMemo(
         () => getUserSpecialization(user),
         [user]
     );
+
 
     const initials = useMemo(
         () => getInitials(userName),
@@ -404,10 +452,12 @@ function DeveloperSidebar({
                     z-50
                     flex
                     flex-col
+
                     border-r
                     border-slate-200
                     bg-white
                     shadow-lg
+
                     transition-all
                     duration-300
 
@@ -441,12 +491,16 @@ function DeveloperSidebar({
                         shrink-0
                         items-center
                         justify-between
+
                         border-b
                         border-slate-200
                         px-3
+
                         dark:border-blue-900/70
                     "
                 >
+
+                    {/* LOGO */}
 
                     <button
                         type="button"
@@ -468,8 +522,6 @@ function DeveloperSidebar({
                         `}
                     >
 
-                        {/* LOGO */}
-
                         <div
                             className="
                                 flex
@@ -478,6 +530,7 @@ function DeveloperSidebar({
                                 shrink-0
                                 items-center
                                 justify-center
+
                                 rounded-lg
                                 bg-blue-600
                                 text-white
@@ -530,6 +583,7 @@ function DeveloperSidebar({
                         className="
                             h-8
                             w-8
+
                             text-slate-500
                             hover:bg-slate-100
 
@@ -555,6 +609,7 @@ function DeveloperSidebar({
                         border-b
                         border-slate-200
                         p-3
+
                         dark:border-blue-900/70
 
                         ${
@@ -569,7 +624,7 @@ function DeveloperSidebar({
                         type="button"
                         onClick={() =>
                             handleNavigation(
-                                "/developer/profile-management"
+                                "/developer/work"
                             )
                         }
                         className={`
@@ -579,6 +634,7 @@ function DeveloperSidebar({
                             gap-2.5
                             rounded-lg
                             p-1.5
+
                             transition
 
                             hover:bg-slate-100
@@ -595,6 +651,7 @@ function DeveloperSidebar({
                         {/* AVATAR */}
 
                         {user?.avatar ? (
+
                             <img
                                 src={user.avatar}
                                 alt={userName}
@@ -606,7 +663,9 @@ function DeveloperSidebar({
                                     object-cover
                                 "
                             />
+
                         ) : (
+
                             <div
                                 className="
                                     flex
@@ -615,8 +674,10 @@ function DeveloperSidebar({
                                     shrink-0
                                     items-center
                                     justify-center
+
                                     rounded-full
                                     bg-blue-600
+
                                     text-[10px]
                                     font-bold
                                     text-white
@@ -624,6 +685,7 @@ function DeveloperSidebar({
                             >
                                 {initials}
                             </div>
+
                         )}
 
 
@@ -641,6 +703,7 @@ function DeveloperSidebar({
                                         truncate
                                         text-xs
                                         font-semibold
+
                                         text-slate-900
                                         dark:text-white
                                     "
@@ -653,6 +716,7 @@ function DeveloperSidebar({
                                     className="
                                         truncate
                                         text-[10px]
+
                                         text-slate-500
                                         dark:text-slate-400
                                     "
@@ -668,12 +732,17 @@ function DeveloperSidebar({
                                             inline-flex
                                             max-w-full
                                             truncate
+
                                             rounded-full
+
                                             bg-blue-100
+
                                             px-1.5
                                             py-0.5
+
                                             text-[8px]
                                             font-semibold
+
                                             text-blue-700
 
                                             dark:bg-blue-950/60
@@ -707,7 +776,7 @@ function DeveloperSidebar({
                 >
 
                     {/* ==================================================
-                        DEVELOPER WORKSPACE LABEL
+                        WORKSPACE LABEL
                     ================================================== */}
 
                     {!collapsed && (
@@ -715,10 +784,12 @@ function DeveloperSidebar({
                             className="
                                 mb-1.5
                                 px-2.5
+
                                 text-[9px]
                                 font-bold
                                 uppercase
                                 tracking-wider
+
                                 text-slate-400
                                 dark:text-slate-500
                             "
@@ -739,6 +810,7 @@ function DeveloperSidebar({
 
                         {MAIN_NAVIGATION.map(
                             (item) => {
+
                                 const Icon =
                                     item.icon;
 
@@ -749,33 +821,41 @@ function DeveloperSidebar({
                                     <button
                                         key={item.path}
                                         type="button"
+
                                         onClick={() =>
                                             handleNavigation(
                                                 item.path
                                             )
                                         }
+
                                         title={
                                             collapsed
                                                 ? item.label
                                                 : undefined
                                         }
+
                                         aria-current={
                                             active
                                                 ? "page"
                                                 : undefined
                                         }
+
                                         className={`
                                             group
                                             flex
                                             w-full
                                             items-center
                                             gap-2.5
+
                                             rounded-md
+
                                             px-2.5
                                             py-2
+
                                             text-left
                                             text-xs
                                             font-medium
+
                                             transition
 
                                             ${
@@ -793,6 +873,7 @@ function DeveloperSidebar({
                                                     `
                                                     : `
                                                         text-slate-700
+
                                                         hover:bg-slate-100
                                                         hover:text-slate-900
 
@@ -846,162 +927,168 @@ function DeveloperSidebar({
                         )}
 
                     </nav>
-
-
-                    {/* ==================================================
-                        DIVIDER
-                    ================================================== */}
-
-                    <div
-                        className="
-                            my-3
-                            border-t
-                            border-slate-200
-                            dark:border-blue-900/70
-                        "
-                    />
-
-
-                    {/* ==================================================
-                        SETTINGS LABEL
-                    ================================================== */}
-
-                    {!collapsed && (
-                        <p
-                            className="
-                                mb-1.5
-                                px-2.5
-                                text-[9px]
-                                font-bold
-                                uppercase
-                                tracking-wider
-                                text-slate-400
-                                dark:text-slate-500
-                            "
-                        >
-                            Preferences
-                        </p>
-                    )}
 
 
                     {/* ==================================================
                         SECONDARY NAVIGATION
                     ================================================== */}
 
-                    <nav
-                        className="space-y-0.5"
-                        aria-label="Developer preferences navigation"
-                    >
+                    {SECONDARY_NAVIGATION.length > 0 && (
+                        <>
+                            <div
+                                className="
+                                    my-3
+                                    border-t
+                                    border-slate-200
+                                    dark:border-blue-900/70
+                                "
+                            />
 
-                        {SECONDARY_NAVIGATION.map(
-                            (item) => {
-                                const Icon =
-                                    item.icon;
+                            {!collapsed && (
+                                <p
+                                    className="
+                                        mb-1.5
+                                        px-2.5
 
-                                const active =
-                                    isActive(item);
+                                        text-[9px]
+                                        font-bold
+                                        uppercase
+                                        tracking-wider
 
-                                return (
-                                    <button
-                                        key={item.path}
-                                        type="button"
-                                        onClick={() =>
-                                            handleNavigation(
-                                                item.path
-                                            )
-                                        }
-                                        title={
-                                            collapsed
-                                                ? item.label
-                                                : undefined
-                                        }
-                                        aria-current={
-                                            active
-                                                ? "page"
-                                                : undefined
-                                        }
-                                        className={`
-                                            group
-                                            flex
-                                            w-full
-                                            items-center
-                                            gap-2.5
-                                            rounded-md
-                                            px-2.5
-                                            py-2
-                                            text-left
-                                            text-xs
-                                            font-medium
-                                            transition
+                                        text-slate-400
+                                        dark:text-slate-500
+                                    "
+                                >
+                                    Preferences
+                                </p>
+                            )}
 
-                                            ${
-                                                collapsed
-                                                    ? "justify-center"
-                                                    : ""
-                                            }
+                            <nav
+                                className="space-y-0.5"
+                                aria-label="Developer preferences navigation"
+                            >
 
-                                            ${
-                                                active
-                                                    ? `
-                                                        bg-blue-600
-                                                        text-white
-                                                        shadow-sm
-                                                    `
-                                                    : `
-                                                        text-slate-700
-                                                        hover:bg-slate-100
-                                                        hover:text-slate-900
+                                {SECONDARY_NAVIGATION.map(
+                                    (item) => {
 
-                                                        dark:text-slate-300
-                                                        dark:hover:bg-blue-950/60
-                                                        dark:hover:text-white
-                                                    `
-                                            }
-                                        `}
-                                    >
+                                        const Icon =
+                                            item.icon;
 
-                                        <Icon
-                                            className={`
-                                                h-4
-                                                w-4
-                                                shrink-0
+                                        const active =
+                                            isActive(item);
 
-                                                ${
-                                                    active
-                                                        ? "text-white"
-                                                        : "text-slate-500 dark:text-slate-400"
+                                        return (
+                                            <button
+                                                key={item.path}
+                                                type="button"
+
+                                                onClick={() =>
+                                                    handleNavigation(
+                                                        item.path
+                                                    )
                                                 }
-                                            `}
-                                        />
 
+                                                title={
+                                                    collapsed
+                                                        ? item.label
+                                                        : undefined
+                                                }
 
-                                        {!collapsed && (
-                                            <span className="truncate">
-                                                {item.label}
-                                            </span>
-                                        )}
+                                                aria-current={
+                                                    active
+                                                        ? "page"
+                                                        : undefined
+                                                }
 
+                                                className={`
+                                                    group
+                                                    flex
+                                                    w-full
+                                                    items-center
+                                                    gap-2.5
 
-                                        {!collapsed &&
-                                            active && (
-                                                <span
-                                                    className="
-                                                        ml-auto
-                                                        h-1
-                                                        w-1
+                                                    rounded-md
+
+                                                    px-2.5
+                                                    py-2
+
+                                                    text-left
+                                                    text-xs
+                                                    font-medium
+
+                                                    transition
+
+                                                    ${
+                                                        collapsed
+                                                            ? "justify-center"
+                                                            : ""
+                                                    }
+
+                                                    ${
+                                                        active
+                                                            ? `
+                                                                bg-blue-600
+                                                                text-white
+                                                                shadow-sm
+                                                            `
+                                                            : `
+                                                                text-slate-700
+
+                                                                hover:bg-slate-100
+                                                                hover:text-slate-900
+
+                                                                dark:text-slate-300
+                                                                dark:hover:bg-blue-950/60
+                                                                dark:hover:text-white
+                                                            `
+                                                    }
+                                                `}
+                                            >
+
+                                                <Icon
+                                                    className={`
+                                                        h-4
+                                                        w-4
                                                         shrink-0
-                                                        rounded-full
-                                                        bg-white
-                                                    "
+
+                                                        ${
+                                                            active
+                                                                ? "text-white"
+                                                                : "text-slate-500 dark:text-slate-400"
+                                                        }
+                                                    `}
                                                 />
-                                            )}
 
-                                    </button>
-                                );
-                            }
-                        )}
 
-                    </nav>
+                                                {!collapsed && (
+                                                    <span className="truncate">
+                                                        {item.label}
+                                                    </span>
+                                                )}
+
+
+                                                {!collapsed &&
+                                                    active && (
+                                                        <span
+                                                            className="
+                                                                ml-auto
+                                                                h-1
+                                                                w-1
+                                                                shrink-0
+                                                                rounded-full
+                                                                bg-white
+                                                            "
+                                                        />
+                                                    )}
+
+                                            </button>
+                                        );
+                                    }
+                                )}
+
+                            </nav>
+                        </>
+                    )}
 
                 </div>
 
@@ -1016,17 +1103,22 @@ function DeveloperSidebar({
                         border-t
                         border-slate-200
                         p-2
+
                         dark:border-blue-900/70
                     "
                 >
 
                     {!collapsed ? (
+
                         <div
                             className="
                                 rounded-lg
+
                                 border
                                 border-blue-100
+
                                 bg-blue-50
+
                                 p-2.5
 
                                 dark:border-blue-900/60
@@ -1042,9 +1134,12 @@ function DeveloperSidebar({
                                         h-7
                                         w-7
                                         shrink-0
+
                                         items-center
                                         justify-center
+
                                         rounded-md
+
                                         bg-blue-600
                                         text-white
                                     "
@@ -1058,8 +1153,10 @@ function DeveloperSidebar({
                                     <p
                                         className="
                                             truncate
+
                                             text-[10px]
                                             font-semibold
+
                                             text-blue-900
                                             dark:text-blue-200
                                         "
@@ -1071,8 +1168,10 @@ function DeveloperSidebar({
                                     <p
                                         className="
                                             mt-0.5
+
                                             text-[8px]
                                             leading-3
+
                                             text-blue-700
                                             dark:text-blue-300
                                         "
@@ -1085,6 +1184,7 @@ function DeveloperSidebar({
                             </div>
 
                         </div>
+
                     ) : (
 
                         <div className="flex justify-center">
@@ -1094,9 +1194,12 @@ function DeveloperSidebar({
                                     flex
                                     h-8
                                     w-8
+
                                     items-center
                                     justify-center
+
                                     rounded-md
+
                                     bg-blue-600
                                     text-white
                                 "
@@ -1106,6 +1209,7 @@ function DeveloperSidebar({
                             </div>
 
                         </div>
+
                     )}
 
                 </div>
@@ -1114,5 +1218,10 @@ function DeveloperSidebar({
         </>
     );
 }
+
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 export default DeveloperSidebar;
