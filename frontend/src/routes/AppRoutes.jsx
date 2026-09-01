@@ -1,3 +1,4 @@
+
 // ============================================================
 // APP ROUTES
 // AIPMS
@@ -199,26 +200,8 @@ import DeveloperLayout
 import DeveloperDashboard
     from "../pages/contributor/developer/DeveloperDashboard";
 
-import DeveloperProfileManagement
-    from "../pages/contributor/developer/DeveloperProfileManagement";
-
-import DeveloperProjectParticipation
-    from "../pages/contributor/developer/DeveloperProjectParticipation";
-
-import DeveloperTaskManagement
-    from "../pages/contributor/developer/DeveloperTaskManagement";
-
-import DeveloperSprintParticipation
-    from "../pages/contributor/developer/DeveloperSprintParticipation";
-
-import DeveloperCommunication
-    from "../pages/contributor/developer/DeveloperCommunication";
-
-import DeveloperReportsMonitoring
-    from "../pages/contributor/developer/ReportsMonitoring";
-
-import DeveloperSettingsPreferences
-    from "../pages/contributor/developer/SettingPreferences";
+import Developer
+    from "../pages/contributor/developer/Developer";
 
 // ============================================================
 // TEAM LEADER
@@ -229,6 +212,9 @@ import TeamLeaderLayout
 
 import TeamLeaderDashboard
     from "../pages/contributor/team-leader/TeamLeaderDashboard";
+
+import TeamLeader
+    from "../pages/contributor/team-leader/TeamLeader";
 
 import ViewAssignedTeam
     from "../components/contributor/teamleader/ViewAssignedTeam";
@@ -247,37 +233,6 @@ import CommunicateWithManager
 
 import ViewTeamPerformance
     from "../components/contributor/teamleader/ViewTeamPerformance";
-
-// ============================================================
-// TEAM LEADER - PROJECT PARTICIPATION
-// ============================================================
-
-import ProjectParticipation
-    from "../pages/contributor/team-leader/ProjectParticipation";
-
-import ViewAssignedProjects
-    from "../components/contributor/teamleader/project/ViewAssignedProjects";
-
-import ViewProjectDetails
-    from "../components/contributor/teamleader/project/ViewProjectDetails";
-
-import ViewProjectTeam
-    from "../components/contributor/teamleader/project/ViewProjectTeam";
-
-import ViewProjectTasks
-    from "../components/contributor/teamleader/project/ViewProjectTasks";
-
-import ViewProjectProgress
-    from "../components/contributor/teamleader/project/ViewProjectProgress";
-
-import ParticipateProjectCommunication
-    from "../components/contributor/teamleader/project/ParticipateProjectCommunication";
-
-import ViewProjectFiles
-    from "../components/contributor/teamleader/project/ViewProjectFiles";
-
-import RequestProjectAssistance
-    from "../components/contributor/teamleader/project/RequestProjectAssistance";
 
 // ============================================================
 // APP ROUTES
@@ -692,67 +647,11 @@ function AppRoutes() {
                     element={<DeveloperDashboard />}
                 />
 
-                {/* PROFILE MANAGEMENT */}
+                {/* DEVELOPER WORK */}
 
                 <Route
-                    path="profile-management"
-                    element={
-                        <DeveloperProfileManagement />
-                    }
-                />
-
-                {/* PROJECT PARTICIPATION */}
-
-                <Route
-                    path="project-participation"
-                    element={
-                        <DeveloperProjectParticipation />
-                    }
-                />
-
-                {/* TASK MANAGEMENT */}
-
-                <Route
-                    path="task-management"
-                    element={
-                        <DeveloperTaskManagement />
-                    }
-                />
-
-                {/* SPRINT PARTICIPATION */}
-
-                <Route
-                    path="sprint-participation"
-                    element={
-                        <DeveloperSprintParticipation />
-                    }
-                />
-
-                {/* COMMUNICATION */}
-
-                <Route
-                    path="communication"
-                    element={
-                        <DeveloperCommunication />
-                    }
-                />
-
-                {/* REPORTS AND MONITORING */}
-
-                <Route
-                    path="reports-monitoring"
-                    element={
-                        <DeveloperReportsMonitoring />
-                    }
-                />
-
-                {/* SETTINGS AND PREFERENCES */}
-
-                <Route
-                    path="settings-preferences"
-                    element={
-                        <DeveloperSettingsPreferences />
-                    }
+                    path="work"
+                    element={<Developer />}
                 />
             </Route>
 
@@ -781,6 +680,13 @@ function AppRoutes() {
                 <Route
                     path="dashboard"
                     element={<TeamLeaderDashboard />}
+                />
+
+                {/* TEAM LEADER WORK */}
+
+                <Route
+                    path="work"
+                    element={<TeamLeader />}
                 />
 
                 {/* ASSIGNED TEAM */}
@@ -823,75 +729,6 @@ function AppRoutes() {
                 <Route
                     path="team-performance"
                     element={<ViewTeamPerformance />}
-                />
-
-                {/* ==================================================
-                    TEAM LEADER PROJECT PARTICIPATION
-                ================================================== */}
-
-                <Route
-                    path="project-participation"
-                    element={<ProjectParticipation />}
-                />
-
-                {/* VIEW ASSIGNED PROJECTS */}
-
-                <Route
-                    path="project-participation/assigned-projects"
-                    element={<ViewAssignedProjects />}
-                />
-
-                {/* VIEW PROJECT DETAILS */}
-
-                <Route
-                    path="project-participation/details"
-                    element={<ViewProjectDetails />}
-                />
-
-                {/* VIEW PROJECT TEAM */}
-
-                <Route
-                    path="project-participation/team"
-                    element={<ViewProjectTeam />}
-                />
-
-                {/* VIEW PROJECT TASKS */}
-
-                <Route
-                    path="project-participation/tasks"
-                    element={<ViewProjectTasks />}
-                />
-
-                {/* VIEW PROJECT PROGRESS */}
-
-                <Route
-                    path="project-participation/progress"
-                    element={<ViewProjectProgress />}
-                />
-
-                {/* PROJECT COMMUNICATION */}
-
-                <Route
-                    path="project-participation/communication"
-                    element={
-                        <ParticipateProjectCommunication />
-                    }
-                />
-
-                {/* VIEW PROJECT FILES */}
-
-                <Route
-                    path="project-participation/files"
-                    element={<ViewProjectFiles />}
-                />
-
-                {/* REQUEST PROJECT ASSISTANCE */}
-
-                <Route
-                    path="project-participation/assistance"
-                    element={
-                        <RequestProjectAssistance />
-                    }
                 />
             </Route>
 
