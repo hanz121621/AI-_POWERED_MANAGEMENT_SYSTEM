@@ -1,3 +1,17 @@
+ // ============================================================
+// APP ROUTES
+// AIPMS
+//
+// Application Routing
+//
+// Roles:
+// - Public
+// - Admin
+// - Manager
+// - Staff
+// - Developer
+// - Team Leader
+// ============================================================
 
 import {
     Routes,
@@ -112,8 +126,7 @@ import AIGenerateRecommendations
 
 import AITeamPerformance
     from "../components/manager/ai/AITeamPerformance";
-
-import AIPredictProgress
+ import AIPredictProgress
     from "../components/manager/ai/AIPredictProgress";
 
 import AIDeadlinePrediction
@@ -158,6 +171,22 @@ import ViewMyWork
 
 // ============================================================
 // DEVELOPER
+//
+// ACTUAL FILE STRUCTURE:
+//
+// src/pages/contributor/developer/
+//
+//     Communication.jsx
+//     Developer.jsx
+//     DeveloperDashboard.jsx
+//     DeveloperSettings.jsx
+//     Profile.jsx
+//     Projects.jsx
+//     Reports.jsx
+//     Settings.jsx
+//     SprintParticipation.jsx
+//     Tasks.jsx
+//
 // ============================================================
 
 import DeveloperLayout
@@ -192,25 +221,6 @@ import DeveloperTasks
 
 // ============================================================
 // TEAM LEADER
-//
-// ACTUAL STRUCTURE:
-//
-// src/pages/contributor/team-leader/
-//     TeamLeader.jsx
-//     TeamLeaderDashboard.jsx
-//
-// src/components/contributor/teamleader/
-//     communication/
-//     profile/
-//     project-participation/
-//     reports/
-//     settings/
-//     sprint-participation/
-//     task-management/
-//
-// src/components/contributor/shared/
-//     TeamLeaderNavbar.jsx
-//     TeamLeaderSidebar.jsx
 // ============================================================
 
 import TeamLeaderLayout
@@ -222,109 +232,12 @@ import TeamLeaderDashboard
 import TeamLeader
     from "../pages/contributor/team-leader/TeamLeader";
 
-// ============================================================
-// TEAM LEADER - PROJECT PARTICIPATION
-// ============================================================
-
-import ViewAssignedProjects
-    from "../components/contributor/teamleader/project-participation/ViewAssignedProjects";
-
-import ViewProjectDetails
-    from "../components/contributor/teamleader/project-participation/ViewProjectDetails";
-
-// ============================================================
-// TEAM LEADER - TASK MANAGEMENT
-// ============================================================
-
-import ViewTeamTasks
-    from "../components/contributor/teamleader/task-management/ViewTeamTasks";
-
-import CreateTeamTask
-    from "../components/contributor/teamleader/task-management/CreateTeamTask";
-
-import AssignTaskToContributor
-    from "../components/contributor/teamleader/task-management/AssignTaskToContributor";
-
-import DeleteTeamTask
-    from "../components/contributor/teamleader/task-management/DeleteTeamTask";
-
-import ReviewCompletedTasks
-    from "../components/contributor/teamleader/task-management/ReviewCompletedTasks";
-
-import SetTaskDeadline
-    from "../components/contributor/teamleader/task-management/SetTaskDeadline";
-
-import SetTaskPriority
-    from "../components/contributor/teamleader/task-management/SetTaskPriority";
-
-import UpdateTeamTask
-    from "../components/contributor/teamleader/task-management/UpdateTeamTask";
-
-import TeamLeaderUpdateTaskStatus
-    from "../components/contributor/teamleader/task-management/UpdateTaskStatus";
-
-// ============================================================
-// TEAM LEADER - COMMUNICATION
-// ============================================================
-
-import MentionTeamMembers
-    from "../components/contributor/teamleader/communication/MentionTeamMembers";
-
-import ReceiveMessages
-    from "../components/contributor/teamleader/communication/ReceiveMessages";
-
-import TaskComments
-    from "../components/contributor/teamleader/communication/TaskComments";
-
-import ViewNotifications
-    from "../components/contributor/teamleader/communication/ViewNotifications";
-
-// ============================================================
-// TEAM LEADER - REPORTS
-// ============================================================
-
-import TeamPerformanceReport
-    from "../components/contributor/teamleader/reports/TeamPerformanceReport";
-
-import TeamTaskHistory
-    from "../components/contributor/teamleader/reports/TeamTaskHistory";
-
-// ============================================================
-// TEAM LEADER - SPRINT PARTICIPATION
-// ============================================================
-
-import ViewSprintProgress
-    from "../components/contributor/teamleader/sprint-participation/ViewSprintProgress";
-
-import ViewSprintTasks
-    from "../components/contributor/teamleader/sprint-participation/ViewSprintTasks";
-
-// ============================================================
-// TEAM LEADER - PROFILE
-// ============================================================
-
-import ViewTeamLeaderProfile
-    from "../components/contributor/teamleader/profile/ViewTeamLeaderProfile";
-
-import UpdateTeamLeaderProfile
-    from "../components/contributor/teamleader/profile/UpdateTeamLeaderProfile";
-
-// ============================================================
-// TEAM LEADER - SETTINGS
-// ============================================================
-
-import TeamLeaderAIPreferences
-    from "../components/contributor/teamleader/settings/AIPreferences";
-
-import TeamLeaderLanguagePreferences
-    from "../components/contributor/teamleader/settings/LanguagePreferences";
-
-import TeamLeaderNotificationPreferences
-    from "../components/contributor/teamleader/settings/NotificationPreferences";
-
-import TeamLeaderThemePreferences
-    from "../components/contributor/teamleader/settings/ThemePreferences";
-
+import ViewAssignedTeam from "../components/contributor/teamleader/team-management/ViewAssignedTeam";
+import ViewTeamTasks from "../components/contributor/teamleader/team-management/ViewTeamTasks";
+import MonitorTeamProgress from "../components/contributor/teamleader/team-management/MonitorTeamProgress";
+import CoordinateTeamWork from "../components/contributor/teamleader/team-management/CoordinateTeamWork";
+import ViewTeamPerformance from "../components/contributor/teamleader/team-management/ViewTeamPerformance";
+import CommunicateWithManager from "../components/contributor/teamleader/communication/CommunicateWithManager";
 // ============================================================
 // APP ROUTES
 // ============================================================
@@ -346,8 +259,7 @@ function AppRoutes() {
                 path="/login"
                 element={<Login />}
             />
-
-            <Route
+[9/1/2026 9:10 PM] FAV: <Route
                 path="/logout"
                 element={<Logout />}
             />
@@ -371,6 +283,7 @@ function AppRoutes() {
                     path="/admin"
                     element={<AdminLayout />}
                 >
+
                     <Route
                         index
                         element={
@@ -440,6 +353,7 @@ function AppRoutes() {
                         path="settings"
                         element={<Settings />}
                     />
+
                 </Route>
 
                 {/* ==================================================
@@ -450,6 +364,7 @@ function AppRoutes() {
                     path="/manager"
                     element={<ManagerLayout />}
                 >
+
                     <Route
                         index
                         element={
@@ -479,6 +394,9 @@ function AppRoutes() {
                         path="team"
                         element={<ManagerTeamManagement />}
                     />
+[9/1/2026 9:10 PM] FAV: {/* ==============================
+                        COMMUNICATION
+                    ============================== */}
 
                     <Route
                         path="notifications"
@@ -499,6 +417,10 @@ function AppRoutes() {
                         path="project-announcement"
                         element={<SendProjectAnnouncement />}
                     />
+
+                    {/* ==============================
+                        AI
+                    ============================== */}
 
                     <Route
                         path="ai-features"
@@ -545,20 +467,36 @@ function AppRoutes() {
                         element={<AIDetectBottlenecks />}
                     />
 
+                    {/* ==============================
+                        REPORTS
+                    ============================== */}
+
                     <Route
                         path="reports"
                         element={<ManagerReports />}
                     />
+
+                    {/* ==============================
+                        PROFILE
+                    ============================== */}
 
                     <Route
                         path="profile"
                         element={<ManagerProfile />}
                     />
 
+                    {/* ==============================
+                        SETTINGS
+                    ============================== */}
+
                     <Route
                         path="settings"
                         element={<ManagerSettings />}
                     />
+
+                    {/* ==============================
+                        HELP
+                    ============================== */}
 
                     <Route
                         path="help"
@@ -569,20 +507,25 @@ function AppRoutes() {
                         }
                     />
 
+                    {/* ==============================
+                        LOGOUT
+                    ============================== */}
+
                     <Route
                         path="logout"
                         element={<Logout />}
                     />
+
                 </Route>
 
                 {/* ==================================================
                     STAFF
                 ================================================== */}
-
-                <Route
+[9/1/2026 9:10 PM] FAV: <Route
                     path="/staff"
                     element={<StaffLayout />}
                 >
+
                     <Route
                         index
                         element={
@@ -627,6 +570,7 @@ function AppRoutes() {
                         path="upload-files"
                         element={<UploadWorkFiles />}
                     />
+
                 </Route>
 
                 {/* ==================================================
@@ -637,6 +581,11 @@ function AppRoutes() {
                     path="/developer"
                     element={<DeveloperLayout />}
                 >
+
+                    {/* ==============================
+                        DEFAULT
+                    ============================== */}
+
                     <Route
                         index
                         element={
@@ -647,40 +596,79 @@ function AppRoutes() {
                         }
                     />
 
+                    {/* ==============================
+                        DASHBOARD
+                        /developer/dashboard
+                    ============================== */}
+
                     <Route
                         path="dashboard"
                         element={<DeveloperDashboard />}
                     />
+
+                    {/* ==============================
+                        MAIN DEVELOPER WORK
+                        /developer/work
+                    ============================== */}
 
                     <Route
                         path="work"
                         element={<Developer />}
                     />
 
+                    {/* ==============================
+                        COMMUNICATION
+                        /developer/communication
+                    ============================== */}
+
                     <Route
                         path="communication"
                         element={<DeveloperCommunication />}
                     />
+
+                    {/* ==============================
+                        PROFILE
+                        /developer/profile
+                    ============================== */}
 
                     <Route
                         path="profile"
                         element={<DeveloperProfile />}
                     />
 
+                    {/* ==============================
+                        PROJECTS
+                        /developer/projects
+                    ============================== */}
+
                     <Route
                         path="projects"
                         element={<DeveloperProjects />}
                     />
 
-                    <Route
+                    {/* ==============================
+                        REPORTS
+                        /developer/reports
+                    ============================== */}
+[9/1/2026 9:10 PM] FAV: <Route
                         path="reports"
                         element={<DeveloperReports />}
                     />
+
+                    {/* ==============================
+                        SETTINGS
+                        /developer/settings
+                    ============================== */}
 
                     <Route
                         path="settings"
                         element={<DeveloperSettings />}
                     />
+
+                    {/* ==============================
+                        SPRINT PARTICIPATION
+                        /developer/sprint-participation
+                    ============================== */}
 
                     <Route
                         path="sprint-participation"
@@ -689,10 +677,16 @@ function AppRoutes() {
                         }
                     />
 
+                    {/* ==============================
+                        TASK MANAGEMENT
+                        /developer/tasks
+                    ============================== */}
+
                     <Route
                         path="tasks"
                         element={<DeveloperTasks />}
                     />
+
                 </Route>
 
                 {/* ==================================================
@@ -704,10 +698,6 @@ function AppRoutes() {
                     element={<TeamLeaderLayout />}
                 >
 
-                    {/* ==================================================
-                        DEFAULT
-                    ================================================== */}
-
                     <Route
                         index
                         element={
@@ -718,10 +708,6 @@ function AppRoutes() {
                         }
                     />
 
-                    {/* ==================================================
-                        DASHBOARD
-                    ================================================== */}
-
                     <Route
                         path="dashboard"
                         element={
@@ -729,222 +715,42 @@ function AppRoutes() {
                         }
                     />
 
-                    {/* ==================================================
-                        MAIN WORK
-                    ================================================== */}
-
                     <Route
                         path="work"
                         element={<TeamLeader />}
                     />
 
-                    {/* ==================================================
-                        PROJECT PARTICIPATION
-                    ================================================== */}
-
                     <Route
                         path="assigned-team"
-                        element={
-                            <ViewAssignedProjects />
-                        }
+                        element={<ViewAssignedTeam />}
                     />
-
-                    <Route
-                        path="project-details"
-                        element={
-                            <ViewProjectDetails />
-                        }
-                    />
-
-                    {/* ==================================================
-                        TASK MANAGEMENT
-                    ================================================== */}
 
                     <Route
                         path="team-tasks"
-                        element={
-                            <ViewTeamTasks />
-                        }
+                        element={<ViewTeamTasks />}
                     />
-
-                    <Route
-                        path="create-team-task"
-                        element={
-                            <CreateTeamTask />
-                        }
-                    />
-
-                    <Route
-                        path="assign-task"
-                        element={
-                            <AssignTaskToContributor />
-                        }
-                    />
-
-                    <Route
-                        path="delete-team-task"
-                        element={
-                            <DeleteTeamTask />
-                        }
-                    />
-
-                    <Route
-                        path="review-completed-tasks"
-                        element={
-                            <ReviewCompletedTasks />
-                        }
-                    />
-
-                    <Route
-                        path="set-task-deadline"
-                        element={
-                            <SetTaskDeadline />
-                        }
-                    />
-
-                    <Route
-                        path="set-task-priority"
-                        element={
-                            <SetTaskPriority />
-                        }
-                    />
-
-                    <Route
-                        path="update-team-task"
-                        element={
-                            <UpdateTeamTask />
-                        }
-                    />
-
-                    <Route
-                        path="update-task-status"
-                        element={
-                            <TeamLeaderUpdateTaskStatus />
-                        }
-                    />
-
-                    {/* ==================================================
-                        COMMUNICATION
-                    ================================================== */}
-
-                    <Route
-                        path="communication/mention"
-                        element={
-                            <MentionTeamMembers />
-                        }
-                    />
-
-                    <Route
-                        path="communication/messages"
-                        element={
-                            <ReceiveMessages />
-                        }
-                    />
-
-                    <Route
-                        path="communication/comments"
-                        element={
-                            <TaskComments />
-                        }
-                    />
-
-                    <Route
-                        path="communication/notifications"
-                        element={
-                            <ViewNotifications />
-                        }
-                    />
-
-                    {/* ==================================================
-                        REPORTS
-                    ================================================== */}
 
                     <Route
                         path="team-progress"
+                        element={<MonitorTeamProgress />}
+                    />
+
+                    <Route
+                        path="coordinate-work"
+                        element={<CoordinateTeamWork />}
+                    />
+
+                    <Route
+                        path="manager-communication"
                         element={
-                            <TeamPerformanceReport />
+                            <CommunicateWithManager />
                         }
                     />
 
                     <Route
                         path="team-performance"
                         element={
-                            <TeamPerformanceReport />
-                        }
-                    />
-
-                    <Route
-                        path="team-task-history"
-                        element={
-                            <TeamTaskHistory />
-                        }
-                    />
-
-                    {/* ==================================================
-                        SPRINT PARTICIPATION
-                    ================================================== */}
-
-                    <Route
-                        path="sprint-progress"
-                        element={
-                            <ViewSprintProgress />
-                        }
-                    />
-
-                    <Route
-                        path="sprint-tasks"
-                        element={
-                            <ViewSprintTasks />
-                        }
-                    />
-
-                    {/* ==================================================
-                        PROFILE
-                    ================================================== */}
-
-                    <Route
-                        path="profile"
-                        element={
-                            <ViewTeamLeaderProfile />
-                        }
-                    />
-
-                    <Route
-                        path="profile/update"
-                        element={
-                            <UpdateTeamLeaderProfile />
-                        }
-                    />
-
-                    {/* ==================================================
-                        SETTINGS
-                    ================================================== */}
-
-                    <Route
-                        path="settings/ai"
-                        element={
-                            <TeamLeaderAIPreferences />
-                        }
-                    />
-
-                    <Route
-                        path="settings/language"
-                        element={
-                            <TeamLeaderLanguagePreferences />
-                        }
-                    />
-
-                    <Route
-                        path="settings/notifications"
-                        element={
-                            <TeamLeaderNotificationPreferences />
-                        }
-                    />
-
-                    <Route
-                        path="settings/theme"
-                        element={
-                            <TeamLeaderThemePreferences />
+                            <ViewTeamPerformance />
                         }
                     />
 
@@ -969,5 +775,9 @@ function AppRoutes() {
         </Routes>
     );
 }
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 export default AppRoutes;
