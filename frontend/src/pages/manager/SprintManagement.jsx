@@ -2,6 +2,8 @@
 // ============================================================
 // AIPMS — MANAGER SPRINT MANAGEMENT
 //
+// Backend driven version
+//
 // Sprint Use Cases
 // - Create Sprint
 // - Update Sprint
@@ -11,11 +13,9 @@
 // - View Sprint Backlog
 // - Monitor Sprint Progress
 // - Assign Sprint to Team
-//
-// Colorful Professional UI
 // ============================================================
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
     ListChecks,
@@ -27,7 +27,14 @@ import {
     X,
     UsersRound,
     Sparkles,
+    RefreshCw,
 } from "lucide-react";
+
+// ============================================================
+// SPRINT SERVICE
+// ============================================================
+
+import sprintService from "../../services/sprintService";
 
 // ============================================================
 // SPRINT COMPONENTS
@@ -42,262 +49,284 @@ import CompleteSprintModal from "../../components/manager/sprint/CompleteSprintM
 import SprintBacklogModal from "../../components/manager/sprint/SprintBacklogModal";
 
 // ============================================================
+// HELPERS
+// ============================================================
+
+const getValue = (object, ...keys) => {
+    for (const key of keys) {
+        if (
+            object &&
+            object[key] !== undefined &&
+            object[key] !== null
+        ) {
+            return object[key];
+        }
+    }
+
+    return undefined;
+};
+
+// ============================================================
+// NORMALIZE SPRINT RESPONSE
+//
+// This allows the UI to work with common backend DTO naming
+// conventions such as:
+// Id / id
+// Name / name
+// Status / status
+// Progress / progress
+// etc.
+// ============================================================
+
+const normalizeSprint = (sprint) => {
+    if (!sprint) {
+        return null;
+    }
+
+    const id = getValue(sprint, "id", "Id", "sprintId", "SprintId");
+
+    const name = getValue(
+        sprint,
+        "name",
+        "Name",
+        "sprintName",
+        "SprintName"
+    );
+
+    const goal = getValue(
+        sprint,
+        "goal",
+        "Goal",
+        "sprintGoal",
+        "SprintGoal"
+    );
+
+    const status = getValue(
+        sprint,
+        "status",
+        "Status"
+    );
+
+    const progress = getValue(
+        sprint,
+        "progress",
+        "Progress",
+        "progressPercentage",
+        "ProgressPercentage"
+    );
+
+    const teamId = getValue(
+        sprint,
+        "teamId",
+        "TeamId"
+    );
+
+    const team = getValue(
+        sprint,
+        "team",
+        "Team",
+        "teamName",
+        "TeamName"
+    );
+
+    const projectId = getValue(
+        sprint,
+        "projectId",
+        "ProjectId"
+    );
+
+    const projectName = getValue(
+        sprint,
+        "projectName",
+        "ProjectName"
+    );
+
+    const managerId = getValue(
+        sprint,
+        "managerId",
+        "ManagerId",
+        "createdById",
+        "CreatedById"
+    );
+
+    const startDate = getValue(
+        sprint,
+        "startDate",
+        "StartDate"
+    );
+
+    const endDate = getValue(
+        sprint,
+        "endDate",
+        "EndDate"
+    );
+
+    const tasks = getValue(
+        sprint,
+        "tasks",
+        "Tasks",
+        "sprintTasks",
+        "SprintTasks"
+    );
+
+    return {
+        ...sprint,
+
+        id,
+        name: name || "Unnamed Sprint",
+        goal: goal || "",
+        status: status || "Planning",
+        progress: Number(progress) || 0,
+
+        teamId: teamId ?? null,
+        team:
+            typeof team === "object"
+                ? getValue(team, "name", "Name")
+                : team || "",
+
+        projectId: projectId ?? null,
+        projectName:
+            projectName ||
+            "Project",
+
+        managerId: managerId ?? null,
+
+        startDate:
+            startDate || "",
+
+        endDate:
+            endDate || "",
+
+        tasks:
+            Array.isArray(tasks)
+                ? tasks
+                : [],
+    };
+};
+
+// ============================================================
+// STATUS HELPER
+// ============================================================
+
+const normalizeStatus = (status) =>
+    String(status || "")
+        .trim()
+        .toLowerCase();
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
 function SprintManagement() {
     // ========================================================
-    // CURRENT MANAGER
-    // ========================================================
-
-    const currentManager = {
-        id: "current-manager",
-        name: "Current Manager",
-    };
-
-    // ========================================================
     // SPRINT DATA
     // ========================================================
 
-    const [sprints, setSprints] = useState([
-        {
-            id: 1,
-            name: "Sprint 01",
-            goal: "Implement authentication and user management.",
-            status: "Planning",
-            progress: 0,
-            team: "AIPMS Development Team",
-            teamId: 1,
-            projectId: 1,
-            projectName: "AI-Powered Project Management System",
-            managerId: "current-manager",
-            startDate: "August 10, 2026",
-            endDate: "August 17, 2026",
+    const [sprints, setSprints] = useState([]);
 
-            tasks: [
-                {
-                    id: 1,
-                    title: "Create authentication service",
-                    status: "Completed",
-                    priority: "High",
-                    assignee: "Developer 1",
-                },
-                {
-                    id: 2,
-                    title: "Create login page",
-                    status: "In Progress",
-                    priority: "High",
-                    assignee: "Developer 2",
-                },
-                {
-                    id: 3,
-                    title: "Implement role permissions",
-                    status: "Todo",
-                    priority: "Medium",
-                    assignee: "Developer 3",
-                },
-            ],
-        },
+    // ========================================================
+    // LOADING
+    // ========================================================
 
-        {
-            id: 2,
-            name: "Sprint 02",
-            goal: "Develop project and task management features.",
-            status: "Active",
-            progress: 65,
-            team: "AIPMS Development Team",
-            teamId: 1,
-            projectId: 1,
-            projectName: "AI-Powered Project Management System",
-            managerId: "current-manager",
-            startDate: "August 18, 2026",
-            endDate: "August 25, 2026",
+    const [loading, setLoading] = useState(true);
 
-            tasks: [
-                {
-                    id: 4,
-                    title: "Create project management page",
-                    status: "Completed",
-                    priority: "High",
-                    assignee: "Developer 1",
-                },
-                {
-                    id: 5,
-                    title: "Create task management page",
-                    status: "In Progress",
-                    priority: "High",
-                    assignee: "Developer 2",
-                },
-                {
-                    id: 6,
-                    title: "Implement task assignment",
-                    status: "In Progress",
-                    priority: "Medium",
-                    assignee: "Developer 3",
-                },
-                {
-                    id: 7,
-                    title: "Create task status workflow",
-                    status: "Todo",
-                    priority: "Medium",
-                    assignee: "Developer 4",
-                },
-            ],
-        },
-
-        {
-            id: 3,
-            name: "Sprint 03",
-            goal: "Implement reports, monitoring and AI features.",
-            status: "Completed",
-            progress: 100,
-            team: "AIPMS Development Team",
-            teamId: 1,
-            projectId: 1,
-            projectName: "AI-Powered Project Management System",
-            managerId: "current-manager",
-            startDate: "July 20, 2026",
-            endDate: "August 5, 2026",
-
-            tasks: [
-                {
-                    id: 8,
-                    title: "Create reports dashboard",
-                    status: "Completed",
-                    priority: "High",
-                    assignee: "Developer 1",
-                },
-                {
-                    id: 9,
-                    title: "Implement monitoring",
-                    status: "Completed",
-                    priority: "High",
-                    assignee: "Developer 2",
-                },
-                {
-                    id: 10,
-                    title: "Create AI insights",
-                    status: "Completed",
-                    priority: "Medium",
-                    assignee: "Developer 3",
-                },
-            ],
-        },
-    ]);
+    const [actionLoading, setActionLoading] =
+        useState(false);
 
     // ========================================================
     // MODAL STATE
     // ========================================================
 
-    const [selectedSprint, setSelectedSprint] = useState(null);
-    const [modalMode, setModalMode] = useState(null);
+    const [selectedSprint, setSelectedSprint] =
+        useState(null);
+
+    const [modalMode, setModalMode] =
+        useState(null);
 
     // ========================================================
     // CREATE SPRINT MODAL
     // ========================================================
 
-    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [showCreateForm, setShowCreateForm] =
+        useState(false);
 
     // ========================================================
     // MONITOR SPRINT PROGRESS
     // ========================================================
 
-    const [showProgress, setShowProgress] = useState(false);
+    const [showProgress, setShowProgress] =
+        useState(false);
 
     // ========================================================
     // ASSIGN SPRINT TO TEAM
     // ========================================================
 
-    const [showAssignTeam, setShowAssignTeam] = useState(false);
-    const [selectedTeam, setSelectedTeam] = useState("");
+    const [showAssignTeam, setShowAssignTeam] =
+        useState(false);
+
+    const [selectedTeam, setSelectedTeam] =
+        useState("");
 
     // ========================================================
     // MESSAGES
     // ========================================================
 
-    const [successMessage, setSuccessMessage] = useState("");
-    const [errorMessage, setErrorMessage] = useState("");
+    const [successMessage, setSuccessMessage] =
+        useState("");
+
+    const [errorMessage, setErrorMessage] =
+        useState("");
 
     // ========================================================
-    // ASSIGNED SPRINTS
+    // LOAD SPRINTS
     // ========================================================
 
-    const assignedSprints = useMemo(() => {
-        return sprints.filter(
-            (sprint) =>
-                sprint.managerId === currentManager.id
-        );
-    }, [sprints, currentManager.id]);
+    const loadSprints = useCallback(async () => {
+        try {
+            setLoading(true);
+            setErrorMessage("");
+
+            const response =
+                await sprintService.getAllSprints();
+
+            const data =
+                Array.isArray(response)
+                    ? response
+                    : Array.isArray(response?.data)
+                    ? response.data
+                    : Array.isArray(response?.items)
+                    ? response.items
+                    : [];
+
+            const normalized =
+                data
+                    .map(normalizeSprint)
+                    .filter(Boolean);
+
+            setSprints(normalized);
+        } catch (error) {
+            console.error(
+                "Failed to load sprints:",
+                error
+            );
+
+            setErrorMessage(
+                error?.response?.data?.message ||
+                    error?.response?.data?.title ||
+                    "Failed to load sprints from the server."
+            );
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     // ========================================================
-    // STATISTICS
+    // INITIAL LOAD
     // ========================================================
 
-    const sprintStats = useMemo(() => {
-        const total = assignedSprints.length;
-
-        const active = assignedSprints.filter(
-            (sprint) =>
-                String(sprint.status).toLowerCase() === "active"
-        ).length;
-
-        const completed = assignedSprints.filter(
-            (sprint) =>
-                String(sprint.status).toLowerCase() === "completed"
-        ).length;
-
-        const planning = assignedSprints.filter(
-            (sprint) =>
-                String(sprint.status).toLowerCase() === "planning"
-        ).length;
-
-        return [
-            {
-                title: "Total Sprints",
-                value: total,
-                icon: ListChecks,
-                color:
-                    "from-violet-500 to-purple-600",
-                iconBg:
-                    "bg-violet-100",
-                iconColor:
-                    "text-violet-600",
-            },
-            {
-                title: "Active Sprints",
-                value: active,
-                icon: Activity,
-                color:
-                    "from-emerald-500 to-green-600",
-                iconBg:
-                    "bg-emerald-100",
-                iconColor:
-                    "text-emerald-600",
-            },
-            {
-                title: "Completed",
-                value: completed,
-                icon: CheckCircle2,
-                color:
-                    "from-blue-500 to-cyan-600",
-                iconBg:
-                    "bg-blue-100",
-                iconColor:
-                    "text-blue-600",
-            },
-            {
-                title: "Planning",
-                value: planning,
-                icon: Clock,
-                color:
-                    "from-amber-500 to-orange-600",
-                iconBg:
-                    "bg-amber-100",
-                iconColor:
-                    "text-amber-600",
-            },
-        ];
-    }, [assignedSprints]);
+    useEffect(() => {
+        loadSprints();
+    }, [loadSprints]);
 
     // ========================================================
     // MESSAGE HELPERS
@@ -351,10 +380,103 @@ function SprintManagement() {
     };
 
     // ========================================================
+    // SPRINTS
+    //
+    // Backend authorization is responsible for ensuring that
+    // the manager only receives/manages permitted sprints.
+    // ========================================================
+
+    const assignedSprints = useMemo(() => {
+        return sprints;
+    }, [sprints]);
+
+    // ========================================================
+    // STATISTICS
+    // ========================================================
+
+    const sprintStats = useMemo(() => {
+        const total =
+            assignedSprints.length;
+
+        const active =
+            assignedSprints.filter(
+                (sprint) =>
+                    normalizeStatus(
+                        sprint.status
+                    ) === "active"
+            ).length;
+
+        const completed =
+            assignedSprints.filter(
+                (sprint) =>
+                    normalizeStatus(
+                        sprint.status
+                    ) === "completed"
+            ).length;
+
+        const planning =
+            assignedSprints.filter(
+                (sprint) =>
+                    normalizeStatus(
+                        sprint.status
+                    ) === "planning"
+            ).length;
+
+        return [
+            {
+                title: "Total Sprints",
+                value: total,
+                icon: ListChecks,
+                color:
+                    "from-violet-500 to-purple-600",
+                iconBg:
+                    "bg-violet-100",
+                iconColor:
+                    "text-violet-600",
+            },
+            {
+                title: "Active Sprints",
+                value: active,
+                icon: Activity,
+                color:
+                    "from-emerald-500 to-green-600",
+                iconBg:
+                    "bg-emerald-100",
+                iconColor:
+                    "text-emerald-600",
+            },
+            {
+                title: "Completed",
+                value: completed,
+                icon: CheckCircle2,
+                color:
+                    "from-blue-500 to-cyan-600",
+                iconBg:
+                    "bg-blue-100",
+                iconColor:
+                    "text-blue-600",
+            },
+            {
+                title: "Planning",
+                value: planning,
+                icon: Clock,
+                color:
+                    "from-amber-500 to-orange-600",
+                iconBg:
+                    "bg-amber-100",
+                iconColor:
+                    "text-amber-600",
+            },
+        ];
+    }, [assignedSprints]);
+
+    // ========================================================
     // CREATE SPRINT
     // ========================================================
 
-    const handleCreateSprint = (sprintData) => {
+    const handleCreateSprint = async (
+        sprintData
+    ) => {
         clearMessages();
 
         if (!sprintData) {
@@ -365,13 +487,14 @@ function SprintManagement() {
         }
 
         const name =
-            String(sprintData.name || "").trim();
+            String(
+                sprintData.name || ""
+            ).trim();
 
         const goal =
-            String(sprintData.goal || "").trim();
-
-        const team =
-            String(sprintData.team || "").trim();
+            String(
+                sprintData.goal || ""
+            ).trim();
 
         const startDate =
             sprintData.startDate || "";
@@ -382,7 +505,6 @@ function SprintManagement() {
         if (
             !name ||
             !goal ||
-            !team ||
             !startDate ||
             !endDate
         ) {
@@ -404,13 +526,16 @@ function SprintManagement() {
             return;
         }
 
-        const duplicate = assignedSprints.some(
-            (sprint) =>
-                String(sprint.name)
-                    .trim()
-                    .toLowerCase() ===
-                name.toLowerCase()
-        );
+        const duplicate =
+            assignedSprints.some(
+                (sprint) =>
+                    String(
+                        sprint.name
+                    )
+                        .trim()
+                        .toLowerCase() ===
+                    name.toLowerCase()
+            );
 
         if (duplicate) {
             showError(
@@ -420,86 +545,36 @@ function SprintManagement() {
             return;
         }
 
-        const newStart =
-            new Date(startDate);
+        try {
+            setActionLoading(true);
 
-        const newEnd =
-            new Date(endDate);
-
-        const hasConflict =
-            assignedSprints.some(
-                (sprint) => {
-                    if (
-                        !sprint.startDate ||
-                        !sprint.endDate
-                    ) {
-                        return false;
-                    }
-
-                    const existingStart =
-                        new Date(
-                            sprint.startDate
-                        );
-
-                    const existingEnd =
-                        new Date(
-                            sprint.endDate
-                        );
-
-                    return (
-                        newStart <= existingEnd &&
-                        newEnd >= existingStart
-                    );
-                }
+            // Keep the complete object returned by
+            // CreateSprintModal and send it to the API.
+            await sprintService.createSprint(
+                sprintData
             );
 
-        if (hasConflict) {
+            setShowCreateForm(false);
+
+            await loadSprints();
+
+            showSuccess(
+                "Sprint created successfully."
+            );
+        } catch (error) {
+            console.error(
+                "Create sprint failed:",
+                error
+            );
+
             showError(
-                "The selected sprint dates conflict with an existing sprint."
+                error?.response?.data?.message ||
+                    error?.response?.data?.title ||
+                    "Failed to create sprint."
             );
-
-            return;
+        } finally {
+            setActionLoading(false);
         }
-
-        const newId =
-            sprints.length > 0
-                ? Math.max(
-                      ...sprints.map(
-                          (sprint) =>
-                              Number(sprint.id)
-                      )
-                  ) + 1
-                : 1;
-
-        const newSprint = {
-            id: newId,
-            name,
-            goal,
-            status: "Planning",
-            progress: 0,
-            team,
-            teamId: null,
-            projectId: 1,
-            projectName:
-                "AI-Powered Project Management System",
-            managerId: currentManager.id,
-            startDate,
-            endDate,
-            tasks: [],
-        };
-
-        setSprints(
-            (previousSprints) => [
-                ...previousSprints,
-                newSprint,
-            ]
-        );
-
-        setShowCreateForm(false);
-
-        showSuccess(
-            "Sprint created successfully."
-        );
     };
 
     // ========================================================
@@ -522,6 +597,57 @@ function SprintManagement() {
     };
 
     // ========================================================
+    // UPDATE COMPLETED
+    // ========================================================
+
+    const handleSprintUpdated = async (
+        sprintId,
+        updatedSprint
+    ) => {
+        clearMessages();
+
+        if (!sprintId) {
+            showError(
+                "The sprint could not be updated."
+            );
+
+            return;
+        }
+
+        try {
+            setActionLoading(true);
+
+            // If the modal already returns the complete
+            // update payload, send it directly.
+            await sprintService.updateSprint(
+                sprintId,
+                updatedSprint
+            );
+
+            closeModal();
+
+            await loadSprints();
+
+            showSuccess(
+                "Sprint updated successfully."
+            );
+        } catch (error) {
+            console.error(
+                "Update sprint failed:",
+                error
+            );
+
+            showError(
+                error?.response?.data?.message ||
+                    error?.response?.data?.title ||
+                    "Failed to update sprint."
+            );
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // ========================================================
     // DELETE SPRINT
     // ========================================================
 
@@ -537,7 +663,9 @@ function SprintManagement() {
         }
 
         const status =
-            String(sprint.status).toLowerCase();
+            normalizeStatus(
+                sprint.status
+            );
 
         if (status === "active") {
             showError(
@@ -560,6 +688,53 @@ function SprintManagement() {
     };
 
     // ========================================================
+    // DELETE COMPLETED
+    // ========================================================
+
+    const handleSprintDeleted = async (
+        sprintId
+    ) => {
+        clearMessages();
+
+        if (!sprintId) {
+            showError(
+                "The sprint could not be deleted."
+            );
+
+            return;
+        }
+
+        try {
+            setActionLoading(true);
+
+            await sprintService.deleteSprint(
+                sprintId
+            );
+
+            closeModal();
+
+            await loadSprints();
+
+            showSuccess(
+                "Sprint deleted successfully."
+            );
+        } catch (error) {
+            console.error(
+                "Delete sprint failed:",
+                error
+            );
+
+            showError(
+                error?.response?.data?.message ||
+                    error?.response?.data?.title ||
+                    "Failed to delete sprint."
+            );
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // ========================================================
     // START SPRINT
     // ========================================================
 
@@ -575,7 +750,9 @@ function SprintManagement() {
         }
 
         const status =
-            String(sprint.status).toLowerCase();
+            normalizeStatus(
+                sprint.status
+            );
 
         if (status !== "planning") {
             showError(
@@ -588,9 +765,11 @@ function SprintManagement() {
         const activeSprint =
             assignedSprints.find(
                 (item) =>
-                    item.id !== sprint.id &&
-                    String(item.status).toLowerCase() ===
-                        "active"
+                    String(item.id) !==
+                        String(sprint.id) &&
+                    normalizeStatus(
+                        item.status
+                    ) === "active"
             );
 
         if (activeSprint) {
@@ -603,6 +782,53 @@ function SprintManagement() {
 
         setSelectedSprint(sprint);
         setModalMode("start");
+    };
+
+    // ========================================================
+    // START COMPLETED
+    // ========================================================
+
+    const handleSprintStarted = async (
+        sprintId
+    ) => {
+        clearMessages();
+
+        if (!sprintId) {
+            showError(
+                "The sprint could not be started."
+            );
+
+            return;
+        }
+
+        try {
+            setActionLoading(true);
+
+            await sprintService.startSprint(
+                sprintId
+            );
+
+            closeModal();
+
+            await loadSprints();
+
+            showSuccess(
+                "Sprint started successfully."
+            );
+        } catch (error) {
+            console.error(
+                "Start sprint failed:",
+                error
+            );
+
+            showError(
+                error?.response?.data?.message ||
+                    error?.response?.data?.title ||
+                    "Failed to start sprint."
+            );
+        } finally {
+            setActionLoading(false);
+        }
     };
 
     // ========================================================
@@ -621,8 +847,9 @@ function SprintManagement() {
         }
 
         if (
-            String(sprint.status).toLowerCase() !==
-            "active"
+            normalizeStatus(
+                sprint.status
+            ) !== "active"
         ) {
             showError(
                 "Only an active sprint can be completed."
@@ -633,6 +860,53 @@ function SprintManagement() {
 
         setSelectedSprint(sprint);
         setModalMode("complete");
+    };
+
+    // ========================================================
+    // COMPLETE COMPLETED
+    // ========================================================
+
+    const handleSprintCompleted = async (
+        sprintId
+    ) => {
+        clearMessages();
+
+        if (!sprintId) {
+            showError(
+                "The sprint could not be completed."
+            );
+
+            return;
+        }
+
+        try {
+            setActionLoading(true);
+
+            await sprintService.completeSprint(
+                sprintId
+            );
+
+            closeModal();
+
+            await loadSprints();
+
+            showSuccess(
+                "Sprint completed successfully."
+            );
+        } catch (error) {
+            console.error(
+                "Complete sprint failed:",
+                error
+            );
+
+            showError(
+                error?.response?.data?.message ||
+                    error?.response?.data?.title ||
+                    "Failed to complete sprint."
+            );
+        } finally {
+            setActionLoading(false);
+        }
     };
 
     // ========================================================
@@ -658,7 +932,9 @@ function SprintManagement() {
     // MONITOR SPRINT PROGRESS
     // ========================================================
 
-    const handleMonitorProgress = (sprint) => {
+    const handleMonitorProgress = async (
+        sprint
+    ) => {
         clearMessages();
 
         if (!sprint) {
@@ -669,8 +945,59 @@ function SprintManagement() {
             return;
         }
 
-        setSelectedSprint(sprint);
-        setShowProgress(true);
+        try {
+            setActionLoading(true);
+
+            // Get the latest progress from backend.
+            const response =
+                await sprintService.getSprintProgressReport(
+                    sprint.projectId,
+                    sprint.id
+                );
+
+            const report =
+                response?.data ||
+                response;
+
+            const progress =
+                getValue(
+                    report,
+                    "progress",
+                    "Progress",
+                    "progressPercentage",
+                    "ProgressPercentage"
+                );
+
+            setSelectedSprint({
+                ...sprint,
+
+                ...(report || {}),
+
+                progress:
+                    progress !== undefined
+                        ? Number(progress)
+                        : sprint.progress,
+            });
+
+            setShowProgress(true);
+        } catch (error) {
+            console.error(
+                "Load sprint progress failed:",
+                error
+            );
+
+            // We still open the monitor using the
+            // currently loaded sprint data.
+            setSelectedSprint(sprint);
+            setShowProgress(true);
+
+            showError(
+                error?.response?.data?.message ||
+                    "Unable to load the latest sprint progress."
+            );
+        } finally {
+            setActionLoading(false);
+        }
     };
 
     // ========================================================
@@ -689,9 +1016,13 @@ function SprintManagement() {
         }
 
         setSelectedSprint(sprint);
+
         setSelectedTeam(
-            sprint.team || ""
+            sprint.teamId ??
+                sprint.team ??
+                ""
         );
+
         setShowAssignTeam(true);
     };
 
@@ -699,189 +1030,71 @@ function SprintManagement() {
     // SAVE TEAM ASSIGNMENT
     // ========================================================
 
-    const handleSaveTeamAssignment = () => {
-        clearMessages();
+    const handleSaveTeamAssignment =
+        async () => {
+            clearMessages();
 
-        if (!selectedSprint) {
-            showError(
-                "No sprint has been selected."
-            );
+            if (!selectedSprint) {
+                showError(
+                    "No sprint has been selected."
+                );
 
-            return;
-        }
+                return;
+            }
 
-        const team =
-            selectedTeam.trim();
+            const teamValue =
+                String(
+                    selectedTeam || ""
+                ).trim();
 
-        if (!team) {
-            showError(
-                "Please enter a team name."
-            );
+            if (!teamValue) {
+                showError(
+                    "Please enter the team ID."
+                );
 
-            return;
-        }
+                return;
+            }
 
-        setSprints(
-            (previousSprints) =>
-                previousSprints.map(
-                    (sprint) =>
-                        sprint.id ===
-                        selectedSprint.id
-                            ? {
-                                  ...sprint,
-                                  team,
-                              }
-                            : sprint
-                )
-        );
+            try {
+                setActionLoading(true);
 
-        closeAssignTeam();
+                /*
+                 * assignSprintToTeam requires:
+                 *
+                 * sprintId
+                 * teamId
+                 *
+                 * The existing modal uses a text field.
+                 * Therefore the value entered here is sent
+                 * directly as the team ID.
+                 */
+                await sprintService.assignSprintToTeam(
+                    selectedSprint.id,
+                    teamValue
+                );
 
-        showSuccess(
-            "Sprint assigned to the team successfully."
-        );
-    };
+                closeAssignTeam();
 
-    // ========================================================
-    // SPRINT UPDATED
-    // ========================================================
+                await loadSprints();
 
-    const handleSprintUpdated = (
-        sprintId,
-        updatedSprint
-    ) => {
-        if (
-            !sprintId ||
-            !updatedSprint
-        ) {
-            showError(
-                "The sprint could not be updated."
-            );
+                showSuccess(
+                    "Sprint assigned to the team successfully."
+                );
+            } catch (error) {
+                console.error(
+                    "Assign sprint to team failed:",
+                    error
+                );
 
-            return;
-        }
-
-        setSprints(
-            (previousSprints) =>
-                previousSprints.map(
-                    (sprint) =>
-                        sprint.id === sprintId
-                            ? {
-                                  ...sprint,
-                                  ...updatedSprint,
-                              }
-                            : sprint
-                )
-        );
-
-        closeModal();
-
-        showSuccess(
-            "Sprint updated successfully."
-        );
-    };
-
-    // ========================================================
-    // SPRINT DELETED
-    // ========================================================
-
-    const handleSprintDeleted = (
-        sprintId
-    ) => {
-        if (!sprintId) {
-            showError(
-                "The sprint could not be deleted."
-            );
-
-            return;
-        }
-
-        setSprints(
-            (previousSprints) =>
-                previousSprints.filter(
-                    (sprint) =>
-                        sprint.id !==
-                        sprintId
-                )
-        );
-
-        closeModal();
-
-        showSuccess(
-            "Sprint deleted successfully."
-        );
-    };
-
-    // ========================================================
-    // SPRINT STARTED
-    // ========================================================
-
-    const handleSprintStarted = (
-        sprintId
-    ) => {
-        if (!sprintId) {
-            showError(
-                "The sprint could not be started."
-            );
-
-            return;
-        }
-
-        setSprints(
-            (previousSprints) =>
-                previousSprints.map(
-                    (sprint) =>
-                        sprint.id === sprintId
-                            ? {
-                                  ...sprint,
-                                  status: "Active",
-                              }
-                            : sprint
-                )
-        );
-
-        closeModal();
-
-        showSuccess(
-            "Sprint started successfully."
-        );
-    };
-
-    // ========================================================
-    // SPRINT COMPLETED
-    // ========================================================
-
-    const handleSprintCompleted = (
-        sprintId
-    ) => {
-        if (!sprintId) {
-            showError(
-                "The sprint could not be completed."
-            );
-
-            return;
-        }
-
-        setSprints(
-            (previousSprints) =>
-                previousSprints.map(
-                    (sprint) =>
-                        sprint.id === sprintId
-                            ? {
-                                  ...sprint,
-                                  status: "Completed",
-                                  progress: 100,
-                              }
-                            : sprint
-                )
-        );
-
-        closeModal();
-
-        showSuccess(
-            "Sprint completed successfully."
-        );
-    };
+                showError(
+                    error?.response?.data?.message ||
+                        error?.response?.data?.title ||
+                        "Failed to assign sprint to team."
+                );
+            } finally {
+                setActionLoading(false);
+            }
+        };
 
     // ========================================================
     // RENDER
@@ -895,7 +1108,7 @@ function SprintManagement() {
                 <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
 
                     {/* ==================================================
-                        COLORFUL HEADER
+                        HEADER
                     ================================================== */}
 
                     <div className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-500 p-7 text-white shadow-lg">
@@ -944,17 +1157,49 @@ function SprintManagement() {
 
                             </div>
 
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    clearMessages();
-                                    setShowCreateForm(true);
-                                }}
-                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-violet-700 shadow-md transition hover:bg-slate-50 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-violet-600"
-                            >
-                                <Plus size={18} />
-                                Create Sprint
-                            </button>
+                            <div className="flex items-center gap-2">
+
+                                <button
+                                    type="button"
+                                    onClick={
+                                        loadSprints
+                                    }
+                                    disabled={
+                                        loading ||
+                                        actionLoading
+                                    }
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <RefreshCw
+                                        size={17}
+                                        className={
+                                            loading
+                                                ? "animate-spin"
+                                                : ""
+                                        }
+                                    />
+
+                                    Refresh
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        clearMessages();
+                                        setShowCreateForm(
+                                            true
+                                        );
+                                    }}
+                                    disabled={
+                                        actionLoading
+                                    }
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-violet-700 shadow-md transition hover:bg-slate-50 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <Plus size={18} />
+                                    Create Sprint
+                                </button>
+
+                            </div>
 
                         </div>
 
@@ -1002,7 +1247,7 @@ function SprintManagement() {
                     )}
 
                     {/* ==================================================
-                        COLORFUL STATISTICS
+                        STATISTICS
                     ================================================== */}
 
                     <section className="mb-10">
@@ -1103,7 +1348,8 @@ function SprintManagement() {
 
                                 {assignedSprints.length}{" "}
 
-                                {assignedSprints.length === 1
+                                {assignedSprints.length ===
+                                1
                                     ? "Sprint"
                                     : "Sprints"}
 
@@ -1111,8 +1357,33 @@ function SprintManagement() {
 
                         </div>
 
-                        {assignedSprints.length ===
-                        0 ? (
+                        {/* ==================================================
+                            LOADING
+                        ================================================== */}
+
+                        {loading ? (
+                            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
+
+                                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100">
+
+                                    <RefreshCw
+                                        size={30}
+                                        className="animate-spin text-violet-600"
+                                    />
+
+                                </div>
+
+                                <h3 className="text-lg font-bold text-slate-900">
+                                    Loading Sprints
+                                </h3>
+
+                                <p className="mt-2 text-sm text-slate-500">
+                                    Fetching sprint information from the server...
+                                </p>
+
+                            </div>
+                        ) : assignedSprints.length ===
+                          0 ? (
                             <div className="rounded-2xl border border-dashed border-violet-300 bg-white px-6 py-16 text-center shadow-sm">
 
                                 <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100">
@@ -1136,6 +1407,7 @@ function SprintManagement() {
                                     type="button"
                                     onClick={() => {
                                         clearMessages();
+
                                         setShowCreateForm(
                                             true
                                         );
@@ -1159,18 +1431,18 @@ function SprintManagement() {
                                             className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
                                         >
 
-                                            {/* Color accent based on sprint status */}
+                                            {/* Status accent */}
 
                                             <div
                                                 className={
-                                                    String(
+                                                    normalizeStatus(
                                                         sprint.status
-                                                    ).toLowerCase() ===
+                                                    ) ===
                                                     "active"
                                                         ? "absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-emerald-400 to-green-600"
-                                                        : String(
+                                                        : normalizeStatus(
                                                               sprint.status
-                                                          ).toLowerCase() ===
+                                                          ) ===
                                                           "completed"
                                                         ? "absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blue-400 to-cyan-600"
                                                         : "absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-amber-400 to-orange-500"
@@ -1469,7 +1741,9 @@ function SprintManagement() {
 
                                     <p className="mt-1 text-sm text-slate-600">
                                         {
-                                            selectedSprint.tasks?.length ||
+                                            selectedSprint
+                                                .tasks
+                                                ?.length ||
                                             0
                                         }{" "}
                                         tasks in this sprint.
@@ -1544,7 +1818,7 @@ function SprintManagement() {
                             <div className="px-6 py-5">
 
                                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                                    Team
+                                    Team ID
                                 </label>
 
                                 <input
@@ -1561,12 +1835,15 @@ function SprintManagement() {
                                                 .value
                                         )
                                     }
-                                    placeholder="Enter team name"
-                                    className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    placeholder="Enter team ID"
+                                    disabled={
+                                        actionLoading
+                                    }
+                                    className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
                                 />
 
                                 <p className="mt-2 text-xs leading-5 text-slate-500">
-                                    Assign this sprint to the team responsible for completing its backlog.
+                                    Enter the team ID that should be responsible for this sprint.
                                 </p>
 
                             </div>
@@ -1578,7 +1855,10 @@ function SprintManagement() {
                                     onClick={
                                         closeAssignTeam
                                     }
-                                    className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                                    disabled={
+                                        actionLoading
+                                    }
+                                    className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     Cancel
                                 </button>
@@ -1588,8 +1868,18 @@ function SprintManagement() {
                                     onClick={
                                         handleSaveTeamAssignment
                                     }
-                                    className="rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:from-cyan-600 hover:to-blue-700 hover:shadow-md"
+                                    disabled={
+                                        actionLoading
+                                    }
+                                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:from-cyan-600 hover:to-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
                                 >
+                                    {actionLoading && (
+                                        <RefreshCw
+                                            size={16}
+                                            className="animate-spin"
+                                        />
+                                    )}
+
                                     Assign Team
                                 </button>
 
@@ -1609,4 +1899,3 @@ function SprintManagement() {
 // ============================================================
 
 export default SprintManagement;
-
