@@ -1,801 +1,364 @@
-import React, { useState } from "react";
+import React from "react";
 
 import {
-  FileText,
-  Clock,
-  CalendarDays,
-  Trash2,
-  Users,
-  Edit3,
-  Eye,
-  Activity,
-  ListTodo
+    FolderKanban,
+    Users,
+    CalendarDays,
+    Clock,
+    CheckCircle2,
+    AlertCircle,
+    Sparkles,
 } from "lucide-react";
 
-
-import ProjectSpecificationModal from "./modals/ProjectSpecificationModal";
-import UpdateSpecificationModal from "./UpdateSpecificationModal";
-import DeleteSpecificationModal from "./DeleteSpecificationModal";
-import ViewProjectModal from "./ViewProjectModal";
-import ManageTimelineModal from "./ManageTimelineModal";
-import DeadlineModal from "./DeadlineModal";
-import StatusModal from "./StatusModal";
-import SprintModal from "./SprintModal";
-
-
-
-
+// ============================================================
+// MANAGER — PROJECT CARD
+//
+// Design:
+// - Light slate background compatible
+// - White card
+// - Colorful status accent
+// - Violet / blue / cyan visual language
+// - Matches Sprint Management page
+// ============================================================
 
 function ProjectCard({ project }) {
+    if (!project) {
+        return null;
+    }
+
+    // ========================================================
+    // STATUS STYLES
+    // ========================================================
+
+    const statusStyles = {
+        Active: {
+            className:
+                "bg-emerald-50 text-emerald-700 border-emerald-200",
+            accent:
+                "bg-gradient-to-r from-emerald-400 to-green-600",
+            icon: CheckCircle2,
+        },
+
+        Planning: {
+            className:
+                "bg-amber-50 text-amber-700 border-amber-200",
+            accent:
+                "bg-gradient-to-r from-amber-400 to-orange-500",
+            icon: Clock,
+        },
+
+        Completed: {
+            className:
+                "bg-blue-50 text-blue-700 border-blue-200",
+            accent:
+                "bg-gradient-to-r from-blue-400 to-cyan-600",
+            icon: CheckCircle2,
+        },
 
+        OnHold: {
+            className:
+                "bg-yellow-50 text-yellow-700 border-yellow-200",
+            accent:
+                "bg-gradient-to-r from-yellow-400 to-amber-500",
+            icon: AlertCircle,
+        },
 
+        Cancelled: {
+            className:
+                "bg-red-50 text-red-700 border-red-200",
+            accent:
+                "bg-gradient-to-r from-red-400 to-rose-600",
+            icon: AlertCircle,
+        },
+    };
 
-const [openSpecification,setOpenSpecification] = useState(false);
+    const status =
+        statusStyles[project.status] ||
+        statusStyles.Planning;
 
-const [openUpdate,setOpenUpdate] = useState(false);
+    const StatusIcon = status.icon;
 
-const [openDelete,setOpenDelete] = useState(false);
+    // ========================================================
+    // PROGRESS
+    // ========================================================
 
-const [openView,setOpenView] = useState(false);
+    const progress = Math.max(
+        0,
+        Math.min(
+            100,
+            Number(project.progress) || 0
+        )
+    );
 
-const [openTimeline,setOpenTimeline] = useState(false);
+    // ========================================================
+    // RENDER
+    // ========================================================
 
-const [openDeadline,setOpenDeadline] = useState(false);
+    return (
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
 
-const [openStatus,setOpenStatus] = useState(false);
+            {/* ==================================================
+                COLOR ACCENT
+            ================================================== */}
 
-const [openSprint,setOpenSprint] = useState(false);
+            <div
+                className={`absolute inset-x-0 top-0 h-1.5 ${status.accent}`}
+            />
 
+            {/* ==================================================
+                CARD CONTENT
+            ================================================== */}
 
+            <div className="p-5">
 
+                {/* ==================================================
+                    HEADER
+                ================================================== */}
 
+                <div className="flex items-start justify-between gap-4">
 
+                    <div className="flex min-w-0 items-start gap-3">
 
+                        {/* PROJECT ICON */}
 
-return (
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-blue-100 text-violet-700 ring-1 ring-violet-100">
 
-<div
+                            <FolderKanban size={22} />
 
-className="
-bg-[#0f172a]
-border
-border-gray-800
-rounded-2xl
-p-6
-shadow-lg
-transition-all
-duration-300
-hover:-translate-y-1
-hover:border-blue-500
-hover:shadow-xl
-"
+                        </div>
 
->
+                        {/* PROJECT NAME */}
 
+                        <div className="min-w-0">
 
+                            <div className="mb-1 flex items-center gap-2">
 
+                                <Sparkles
+                                    size={14}
+                                    className="shrink-0 text-violet-500"
+                                />
 
+                                <span className="text-xs font-semibold uppercase tracking-wide text-violet-500">
+                                    Project
+                                </span>
 
+                            </div>
 
+                            <h3 className="truncate text-lg font-bold text-slate-900">
+                                {project.name}
+                            </h3>
 
+                            <p className="mt-1 text-xs font-medium text-slate-500">
+                                Project #{project.id}
+                            </p>
 
+                        </div>
 
-{/* Header */}
+                    </div>
 
-<div
+                    {/* STATUS */}
 
-className="
-flex
-justify-between
-items-start
-mb-5
-"
+                    <div
+                        className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ${status.className}`}
+                    >
 
->
+                        <StatusIcon size={14} />
 
+                        {project.status}
 
-<div>
+                    </div>
 
+                </div>
 
-<h2
+                {/* ==================================================
+                    DESCRIPTION
+                ================================================== */}
 
-className="
-text-xl
-font-bold
-text-white
-"
+                <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50 p-4">
 
->
+                    <p className="text-sm leading-6 text-slate-600">
 
-{project.name}
+                        {project.description ||
+                            "No project description available."}
 
-</h2>
+                    </p>
 
+                </div>
 
+                {/* ==================================================
+                    PROGRESS
+                ================================================== */}
 
-<p
+                <div className="mt-5">
 
-className="
-text-gray-400
-text-sm
-mt-2
-"
+                    <div className="mb-2 flex items-center justify-between">
 
->
+                        <div className="flex items-center gap-2">
 
-{project.description}
+                            <div className="h-2 w-2 rounded-full bg-violet-500" />
 
-</p>
+                            <span className="text-sm font-semibold text-slate-600">
+                                Project Progress
+                            </span>
 
+                        </div>
 
-</div>
+                        <span className="text-sm font-bold text-slate-900">
+                            {progress}%
+                        </span>
 
+                    </div>
 
+                    <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
 
+                        <div
+                            className="h-full rounded-full bg-gradient-to-r from-violet-500 via-blue-500 to-cyan-500 transition-all duration-300"
+                            style={{
+                                width: `${progress}%`,
+                            }}
+                        />
 
+                    </div>
 
-<span
+                </div>
 
-className={`
+                {/* ==================================================
+                    PROJECT DETAILS
+                ================================================== */}
 
-px-3
-py-1
-rounded-full
-text-xs
-font-semibold
+                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
 
-${
-project.status==="Active"
+                    {/* START DATE */}
 
-?
+                    <div className="rounded-xl border border-violet-100 bg-violet-50 p-3.5">
 
-"bg-green-500/20 text-green-400"
+                        <div className="flex items-center gap-3">
 
-:
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-violet-600 shadow-sm">
 
-project.status==="Completed"
+                                <CalendarDays size={18} />
 
-?
+                            </div>
 
-"bg-blue-500/20 text-blue-400"
+                            <div className="min-w-0">
 
-:
+                                <p className="text-xs font-medium text-violet-600">
+                                    Start Date
+                                </p>
 
-"bg-yellow-500/20 text-yellow-400"
+                                <p className="mt-0.5 truncate text-sm font-bold text-slate-800">
 
+                                    {project.startDate ||
+                                        "Not set"}
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {/* DEADLINE */}
+
+                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-3.5">
+
+                        <div className="flex items-center gap-3">
+
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+
+                                <Clock size={18} />
+
+                            </div>
+
+                            <div className="min-w-0">
+
+                                <p className="text-xs font-medium text-blue-600">
+                                    Deadline
+                                </p>
+
+                                <p className="mt-0.5 truncate text-sm font-bold text-slate-800">
+
+                                    {project.deadline ||
+                                        "Not set"}
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {/* TEAM */}
+
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3.5">
+
+                        <div className="flex items-center gap-3">
+
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-600 shadow-sm">
+
+                                <Users size={18} />
+
+                            </div>
+
+                            <div className="min-w-0">
+
+                                <p className="text-xs font-medium text-emerald-600">
+                                    Team
+                                </p>
+
+                                <p className="mt-0.5 truncate text-sm font-bold text-slate-800">
+
+                                    {project.teamName ||
+                                        `${project.team || 0} members`}
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {/* SPECIFICATION */}
+
+                    <div className="rounded-xl border border-amber-100 bg-amber-50 p-3.5">
+
+                        <div className="flex items-center gap-3">
+
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-amber-600 shadow-sm">
+
+                                <FolderKanban size={18} />
+
+                            </div>
+
+                            <div className="min-w-0">
+
+                                <p className="text-xs font-medium text-amber-600">
+                                    Specification
+                                </p>
+
+                                <p className="mt-0.5 truncate text-sm font-bold text-slate-800">
+
+                                    {project.hasSpecification
+                                        ? "Available"
+                                        : "Not created"}
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    );
 }
-
-`}
-
->
-
-{project.status}
-
-</span>
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Progress */}
-
-<div>
-
-
-<div
-
-className="
-flex
-justify-between
-mb-2
-"
-
->
-
-<span className="text-gray-400">
-
-Progress
-
-</span>
-
-
-<span className="text-white font-bold">
-
-{project.progress}%
-
-</span>
-
-
-</div>
-
-
-
-
-<div
-
-className="
-h-3
-bg-gray-800
-rounded-full
-overflow-hidden
-"
-
->
-
-
-<div
-
-className="
-h-full
-bg-gradient-to-r
-from-blue-500
-to-purple-600
-rounded-full
-"
-
-style={{
-
-width:`${project.progress}%`
-
-}}
-
-/>
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Info */}
-
-<div
-
-className="
-grid
-grid-cols-2
-gap-4
-mt-6
-"
-
->
-
-
-<div
-
-className="
-bg-[#020617]
-rounded-xl
-p-4
-flex
-items-center
-gap-3
-"
-
->
-
-
-<CalendarDays
-
-className="text-blue-400"
-
-size={20}
-
-/>
-
-
-<div>
-
-<p className="text-gray-400 text-xs">
-
-Deadline
-
-</p>
-
-
-<p className="text-white text-sm">
-
-{project.deadline}
-
-</p>
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-
-<div
-
-className="
-bg-[#020617]
-rounded-xl
-p-4
-flex
-items-center
-gap-3
-"
-
->
-
-
-<Users
-
-className="text-purple-400"
-
-size={20}
-
-/>
-
-
-<div>
-
-
-<p className="text-gray-400 text-xs">
-
-Team
-
-</p>
-
-
-<p className="text-white text-sm">
-
-{project.team} Members
-
-</p>
-
-
-</div>
-
-
-</div>
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Actions */}
-
-<div
-
-className="
-grid
-grid-cols-2
-gap-3
-mt-6
-"
-
->
-
-
-
-
-
-<button
-
-onClick={()=>setOpenView(true)}
-
-className="
-flex
-items-center
-justify-center
-gap-2
-bg-cyan-600
-hover:bg-cyan-700
-text-white
-py-3
-rounded-xl
-transition
-"
-
->
-
-<Eye size={18}/>
-
-View Project
-
-</button>
-
-
-
-
-
-
-
-
-
-<button
-
-onClick={()=>setOpenSpecification(true)}
-
-className="
-flex
-items-center
-justify-center
-gap-2
-bg-blue-600
-hover:bg-blue-700
-text-white
-py-3
-rounded-xl
-transition
-"
-
->
-
-<FileText size={18}/>
-
-Create Specification
-
-</button>
-
-
-
-
-
-
-
-
-
-<button
-
-onClick={()=>setOpenUpdate(true)}
-
-className="
-flex
-items-center
-justify-center
-gap-2
-bg-purple-600
-hover:bg-purple-700
-text-white
-py-3
-rounded-xl
-transition
-"
-
->
-
-<Edit3 size={18}/>
-
-Update Specification
-
-</button>
-
-
-
-
-
-
-
-
-
-<button
-
-onClick={()=>setOpenTimeline(true)}
-
-className="
-flex
-items-center
-justify-center
-gap-2
-bg-indigo-600
-hover:bg-indigo-700
-text-white
-py-3
-rounded-xl
-transition
-"
-
->
-
-<Clock size={18}/>
-
-Manage Timeline
-
-</button>
-
-
-
-
-
-
-
-
-
-<button
-
-onClick={()=>setOpenDeadline(true)}
-
-className="
-flex
-items-center
-justify-center
-gap-2
-bg-green-600
-hover:bg-green-700
-text-white
-py-3
-rounded-xl
-transition
-"
-
->
-
-<CalendarDays size={18}/>
-
-Set Deadline
-
-</button>
-
-
-
-
-
-
-
-
-
-<button
-
-onClick={()=>setOpenStatus(true)}
-
-className="
-flex
-items-center
-justify-center
-gap-2
-bg-orange-600
-hover:bg-orange-700
-text-white
-py-3
-rounded-xl
-transition
-"
-
->
-
-<Activity size={18}/>
-
-Update Status
-
-</button>
-
-
-
-
-
-
-
-
-
-<button
-
-onClick={()=>setOpenSprint(true)}
-
-className="
-flex
-items-center
-justify-center
-gap-2
-bg-purple-600
-hover:bg-purple-700
-text-white
-py-3
-rounded-xl
-transition
-"
-
->
-
-<ListTodo size={18}/>
-
-Manage Sprint
-
-</button>
-
-
-
-
-
-
-
-
-
-<button
-
-onClick={()=>setOpenDelete(true)}
-
-className="
-col-span-2
-flex
-items-center
-justify-center
-gap-2
-bg-red-600
-hover:bg-red-700
-text-white
-py-3
-rounded-xl
-transition
-"
-
->
-
-<Trash2 size={18}/>
-
-Delete Specification
-
-</button>
-
-
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Modals */}
-
-
-<ProjectSpecificationModal
-
-open={openSpecification}
-
-onClose={()=>setOpenSpecification(false)}
-
-project={project}
-
-/>
-
-
-
-
-
-<UpdateSpecificationModal
-
-open={openUpdate}
-
-close={()=>setOpenUpdate(false)}
-
-project={project}
-
-/>
-
-
-
-
-
-<ViewProjectModal
-
-open={openView}
-
-close={()=>setOpenView(false)}
-
-project={project}
-
-/>
-
-
-
-
-
-<ManageTimelineModal
-
-open={openTimeline}
-
-close={()=>setOpenTimeline(false)}
-
-project={project}
-
-/>
-
-
-
-
-
-<DeadlineModal
-
-open={openDeadline}
-
-close={()=>setOpenDeadline(false)}
-
-project={project}
-
-/>
-
-
-
-
-
-<StatusModal
-
-open={openStatus}
-
-close={()=>setOpenStatus(false)}
-
-project={project}
-
-/>
-
-
-
-
-
-<SprintModal
-
-open={openSprint}
-
-close={()=>setOpenSprint(false)}
-
-project={project}
-
-/>
-
-
-
-
-
-<DeleteSpecificationModal
-
-open={openDelete}
-
-close={()=>setOpenDelete(false)}
-
-project={project}
-
-/>
-
-
-
-
-
-
-</div>
-
-);
-
-}
-
-
 
 export default ProjectCard;
