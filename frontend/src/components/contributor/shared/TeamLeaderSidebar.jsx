@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -13,6 +14,10 @@ import {
     X,
 } from "lucide-react";
 
+// ============================================================
+// TEAM LEADER SIDEBAR
+// ============================================================
+
 function TeamLeaderSidebar({
     isOpen = true,
     onClose,
@@ -20,13 +25,13 @@ function TeamLeaderSidebar({
     const [teamLeaderOpen, setTeamLeaderOpen] =
         useState(true);
 
-    /* ========================================================
-       TEAM LEADER MENU
-    ======================================================== */
+    // ========================================================
+    // TEAM LEADER MENU
+    // ========================================================
 
     const teamLeaderItems = [
         {
-            label: "View Assigned Team",
+            label: "View Assigned Projects",
             path: "/team-leader/assigned-team",
             icon: UsersRound,
         },
@@ -42,12 +47,12 @@ function TeamLeaderSidebar({
         },
         {
             label: "Coordinate Team Work",
-            path: "/team-leader/coordinate-work",
+            path: "/team-leader/create-team-task",
             icon: Workflow,
         },
         {
             label: "Communicate with Manager",
-            path: "/team-leader/manager-communication",
+            path: "/team-leader/communication/messages",
             icon: MessageSquare,
         },
         {
@@ -57,9 +62,9 @@ function TeamLeaderSidebar({
         },
     ];
 
-    /* ========================================================
-       NAV ITEM CLASS
-    ======================================================== */
+    // ========================================================
+    // MAIN NAV ITEM CLASS
+    // ========================================================
 
     const navItemClass = ({ isActive }) =>
         `
@@ -91,9 +96,9 @@ function TeamLeaderSidebar({
         }
         `;
 
-    /* ========================================================
-       SUB ITEM CLASS
-    ======================================================== */
+    // ========================================================
+    // SUB ITEM CLASS
+    // ========================================================
 
     const subItemClass = ({ isActive }) =>
         `
@@ -124,6 +129,10 @@ function TeamLeaderSidebar({
         }
         `;
 
+    // ========================================================
+    // RENDER
+    // ========================================================
+
     return (
         <>
             {/* ==================================================
@@ -147,13 +156,6 @@ function TeamLeaderSidebar({
 
             {/* ==================================================
                 SIDEBAR
-
-                IMPORTANT:
-                - relative instead of fixed
-                - min-h-screen instead of h-screen
-
-                This allows the sidebar to move together with
-                the main page when the page itself is scrolled.
             ================================================== */}
 
             <aside
@@ -163,6 +165,7 @@ function TeamLeaderSidebar({
                     flex
                     min-h-screen
                     w-72
+                    shrink-0
                     flex-col
                     border-r
                     border-blue-900/70
@@ -200,6 +203,7 @@ function TeamLeaderSidebar({
                     "
                 >
                     <div className="flex items-center gap-3">
+
                         {/* LOGO */}
 
                         <div
@@ -215,9 +219,7 @@ function TeamLeaderSidebar({
                                 shadow-sm
                             "
                         >
-                            <UsersRound
-                                className="h-5 w-5"
-                            />
+                            <UsersRound className="h-5 w-5" />
                         </div>
 
                         {/* TITLE */}
@@ -267,10 +269,6 @@ function TeamLeaderSidebar({
 
                 {/* ==================================================
                     NAVIGATION
-
-                    IMPORTANT:
-                    Removed overflow-y-auto so the sidebar does
-                    not have its own separate scrollbar.
                 ================================================== */}
 
                 <nav
@@ -286,8 +284,7 @@ function TeamLeaderSidebar({
 
                     <div className="mb-2">
                         <NavLink
-                            to="/team-leader"
-                            end
+                            to="/team-leader/dashboard"
                             onClick={onClose}
                             className={navItemClass}
                         >
@@ -334,6 +331,7 @@ function TeamLeaderSidebar({
                     ================================================== */}
 
                     <div>
+
                         {/* DROPDOWN BUTTON */}
 
                         <button
@@ -364,6 +362,7 @@ function TeamLeaderSidebar({
                             }
                         >
                             <span className="flex items-center gap-3">
+
                                 <UsersRound
                                     className="
                                         h-5
@@ -376,6 +375,7 @@ function TeamLeaderSidebar({
                                 <span>
                                     Team Leader
                                 </span>
+
                             </span>
 
                             <ChevronDown
@@ -480,6 +480,8 @@ function TeamLeaderSidebar({
                                 gap-3
                             "
                         >
+                            {/* AVATAR */}
+
                             <div
                                 className="
                                     flex
@@ -495,6 +497,8 @@ function TeamLeaderSidebar({
                                     className="h-4 w-4"
                                 />
                             </div>
+
+                            {/* USER INFO */}
 
                             <div className="min-w-0">
                                 <p

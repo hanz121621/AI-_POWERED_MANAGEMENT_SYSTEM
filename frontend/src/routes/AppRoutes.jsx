@@ -1,3 +1,4 @@
+
 // ============================================================
 // APP ROUTES
 // AIPMS
@@ -8,16 +9,21 @@
 // - Public
 // - Admin
 // - Manager
-// - Staff
-// - Developer
-// - Team Leader
+// - Contributor -> Team Leader
+// - Contributor -> Staff
+// - Contributor -> Developer
 // ============================================================
 
 import {
     Routes,
     Route,
     Navigate,
+    Outlet,
 } from "react-router-dom";
+
+import {
+    getCurrentUser,
+} from "@/services/authService";
 
 // ============================================================
 // PUBLIC
@@ -172,22 +178,6 @@ import ViewMyWork
 
 // ============================================================
 // DEVELOPER
-//
-// ACTUAL FILE STRUCTURE:
-//
-// src/pages/contributor/developer/
-//
-//     Communication.jsx
-//     Developer.jsx
-//     DeveloperDashboard.jsx
-//     DeveloperSettings.jsx
-//     Profile.jsx
-//     Projects.jsx
-//     Reports.jsx
-//     Settings.jsx
-//     SprintParticipation.jsx
-//     Tasks.jsx
-//
 // ============================================================
 
 import DeveloperLayout
@@ -233,12 +223,180 @@ import TeamLeaderDashboard
 import TeamLeader
     from "../pages/contributor/team-leader/TeamLeader";
 
-import ViewAssignedTeam from "../components/contributor/teamleader/team-management/ViewAssignedTeam";
-import ViewTeamTasks from "../components/contributor/teamleader/team-management/ViewTeamTasks";
-import MonitorTeamProgress from "../components/contributor/teamleader/team-management/MonitorTeamProgress";
-import CoordinateTeamWork from "../components/contributor/teamleader/team-management/CoordinateTeamWork";
-import ViewTeamPerformance from "../components/contributor/teamleader/team-management/ViewTeamPerformance";
-import CommunicateWithManager from "../components/contributor/teamleader/communication/CommunicateWithManager";
+import ViewAssignedTeam
+    from "../components/contributor/teamleader/team-management/ViewAssignedTeam";
+
+import ViewTeamTasks
+    from "../components/contributor/teamleader/team-management/ViewTeamTasks";
+
+import MonitorTeamProgress
+    from "../components/contributor/teamleader/team-management/MonitorTeamProgress";
+
+import CoordinateTeamWork
+    from "../components/contributor/teamleader/team-management/CoordinateTeamWork";
+
+import ViewTeamPerformance
+    from "../components/contributor/teamleader/team-management/ViewTeamPerformance";
+
+import CommunicateWithManager
+    from "../components/contributor/teamleader/communication/CommunicateWithManager";
+
+// ============================================================
+// ROLE HELPERS
+// ============================================================
+
+function normalizeRole(role) {
+    if (
+        role === 1 ||
+        role === "1" ||
+        String(role ?? "")
+            .trim()
+            .toLowerCase() === "admin"
+    ) {
+        return "Admin";
+    }
+
+    if (
+        role === 2 ||
+        role === "2" ||
+        String(role ?? "")
+            .trim()
+            .toLowerCase() === "manager"
+    ) {
+        return "Manager";
+    }
+
+    if (
+        role === 3 ||
+        role === "3" ||
+        String(role ?? "")
+            .trim()
+            .toLowerCase() === "contributor"
+    ) {
+        return "Contributor";
+    }
+
+    return "";
+}
+
+// ============================================================
+// CONTRIBUTOR TYPE HELPERS
+//
+// IMPORTANT:
+//
+// Team Leader, Staff and Developer are all Contributors
+// at the backend Role level.
+//
+// Their contributor type/subtype determines which dashboard
+// they are allowed to enter.
+//
+// We check both type and subtype because the exact database
+// classification can come through either field.
+// ============================================================
+
+function normalizeClassification(value) {
+    return String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ");
+}
+
+function getContributorClassifications(user) {
+    return [
+        user?.contributorTypeName,
+        user?.ContributorTypeName,
+        user?.contributorSubTypeName,
+        user?.ContributorSubTypeName,
+        user?.contributorType,
+        user?.ContributorType,
+        user?.contributorSubType,
+        user?.ContributorSubType,
+    ]
+        .filter(Boolean)
+        .map(normalizeClassification);
+}
+
+// ============================================================
+// ROLE GUARD
+// ============================================================
+
+function RoleRoute({ allowedRoles }) {
+    const user = getCurrentUser();
+
+    const userRole = normalizeRole(
+        user?.role ?? user?.Role ?? user?.roleId
+    );
+
+    const allowed = allowedRoles.includes(userRole);
+
+    if (!allowed) {
+        return (
+            <Navigate
+                to="/login"
+                replace
+            />
+        );
+    }
+
+    return <Outlet />;
+}
+
+// ============================================================
+// CONTRIBUTOR TYPE GUARD
+// ============================================================
+
+function ContributorTypeRoute({ allowedTypes }) {
+    const user = getCurrentUser();
+
+    const userRole = normalizeRole(
+        user?.role ??
+        user?.Role ??
+        user?.roleId
+    );
+
+    // Must first be a Contributor.
+    if (userRole !== "Contributor") {
+        return (
+            <Navigate
+                to="/login"
+                replace
+            />
+        );
+    }
+
+    const classifications =
+        getContributorClassifications(user);
+
+    const allowed =
+        classifications.some(
+            (classification) =>
+                allowedTypes.includes(
+                    classification
+                )
+        );
+
+    if (!allowed) {
+        console.warn(
+            "Contributor dashboard access denied.",
+            {
+                user,
+                classifications,
+                allowedTypes,
+            }
+        );
+
+        return (
+            <Navigate
+                to="/login"
+                replace
+            />
+        );
+    }
+
+    return <Outlet />;
+}
+
 // ============================================================
 // APP ROUTES
 // ============================================================
@@ -272,7 +430,7 @@ function AppRoutes() {
             />
 
             {/* ==================================================
-                PROTECTED ROUTES
+                AUTHENTICATION PROTECTION
             ================================================== */}
 
             <Route element={<ProtectedRoute />}>
@@ -281,80 +439,84 @@ function AppRoutes() {
                     ADMIN
                 ================================================== */}
 
-                <Route
-                    path="/admin"
-                    element={<AdminLayout />}
-                >
+                <Route element={<RoleRoute allowedRoles={["Admin"]} />}>
 
                     <Route
-                        index
-                        element={
-                            <Navigate
-                                to="dashboard"
-                                replace
-                            />
-                        }
-                    />
+                        path="/admin"
+                        element={<AdminLayout />}
+                    >
 
-                    <Route
-                        path="dashboard"
-                        element={<AdminDashboard />}
-                    />
+                        <Route
+                            index
+                            element={
+                                <Navigate
+                                    to="dashboard"
+                                    replace
+                                />
+                            }
+                        />
 
-                    <Route
-                        path="users"
-                        element={<AdminUsers />}
-                    />
+                        <Route
+                            path="dashboard"
+                            element={<AdminDashboard />}
+                        />
 
-                    <Route
-                        path="teams"
-                        element={<AdminTeamManagement />}
-                    />
+                        <Route
+                            path="users"
+                            element={<AdminUsers />}
+                        />
 
-                    <Route
-                        path="projects"
-                        element={<ProjectOversight />}
-                    />
+                        <Route
+                            path="teams"
+                            element={<AdminTeamManagement />}
+                        />
 
-                    <Route
-                        path="reports"
-                        element={<Reports />}
-                    />
+                        <Route
+                            path="projects"
+                            element={<ProjectOversight />}
+                        />
 
-                    <Route
-                        path="ai-admin"
-                        element={<AIAdministration />}
-                    />
+                        <Route
+                            path="reports"
+                            element={<Reports />}
+                        />
 
-                    <Route
-                        path="system-admin"
-                        element={<SystemAdministration />}
-                    />
+                        <Route
+                            path="ai-admin"
+                            element={<AIAdministration />}
+                        />
 
-                    <Route
-                        path="system/settings"
-                        element={<SystemSettings />}
-                    />
+                        <Route
+                            path="system-admin"
+                            element={<SystemAdministration />}
+                        />
 
-                    <Route
-                        path="system/notifications"
-                        element={<NotificationSettings />}
-                    />
+                        <Route
+                            path="system/settings"
+                            element={<SystemSettings />}
+                        />
 
-                    <Route
-                        path="system/security"
-                        element={<SecuritySettings />}
-                    />
+                        <Route
+                            path="system/notifications"
+                            element={<NotificationSettings />}
+                        />
 
-                    <Route
-                        path="profile"
-                        element={<ProfileManagement />}
-                    />
+                        <Route
+                            path="system/security"
+                            element={<SecuritySettings />}
+                        />
 
-                    <Route
-                        path="settings"
-                        element={<Settings />}
-                    />
+                        <Route
+                            path="profile"
+                            element={<ProfileManagement />}
+                        />
+
+                        <Route
+                            path="settings"
+                            element={<Settings />}
+                        />
+
+                    </Route>
 
                 </Route>
 
@@ -362,162 +524,166 @@ function AppRoutes() {
                     MANAGER
                 ================================================== */}
 
-                <Route
-                    path="/manager"
-                    element={<ManagerLayout />}
-                >
+                <Route element={<RoleRoute allowedRoles={["Manager"]} />}>
 
                     <Route
-                        index
-                        element={
-                            <Navigate
-                                to="dashboard"
-                                replace
-                            />
-                        }
-                    />
+                        path="/manager"
+                        element={<ManagerLayout />}
+                    >
 
-                    <Route
-                        path="dashboard"
-                        element={<ManagerDashboard />}
-                    />
+                        <Route
+                            index
+                            element={
+                                <Navigate
+                                    to="dashboard"
+                                    replace
+                                />
+                            }
+                        />
 
-                    <Route
-                        path="projects"
-                        element={<ProjectManagement />}
-                    />
+                        <Route
+                            path="dashboard"
+                            element={<ManagerDashboard />}
+                        />
 
-                    <Route
-                        path="sprints"
-                        element={<SprintManagement />}
-                    />
+                        <Route
+                            path="projects"
+                            element={<ProjectManagement />}
+                        />
 
-                    <Route
-                        path="team"
-                        element={<ManagerTeamManagement />}
-                    />
+                        <Route
+                            path="sprints"
+                            element={<SprintManagement />}
+                        />
 
-                    {/* ==============================
-                        COMMUNICATION
-                    ============================== */}
+                        <Route
+                            path="team"
+                            element={<ManagerTeamManagement />}
+                        />
 
-                    <Route
-                        path="notifications"
-                        element={<Notifications />}
-                    />
+                        {/* ==============================
+                            COMMUNICATION
+                        ============================== */}
 
-                    <Route
-                        path="messages"
-                        element={<ManagerMessages />}
-                    />
+                        <Route
+                            path="notifications"
+                            element={<Notifications />}
+                        />
 
-                    <Route
-                        path="activity-feed"
-                        element={<ActivityFeed />}
-                    />
+                        <Route
+                            path="messages"
+                            element={<ManagerMessages />}
+                        />
 
-                    <Route
-                        path="project-announcement"
-                        element={<SendProjectAnnouncement />}
-                    />
+                        <Route
+                            path="activity-feed"
+                            element={<ActivityFeed />}
+                        />
 
-                    {/* ==============================
-                        AI
-                    ============================== */}
+                        <Route
+                            path="project-announcement"
+                            element={<SendProjectAnnouncement />}
+                        />
 
-                    <Route
-                        path="ai-features"
-                        element={<AIFeatures />}
-                    />
+                        {/* ==============================
+                            AI
+                        ============================== */}
 
-                    <Route
-                        path="ai-risk"
-                        element={<AIPredictRisk />}
-                    />
+                        <Route
+                            path="ai-features"
+                            element={<AIFeatures />}
+                        />
 
-                    <Route
-                        path="ai-recommendations"
-                        element={<AIGenerateRecommendations />}
-                    />
+                        <Route
+                            path="ai-risk"
+                            element={<AIPredictRisk />}
+                        />
 
-                    <Route
-                        path="ai-team-performance"
-                        element={<AITeamPerformance />}
-                    />
+                        <Route
+                            path="ai-recommendations"
+                            element={<AIGenerateRecommendations />}
+                        />
 
-                    <Route
-                        path="ai-progress"
-                        element={<AIPredictProgress />}
-                    />
+                        <Route
+                            path="ai-team-performance"
+                            element={<AITeamPerformance />}
+                        />
 
-                    <Route
-                        path="ai-deadline"
-                        element={<AIDeadlinePrediction />}
-                    />
+                        <Route
+                            path="ai-progress"
+                            element={<AIPredictProgress />}
+                        />
 
-                    <Route
-                        path="ai-sprint-planning"
-                        element={<AISprintPlanning />}
-                    />
+                        <Route
+                            path="ai-deadline"
+                            element={<AIDeadlinePrediction />}
+                        />
 
-                    <Route
-                        path="ai-project-summary"
-                        element={<AIAutomatedProjectSummary />}
-                    />
+                        <Route
+                            path="ai-sprint-planning"
+                            element={<AISprintPlanning />}
+                        />
 
-                    <Route
-                        path="ai-bottlenecks"
-                        element={<AIDetectBottlenecks />}
-                    />
+                        <Route
+                            path="ai-project-summary"
+                            element={<AIAutomatedProjectSummary />}
+                        />
 
-                    {/* ==============================
-                        REPORTS
-                    ============================== */}
+                        <Route
+                            path="ai-bottlenecks"
+                            element={<AIDetectBottlenecks />}
+                        />
 
-                    <Route
-                        path="reports"
-                        element={<ManagerReports />}
-                    />
+                        {/* ==============================
+                            REPORTS
+                        ============================== */}
 
-                    {/* ==============================
-                        PROFILE
-                    ============================== */}
+                        <Route
+                            path="reports"
+                            element={<ManagerReports />}
+                        />
 
-                    <Route
-                        path="profile"
-                        element={<ManagerProfile />}
-                    />
+                        {/* ==============================
+                            PROFILE
+                        ============================== */}
 
-                    {/* ==============================
-                        SETTINGS
-                    ============================== */}
+                        <Route
+                            path="profile"
+                            element={<ManagerProfile />}
+                        />
 
-                    <Route
-                        path="settings"
-                        element={<ManagerSettings />}
-                    />
+                        {/* ==============================
+                            SETTINGS
+                        ============================== */}
 
-                    {/* ==============================
-                        HELP
-                    ============================== */}
+                        <Route
+                            path="settings"
+                            element={<ManagerSettings />}
+                        />
 
-                    <Route
-                        path="help"
-                        element={
-                            <div className="p-6">
-                                Help
-                            </div>
-                        }
-                    />
+                        {/* ==============================
+                            HELP
+                        ============================== */}
 
-                    {/* ==============================
-                        LOGOUT
-                    ============================== */}
+                        <Route
+                            path="help"
+                            element={
+                                <div className="p-6">
+                                    Help
+                                </div>
+                            }
+                        />
 
-                    <Route
-                        path="logout"
-                        element={<Logout />}
-                    />
+                        {/* ==============================
+                            LOGOUT
+                        ============================== */}
+
+                        <Route
+                            path="logout"
+                            element={<Logout />}
+                        />
+
+                    </Route>
 
                 </Route>
 
@@ -526,54 +692,66 @@ function AppRoutes() {
                 ================================================== */}
 
                 <Route
-                    path="/staff"
-                    element={<StaffLayout />}
+                    element={
+                        <ContributorTypeRoute
+                            allowedTypes={[
+                                "staff",
+                            ]}
+                        />
+                    }
                 >
 
                     <Route
-                        index
-                        element={
-                            <Navigate
-                                to="dashboard"
-                                replace
-                            />
-                        }
-                    />
+                        path="/staff"
+                        element={<StaffLayout />}
+                    >
 
-                    <Route
-                        path="dashboard"
-                        element={<StaffDashboard />}
-                    />
+                        <Route
+                            index
+                            element={
+                                <Navigate
+                                    to="dashboard"
+                                    replace
+                                />
+                            }
+                        />
 
-                    <Route
-                        path="my-work"
-                        element={<ViewMyWork />}
-                    />
+                        <Route
+                            path="dashboard"
+                            element={<StaffDashboard />}
+                        />
 
-                    <Route
-                        path="task-comments"
-                        element={<AddTaskComment />}
-                    />
+                        <Route
+                            path="my-work"
+                            element={<ViewMyWork />}
+                        />
 
-                    <Route
-                        path="specialized-work"
-                        element={<PerformSpecializedWork />}
-                    />
+                        <Route
+                            path="task-comments"
+                            element={<AddTaskComment />}
+                        />
 
-                    <Route
-                        path="submit-work"
-                        element={<SubmitCompletedWork />}
-                    />
+                        <Route
+                            path="specialized-work"
+                            element={<PerformSpecializedWork />}
+                        />
 
-                    <Route
-                        path="update-task-status"
-                        element={<UpdateTaskStatus />}
-                    />
+                        <Route
+                            path="submit-work"
+                            element={<SubmitCompletedWork />}
+                        />
 
-                    <Route
-                        path="upload-files"
-                        element={<UploadWorkFiles />}
-                    />
+                        <Route
+                            path="update-task-status"
+                            element={<UpdateTaskStatus />}
+                        />
+
+                        <Route
+                            path="upload-files"
+                            element={<UploadWorkFiles />}
+                        />
+
+                    </Route>
 
                 </Route>
 
@@ -582,115 +760,114 @@ function AppRoutes() {
                 ================================================== */}
 
                 <Route
-                    path="/developer"
-                    element={<DeveloperLayout />}
+                    element={
+                        <ContributorTypeRoute
+                            allowedTypes={[
+                                "developer",
+                            ]}
+                        />
+                    }
                 >
 
-                    {/* ==============================
-                        DEFAULT
-                    ============================== */}
-
                     <Route
-                        index
-                        element={
-                            <Navigate
-                                to="dashboard"
-                                replace
-                            />
-                        }
-                    />
+                        path="/developer"
+                        element={<DeveloperLayout />}
+                    >
 
-                    {/* ==============================
-                        DASHBOARD
-                        /developer/dashboard
-                    ============================== */}
+                        <Route
+                            index
+                            element={
+                                <Navigate
+                                    to="dashboard"
+                                    replace
+                                />
+                            }
+                        />
 
-                    <Route
-                        path="dashboard"
-                        element={<DeveloperDashboard />}
-                    />
+                        {/* ==============================
+                            DASHBOARD
+                        ============================== */}
 
-                    {/* ==============================
-                        MAIN DEVELOPER WORK
-                        /developer/work
-                    ============================== */}
+                        <Route
+                            path="dashboard"
+                            element={<DeveloperDashboard />}
+                        />
 
-                    <Route
-                        path="work"
-                        element={<Developer />}
-                    />
+                        {/* ==============================
+                            MAIN DEVELOPER WORK
+                        ============================== */}
 
-                    {/* ==============================
-                        COMMUNICATION
-                        /developer/communication
-                    ============================== */}
+                        <Route
+                            path="work"
+                            element={<Developer />}
+                        />
 
-                    <Route
-                        path="communication"
-                        element={<DeveloperCommunication />}
-                    />
+                        {/* ==============================
+                            COMMUNICATION
+                        ============================== */}
 
-                    {/* ==============================
-                        PROFILE
-                        /developer/profile
-                    ============================== */}
+                        <Route
+                            path="communication"
+                            element={<DeveloperCommunication />}
+                        />
 
-                    <Route
-                        path="profile"
-                        element={<DeveloperProfile />}
-                    />
+                        {/* ==============================
+                            PROFILE
+                        ============================== */}
 
-                    {/* ==============================
-                        PROJECTS
-                        /developer/projects
-                    ============================== */}
+                        <Route
+                            path="profile"
+                            element={<DeveloperProfile />}
+                        />
 
-                    <Route
-                        path="projects"
-                        element={<DeveloperProjects />}
-                    />
+                        {/* ==============================
+                            PROJECTS
+                        ============================== */}
 
-                    {/* ==============================
-                        REPORTS
-                        /developer/reports
-                    ============================== */}
+                        <Route
+                            path="projects"
+                            element={<DeveloperProjects />}
+                        />
 
-                    <Route
-                        path="reports"
-                        element={<DeveloperReports />}
-                    />
+                        {/* ==============================
+                            REPORTS
+                        ============================== */}
 
-                    {/* ==============================
-                        SETTINGS
-                        /developer/settings
-                    ============================== */}
+                        <Route
+                            path="reports"
+                            element={<DeveloperReports />}
+                        />
 
-                    <Route
-                        path="settings"
-                        element={<DeveloperSettings />}
-                    />
+                        {/* ==============================
+                            SETTINGS
+                        ============================== */}
 
-                    {/* ==============================
-                        SPRINT PARTICIPATION
-                        /developer/sprint-participation
-                    ============================== */}
+                        <Route
+                            path="settings"
+                            element={<DeveloperSettings />}
+                        />
 
-                    <Route
-                        path="sprint-participation"
-                        element={
-                            <DeveloperSprintParticipation />
-                        }
-                    />
+                        {/* ==============================
+                            SPRINT PARTICIPATION
+                        ============================== */}
 
-                    {/* ==============================
-                        TASK MANAGEMENT
-                        /developer/tasks
-                    ============================== */}
+                        <Route
+                            path="sprint-participation"
+                            element={
+                                <DeveloperSprintParticipation />
+                            }
+                        />
 
-                    <Route
-                        path="tasks"
-                        element={<DeveloperTasks />}
-                    />
+                        {/* ==============================
+                            TASK MANAGEMENT
+                        ============================== */}
+
+                        <Route
+                            path="tasks"
+                            element={<DeveloperTasks />}
+                        />
+
+                    </Route>
 
                 </Route>
 
@@ -699,65 +876,77 @@ function AppRoutes() {
                 ================================================== */}
 
                 <Route
-                    path="/team-leader"
-                    element={<TeamLeaderLayout />}
+                    element={
+                        <ContributorTypeRoute
+                            allowedTypes={[
+                                "team leader",
+                            ]}
+                        />
+                    }
                 >
 
                     <Route
-                        index
-                        element={
-                            <Navigate
-                                to="dashboard"
-                                replace
-                            />
-                        }
-                    />
+                        path="/team-leader"
+                        element={<TeamLeaderLayout />}
+                    >
 
-                    <Route
-                        path="dashboard"
-                        element={
-                            <TeamLeaderDashboard />
-                        }
-                    />
+                        <Route
+                            index
+                            element={
+                                <Navigate
+                                    to="dashboard"
+                                    replace
+                                />
+                            }
+                        />
 
-                    <Route
-                        path="work"
-                        element={<TeamLeader />}
-                    />
+                        <Route
+                            path="dashboard"
+                            element={
+                                <TeamLeaderDashboard />
+                            }
+                        />
 
-                    <Route
-                        path="assigned-team"
-                        element={<ViewAssignedTeam />}
-                    />
+                        <Route
+                            path="work"
+                            element={<TeamLeader />}
+                        />
 
-                    <Route
-                        path="team-tasks"
-                        element={<ViewTeamTasks />}
-                    />
+                        <Route
+                            path="assigned-team"
+                            element={<ViewAssignedTeam />}
+                        />
 
-                    <Route
-                        path="team-progress"
-                        element={<MonitorTeamProgress />}
-                    />
+                        <Route
+                            path="team-tasks"
+                            element={<ViewTeamTasks />}
+                        />
 
-                    <Route
-                        path="coordinate-work"
-                        element={<CoordinateTeamWork />}
-                    />
+                        <Route
+                            path="team-progress"
+                            element={<MonitorTeamProgress />}
+                        />
 
-                    <Route
-                        path="manager-communication"
-                        element={
-                            <CommunicateWithManager />
-                        }
-                    />
+                        <Route
+                            path="coordinate-work"
+                            element={<CoordinateTeamWork />}
+                        />
 
-                    <Route
-                        path="team-performance"
-                        element={
-                            <ViewTeamPerformance />
-                        }
-                    />
+                        <Route
+                            path="manager-communication"
+                            element={
+                                <CommunicateWithManager />
+                            }
+                        />
+
+                        <Route
+                            path="team-performance"
+                            element={
+                                <ViewTeamPerformance />
+                            }
+                        />
+
+                    </Route>
 
                 </Route>
 
