@@ -460,12 +460,12 @@ function AIAdministration({
         >
 
           <AISuggestions
-  suggestions={suggestions}
-  users={users}
-  projects={projects} // <-- Make sure this is here and not empty!
-  teams={teams}
-  loading={loading}
-/>
+            suggestions={suggestions}
+            users={users}
+            projects={projects}
+            teams={teams}
+            loading={loading}
+          />
 
         </TabsContent>
 

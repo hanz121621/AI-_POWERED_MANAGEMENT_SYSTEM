@@ -27,19 +27,22 @@ function Communication() {
         {
             id: "messages",
             title: "Messages",
-            description: "Receive and view messages from your team and manager.",
+            description:
+                "Receive and view messages from your team and manager.",
             icon: MessageSquare,
         },
         {
             id: "mentions",
             title: "Team Mentions",
-            description: "View and manage mentions from team members.",
+            description:
+                "View and manage mentions from team members.",
             icon: AtSign,
         },
         {
             id: "notifications",
             title: "Notifications",
-            description: "View your latest project and task notifications.",
+            description:
+                "View your latest project and task notifications.",
             icon: Bell,
         },
     ];
@@ -69,7 +72,7 @@ function Communication() {
     // ============================================================
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+        <div className="w-full">
 
             {/* ==================================================
                 PAGE HEADER
@@ -79,17 +82,18 @@ function Communication() {
 
                 <div className="flex items-center gap-3">
 
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm">
                         <MessageSquare size={22} />
                     </div>
 
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">
+                        <h1 className="text-2xl font-bold text-foreground">
                             Communication
                         </h1>
 
-                        <p className="mt-1 text-sm text-slate-500">
-                            Communicate with your team, manager, and project members.
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Communicate with your team, manager, and project
+                            members.
                         </p>
                     </div>
 
@@ -103,20 +107,22 @@ function Communication() {
 
             <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
 
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                {/* Messages */}
+
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
 
                     <div className="flex items-center gap-3">
 
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                             <MessageSquare size={20} />
                         </div>
 
                         <div>
-                            <p className="text-sm font-medium text-slate-500">
+                            <p className="text-sm font-medium text-muted-foreground">
                                 Messages
                             </p>
 
-                            <p className="text-lg font-bold text-slate-900">
+                            <p className="text-lg font-bold text-card-foreground">
                                 Team Communication
                             </p>
                         </div>
@@ -125,20 +131,22 @@ function Communication() {
 
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                {/* Mentions */}
+
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
 
                     <div className="flex items-center gap-3">
 
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                             <AtSign size={20} />
                         </div>
 
                         <div>
-                            <p className="text-sm font-medium text-slate-500">
+                            <p className="text-sm font-medium text-muted-foreground">
                                 Mentions
                             </p>
 
-                            <p className="text-lg font-bold text-slate-900">
+                            <p className="text-lg font-bold text-card-foreground">
                                 Team Members
                             </p>
                         </div>
@@ -147,20 +155,22 @@ function Communication() {
 
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                {/* Notifications */}
+
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
 
                     <div className="flex items-center gap-3">
 
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                             <Bell size={20} />
                         </div>
 
                         <div>
-                            <p className="text-sm font-medium text-slate-500">
+                            <p className="text-sm font-medium text-muted-foreground">
                                 Notifications
                             </p>
 
-                            <p className="text-lg font-bold text-slate-900">
+                            <p className="text-lg font-bold text-card-foreground">
                                 Project Updates
                             </p>
                         </div>
@@ -175,9 +185,9 @@ function Communication() {
                 COMMUNICATION NAVIGATION
             ================================================== */}
 
-            <div className="mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="mb-6 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
 
-                <div className="border-b border-slate-200 p-3">
+                <div className="border-b border-border p-3">
 
                     <div className="flex flex-wrap gap-2">
 
@@ -197,8 +207,8 @@ function Communication() {
                                     }
                                     className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition ${
                                         isActive
-                                            ? "bg-blue-600 text-white shadow-sm"
-                                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                            ? "bg-primary text-primary-foreground shadow-sm"
+                                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                                     }`}
                                 >
                                     <Icon size={18} />
@@ -234,18 +244,20 @@ function Communication() {
                                 className="flex items-start gap-3"
                             >
 
-                                <div className="mt-0.5 text-blue-600">
+                                <div className="mt-0.5 text-primary">
                                     <Icon size={19} />
                                 </div>
 
                                 <div>
-                                    <h2 className="font-semibold text-slate-900">
+
+                                    <h2 className="font-semibold text-card-foreground">
                                         {section.title}
                                     </h2>
 
-                                    <p className="mt-1 text-sm text-slate-500">
+                                    <p className="mt-1 text-sm text-muted-foreground">
                                         {section.description}
                                     </p>
+
                                 </div>
 
                             </div>
@@ -270,22 +282,22 @@ function Communication() {
                 FOOTER INFORMATION
             ================================================== */}
 
-            <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-4">
+            <div className="mt-6 rounded-xl border border-border bg-primary/10 p-4">
 
                 <div className="flex items-start gap-3">
 
                     <Users
                         size={20}
-                        className="mt-0.5 text-blue-600"
+                        className="mt-0.5 text-primary"
                     />
 
                     <div>
 
-                        <h3 className="font-semibold text-blue-900">
+                        <h3 className="font-semibold text-foreground">
                             Staff Communication
                         </h3>
 
-                        <p className="mt-1 text-sm text-blue-700">
+                        <p className="mt-1 text-sm text-muted-foreground">
                             Use this section to communicate with team
                             members, receive messages, view mentions,
                             and stay updated with project notifications.

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 
 import {
@@ -70,7 +69,7 @@ function ProfileManagement() {
     // ============================================================
 
     return (
-        <div className="min-h-screen bg-slate-950 p-4 sm:p-6 lg:p-8 text-white">
+        <div className="w-full">
             <div className="mx-auto max-w-7xl">
 
                 {/* ==================================================
@@ -78,26 +77,47 @@ function ProfileManagement() {
                 ================================================== */}
 
                 <div className="mb-8">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-4">
 
-                        <div className="flex items-start gap-4">
-                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-600/20 ring-1 ring-blue-500/30">
-                                <UserCircle
-                                    size={30}
-                                    className="text-blue-400"
-                                />
-                            </div>
+                        {/* Icon */}
 
-                            <div>
-                                <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                                    Profile Management
-                                </h1>
+                        <div
+                            className="
+                                flex h-14 w-14 shrink-0 items-center
+                                justify-center rounded-2xl
+                                bg-primary/10
+                                ring-1 ring-primary/20
+                            "
+                        >
+                            <UserCircle
+                                size={30}
+                                className="text-primary"
+                            />
+                        </div>
 
-                                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
-                                    Manage and view your staff profile information,
-                                    personal details, and professional information.
-                                </p>
-                            </div>
+                        {/* Title */}
+
+                        <div>
+                            <h1
+                                className="
+                                    text-2xl font-bold tracking-tight
+                                    text-foreground
+                                    sm:text-3xl
+                                "
+                            >
+                                Profile Management
+                            </h1>
+
+                            <p
+                                className="
+                                    mt-1 max-w-2xl text-sm leading-6
+                                    text-muted-foreground
+                                    sm:text-base
+                                "
+                            >
+                                Manage and view your staff profile information,
+                                personal details, and professional information.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -106,21 +126,50 @@ function ProfileManagement() {
                     INFORMATION BANNER
                 ================================================== */}
 
-                <div className="mb-8 rounded-2xl border border-blue-500/20 bg-blue-950/30 p-5">
+                <div
+                    className="
+                        mb-8 rounded-2xl
+                        border border-border
+                        bg-card
+                        p-5
+                        shadow-sm
+                    "
+                >
                     <div className="flex items-start gap-4">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600/20">
+
+                        {/* Icon */}
+
+                        <div
+                            className="
+                                flex h-10 w-10 shrink-0 items-center
+                                justify-center rounded-xl
+                                bg-primary/10
+                            "
+                        >
                             <UserRound
                                 size={20}
-                                className="text-blue-400"
+                                className="text-primary"
                             />
                         </div>
 
+                        {/* Information */}
+
                         <div>
-                            <h2 className="font-semibold text-white">
+                            <h2
+                                className="
+                                    font-semibold
+                                    text-card-foreground
+                                "
+                            >
                                 Staff Profile
                             </h2>
 
-                            <p className="mt-1 text-sm leading-6 text-slate-400">
+                            <p
+                                className="
+                                    mt-1 text-sm leading-6
+                                    text-muted-foreground
+                                "
+                            >
                                 Use the options below to view your profile
                                 information or update the information you are
                                 permitted to change.
@@ -134,15 +183,30 @@ function ProfileManagement() {
                 ================================================== */}
 
                 <div>
+
+                    {/* Section Header */}
+
                     <div className="mb-4">
-                        <h2 className="text-lg font-semibold text-white">
+                        <h2
+                            className="
+                                text-lg font-semibold
+                                text-foreground
+                            "
+                        >
                             Profile Management Use Cases
                         </h2>
 
-                        <p className="mt-1 text-sm text-slate-400">
+                        <p
+                            className="
+                                mt-1 text-sm
+                                text-muted-foreground
+                            "
+                        >
                             Select an action to continue.
                         </p>
                     </div>
+
+                    {/* Use Case Cards */}
 
                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
 
@@ -153,44 +217,121 @@ function ProfileManagement() {
                                 <button
                                     key={useCase.id}
                                     type="button"
-                                    onClick={() => handleOpenUseCase(useCase)}
-                                    className="group rounded-2xl border border-slate-800 bg-slate-900/80 p-6 text-left shadow-lg shadow-black/10 transition duration-200 hover:-translate-y-1 hover:border-blue-500/40 hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                    onClick={() =>
+                                        handleOpenUseCase(useCase)
+                                    }
+                                    className="
+                                        group w-full rounded-2xl
+                                        border border-border
+                                        bg-card
+                                        p-6 text-left
+                                        shadow-sm
+                                        transition-all duration-200
+                                        hover:-translate-y-1
+                                        hover:border-primary/40
+                                        hover:shadow-md
+                                        focus:outline-none
+                                        focus:ring-2
+                                        focus:ring-primary/40
+                                    "
                                 >
-                                    {/* Icon + Use Case ID */}
 
-                                    <div className="mb-5 flex items-start justify-between gap-4">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600/15 ring-1 ring-blue-500/20 transition group-hover:bg-blue-600/25">
+                                    {/* ==================================================
+                                        ICON + USE CASE ID
+                                    ================================================== */}
+
+                                    <div
+                                        className="
+                                            mb-5 flex items-start
+                                            justify-between gap-4
+                                        "
+                                    >
+
+                                        {/* Icon */}
+
+                                        <div
+                                            className="
+                                                flex h-12 w-12
+                                                items-center justify-center
+                                                rounded-xl
+                                                bg-primary/10
+                                                ring-1 ring-primary/20
+                                                transition
+                                                group-hover:bg-primary/15
+                                            "
+                                        >
                                             <Icon
                                                 size={24}
-                                                className="text-blue-400"
+                                                className="text-primary"
                                             />
                                         </div>
 
-                                        <span className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs font-medium text-slate-400">
+                                        {/* Use Case ID */}
+
+                                        <span
+                                            className="
+                                                rounded-full
+                                                border border-border
+                                                bg-muted
+                                                px-3 py-1
+                                                text-xs font-medium
+                                                text-muted-foreground
+                                            "
+                                        >
                                             {useCase.id}
                                         </span>
                                     </div>
 
-                                    {/* Title */}
+                                    {/* ==================================================
+                                        TITLE
+                                    ================================================== */}
 
-                                    <h3 className="text-lg font-semibold text-white transition group-hover:text-blue-300">
+                                    <h3
+                                        className="
+                                            text-lg font-semibold
+                                            text-card-foreground
+                                            transition
+                                            group-hover:text-primary
+                                        "
+                                    >
                                         {useCase.title}
                                     </h3>
 
-                                    {/* Description */}
+                                    {/* ==================================================
+                                        DESCRIPTION
+                                    ================================================== */}
 
-                                    <p className="mt-2 min-h-[48px] text-sm leading-6 text-slate-400">
+                                    <p
+                                        className="
+                                            mt-2 min-h-[48px]
+                                            text-sm leading-6
+                                            text-muted-foreground
+                                        "
+                                    >
                                         {useCase.description}
                                     </p>
 
-                                    {/* Action */}
+                                    {/* ==================================================
+                                        ACTION
+                                    ================================================== */}
 
-                                    <div className="mt-6 flex items-center gap-2 text-sm font-medium text-blue-400">
+                                    <div
+                                        className="
+                                            mt-6 flex items-center gap-2
+                                            text-sm font-medium
+                                            text-primary
+                                        "
+                                    >
                                         <span>
                                             Open
                                         </span>
 
-                                        <span className="transition-transform group-hover:translate-x-1">
+                                        <span
+                                            className="
+                                                transition-transform
+                                                group-hover:translate-x-1
+                                            "
+                                        >
                                             →
                                         </span>
                                     </div>
@@ -207,44 +348,110 @@ function ProfileManagement() {
 
             {selectedUseCase && SelectedComponent && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+                    className="
+                        fixed inset-0 z-50 flex
+                        items-center justify-center
+                        bg-black/50
+                        p-4
+                        backdrop-blur-sm
+                    "
                     onMouseDown={handleCloseModal}
                 >
                     <div
-                        className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
-                        onMouseDown={(event) => event.stopPropagation()}
+                        className="
+                            flex max-h-[90vh] w-full max-w-5xl
+                            flex-col overflow-hidden
+                            rounded-2xl
+                            border border-border
+                            bg-background
+                            shadow-2xl
+                        "
+                        onMouseDown={(event) =>
+                            event.stopPropagation()
+                        }
                     >
+
                         {/* ==================================================
                             MODAL HEADER
                         ================================================== */}
 
-                        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/80 px-5 py-4 sm:px-6">
-                            <div className="flex min-w-0 items-center gap-3">
+                        <div
+                            className="
+                                flex items-center
+                                justify-between
+                                border-b border-border
+                                bg-card
+                                px-5 py-4
+                                sm:px-6
+                            "
+                        >
+                            <div
+                                className="
+                                    flex min-w-0
+                                    items-center gap-3
+                                "
+                            >
 
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600/15">
+                                {/* Selected Icon */}
+
+                                <div
+                                    className="
+                                        flex h-10 w-10 shrink-0
+                                        items-center justify-center
+                                        rounded-xl
+                                        bg-primary/10
+                                    "
+                                >
                                     {SelectedIcon && (
                                         <SelectedIcon
                                             size={20}
-                                            className="text-blue-400"
+                                            className="text-primary"
                                         />
                                     )}
                                 </div>
 
+                                {/* Title */}
+
                                 <div className="min-w-0">
-                                    <h2 className="truncate text-lg font-semibold text-white">
+                                    <h2
+                                        className="
+                                            truncate text-lg
+                                            font-semibold
+                                            text-foreground
+                                        "
+                                    >
                                         {selectedUseCase.title}
                                     </h2>
 
-                                    <p className="text-xs text-slate-500">
+                                    <p
+                                        className="
+                                            text-xs
+                                            text-muted-foreground
+                                        "
+                                    >
                                         {selectedUseCase.id}
                                     </p>
                                 </div>
                             </div>
 
+                            {/* Close */}
+
                             <button
                                 type="button"
                                 onClick={handleCloseModal}
-                                className="ml-4 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                                className="
+                                    ml-4 flex h-9 w-9
+                                    shrink-0 items-center
+                                    justify-center
+                                    rounded-lg
+                                    text-muted-foreground
+                                    transition
+                                    hover:bg-muted
+                                    hover:text-foreground
+                                    focus:outline-none
+                                    focus:ring-2
+                                    focus:ring-primary/40
+                                "
                                 aria-label="Close"
                             >
                                 <X size={20} />
@@ -255,7 +462,14 @@ function ProfileManagement() {
                             MODAL CONTENT
                         ================================================== */}
 
-                        <div className="overflow-y-auto p-4 sm:p-6">
+                        <div
+                            className="
+                                overflow-y-auto
+                                bg-background
+                                p-4
+                                sm:p-6
+                            "
+                        >
                             <SelectedComponent />
                         </div>
                     </div>

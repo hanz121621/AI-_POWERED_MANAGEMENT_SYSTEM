@@ -39,7 +39,9 @@ const LANGUAGES = [
 // ============================================================
 
 function getInitialLanguage() {
-    const storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    const storedLanguage = localStorage.getItem(
+        LANGUAGE_STORAGE_KEY
+    );
 
     if (storedLanguage === "am" || storedLanguage === "en") {
         return storedLanguage;
@@ -63,8 +65,8 @@ function LanguageCard({
             onClick={() => onSelect(language.code)}
             className={`w-full rounded-xl border p-5 text-left transition ${
                 selected
-                    ? "border-blue-500 bg-blue-500/10"
-                    : "border-slate-700 bg-slate-900/50 hover:border-slate-600 hover:bg-slate-800/60"
+                    ? "border-primary/30 bg-primary/10"
+                    : "border-border bg-card hover:bg-muted"
             }`}
         >
             <div className="flex items-start justify-between gap-4">
@@ -72,23 +74,23 @@ function LanguageCard({
                     <div
                         className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
                             selected
-                                ? "bg-blue-600 text-white"
-                                : "bg-slate-800 text-slate-400"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-muted-foreground"
                         }`}
                     >
                         <Languages size={22} />
                     </div>
 
                     <div>
-                        <h3 className="font-semibold text-white">
+                        <h3 className="font-semibold text-card-foreground">
                             {language.name}
                         </h3>
 
-                        <p className="mt-1 text-lg font-medium text-blue-300">
+                        <p className="mt-1 text-lg font-medium text-primary">
                             {language.nativeName}
                         </p>
 
-                        <p className="mt-2 text-sm text-slate-400">
+                        <p className="mt-2 text-sm text-muted-foreground">
                             {language.description}
                         </p>
                     </div>
@@ -97,8 +99,8 @@ function LanguageCard({
                 <div
                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
                         selected
-                            ? "border-blue-500 bg-blue-600 text-white"
-                            : "border-slate-600 text-transparent"
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border text-transparent"
                     }`}
                 >
                     <Check size={15} />
@@ -152,10 +154,15 @@ function ChangeLanguagePreferences() {
             setSaved(true);
             setError("");
         } catch (err) {
-            console.error("Failed to save language preference:", err);
+            console.error(
+                "Failed to save language preference:",
+                err
+            );
+
             setError(
                 "Unable to save the language preference. Please try again."
             );
+
             setSaved(false);
         }
     };
@@ -176,7 +183,8 @@ function ChangeLanguagePreferences() {
 
     const currentLanguage =
         LANGUAGES.find(
-            (language) => language.code === selectedLanguage
+            (language) =>
+                language.code === selectedLanguage
         ) || LANGUAGES[0];
 
     // ========================================================
@@ -184,55 +192,65 @@ function ChangeLanguagePreferences() {
     // ========================================================
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
+        <div className="space-y-6 text-foreground">
+            {/* ==================================================
+                HEADER
+            ================================================== */}
+
             <div>
                 <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                         <Languages size={22} />
                     </div>
 
                     <div>
-                        <h2 className="text-xl font-bold text-white">
+                        <h2 className="text-xl font-bold text-foreground">
                             Language Preferences
                         </h2>
 
-                        <p className="text-sm text-slate-400">
-                            Choose the language used throughout the system.
+                        <p className="text-sm text-muted-foreground">
+                            Choose the language used throughout
+                            the system.
                         </p>
                     </div>
                 </div>
             </div>
 
-            {/* Information */}
-            <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
+            {/* ==================================================
+                INFORMATION
+            ================================================== */}
+
+            <div className="flex gap-3 rounded-xl border border-primary/30 bg-primary/10 p-4">
                 <Info
                     size={20}
-                    className="mt-0.5 shrink-0 text-blue-400"
+                    className="mt-0.5 shrink-0 text-primary"
                 />
 
                 <div>
-                    <p className="font-medium text-blue-300">
+                    <p className="font-medium text-primary">
                         Current language:{" "}
                         {currentLanguage.nativeName}
                     </p>
 
-                    <p className="mt-1 text-sm text-slate-400">
-                        Select a language below and click Save Changes
-                        to apply your preference.
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Select a language below and click Save
+                        Changes to apply your preference.
                     </p>
                 </div>
             </div>
 
-            {/* Language Options */}
+            {/* ==================================================
+                LANGUAGE OPTIONS
+            ================================================== */}
+
             <div className="space-y-3">
                 <div className="flex items-center gap-2">
                     <Globe2
                         size={18}
-                        className="text-slate-400"
+                        className="text-primary"
                     />
 
-                    <h3 className="font-semibold text-white">
+                    <h3 className="font-semibold text-foreground">
                         Available Languages
                     </h3>
                 </div>
@@ -243,65 +261,83 @@ function ChangeLanguagePreferences() {
                             key={language.code}
                             language={language}
                             selected={
-                                selectedLanguage === language.code
+                                selectedLanguage ===
+                                language.code
                             }
-                            onSelect={handleSelectLanguage}
+                            onSelect={
+                                handleSelectLanguage
+                            }
                         />
                     ))}
                 </div>
             </div>
 
-            {/* Amharic Preview */}
+            {/* ==================================================
+                AMHARIC PREVIEW
+            ================================================== */}
+
             {selectedLanguage === "am" && (
-                <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-5">
-                    <p className="mb-3 text-sm font-medium text-slate-300">
+                <div className="rounded-xl border border-border bg-card p-5">
+                    <p className="mb-3 text-sm font-medium text-card-foreground">
                         Amharic Preview
                     </p>
 
-                    <div className="space-y-2 text-sm text-slate-400">
+                    <div className="space-y-2 text-sm text-muted-foreground">
                         <p>
-                            <span className="text-white">
+                            <span className="text-foreground">
                                 የሰራተኛ መገለጫ:
                             </span>{" "}
-                            የግል መረጃዎን ይመልከቱ እና ያስተካክሉ።
+                            የግል መረጃዎን ይመልከቱ እና
+                            ያስተካክሉ።
                         </p>
 
                         <p>
-                            <span className="text-white">
+                            <span className="text-foreground">
                                 የተመደቡ ስራዎች:
                             </span>{" "}
                             የተመደቡልዎትን ስራዎች ይመልከቱ።
                         </p>
 
                         <p>
-                            <span className="text-white">
+                            <span className="text-foreground">
                                 ማሳወቂያዎች:
                             </span>{" "}
-                            አዲስ መልዕክቶችን እና የስራ ማሳወቂያዎችን ይመልከቱ።
+                            አዲስ መልዕክቶችን እና የስራ
+                            ማሳወቂያዎችን ይመልከቱ።
                         </p>
                     </div>
                 </div>
             )}
 
-            {/* Messages */}
+            {/* ==================================================
+                SUCCESS MESSAGE
+            ================================================== */}
+
             {saved && (
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                <div className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
                     Language preference saved successfully.
                 </div>
             )}
 
+            {/* ==================================================
+                ERROR MESSAGE
+            ================================================== */}
+
             {error && (
-                <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                <div className="rounded-xl border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
                     {error}
                 </div>
             )}
 
-            {/* Actions */}
-            <div className="flex flex-col gap-3 border-t border-slate-700 pt-5 sm:flex-row sm:justify-end">
+            {/* ==================================================
+                ACTIONS
+            ================================================== */}
+
+            <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end">
                 <button
                     type="button"
                     onClick={handleReset}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-5 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-slate-700"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
                 >
                     <RotateCcw size={17} />
                     Reset
@@ -310,7 +346,7 @@ function ChangeLanguagePreferences() {
                 <button
                     type="button"
                     onClick={handleSave}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-500"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
                 >
                     <Save size={17} />
                     Save Changes

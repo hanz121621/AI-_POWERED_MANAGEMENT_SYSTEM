@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+
 import {
     MessageSquare,
     AtSign,
@@ -92,7 +93,7 @@ function Communication() {
     // ========================================================
 
     return (
-        <div className="min-h-screen bg-slate-950 p-4 text-white sm:p-6 lg:p-8">
+        <div className="w-full bg-background p-4 text-foreground sm:p-6 lg:p-8">
             <div className="mx-auto max-w-7xl">
 
                 {/* ==================================================
@@ -102,16 +103,16 @@ function Communication() {
                 <div className="mb-8">
                     <div className="flex items-center gap-3">
 
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                             <MessageSquare size={25} />
                         </div>
 
                         <div>
-                            <h1 className="text-2xl font-bold text-white sm:text-3xl">
+                            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
                                 Communication
                             </h1>
 
-                            <p className="mt-1 text-sm text-slate-400 sm:text-base">
+                            <p className="mt-1 text-sm text-muted-foreground sm:text-base">
                                 Communicate with managers and team
                                 members and stay informed.
                             </p>
@@ -138,40 +139,40 @@ function Communication() {
                                         useCase
                                     )
                                 }
-                                className="group rounded-2xl border border-slate-700 bg-slate-900/70 p-5 text-left transition duration-200 hover:-translate-y-1 hover:border-blue-500/50 hover:bg-slate-900"
+                                className="group rounded-2xl border border-border bg-card p-5 text-left text-card-foreground transition duration-200 hover:-translate-y-1 hover:border-primary/50 hover:bg-muted"
                             >
 
                                 {/* Card Top */}
                                 <div className="flex items-start justify-between">
 
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600/15 text-blue-400 transition group-hover:bg-blue-600 group-hover:text-white">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
                                         <Icon size={23} />
                                     </div>
 
                                     <Eye
                                         size={18}
-                                        className="text-slate-600 transition group-hover:text-blue-400"
+                                        className="text-muted-foreground transition group-hover:text-primary"
                                     />
 
                                 </div>
 
                                 {/* Use Case ID */}
-                                <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-blue-400">
+                                <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-primary">
                                     {useCase.id}
                                 </p>
 
                                 {/* Title */}
-                                <h2 className="mt-2 text-lg font-semibold text-white">
+                                <h2 className="mt-2 text-lg font-semibold text-foreground">
                                     {useCase.title}
                                 </h2>
 
                                 {/* Description */}
-                                <p className="mt-2 text-sm leading-6 text-slate-400">
+                                <p className="mt-2 text-sm leading-6 text-muted-foreground">
                                     {useCase.description}
                                 </p>
 
                                 {/* Open */}
-                                <div className="mt-5 text-sm font-medium text-blue-400">
+                                <div className="mt-5 text-sm font-medium text-primary">
                                     Open →
                                 </div>
 
@@ -188,7 +189,7 @@ function Communication() {
 
             {selectedUseCase && SelectedComponent && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
                     onMouseDown={(event) => {
                         if (
                             event.target ===
@@ -199,17 +200,17 @@ function Communication() {
                     }}
                 >
 
-                    <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl">
+                    <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
 
                         {/* ==================================================
                             MODAL HEADER
                         ================================================== */}
 
-                        <div className="flex items-center justify-between border-b border-slate-700 bg-slate-900 px-5 py-4 sm:px-6">
+                        <div className="flex items-center justify-between border-b border-border bg-card px-5 py-4 sm:px-6">
 
                             <div className="flex min-w-0 items-center gap-3">
 
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600/20 text-blue-400">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                                     {SelectedIcon && (
                                         <SelectedIcon
                                             size={20}
@@ -219,11 +220,11 @@ function Communication() {
 
                                 <div className="min-w-0">
 
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-blue-400">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-primary">
                                         {selectedUseCase.id}
                                     </p>
 
-                                    <h2 className="truncate text-lg font-bold text-white">
+                                    <h2 className="truncate text-lg font-bold text-foreground">
                                         {selectedUseCase.title}
                                     </h2>
 
@@ -236,7 +237,7 @@ function Communication() {
                                 onClick={
                                     handleCloseUseCase
                                 }
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
                                 aria-label="Close"
                             >
                                 <X size={20} />
@@ -248,7 +249,7 @@ function Communication() {
                             MODAL CONTENT
                         ================================================== */}
 
-                        <div className="overflow-y-auto p-5 sm:p-6">
+                        <div className="overflow-y-auto bg-background p-5 sm:p-6">
 
                             <SelectedComponent />
 

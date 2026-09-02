@@ -116,22 +116,26 @@ function ViewSprintTasks() {
     // ========================================================
 
     const getStatusClass = (status) => {
-        switch (String(status).toLowerCase()) {
+        const normalizedStatus = String(status)
+            .toLowerCase()
+            .trim();
+
+        switch (normalizedStatus) {
             case "completed":
-                return "bg-green-500/10 text-green-400 border-green-500/20";
+                return "bg-primary/10 text-primary border-primary/30";
 
             case "in progress":
-                return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                return "bg-primary/10 text-primary border-primary/30";
 
             case "blocked":
-                return "bg-red-500/10 text-red-400 border-red-500/20";
+                return "bg-muted text-muted-foreground border-border";
 
             case "cancelled":
             case "canceled":
-                return "bg-slate-500/10 text-slate-400 border-slate-500/20";
+                return "bg-muted text-muted-foreground border-border";
 
             default:
-                return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
+                return "bg-muted text-muted-foreground border-border";
         }
     };
 
@@ -140,19 +144,23 @@ function ViewSprintTasks() {
     // ========================================================
 
     const getPriorityClass = (priority) => {
-        switch (String(priority).toLowerCase()) {
+        const normalizedPriority = String(priority)
+            .toLowerCase()
+            .trim();
+
+        switch (normalizedPriority) {
             case "high":
             case "urgent":
-                return "text-red-400";
+                return "text-primary";
 
             case "medium":
-                return "text-yellow-400";
+                return "text-primary";
 
             case "low":
-                return "text-green-400";
+                return "text-primary";
 
             default:
-                return "text-slate-400";
+                return "text-muted-foreground";
         }
     };
 
@@ -161,12 +169,16 @@ function ViewSprintTasks() {
     // ========================================================
 
     const getStatusIcon = (status) => {
-        switch (String(status).toLowerCase()) {
+        const normalizedStatus = String(status)
+            .toLowerCase()
+            .trim();
+
+        switch (normalizedStatus) {
             case "completed":
                 return (
                     <CircleCheck
                         size={16}
-                        className="text-green-400"
+                        className="text-primary"
                     />
                 );
 
@@ -174,7 +186,7 @@ function ViewSprintTasks() {
                 return (
                     <Clock3
                         size={16}
-                        className="text-blue-400"
+                        className="text-primary"
                     />
                 );
 
@@ -182,7 +194,7 @@ function ViewSprintTasks() {
                 return (
                     <AlertCircle
                         size={16}
-                        className="text-red-400"
+                        className="text-muted-foreground"
                     />
                 );
 
@@ -190,7 +202,7 @@ function ViewSprintTasks() {
                 return (
                     <Clock3
                         size={16}
-                        className="text-yellow-400"
+                        className="text-muted-foreground"
                     />
                 );
         }
@@ -219,7 +231,7 @@ function ViewSprintTasks() {
     // ========================================================
 
     return (
-        <div className="space-y-6">
+        <div className="w-full space-y-6">
             {/* ==================================================
                 HEADER
             ================================================== */}
@@ -227,25 +239,25 @@ function ViewSprintTasks() {
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <div>
                     <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
                             <ListChecks
                                 size={25}
-                                className="text-blue-400"
+                                className="text-primary"
                             />
                         </div>
 
                         <div>
-                            <h2 className="text-2xl font-bold text-white">
+                            <h2 className="text-2xl font-bold text-foreground">
                                 Sprint Tasks
                             </h2>
 
-                            <p className="mt-1 text-sm text-slate-400">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 STAFF-SPRINT-001
                             </p>
                         </div>
                     </div>
 
-                    <p className="mt-3 text-sm text-slate-400">
+                    <p className="mt-3 text-sm text-muted-foreground">
                         View the tasks assigned to you within the
                         current sprint.
                     </p>
@@ -255,7 +267,7 @@ function ViewSprintTasks() {
                 <button
                     type="button"
                     onClick={refreshTasks}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700"
+                    className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
                 >
                     <RefreshCw size={17} />
 
@@ -270,7 +282,7 @@ function ViewSprintTasks() {
             <div className="relative">
                 <Search
                     size={19}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
                 />
 
                 <input
@@ -280,7 +292,7 @@ function ViewSprintTasks() {
                         setSearchTerm(event.target.value)
                     }
                     placeholder="Search sprint tasks..."
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950 py-3 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-500 transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-4 text-sm text-foreground outline-none placeholder:text-muted-foreground transition focus:border-primary focus:ring-1 focus:ring-primary"
                 />
             </div>
 
@@ -290,36 +302,36 @@ function ViewSprintTasks() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {/* TOTAL */}
-                <div className="rounded-2xl border border-slate-700 bg-slate-950 p-5">
+                <div className="rounded-2xl border border-border bg-card p-5">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                                 Sprint Tasks
                             </p>
 
-                            <p className="mt-2 text-3xl font-bold text-white">
+                            <p className="mt-2 text-3xl font-bold text-foreground">
                                 {filteredTasks.length}
                             </p>
                         </div>
 
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
                             <ListChecks
                                 size={22}
-                                className="text-blue-400"
+                                className="text-primary"
                             />
                         </div>
                     </div>
                 </div>
 
                 {/* COMPLETED */}
-                <div className="rounded-2xl border border-slate-700 bg-slate-950 p-5">
+                <div className="rounded-2xl border border-border bg-card p-5">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                                 Completed
                             </p>
 
-                            <p className="mt-2 text-3xl font-bold text-green-400">
+                            <p className="mt-2 text-3xl font-bold text-primary">
                                 {
                                     filteredTasks.filter(
                                         (task) =>
@@ -327,31 +339,33 @@ function ViewSprintTasks() {
                                                 task.status ||
                                                     task.taskStatus ||
                                                     ""
-                                            ).toLowerCase() ===
+                                            )
+                                                .toLowerCase()
+                                                .trim() ===
                                             "completed"
                                     ).length
                                 }
                             </p>
                         </div>
 
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-500/10">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
                             <CircleCheck
                                 size={22}
-                                className="text-green-400"
+                                className="text-primary"
                             />
                         </div>
                     </div>
                 </div>
 
                 {/* IN PROGRESS */}
-                <div className="rounded-2xl border border-slate-700 bg-slate-950 p-5">
+                <div className="rounded-2xl border border-border bg-card p-5">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                                 In Progress
                             </p>
 
-                            <p className="mt-2 text-3xl font-bold text-blue-400">
+                            <p className="mt-2 text-3xl font-bold text-primary">
                                 {
                                     filteredTasks.filter(
                                         (task) =>
@@ -359,17 +373,19 @@ function ViewSprintTasks() {
                                                 task.status ||
                                                     task.taskStatus ||
                                                     ""
-                                            ).toLowerCase() ===
+                                            )
+                                                .toLowerCase()
+                                                .trim() ===
                                             "in progress"
                                     ).length
                                 }
                             </p>
                         </div>
 
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
                             <Clock3
                                 size={22}
-                                className="text-blue-400"
+                                className="text-primary"
                             />
                         </div>
                     </div>
@@ -381,19 +397,19 @@ function ViewSprintTasks() {
             ================================================== */}
 
             {filteredTasks.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950 p-10 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-800">
+                <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-muted">
                         <ListChecks
                             size={30}
-                            className="text-slate-500"
+                            className="text-muted-foreground"
                         />
                     </div>
 
-                    <h3 className="mt-5 text-lg font-semibold text-white">
+                    <h3 className="mt-5 text-lg font-semibold text-foreground">
                         No sprint tasks found
                     </h3>
 
-                    <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+                    <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
                         {searchTerm
                             ? "No tasks match your search."
                             : "No tasks are currently assigned to you in the sprint."}
@@ -443,14 +459,14 @@ function ViewSprintTasks() {
                         return (
                             <div
                                 key={taskId}
-                                className="rounded-2xl border border-slate-700 bg-slate-950 p-5 transition hover:border-blue-500/50"
+                                className="rounded-2xl border border-border bg-card p-5 transition hover:border-primary/50"
                             >
                                 {/* TASK TOP */}
                                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                     {/* LEFT */}
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="text-lg font-semibold text-white">
+                                            <h3 className="text-lg font-semibold text-foreground">
                                                 {taskTitle}
                                             </h3>
 
@@ -463,7 +479,7 @@ function ViewSprintTasks() {
                                             </span>
                                         </div>
 
-                                        <p className="mt-3 text-sm leading-6 text-slate-400">
+                                        <p className="mt-3 text-sm leading-6 text-muted-foreground">
                                             {description}
                                         </p>
                                     </div>
@@ -472,39 +488,39 @@ function ViewSprintTasks() {
                                     <div className="flex items-center gap-2">
                                         {getStatusIcon(status)}
 
-                                        <span className="text-sm text-slate-400">
+                                        <span className="text-sm text-muted-foreground">
                                             {status}
                                         </span>
                                     </div>
                                 </div>
 
                                 {/* TASK DETAILS */}
-                                <div className="mt-5 grid grid-cols-1 gap-3 border-t border-slate-800 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+                                <div className="mt-5 grid grid-cols-1 gap-3 border-t border-border pt-5 sm:grid-cols-2 lg:grid-cols-4">
                                     {/* PROJECT */}
-                                    <div className="rounded-xl bg-slate-900 p-3">
-                                        <p className="text-xs text-slate-500">
+                                    <div className="rounded-xl bg-muted p-3">
+                                        <p className="text-xs text-muted-foreground">
                                             Project
                                         </p>
 
-                                        <p className="mt-1 truncate text-sm font-medium text-slate-300">
+                                        <p className="mt-1 truncate text-sm font-medium text-card-foreground">
                                             {project}
                                         </p>
                                     </div>
 
                                     {/* SPRINT */}
-                                    <div className="rounded-xl bg-slate-900 p-3">
-                                        <p className="text-xs text-slate-500">
+                                    <div className="rounded-xl bg-muted p-3">
+                                        <p className="text-xs text-muted-foreground">
                                             Sprint
                                         </p>
 
-                                        <p className="mt-1 truncate text-sm font-medium text-slate-300">
+                                        <p className="mt-1 truncate text-sm font-medium text-card-foreground">
                                             {sprint}
                                         </p>
                                     </div>
 
                                     {/* PRIORITY */}
-                                    <div className="rounded-xl bg-slate-900 p-3">
-                                        <p className="text-xs text-slate-500">
+                                    <div className="rounded-xl bg-muted p-3">
+                                        <p className="text-xs text-muted-foreground">
                                             Priority
                                         </p>
 
@@ -527,18 +543,18 @@ function ViewSprintTasks() {
                                     </div>
 
                                     {/* DUE DATE */}
-                                    <div className="rounded-xl bg-slate-900 p-3">
-                                        <p className="text-xs text-slate-500">
+                                    <div className="rounded-xl bg-muted p-3">
+                                        <p className="text-xs text-muted-foreground">
                                             Due Date
                                         </p>
 
                                         <div className="mt-1 flex items-center gap-2">
                                             <CalendarDays
                                                 size={15}
-                                                className="text-slate-400"
+                                                className="text-muted-foreground"
                                             />
 
-                                            <span className="text-sm font-medium text-slate-300">
+                                            <span className="text-sm font-medium text-card-foreground">
                                                 {formatDate(
                                                     dueDate
                                                 )}
@@ -549,7 +565,7 @@ function ViewSprintTasks() {
 
                                 {/* TASK ID */}
                                 {(task.id || task.taskId) && (
-                                    <div className="mt-4 text-xs text-slate-600">
+                                    <div className="mt-4 text-xs text-muted-foreground">
                                         Task ID:{" "}
                                         {task.id || task.taskId}
                                     </div>

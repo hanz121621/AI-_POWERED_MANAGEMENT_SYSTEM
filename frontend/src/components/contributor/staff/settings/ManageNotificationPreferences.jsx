@@ -88,8 +88,8 @@ function Toggle({ enabled, onClick, disabled = false }) {
             disabled={disabled}
             className={`relative h-6 w-11 shrink-0 rounded-full transition ${
                 enabled
-                    ? "bg-blue-600"
-                    : "bg-slate-700"
+                    ? "bg-primary"
+                    : "bg-muted"
             } ${
                 disabled
                     ? "cursor-not-allowed opacity-50"
@@ -103,7 +103,7 @@ function Toggle({ enabled, onClick, disabled = false }) {
             aria-pressed={enabled}
         >
             <span
-                className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition ${
+                className={`absolute top-1 h-4 w-4 rounded-full bg-primary-foreground shadow transition ${
                     enabled
                         ? "left-6"
                         : "left-1"
@@ -129,26 +129,26 @@ function SettingRow({
 }) {
     return (
         <div
-            className={`flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-slate-950 p-4 transition ${
+            className={`flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 transition ${
                 disabled
                     ? "opacity-50"
-                    : "hover:border-slate-600"
+                    : "hover:border-primary/30"
             }`}
         >
             <div className="flex min-w-0 items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-800">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                     <Icon
                         size={19}
-                        className="text-blue-400"
+                        className="text-primary"
                     />
                 </div>
 
                 <div className="min-w-0">
-                    <h4 className="text-sm font-semibold text-white">
+                    <h4 className="text-sm font-semibold text-card-foreground">
                         {title}
                     </h4>
 
-                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
                         {description}
                     </p>
                 </div>
@@ -238,32 +238,32 @@ function ManageNotificationPreferences() {
     // ========================================================
 
     return (
-        <div className="space-y-6">
+        <div className="w-full space-y-6 text-foreground">
             {/* ==================================================
                 HEADER
             ================================================== */}
 
             <div>
                 <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
                         <Bell
                             size={24}
-                            className="text-blue-400"
+                            className="text-primary"
                         />
                     </div>
 
                     <div>
-                        <h2 className="text-2xl font-bold text-white">
+                        <h2 className="text-2xl font-bold text-foreground">
                             Notification Preferences
                         </h2>
 
-                        <p className="mt-1 text-sm text-slate-400">
+                        <p className="mt-1 text-sm text-muted-foreground">
                             STAFF-SETTING-001
                         </p>
                     </div>
                 </div>
 
-                <p className="mt-4 text-sm leading-6 text-slate-400">
+                <p className="mt-4 text-sm leading-6 text-muted-foreground">
                     Choose which notifications you want to receive
                     while working in the AI-PMS system.
                 </p>
@@ -274,13 +274,13 @@ function ManageNotificationPreferences() {
             ================================================== */}
 
             {saved && (
-                <div className="flex items-center gap-3 rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+                <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/10 p-4">
                     <CheckCircle2
                         size={20}
-                        className="shrink-0 text-green-400"
+                        className="shrink-0 text-primary"
                     />
 
-                    <p className="text-sm font-medium text-green-400">
+                    <p className="text-sm font-medium text-primary">
                         Notification preferences saved
                         successfully.
                     </p>
@@ -292,13 +292,13 @@ function ManageNotificationPreferences() {
             ================================================== */}
 
             {error && (
-                <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                <div className="flex items-center gap-3 rounded-xl border border-border bg-muted p-4">
                     <AlertCircle
                         size={20}
-                        className="shrink-0 text-red-400"
+                        className="shrink-0 text-muted-foreground"
                     />
 
-                    <p className="text-sm font-medium text-red-400">
+                    <p className="text-sm font-medium text-muted-foreground">
                         {error}
                     </p>
                 </div>
@@ -310,31 +310,31 @@ function ManageNotificationPreferences() {
 
             <section className="space-y-4">
                 <div>
-                    <h3 className="text-lg font-semibold text-white">
+                    <h3 className="text-lg font-semibold text-foreground">
                         General Notifications
                     </h3>
 
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Control your overall notification behavior.
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5">
+                <div className="rounded-2xl border border-border bg-card p-5">
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex items-start gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                                 <Bell
                                     size={20}
-                                    className="text-blue-400"
+                                    className="text-primary"
                                 />
                             </div>
 
                             <div>
-                                <h4 className="font-semibold text-white">
+                                <h4 className="font-semibold text-card-foreground">
                                     Enable Notifications
                                 </h4>
 
-                                <p className="mt-1 text-xs leading-5 text-slate-500">
+                                <p className="mt-1 text-xs leading-5 text-muted-foreground">
                                     Enable or disable staff
                                     notifications throughout the
                                     system.
@@ -362,11 +362,11 @@ function ManageNotificationPreferences() {
 
             <section className="space-y-4">
                 <div>
-                    <h3 className="text-lg font-semibold text-white">
+                    <h3 className="text-lg font-semibold text-foreground">
                         Task Notifications
                     </h3>
 
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Receive updates related to your assigned
                         tasks.
                     </p>
@@ -432,11 +432,11 @@ function ManageNotificationPreferences() {
 
             <section className="space-y-4">
                 <div>
-                    <h3 className="text-lg font-semibold text-white">
+                    <h3 className="text-lg font-semibold text-foreground">
                         Project & Sprint Notifications
                     </h3>
 
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Stay informed about project and sprint
                         activity.
                     </p>
@@ -485,11 +485,11 @@ function ManageNotificationPreferences() {
 
             <section className="space-y-4">
                 <div>
-                    <h3 className="text-lg font-semibold text-white">
+                    <h3 className="text-lg font-semibold text-foreground">
                         Communication Notifications
                     </h3>
 
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Control notifications related to team
                         communication.
                     </p>
@@ -538,11 +538,11 @@ function ManageNotificationPreferences() {
 
             <section className="space-y-4">
                 <div>
-                    <h3 className="text-lg font-semibold text-white">
+                    <h3 className="text-lg font-semibold text-foreground">
                         Notification Delivery
                     </h3>
 
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Choose how notifications are delivered.
                     </p>
                 </div>
@@ -588,19 +588,19 @@ function ManageNotificationPreferences() {
                 INFORMATION
             ================================================== */}
 
-            <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+            <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
                 <div className="flex items-start gap-3">
                     <Bell
                         size={19}
-                        className="mt-0.5 shrink-0 text-blue-400"
+                        className="mt-0.5 shrink-0 text-primary"
                     />
 
                     <div>
-                        <h4 className="text-sm font-semibold text-blue-300">
+                        <h4 className="text-sm font-semibold text-primary">
                             Notification Information
                         </h4>
 
-                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
                             These preferences are currently stored
                             locally in your browser. They will be
                             connected to the AI-PMS backend when the
@@ -614,11 +614,11 @@ function ManageNotificationPreferences() {
                 ACTION BUTTONS
             ================================================== */}
 
-            <div className="flex flex-col-reverse gap-3 border-t border-slate-800 pt-6 sm:flex-row sm:justify-end">
+            <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
                 <button
                     type="button"
                     onClick={handleReset}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-5 py-3 text-sm font-medium text-slate-300 transition hover:bg-slate-700 hover:text-white"
+                    className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
                 >
                     <RotateCcw size={17} />
                     Reset
@@ -627,7 +627,7 @@ function ManageNotificationPreferences() {
                 <button
                     type="button"
                     onClick={handleSave}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-500"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
                 >
                     <Save size={17} />
                     Save Preferences

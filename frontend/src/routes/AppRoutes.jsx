@@ -150,8 +150,7 @@ import StaffLayout
 import StaffDashboard
     from "../pages/contributor/staff/StaffDashboard";
 
-import Staff
-    from "../pages/contributor/staff/Staff";
+
 
 import StaffProfileManagement
     from "../pages/contributor/staff/ProfileManagement";
@@ -785,10 +784,7 @@ function AppRoutes() {
                             STAFF WORK
                         ============================== */}
 
-                        <Route
-                            path="work"
-                            element={<Staff />}
-                        />
+                       
 
                         {/* ==============================
                             PROFILE MANAGEMENT

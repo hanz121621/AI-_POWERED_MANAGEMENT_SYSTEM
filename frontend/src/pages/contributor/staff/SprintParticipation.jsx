@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 
 import {
@@ -7,8 +8,11 @@ import {
     Eye,
 } from "lucide-react";
 
-import ViewSprintTasks from "@/components/contributor/staff/sprint-participation/ViewSprintTasks";
-import ViewSprintProgress from "@/components/contributor/staff/sprint-participation/ViewSprintProgress";
+import ViewSprintTasks
+    from "@/components/contributor/staff/sprint-participation/ViewSprintTasks";
+
+import ViewSprintProgress
+    from "@/components/contributor/staff/sprint-participation/ViewSprintProgress";
 
 // ============================================================
 // STAFF - SPRINT PARTICIPATION
@@ -16,6 +20,10 @@ import ViewSprintProgress from "@/components/contributor/staff/sprint-participat
 
 function SprintParticipation() {
     const [selectedUseCase, setSelectedUseCase] = useState(null);
+
+    // ============================================================
+    // USE CASES
+    // ============================================================
 
     const useCases = [
         {
@@ -36,95 +44,345 @@ function SprintParticipation() {
         },
     ];
 
+    // ============================================================
+    // SELECTED COMPONENT
+    // ============================================================
+
     const SelectedComponent = selectedUseCase?.component;
 
+    // ============================================================
+    // OPEN USE CASE
+    // ============================================================
+
+    const openUseCase = (useCase) => {
+        setSelectedUseCase(useCase);
+    };
+
+    // ============================================================
+    // CLOSE MODAL
+    // ============================================================
+
+    const closeModal = () => {
+        setSelectedUseCase(null);
+    };
+
+    // ============================================================
+    // RENDER
+    // ============================================================
+
     return (
-        <div className="min-h-screen bg-slate-950 p-6 text-white">
-            {/* HEADER */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-white">
-                    Sprint Participation
-                </h1>
+        <div className="w-full">
+            <div className="mx-auto max-w-7xl">
 
-                <p className="mt-2 text-slate-400">
-                    Participate in sprints, view sprint tasks, and monitor
-                    sprint progress.
-                </p>
-            </div>
+                {/* ====================================================
+                    HEADER
+                ==================================================== */}
 
-            {/* USE CASE CARDS */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                {useCases.map((useCase) => {
-                    const Icon = useCase.icon;
+                <div className="mb-8">
+                    <div className="flex items-start gap-4">
 
-                    return (
+                        {/* Page Icon */}
+
                         <div
-                            key={useCase.id}
-                            className="rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-lg transition hover:border-blue-500 hover:shadow-blue-950/30"
+                            className="
+                                flex h-14 w-14 shrink-0
+                                items-center justify-center
+                                rounded-2xl
+                                bg-primary/10
+                                ring-1 ring-primary/20
+                            "
                         >
-                            <div className="mb-5 flex items-start justify-between">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600/20">
-                                    <Icon
-                                        size={25}
-                                        className="text-blue-400"
-                                    />
-                                </div>
-
-                                <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-400">
-                                    {useCase.id}
-                                </span>
-                            </div>
-
-                            <h2 className="text-xl font-semibold text-white">
-                                {useCase.title}
-                            </h2>
-
-                            <p className="mt-2 min-h-[48px] text-sm leading-6 text-slate-400">
-                                {useCase.description}
-                            </p>
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setSelectedUseCase(useCase)
-                                }
-                                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-medium text-white transition hover:bg-blue-500"
-                            >
-                                <Eye size={18} />
-                                Open
-                            </button>
+                            <Target
+                                size={28}
+                                className="text-primary"
+                            />
                         </div>
-                    );
-                })}
+
+                        {/* Page Title */}
+
+                        <div>
+                            <h1
+                                className="
+                                    text-2xl font-bold tracking-tight
+                                    text-foreground
+                                    sm:text-3xl
+                                "
+                            >
+                                Sprint Participation
+                            </h1>
+
+                            <p
+                                className="
+                                    mt-1 max-w-2xl
+                                    text-sm leading-6
+                                    text-muted-foreground
+                                    sm:text-base
+                                "
+                            >
+                                Participate in sprints, view sprint tasks,
+                                and monitor sprint progress.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ====================================================
+                    USE CASE SECTION
+                ==================================================== */}
+
+                <div>
+                    <div className="mb-5">
+                        <h2
+                            className="
+                                text-lg font-semibold
+                                text-foreground
+                            "
+                        >
+                            Sprint Participation Use Cases
+                        </h2>
+
+                        <p
+                            className="
+                                mt-1 text-sm
+                                text-muted-foreground
+                            "
+                        >
+                            Select an action to continue.
+                        </p>
+                    </div>
+
+                    {/* ====================================================
+                        USE CASE CARDS
+                    ==================================================== */}
+
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+                        {useCases.map((useCase) => {
+                            const Icon = useCase.icon;
+
+                            return (
+                                <div
+                                    key={useCase.id}
+                                    className="
+                                        group rounded-2xl
+                                        border border-border
+                                        bg-card
+                                        p-6
+                                        shadow-sm
+                                        transition-all duration-200
+                                        hover:-translate-y-1
+                                        hover:border-primary/40
+                                        hover:shadow-md
+                                    "
+                                >
+
+                                    {/* Card Header */}
+
+                                    <div
+                                        className="
+                                            mb-5 flex items-start
+                                            justify-between gap-4
+                                        "
+                                    >
+
+                                        {/* Icon */}
+
+                                        <div
+                                            className="
+                                                flex h-12 w-12
+                                                items-center
+                                                justify-center
+                                                rounded-xl
+                                                bg-primary/10
+                                                ring-1 ring-primary/20
+                                            "
+                                        >
+                                            <Icon
+                                                size={25}
+                                                className="text-primary"
+                                            />
+                                        </div>
+
+                                        {/* Use Case ID */}
+
+                                        <span
+                                            className="
+                                                rounded-full
+                                                border border-border
+                                                bg-muted
+                                                px-3 py-1
+                                                text-xs font-medium
+                                                text-muted-foreground
+                                            "
+                                        >
+                                            {useCase.id}
+                                        </span>
+                                    </div>
+
+                                    {/* Title */}
+
+                                    <h2
+                                        className="
+                                            text-xl font-semibold
+                                            text-card-foreground
+                                            transition
+                                            group-hover:text-primary
+                                        "
+                                    >
+                                        {useCase.title}
+                                    </h2>
+
+                                    {/* Description */}
+
+                                    <p
+                                        className="
+                                            mt-2 min-h-[48px]
+                                            text-sm leading-6
+                                            text-muted-foreground
+                                        "
+                                    >
+                                        {useCase.description}
+                                    </p>
+
+                                    {/* Open Button */}
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            openUseCase(useCase)
+                                        }
+                                        className="
+                                            mt-6 flex w-full
+                                            items-center
+                                            justify-center gap-2
+                                            rounded-xl
+                                            bg-primary
+                                            px-4 py-3
+                                            font-medium
+                                            text-primary-foreground
+                                            transition
+                                            hover:opacity-90
+                                            focus:outline-none
+                                            focus:ring-2
+                                            focus:ring-primary/40
+                                        "
+                                    >
+                                        <Eye size={18} />
+
+                                        <span>
+                                            Open
+                                        </span>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
 
-            {/* MODAL */}
+            {/* ====================================================
+                MODAL
+            ==================================================== */}
+
             {selectedUseCase && SelectedComponent && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-                    <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
-                        {/* MODAL HEADER */}
-                        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-700 bg-slate-900 px-6 py-4">
-                            <div>
-                                <h2 className="text-xl font-bold text-white">
+                <div
+                    className="
+                        fixed inset-0 z-50
+                        flex items-center justify-center
+                        bg-black/50
+                        p-4
+                        backdrop-blur-sm
+                    "
+                    onMouseDown={closeModal}
+                >
+                    <div
+                        className="
+                            max-h-[90vh]
+                            w-full max-w-5xl
+                            overflow-y-auto
+                            rounded-2xl
+                            border border-border
+                            bg-background
+                            shadow-2xl
+                        "
+                        onMouseDown={(event) =>
+                            event.stopPropagation()
+                        }
+                    >
+
+                        {/* ====================================================
+                            MODAL HEADER
+                        ==================================================== */}
+
+                        <div
+                            className="
+                                sticky top-0 z-10
+                                flex items-center
+                                justify-between
+                                border-b border-border
+                                bg-card
+                                px-5 py-4
+                                sm:px-6
+                            "
+                        >
+                            <div className="min-w-0">
+
+                                <h2
+                                    className="
+                                        truncate text-xl
+                                        font-bold
+                                        text-foreground
+                                    "
+                                >
                                     {selectedUseCase.title}
                                 </h2>
 
-                                <p className="mt-1 text-xs text-slate-400">
+                                <p
+                                    className="
+                                        mt-1 text-xs
+                                        text-muted-foreground
+                                    "
+                                >
                                     {selectedUseCase.id}
                                 </p>
                             </div>
 
+                            {/* Close Button */}
+
                             <button
                                 type="button"
-                                onClick={() => setSelectedUseCase(null)}
-                                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                                onClick={closeModal}
+                                className="
+                                    ml-4 flex h-9 w-9
+                                    shrink-0
+                                    items-center
+                                    justify-center
+                                    rounded-lg
+                                    text-muted-foreground
+                                    transition
+                                    hover:bg-muted
+                                    hover:text-foreground
+                                    focus:outline-none
+                                    focus:ring-2
+                                    focus:ring-primary/40
+                                "
+                                aria-label="Close"
                             >
                                 <X size={22} />
                             </button>
                         </div>
 
-                        {/* CHILD COMPONENT */}
-                        <div className="p-6">
+                        {/* ====================================================
+                            CHILD COMPONENT
+                        ==================================================== */}
+
+                        <div
+                            className="
+                                bg-background
+                                p-4
+                                sm:p-6
+                            "
+                        >
                             <SelectedComponent />
                         </div>
                     </div>

@@ -1,19 +1,5 @@
 import api from "@/services/api";
 
-// ========================================================
-// GET AI SUGGESTION FOR PROJECT
-// ========================================================
-export const getAiSuggestion = async (projectId) => {
-    try {
-        console.log("========== GET AI SUGGESTION ==========");
-        const response = await api.get(`/projects/${projectId}/ai-suggestion`);
-        console.log("AI SUGGESTION RESPONSE:", response.data);
-        return response.data;
-    } catch (error) {
-        console.error("GET AI SUGGESTION ERROR:", error);
-        throw error;
-    }
-};
 // ============================================================
 // PROJECT STATUS NAMES
 // ============================================================

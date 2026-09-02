@@ -66,7 +66,9 @@ const SUGGESTION_FREQUENCIES = [
 
 function getInitialSettings() {
     try {
-        const storedSettings = localStorage.getItem(AI_STORAGE_KEY);
+        const storedSettings = localStorage.getItem(
+            AI_STORAGE_KEY
+        );
 
         if (!storedSettings) {
             return DEFAULT_AI_SETTINGS;
@@ -109,12 +111,12 @@ function Toggle({
                     : "cursor-pointer"
             } ${
                 enabled
-                    ? "bg-blue-600"
-                    : "bg-slate-700"
+                    ? "bg-primary"
+                    : "bg-muted"
             }`}
         >
             <span
-                className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                className={`absolute top-1 h-4 w-4 rounded-full bg-primary-foreground shadow-sm transition-transform ${
                     enabled
                         ? "translate-x-6"
                         : "translate-x-1"
@@ -140,27 +142,27 @@ function AISettingRow({
         <div
             className={`flex items-center justify-between gap-4 rounded-xl border p-4 transition ${
                 disabled
-                    ? "border-slate-800 bg-slate-900/30 opacity-50"
-                    : "border-slate-700 bg-slate-900/50"
+                    ? "border-border bg-muted opacity-50"
+                    : "border-border bg-card"
             }`}
         >
             <div className="flex items-start gap-3">
                 <div
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
                         enabled && !disabled
-                            ? "bg-blue-600/20 text-blue-400"
-                            : "bg-slate-800 text-slate-500"
+                            ? "bg-primary/10 text-primary"
+                            : "bg-muted text-muted-foreground"
                     }`}
                 >
                     <Icon size={19} />
                 </div>
 
                 <div>
-                    <h4 className="font-medium text-white">
+                    <h4 className="font-medium text-card-foreground">
                         {title}
                     </h4>
 
-                    <p className="mt-1 text-sm leading-5 text-slate-400">
+                    <p className="mt-1 text-sm leading-5 text-muted-foreground">
                         {description}
                     </p>
                 </div>
@@ -192,19 +194,19 @@ function FrequencyCard({
             disabled={disabled}
             className={`w-full rounded-xl border p-4 text-left transition ${
                 disabled
-                    ? "cursor-not-allowed border-slate-800 bg-slate-900/30 opacity-40"
+                    ? "cursor-not-allowed border-border bg-muted opacity-40"
                     : selected
-                    ? "border-blue-500 bg-blue-500/10"
-                    : "border-slate-700 bg-slate-900/50 hover:border-slate-600 hover:bg-slate-800/60"
+                    ? "border-primary/30 bg-primary/10"
+                    : "border-border bg-card hover:bg-muted"
             }`}
         >
             <div className="flex items-start justify-between gap-3">
                 <div>
-                    <h4 className="font-semibold text-white">
+                    <h4 className="font-semibold text-card-foreground">
                         {option.label}
                     </h4>
 
-                    <p className="mt-1 text-sm leading-5 text-slate-400">
+                    <p className="mt-1 text-sm leading-5 text-muted-foreground">
                         {option.description}
                     </p>
                 </div>
@@ -212,8 +214,8 @@ function FrequencyCard({
                 <div
                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
                         selected
-                            ? "border-blue-500 bg-blue-600 text-white"
-                            : "border-slate-600 text-transparent"
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border text-transparent"
                     }`}
                 >
                     <Check size={14} />
@@ -318,23 +320,23 @@ function AIPreferences() {
     // ========================================================
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 text-foreground">
             {/* ==================================================
                 HEADER
             ================================================== */}
 
             <div>
                 <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                         <BrainCircuit size={22} />
                     </div>
 
                     <div>
-                        <h2 className="text-xl font-bold text-white">
+                        <h2 className="text-xl font-bold text-foreground">
                             AI Preferences
                         </h2>
 
-                        <p className="text-sm text-slate-400">
+                        <p className="text-sm text-muted-foreground">
                             Manage how AI-powered features assist
                             you in your daily work.
                         </p>
@@ -346,18 +348,18 @@ function AIPreferences() {
                 INFORMATION
             ================================================== */}
 
-            <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
+            <div className="flex gap-3 rounded-xl border border-primary/30 bg-primary/10 p-4">
                 <Info
                     size={20}
-                    className="mt-0.5 shrink-0 text-blue-400"
+                    className="mt-0.5 shrink-0 text-primary"
                 />
 
                 <div>
-                    <p className="font-medium text-blue-300">
+                    <p className="font-medium text-primary">
                         AI assistance
                     </p>
 
-                    <p className="mt-1 text-sm leading-5 text-slate-400">
+                    <p className="mt-1 text-sm leading-5 text-muted-foreground">
                         Configure the AI features you want to use.
                         You can enable or disable individual AI
                         capabilities based on your preferences.
@@ -369,30 +371,30 @@ function AIPreferences() {
                 MASTER AI SWITCH
             ================================================== */}
 
-            <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-5">
+            <div className="rounded-xl border border-border bg-card p-5">
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex items-start gap-4">
                         <div
                             className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
                                 settings.aiEnabled
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-slate-800 text-slate-500"
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted text-muted-foreground"
                             }`}
                         >
                             <Sparkles size={23} />
                         </div>
 
                         <div>
-                            <h3 className="font-semibold text-white">
+                            <h3 className="font-semibold text-card-foreground">
                                 Enable AI Assistance
                             </h3>
 
-                            <p className="mt-1 text-sm text-slate-400">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 Turn AI-powered assistance on or
                                 off for your Staff account.
                             </p>
 
-                            <p className="mt-2 text-xs text-slate-500">
+                            <p className="mt-2 text-xs text-muted-foreground">
                                 {settings.aiEnabled
                                     ? "AI features are currently enabled."
                                     : "AI features are currently disabled."}
@@ -417,10 +419,10 @@ function AIPreferences() {
                 <div className="flex items-center gap-2">
                     <BrainCircuit
                         size={18}
-                        className="text-slate-400"
+                        className="text-primary"
                     />
 
-                    <h3 className="font-semibold text-white">
+                    <h3 className="font-semibold text-foreground">
                         AI Features
                     </h3>
                 </div>
@@ -527,11 +529,11 @@ function AIPreferences() {
 
             <div className="space-y-3">
                 <div>
-                    <h3 className="font-semibold text-white">
+                    <h3 className="font-semibold text-foreground">
                         Suggestion Frequency
                     </h3>
 
-                    <p className="mt-1 text-sm text-slate-400">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Choose how frequently AI suggestions and
                         recommendations should appear.
                     </p>
@@ -563,18 +565,18 @@ function AIPreferences() {
                 PRIVACY / SECURITY
             ================================================== */}
 
-            <div className="flex gap-3 rounded-xl border border-slate-700 bg-slate-900/50 p-4">
+            <div className="flex gap-3 rounded-xl border border-border bg-muted p-4">
                 <ShieldCheck
                     size={20}
-                    className="mt-0.5 shrink-0 text-emerald-400"
+                    className="mt-0.5 shrink-0 text-primary"
                 />
 
                 <div>
-                    <p className="font-medium text-white">
+                    <p className="font-medium text-foreground">
                         AI Preference Control
                     </p>
 
-                    <p className="mt-1 text-sm leading-5 text-slate-400">
+                    <p className="mt-1 text-sm leading-5 text-muted-foreground">
                         These settings control the AI assistance
                         available in your Staff workspace. You can
                         change them at any time.
@@ -587,7 +589,7 @@ function AIPreferences() {
             ================================================== */}
 
             {saved && (
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                <div className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
                     AI preferences saved successfully.
                 </div>
             )}
@@ -597,7 +599,7 @@ function AIPreferences() {
             ================================================== */}
 
             {error && (
-                <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                <div className="rounded-xl border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
                     {error}
                 </div>
             )}
@@ -606,11 +608,11 @@ function AIPreferences() {
                 ACTION BUTTONS
             ================================================== */}
 
-            <div className="flex flex-col gap-3 border-t border-slate-700 pt-5 sm:flex-row sm:justify-end">
+            <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end">
                 <button
                     type="button"
                     onClick={handleReset}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-5 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-slate-700"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
                 >
                     <RotateCcw size={17} />
                     Reset
@@ -619,7 +621,7 @@ function AIPreferences() {
                 <button
                     type="button"
                     onClick={handleSave}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-500"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
                 >
                     <Save size={17} />
                     Save Changes

@@ -1,12 +1,7 @@
-
-import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
     LayoutDashboard,
-    BriefcaseBusiness,
-    ChevronDown,
-    ChevronRight,
     FolderKanban,
     ListTodo,
     MessageSquare,
@@ -22,71 +17,7 @@ import { Button } from "@/components/ui/button";
 
 // ============================================================
 // STAFF SIDEBAR
-// ============================================================
-// Staff works under the Team Leader / Manager workflow.
-//
-// Manager
-//    ↓
-// Team Leader
-//    ↓
-// Staff
-//    ↓
-// Performs assigned work
-//    ↓
-// Submits completed work
-//    ↓
-// Manager / Team Leader reviews
-// ============================================================
-
-// ============================================================
-// STAFF MENU ITEMS
-// ============================================================
-
-const STAFF_MENU_ITEMS = [
-    {
-        label: "Staff Work",
-        path: "/staff/work",
-        icon: BriefcaseBusiness,
-    },
-    {
-        label: "Profile Management",
-        path: "/staff/profile",
-        icon: UserRound,
-    },
-    {
-        label: "Project Participation",
-        path: "/staff/projects",
-        icon: FolderKanban,
-    },
-    {
-        label: "Task Management",
-        path: "/staff/tasks",
-        icon: ListTodo,
-    },
-    {
-        label: "Sprint Participation",
-        path: "/staff/sprint-participation",
-        icon: BarChart3,
-    },
-    {
-        label: "Communication",
-        path: "/staff/communication",
-        icon: MessageSquare,
-    },
-    {
-        label: "Reports & Monitoring",
-        path: "/staff/reports",
-        icon: BarChart3,
-    },
-    {
-        label: "Settings & Preferences",
-        path: "/staff/settings",
-        icon: Settings,
-    },
-];
-
-// ============================================================
-// COMPONENT
+// Navigation only
 // ============================================================
 
 function StaffSidebar({
@@ -96,8 +27,52 @@ function StaffSidebar({
     const navigate = useNavigate();
     const location = useLocation();
 
-    const [staffMenuOpen, setStaffMenuOpen] =
-        useState(true);
+    // ========================================================
+    // STAFF NAVIGATION ITEMS
+    // ========================================================
+
+    const navigationItems = [
+        {
+            label: "Dashboard",
+            path: "/staff/dashboard",
+            icon: LayoutDashboard,
+        },
+        {
+            label: "Profile Management",
+            path: "/staff/profile",
+            icon: UserRound,
+        },
+        {
+            label: "Project Participation",
+            path: "/staff/projects",
+            icon: FolderKanban,
+        },
+        {
+            label: "Task Management",
+            path: "/staff/tasks",
+            icon: ListTodo,
+        },
+        {
+            label: "Sprint Participation",
+            path: "/staff/sprint-participation",
+            icon: BarChart3,
+        },
+        {
+            label: "Communication",
+            path: "/staff/communication",
+            icon: MessageSquare,
+        },
+        {
+            label: "Reports & Monitoring",
+            path: "/staff/reports",
+            icon: BarChart3,
+        },
+        {
+            label: "Settings & Preferences",
+            path: "/staff/settings",
+            icon: Settings,
+        },
+    ];
 
     // ========================================================
     // ACTIVE ROUTE
@@ -117,18 +92,6 @@ function StaffSidebar({
 
     const handleNavigation = (path) => {
         navigate(path);
-
-        if (onClose) {
-            onClose();
-        }
-    };
-
-    // ========================================================
-    // DASHBOARD
-    // ========================================================
-
-    const handleDashboard = () => {
-        navigate("/staff/dashboard");
 
         if (onClose) {
             onClose();
@@ -247,7 +210,11 @@ function StaffSidebar({
 
                     <button
                         type="button"
-                        onClick={handleDashboard}
+                        onClick={() =>
+                            handleNavigation(
+                                "/staff/dashboard"
+                            )
+                        }
                         className="
                             flex
                             items-center
@@ -324,7 +291,7 @@ function StaffSidebar({
                 </div>
 
                 {/* ==================================================
-                    NAVIGATION
+                    MAIN NAVIGATION
                 ================================================== */}
 
                 <nav
@@ -336,341 +303,76 @@ function StaffSidebar({
                     "
                 >
                     {/* ==================================================
-                        DASHBOARD
+                        NAVIGATION LIST
                     ================================================== */}
 
-                    <button
-                        type="button"
-                        onClick={handleDashboard}
-                        className={`
-                            group
-                            flex
-                            w-full
-                            items-center
-                            gap-2.5
-                            rounded-lg
-                            px-2.5
-                            py-2
-                            text-left
-                            text-xs
-                            font-medium
-                            transition
+                    <div className="space-y-0.5">
+                        {navigationItems.map((item) => {
+                            const Icon = item.icon;
+                            const active = isActive(item.path);
 
-                            ${
-                                location.pathname ===
-                                "/staff/dashboard"
-                                    ? `
-                                        bg-blue-600
-                                        text-white
-                                        shadow-sm
-                                      `
-                                    : `
-                                        text-slate-700
-                                        hover:bg-slate-100
-                                        hover:text-blue-700
-                                        dark:text-slate-300
-                                        dark:hover:bg-blue-950/50
-                                        dark:hover:text-white
-                                      `
-                            }
-                        `}
-                    >
-                        <LayoutDashboard
-                            className="
-                                h-4
-                                w-4
-                                shrink-0
-                            "
-                        />
-
-                        <span>
-                            Dashboard
-                        </span>
-                    </button>
-
-                    {/* ==================================================
-                        STAFF SECTION
-                    ================================================== */}
-
-                    <div className="mt-3">
-                        {/* SECTION HEADER */}
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setStaffMenuOpen(
-                                    (current) =>
-                                        !current
-                                )
-                            }
-                            className="
-                                flex
-                                w-full
-                                items-center
-                                justify-between
-                                rounded-lg
-                                px-2.5
-                                py-2
-                                text-left
-                                transition
-                                hover:bg-slate-100
-                                dark:hover:bg-blue-950/50
-                            "
-                        >
-                            <div
-                                className="
-                                    flex
-                                    items-center
-                                    gap-2.5
-                                "
-                            >
-                                <BriefcaseBusiness
-                                    className="
-                                        h-4
-                                        w-4
-                                        text-blue-600
-                                        dark:text-blue-400
-                                    "
-                                />
-
-                                <span
-                                    className="
-                                        text-[10px]
-                                        font-bold
-                                        uppercase
-                                        tracking-wider
-                                        text-slate-500
-                                        dark:text-slate-400
-                                    "
-                                >
-                                    Staff
-                                </span>
-                            </div>
-
-                            {staffMenuOpen ? (
-                                <ChevronDown
-                                    className="
-                                        h-3.5
-                                        w-3.5
-                                        text-slate-400
-                                    "
-                                />
-                            ) : (
-                                <ChevronRight
-                                    className="
-                                        h-3.5
-                                        w-3.5
-                                        text-slate-400
-                                    "
-                                />
-                            )}
-                        </button>
-
-                        {/* ==================================================
-                            STAFF SUBMENU
-                        ================================================== */}
-
-                        {staffMenuOpen && (
-                            <div
-                                className="
-                                    mt-0.5
-                                    space-y-0.5
-                                    pl-1
-                                "
-                            >
-                                {STAFF_MENU_ITEMS.map(
-                                    (item) => {
-                                        const Icon =
-                                            item.icon;
-
-                                        const active =
-                                            isActive(
-                                                item.path
-                                            );
-
-                                        return (
-                                            <button
-                                                type="button"
-                                                key={
-                                                    item.path
-                                                }
-                                                onClick={() =>
-                                                    handleNavigation(
-                                                        item.path
-                                                    )
-                                                }
-                                                className={`
-                                                    group
-                                                    flex
-                                                    w-full
-                                                    items-center
-                                                    gap-2.5
-                                                    rounded-lg
-                                                    px-2.5
-                                                    py-2
-                                                    text-left
-                                                    text-[11px]
-                                                    transition
-
-                                                    ${
-                                                        active
-                                                            ? `
-                                                                bg-blue-600
-                                                                font-semibold
-                                                                text-white
-                                                                shadow-sm
-                                                              `
-                                                            : `
-                                                                text-slate-600
-                                                                hover:bg-slate-100
-                                                                hover:text-blue-700
-                                                                dark:text-slate-400
-                                                                dark:hover:bg-blue-950/50
-                                                                dark:hover:text-white
-                                                              `
-                                                    }
-                                                `}
-                                            >
-                                                <Icon
-                                                    className={`
-                                                        h-3.5
-                                                        w-3.5
-                                                        shrink-0
-
-                                                        ${
-                                                            active
-                                                                ? "text-white"
-                                                                : "text-slate-400 group-hover:text-blue-600 dark:text-slate-500 dark:group-hover:text-blue-400"
-                                                        }
-                                                    `}
-                                                />
-
-                                                <span className="truncate">
-                                                    {
-                                                        item.label
-                                                    }
-                                                </span>
-                                            </button>
-                                        );
+                            return (
+                                <button
+                                    type="button"
+                                    key={item.path}
+                                    onClick={() =>
+                                        handleNavigation(
+                                            item.path
+                                        )
                                     }
-                                )}
-                            </div>
-                        )}
+                                    className={`
+                                        group
+                                        flex
+                                        w-full
+                                        items-center
+                                        gap-2.5
+                                        rounded-lg
+                                        px-2.5
+                                        py-2.5
+                                        text-left
+                                        text-xs
+                                        transition
+
+                                        ${
+                                            active
+                                                ? `
+                                                    bg-blue-600
+                                                    font-semibold
+                                                    text-white
+                                                    shadow-sm
+                                                  `
+                                                : `
+                                                    text-slate-700
+                                                    hover:bg-slate-100
+                                                    hover:text-blue-700
+                                                    dark:text-slate-300
+                                                    dark:hover:bg-blue-950/50
+                                                    dark:hover:text-white
+                                                  `
+                                        }
+                                    `}
+                                >
+                                    <Icon
+                                        className={`
+                                            h-4
+                                            w-4
+                                            shrink-0
+
+                                            ${
+                                                active
+                                                    ? "text-white"
+                                                    : "text-slate-400 group-hover:text-blue-600 dark:text-slate-500 dark:group-hover:text-blue-400"
+                                            }
+                                        `}
+                                    />
+
+                                    <span className="truncate">
+                                        {item.label}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
-
-                    {/* ==================================================
-                        DIVIDER
-                    ================================================== */}
-
-                    <div
-                        className="
-                            my-3
-                            border-t
-                            border-slate-200
-                            dark:border-blue-900/70
-                        "
-                    />
-
-                    {/* ==================================================
-                        QUICK PROFILE
-                    ================================================== */}
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            handleNavigation(
-                                "/staff/profile"
-                            )
-                        }
-                        className={`
-                            flex
-                            w-full
-                            items-center
-                            gap-2.5
-                            rounded-lg
-                            px-2.5
-                            py-2
-                            text-left
-                            text-xs
-                            transition
-
-                            ${
-                                isActive(
-                                    "/staff/profile"
-                                )
-                                    ? `
-                                        bg-blue-600
-                                        font-semibold
-                                        text-white
-                                      `
-                                    : `
-                                        text-slate-700
-                                        hover:bg-slate-100
-                                        hover:text-blue-700
-                                        dark:text-slate-300
-                                        dark:hover:bg-blue-950/50
-                                        dark:hover:text-white
-                                      `
-                            }
-                        `}
-                    >
-                        <UserRound className="h-4 w-4" />
-
-                        <span>
-                            My Profile
-                        </span>
-                    </button>
-
-                    {/* ==================================================
-                        QUICK SETTINGS
-                    ================================================== */}
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            handleNavigation(
-                                "/staff/settings"
-                            )
-                        }
-                        className={`
-                            mt-0.5
-                            flex
-                            w-full
-                            items-center
-                            gap-2.5
-                            rounded-lg
-                            px-2.5
-                            py-2
-                            text-left
-                            text-xs
-                            transition
-
-                            ${
-                                isActive(
-                                    "/staff/settings"
-                                )
-                                    ? `
-                                        bg-blue-600
-                                        font-semibold
-                                        text-white
-                                      `
-                                    : `
-                                        text-slate-700
-                                        hover:bg-slate-100
-                                        hover:text-blue-700
-                                        dark:text-slate-300
-                                        dark:hover:bg-blue-950/50
-                                        dark:hover:text-white
-                                      `
-                            }
-                        `}
-                    >
-                        <Settings className="h-4 w-4" />
-
-                        <span>
-                            Settings
-                        </span>
-                    </button>
                 </nav>
 
                 {/* ==================================================

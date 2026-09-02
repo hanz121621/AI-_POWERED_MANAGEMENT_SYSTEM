@@ -130,41 +130,58 @@ function ViewAssignedProjects() {
     // ============================================================
 
     return (
-        <div className="min-h-full bg-slate-950 p-6 text-white">
-            {/* HEADER */}
+        <div className="w-full">
+
+            {/* ==================================================
+                HEADER
+            ================================================== */}
+
             <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
                 <div>
+
                     <div className="flex items-center gap-3">
-                        <div className="rounded-xl bg-blue-600/20 p-3">
-                            <FolderKanban className="h-7 w-7 text-blue-400" />
+
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                            <FolderKanban className="h-7 w-7 text-primary" />
                         </div>
 
                         <div>
-                            <h1 className="text-2xl font-bold">
+
+                            <h1 className="text-2xl font-bold text-foreground">
                                 Assigned Projects
                             </h1>
 
-                            <p className="text-sm text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                                 View projects assigned to you.
                             </p>
+
                         </div>
+
                     </div>
+
                 </div>
 
                 <button
                     type="button"
                     onClick={loadProjects}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium transition hover:bg-blue-700"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
                 >
                     <RefreshCw className="h-4 w-4" />
                     Refresh
                 </button>
+
             </div>
 
-            {/* SEARCH */}
+            {/* ==================================================
+                SEARCH
+            ================================================== */}
+
             <div className="mb-6">
+
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+
+                    <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
 
                     <input
                         type="text"
@@ -173,45 +190,66 @@ function ViewAssignedProjects() {
                             setSearchTerm(event.target.value)
                         }
                         placeholder="Search assigned projects..."
-                        className="w-full rounded-xl border border-slate-700 bg-slate-900 py-3 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500"
+                        className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20"
                     />
+
                 </div>
+
             </div>
 
-            {/* PROJECT COUNT */}
-            <div className="mb-4 text-sm text-slate-400">
+            {/* ==================================================
+                PROJECT COUNT
+            ================================================== */}
+
+            <div className="mb-4 text-sm text-muted-foreground">
+
                 Showing{" "}
-                <span className="font-semibold text-white">
+
+                <span className="font-semibold text-foreground">
                     {filteredProjects.length}
                 </span>{" "}
+
                 {filteredProjects.length === 1
                     ? "project"
                     : "projects"}
+
             </div>
 
-            {/* EMPTY STATE */}
+            {/* ==================================================
+                EMPTY STATE
+            ================================================== */}
+
             {filteredProjects.length === 0 && (
-                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-10 text-center">
-                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-800">
-                        <AlertCircle className="h-7 w-7 text-slate-500" />
+                <div className="rounded-2xl border border-border bg-card p-10 text-center">
+
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+
+                        <AlertCircle className="h-7 w-7 text-muted-foreground" />
+
                     </div>
 
-                    <h2 className="mb-2 text-lg font-semibold">
+                    <h2 className="mb-2 text-lg font-semibold text-card-foreground">
                         No Assigned Projects
                     </h2>
 
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-muted-foreground">
                         {searchTerm
                             ? "No projects match your search."
                             : "You currently have no assigned projects."}
                     </p>
+
                 </div>
             )}
 
-            {/* PROJECTS */}
+            {/* ==================================================
+                PROJECTS
+            ================================================== */}
+
             {filteredProjects.length > 0 && (
                 <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+
                     {filteredProjects.map((project, index) => {
+
                         const projectName =
                             project.name ||
                             project.projectName ||
@@ -251,91 +289,117 @@ function ViewAssignedProjects() {
                                     project.projectId ||
                                     index
                                 }
-                                className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-lg transition hover:border-blue-700/50"
+                                className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50"
                             >
+
                                 {/* PROJECT HEADER */}
+
                                 <div className="mb-4 flex items-start justify-between gap-4">
+
                                     <div className="flex items-start gap-3">
-                                        <div className="rounded-xl bg-blue-600/20 p-3">
-                                            <FolderKanban className="h-6 w-6 text-blue-400" />
+
+                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+
+                                            <FolderKanban className="h-6 w-6 text-primary" />
+
                                         </div>
 
                                         <div>
-                                            <h2 className="font-semibold text-white">
+
+                                            <h2 className="font-semibold text-card-foreground">
                                                 {projectName}
                                             </h2>
 
-                                            <span className="mt-1 inline-block rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-400">
+                                            <span className="mt-1 inline-block rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                                                 {projectStatus}
                                             </span>
+
                                         </div>
+
                                     </div>
+
                                 </div>
 
                                 {/* DESCRIPTION */}
-                                <p className="mb-5 line-clamp-3 text-sm leading-6 text-slate-400">
+
+                                <p className="mb-5 line-clamp-3 text-sm leading-6 text-muted-foreground">
                                     {description}
                                 </p>
 
                                 {/* PROJECT INFORMATION */}
-                                <div className="space-y-3 border-t border-slate-800 pt-4">
-                                    <div className="flex items-center gap-3 text-sm">
-                                        <UserRound className="h-4 w-4 text-slate-500" />
 
-                                        <span className="text-slate-400">
+                                <div className="space-y-3 border-t border-border pt-4">
+
+                                    <div className="flex items-center gap-3 text-sm">
+
+                                        <UserRound className="h-4 w-4 text-muted-foreground" />
+
+                                        <span className="text-muted-foreground">
                                             Manager:
                                         </span>
 
-                                        <span className="text-slate-200">
+                                        <span className="text-card-foreground">
                                             {manager}
                                         </span>
+
                                     </div>
 
                                     <div className="flex items-center gap-3 text-sm">
-                                        <Building2 className="h-4 w-4 text-slate-500" />
 
-                                        <span className="text-slate-400">
+                                        <Building2 className="h-4 w-4 text-muted-foreground" />
+
+                                        <span className="text-muted-foreground">
                                             Organization:
                                         </span>
 
-                                        <span className="text-slate-200">
+                                        <span className="text-card-foreground">
                                             {organization}
                                         </span>
+
                                     </div>
 
                                     <div className="flex items-center gap-3 text-sm">
-                                        <CalendarDays className="h-4 w-4 text-slate-500" />
 
-                                        <span className="text-slate-400">
+                                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
+
+                                        <span className="text-muted-foreground">
                                             Dates:
                                         </span>
 
-                                        <span className="text-slate-200">
+                                        <span className="text-card-foreground">
                                             {formatDate(startDate)}
                                             {" → "}
                                             {formatDate(endDate)}
                                         </span>
+
                                     </div>
+
                                 </div>
 
                                 {/* ACTION */}
+
                                 <div className="mt-5">
+
                                     <button
                                         type="button"
                                         onClick={() =>
                                             handleViewProject(project)
                                         }
-                                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-600/50 bg-blue-600/10 px-4 py-2.5 text-sm font-medium text-blue-400 transition hover:bg-blue-600 hover:text-white"
+                                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition hover:bg-primary hover:text-primary-foreground"
                                     >
                                         <Eye className="h-4 w-4" />
                                         View Project
                                     </button>
+
                                 </div>
+
                             </div>
                         );
                     })}
+
                 </div>
             )}
+
         </div>
     );
 }

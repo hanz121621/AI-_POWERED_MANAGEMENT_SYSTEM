@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import CreateProjectModal from "@/components/admin/projects/CreateProjectModal";
 import EditProjectModal from "@/components/admin/projects/EditProjectModal";
 import DeleteProjectDialog from "@/components/admin/projects/DeleteProjectDialog";
+
 import {
     Archive,
     ArchiveRestore,
@@ -43,7 +44,6 @@ import {
     deleteProject,
     archiveProject,
     restoreProject,
-    getAiSuggestion,
 } from "@/services/projectService";
 import { getTeams } from "@/services/teamService";
 import { getAllUsers } from "@/services/userService";
@@ -64,8 +64,6 @@ function ProjectOversight() {
     const [teams, setTeams] = useState([]);
 const [teamLeaders, setTeamLeaders] =
     useState([]);
-       const [aiSuggestion, setAiSuggestion] = useState(null);
-   const [loadingAi, setLoadingAi] = useState(false);
     // ========================================================
     // SEARCH
     // ========================================================
@@ -509,35 +507,6 @@ useEffect(() => {
 
         setCreateProjectOpen(false);
     };
-       const handleGetAiSuggestion = async (project) => {
-    if (!project?.id) return;
-    
-    setLoadingAi(true);
-    setAiSuggestion(null);
-    
-    try {
-        const response = await getAiSuggestion(project.id);
-        console.log("AI SUGGESTION RESPONSE:", response);
-        
-        // The backend returns { projectId, suggestion } 
-        // We extract the suggestion data safely
-        const suggestionData = response?.data || response?.suggestion || response;
-        
-        if (response?.success || suggestionData) {
-            setAiSuggestion(suggestionData);
-        } else {
-            setMessage({ 
-                type: "error", 
-                text: response?.message || "Failed to get AI suggestion." 
-            });
-        }
-    } catch (error) {
-        console.error("AI SUGGESTION ERROR:", error);
-        setMessage({ type: "error", text: "AI service is currently unavailable." });
-    } finally {
-        setLoadingAi(false);
-    }
-};
 
     // ========================================================
     // SAVE CREATED PROJECT
@@ -2621,16 +2590,7 @@ useEffect(() => {
                                                     Restore
                                                 </Button>
                                             )}
- <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleGetAiSuggestion(project)}
-                disabled={actionLoading || loadingAi}
-                className="flex-1 gap-2 border-violet-500/50 bg-background text-violet-600 hover:border-violet-400 hover:bg-violet-500/10 dark:text-violet-300"
-            >
-                {loadingAi ? <Loader2 size={16} className="animate-spin" /> : <Trophy size={16} />}
-                AI Insights
-            </Button>
+
                                             <Button
                                                 type="button"
                                                 variant="outline"
@@ -3488,52 +3448,8 @@ useEffect(() => {
                     )}
                 </DialogContent>
             </Dialog>
-        {aiSuggestion && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-violet-500/30 bg-card shadow-2xl">
-                <div className="flex items-center justify-between border-b border-border bg-violet-500/10 px-6 py-4">
-                    <div className="flex items-center gap-3">
-                        <Trophy size={20} className="text-violet-600" />
-                        <h2 className="text-lg font-bold text-foreground">AI Project Insight</h2>
-                    </div>
-                    <button onClick={() => setAiSuggestion(null)} className="rounded-lg p-2 text-muted-foreground hover:bg-muted">
-                        <X size={19} />
-                    </button>
-                </div>
-                
-                <div className="p-6 space-y-4">
-                    <div className="flex items-center gap-2">
-                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${
-                            aiSuggestion.priority === 'High' ? 'bg-red-500/10 text-red-600' :
-                            aiSuggestion.priority === 'Medium' ? 'bg-amber-500/10 text-amber-600' :
-                            'bg-emerald-500/10 text-emerald-600'
-                        }`}>
-                            {aiSuggestion.priority} Priority
-                        </span>
-                        <span className="rounded-full bg-violet-500/10 px-3 py-1 text-xs font-bold text-violet-600">
-                            {aiSuggestion.suggestionType}
-                        </span>
-                    </div>
-
-                    <h3 className="text-xl font-bold text-foreground">{aiSuggestion.title}</h3>
-                    <p className="text-sm leading-6 text-muted-foreground">{aiSuggestion.description}</p>
-                    
-                    <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-border">
-                        Generated by AI-PMS Assistant • {new Date(aiSuggestion.generatedAt).toLocaleString()}
-                    </p>
-                </div>
-
-                <div className="flex justify-end border-t border-border bg-muted/30 px-6 py-4">
-                    <Button onClick={() => setAiSuggestion(null)} className="bg-violet-600 text-white hover:bg-violet-700">
-                        Close
-                    </Button>
-                </div>
-            </div>
         </div>
-    )}
-
-</div> 
-);
+    );
 }
 
 export default ProjectOversight;

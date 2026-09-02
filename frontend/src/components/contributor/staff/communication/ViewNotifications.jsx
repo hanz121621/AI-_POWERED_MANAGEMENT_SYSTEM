@@ -1,3 +1,4 @@
+
 import { useMemo, useState } from "react";
 import {
     Bell,
@@ -18,8 +19,7 @@ import {
 // STORAGE KEY
 // ============================================================
 
-const NOTIFICATIONS_KEY =
-    "aipms_staff_notifications";
+const NOTIFICATIONS_KEY = "aipms_staff_notifications";
 
 // ============================================================
 // DEFAULT NOTIFICATION
@@ -46,7 +46,7 @@ function NotificationTypeIcon({ type }) {
         return (
             <CheckCircle2
                 size={20}
-                className="text-emerald-400"
+                className="text-primary"
             />
         );
     }
@@ -55,7 +55,7 @@ function NotificationTypeIcon({ type }) {
         return (
             <AlertTriangle
                 size={20}
-                className="text-yellow-400"
+                className="text-primary"
             />
         );
     }
@@ -64,7 +64,7 @@ function NotificationTypeIcon({ type }) {
         return (
             <AlertCircle
                 size={20}
-                className="text-red-400"
+                className="text-primary"
             />
         );
     }
@@ -73,7 +73,7 @@ function NotificationTypeIcon({ type }) {
         return (
             <Check
                 size={20}
-                className="text-blue-400"
+                className="text-primary"
             />
         );
     }
@@ -82,7 +82,7 @@ function NotificationTypeIcon({ type }) {
         return (
             <BellRing
                 size={20}
-                className="text-purple-400"
+                className="text-primary"
             />
         );
     }
@@ -90,7 +90,7 @@ function NotificationTypeIcon({ type }) {
     return (
         <Info
             size={20}
-            className="text-cyan-400"
+            className="text-primary"
         />
     );
 }
@@ -339,24 +339,24 @@ function ViewNotifications() {
     // ========================================================
 
     return (
-        <div className="space-y-6 text-white">
+        <div className="w-full space-y-6 text-foreground">
             {/* HEADER */}
 
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="rounded-xl bg-yellow-500/10 p-3">
+                    <div className="rounded-xl bg-primary/10 p-3">
                         <Bell
                             size={24}
-                            className="text-yellow-400"
+                            className="text-primary"
                         />
                     </div>
 
                     <div>
-                        <h2 className="text-xl font-bold">
+                        <h2 className="text-xl font-bold text-foreground">
                             View Notifications
                         </h2>
 
-                        <p className="text-sm text-slate-400">
+                        <p className="text-sm text-muted-foreground">
                             View task, project, sprint, and
                             system notifications.
                         </p>
@@ -367,7 +367,7 @@ function ViewNotifications() {
                     <button
                         type="button"
                         onClick={handleRefresh}
-                        className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-slate-700"
+                        className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
                     >
                         <RefreshCw size={16} />
                         Refresh
@@ -379,11 +379,9 @@ function ViewNotifications() {
                             onClick={
                                 handleMarkAllAsRead
                             }
-                            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+                            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
                         >
-                            <CheckCheck
-                                size={16}
-                            />
+                            <CheckCheck size={16} />
                             Mark All Read
                         </button>
                     )}
@@ -392,7 +390,7 @@ function ViewNotifications() {
                         <button
                             type="button"
                             onClick={handleClearAll}
-                            className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/20"
+                            className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted/80 hover:text-foreground"
                         >
                             <Trash2 size={16} />
                             Clear All
@@ -404,7 +402,7 @@ function ViewNotifications() {
             {/* STATUS */}
 
             {statusMessage && (
-                <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
                     <CheckCircle2 size={18} />
                     {statusMessage}
                 </div>
@@ -413,32 +411,32 @@ function ViewNotifications() {
             {/* SUMMARY */}
 
             <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4">
-                    <p className="text-xs uppercase tracking-wider text-slate-500">
+                <div className="rounded-xl border border-border bg-card p-4">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground">
                         Total
                     </p>
 
-                    <p className="mt-2 text-2xl font-bold">
+                    <p className="mt-2 text-2xl font-bold text-card-foreground">
                         {totalNotifications}
                     </p>
                 </div>
 
-                <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4">
-                    <p className="text-xs uppercase tracking-wider text-slate-500">
+                <div className="rounded-xl border border-border bg-card p-4">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground">
                         Unread
                     </p>
 
-                    <p className="mt-2 text-2xl font-bold text-blue-400">
+                    <p className="mt-2 text-2xl font-bold text-primary">
                         {unreadNotifications}
                     </p>
                 </div>
 
-                <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4">
-                    <p className="text-xs uppercase tracking-wider text-slate-500">
+                <div className="rounded-xl border border-border bg-card p-4">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground">
                         Read
                     </p>
 
-                    <p className="mt-2 text-2xl font-bold text-emerald-400">
+                    <p className="mt-2 text-2xl font-bold text-primary">
                         {readNotifications}
                     </p>
                 </div>
@@ -446,12 +444,12 @@ function ViewNotifications() {
 
             {/* SEARCH + FILTER */}
 
-            <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">
+            <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex flex-col gap-4 md:flex-row">
                     <div className="relative flex-1">
                         <Search
                             size={18}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                         />
 
                         <input
@@ -463,11 +461,11 @@ function ViewNotifications() {
                                 )
                             }
                             placeholder="Search notifications..."
-                            className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2.5 pl-10 pr-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-yellow-500"
+                            className="w-full rounded-lg border border-border bg-muted py-2.5 pl-10 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
                         />
                     </div>
 
-                    <div className="flex rounded-lg border border-slate-700 bg-slate-800 p-1">
+                    <div className="flex rounded-lg border border-border bg-muted p-1">
                         {[
                             ["all", "All"],
                             ["unread", "Unread"],
@@ -481,8 +479,8 @@ function ViewNotifications() {
                                 }
                                 className={`rounded-md px-4 py-2 text-sm transition ${
                                     filter === value
-                                        ? "bg-yellow-600 text-white"
-                                        : "text-slate-400 hover:text-white"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "text-muted-foreground hover:bg-card hover:text-foreground"
                                 }`}
                             >
                                 {label}
@@ -494,9 +492,9 @@ function ViewNotifications() {
 
             {/* NOTIFICATIONS */}
 
-            <div className="rounded-2xl border border-slate-700 bg-slate-900/80">
-                <div className="border-b border-slate-700 p-5">
-                    <h3 className="font-semibold">
+            <div className="rounded-2xl border border-border bg-card">
+                <div className="border-b border-border p-5">
+                    <h3 className="font-semibold text-card-foreground">
                         Notifications
                     </h3>
                 </div>
@@ -507,16 +505,17 @@ function ViewNotifications() {
                         <div className="py-16 text-center">
                             <Bell
                                 size={38}
-                                className="mx-auto mb-4 text-slate-600"
+                                className="mx-auto mb-4 text-muted-foreground"
                             />
 
-                            <h3 className="font-semibold text-slate-300">
+                            <h3 className="font-semibold text-card-foreground">
                                 No notifications
                             </h3>
 
-                            <p className="mt-2 text-sm text-slate-500">
-                                You don't have any notifications
-                                matching the current filter.
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                You don't have any
+                                notifications matching the
+                                current filter.
                             </p>
                         </div>
                     ) : (
@@ -529,8 +528,8 @@ function ViewNotifications() {
                                         }
                                         className={`rounded-xl border p-4 transition ${
                                             notification.read
-                                                ? "border-slate-700 bg-slate-800/50"
-                                                : "border-blue-500/30 bg-blue-500/5"
+                                                ? "border-border bg-card"
+                                                : "border-primary/30 bg-primary/10"
                                         }`}
                                     >
                                         <div className="flex items-start gap-4">
@@ -539,8 +538,8 @@ function ViewNotifications() {
                                             <div
                                                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
                                                     notification.read
-                                                        ? "bg-slate-700/60"
-                                                        : "bg-blue-500/10"
+                                                        ? "bg-muted"
+                                                        : "bg-primary/10"
                                                 }`}
                                             >
                                                 <NotificationTypeIcon
@@ -559,8 +558,8 @@ function ViewNotifications() {
                                                             <h4
                                                                 className={`font-semibold ${
                                                                     notification.read
-                                                                        ? "text-slate-300"
-                                                                        : "text-white"
+                                                                        ? "text-muted-foreground"
+                                                                        : "text-foreground"
                                                                 }`}
                                                             >
                                                                 {
@@ -568,26 +567,26 @@ function ViewNotifications() {
                                                                 }
                                                             </h4>
 
-                                                            <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[10px] uppercase tracking-wider text-slate-400">
+                                                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
                                                                 {getTypeLabel(
                                                                     notification.type
                                                                 )}
                                                             </span>
 
                                                             {!notification.read && (
-                                                                <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-400">
+                                                                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                                                                     Unread
                                                                 </span>
                                                             )}
                                                         </div>
 
-                                                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-400">
+                                                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
                                                             {
                                                                 notification.message
                                                             }
                                                         </p>
 
-                                                        <div className="mt-3 flex items-center gap-1 text-xs text-slate-600">
+                                                        <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
                                                             <CalendarDays
                                                                 size={
                                                                     13
@@ -611,7 +610,7 @@ function ViewNotifications() {
                                                                         notification.id
                                                                     )
                                                                 }
-                                                                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-300 transition hover:bg-blue-500/20"
+                                                                className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-medium text-primary transition hover:bg-primary/20"
                                                             >
                                                                 <Check
                                                                     size={
@@ -629,7 +628,7 @@ function ViewNotifications() {
                                                                     notification.id
                                                                 )
                                                             }
-                                                            className="inline-flex items-center justify-center rounded-lg border border-red-500/20 bg-red-500/5 p-2 text-red-400 transition hover:bg-red-500/10"
+                                                            className="inline-flex items-center justify-center rounded-lg border border-border bg-muted p-2 text-muted-foreground transition hover:bg-muted/80 hover:text-foreground"
                                                             title="Delete notification"
                                                         >
                                                             <Trash2

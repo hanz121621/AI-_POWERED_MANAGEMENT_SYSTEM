@@ -1,5 +1,6 @@
 
 import { useMemo, useState } from "react";
+
 import {
     MessageSquare,
     Search,
@@ -148,6 +149,7 @@ function ReceiveMessages() {
         );
 
         setMessages(updatedMessages);
+
         setSelectedMessage({
             ...message,
             read: true,
@@ -172,20 +174,23 @@ function ReceiveMessages() {
     // ========================================================
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
+        <div className="w-full space-y-6 text-foreground">
+            {/* ==================================================
+                HEADER
+            ================================================== */}
+
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                         <MessageSquare size={22} />
                     </div>
 
                     <div>
-                        <h2 className="text-xl font-bold text-white">
+                        <h2 className="text-xl font-bold text-foreground">
                             Receive Messages
                         </h2>
 
-                        <p className="text-sm text-slate-400">
+                        <p className="text-sm text-muted-foreground">
                             View messages received from managers
                             and team members.
                         </p>
@@ -195,45 +200,52 @@ function ReceiveMessages() {
                 <button
                     type="button"
                     onClick={handleRefresh}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-slate-700"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
                 >
                     <RefreshCw size={16} />
                     Refresh
                 </button>
             </div>
 
-            {/* Summary */}
+            {/* ==================================================
+                SUMMARY
+            ================================================== */}
+
             <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-5">
+                {/* TOTAL MESSAGES */}
+
+                <div className="rounded-xl border border-border bg-card p-5">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/20 text-blue-400">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                             <Inbox size={20} />
                         </div>
 
                         <div>
-                            <p className="text-sm text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                                 Total Messages
                             </p>
 
-                            <p className="text-2xl font-bold text-white">
+                            <p className="text-2xl font-bold text-foreground">
                                 {messages.length}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-5">
+                {/* UNREAD MESSAGES */}
+
+                <div className="rounded-xl border border-border bg-card p-5">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                             <Mail size={20} />
                         </div>
 
                         <div>
-                            <p className="text-sm text-slate-400">
+                            <p className="text-sm text-muted-foreground">
                                 Unread Messages
                             </p>
 
-                            <p className="text-2xl font-bold text-white">
+                            <p className="text-2xl font-bold text-foreground">
                                 {unreadCount}
                             </p>
                         </div>
@@ -241,11 +253,14 @@ function ReceiveMessages() {
                 </div>
             </div>
 
-            {/* Search */}
+            {/* ==================================================
+                SEARCH
+            ================================================== */}
+
             <div className="relative">
                 <Search
                     size={18}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 />
 
                 <input
@@ -255,24 +270,27 @@ function ReceiveMessages() {
                         setSearchTerm(event.target.value)
                     }
                     placeholder="Search messages..."
-                    className="w-full rounded-lg border border-slate-700 bg-slate-900 py-3 pl-10 pr-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-500"
+                    className="w-full rounded-lg border border-border bg-card py-3 pl-10 pr-4 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                 />
             </div>
 
-            {/* Messages */}
+            {/* ==================================================
+                MESSAGES
+            ================================================== */}
+
             <div className="space-y-3">
                 {filteredMessages.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-10 text-center">
+                    <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
                         <MailOpen
                             size={42}
-                            className="mx-auto text-slate-600"
+                            className="mx-auto text-muted-foreground"
                         />
 
-                        <h3 className="mt-4 font-semibold text-white">
+                        <h3 className="mt-4 font-semibold text-foreground">
                             No messages found
                         </h3>
 
-                        <p className="mt-2 text-sm text-slate-400">
+                        <p className="mt-2 text-sm text-muted-foreground">
                             There are no messages matching your
                             search.
                         </p>
@@ -287,13 +305,13 @@ function ReceiveMessages() {
                             }
                             className={`w-full rounded-xl border p-5 text-left transition ${
                                 message.read
-                                    ? "border-slate-700 bg-slate-900/50 hover:bg-slate-800/60"
-                                    : "border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/15"
+                                    ? "border-border bg-card hover:bg-muted"
+                                    : "border-primary/30 bg-primary/10 hover:bg-primary/15"
                             }`}
                         >
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex min-w-0 items-start gap-3">
-                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-blue-400">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
                                         {message.read ? (
                                             <MailOpen size={19} />
                                         ) : (
@@ -303,45 +321,47 @@ function ReceiveMessages() {
 
                                     <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="font-semibold text-white">
+                                            <h3 className="font-semibold text-foreground">
                                                 {message.subject ||
                                                     "No Subject"}
                                             </h3>
 
                                             {!message.read && (
-                                                <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">
+                                                <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
                                                     New
                                                 </span>
                                             )}
                                         </div>
 
-                                        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                                        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                                             <span className="inline-flex items-center gap-1">
                                                 <User size={13} />
+
                                                 {message.senderName ||
                                                     "Unknown sender"}
                                             </span>
 
                                             <span className="inline-flex items-center gap-1">
                                                 <Clock size={13} />
+
                                                 {formatDate(
                                                     message.createdAt
                                                 )}
                                             </span>
                                         </div>
 
-                                        <p className="mt-3 line-clamp-2 text-sm text-slate-400">
+                                        <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
                                             {message.message}
                                         </p>
                                     </div>
                                 </div>
 
                                 <span
-                                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                                    className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${
                                         message.priority ===
                                         "High"
-                                            ? "bg-red-500/10 text-red-400"
-                                            : "bg-slate-800 text-slate-400"
+                                            ? "border-primary/30 bg-primary/10 text-primary"
+                                            : "border-border bg-muted text-muted-foreground"
                                     }`}
                                 >
                                     {message.priority ||
@@ -353,23 +373,26 @@ function ReceiveMessages() {
                 )}
             </div>
 
-            {/* Selected Message */}
+            {/* ==================================================
+                SELECTED MESSAGE
+            ================================================== */}
+
             {selectedMessage && (
-                <div className="rounded-xl border border-blue-500/30 bg-slate-900 p-6">
+                <div className="rounded-xl border border-primary/30 bg-card p-6">
                     <div className="flex items-start justify-between gap-4">
                         <div>
-                            <h3 className="text-lg font-bold text-white">
+                            <h3 className="text-lg font-bold text-foreground">
                                 {selectedMessage.subject ||
                                     "No Subject"}
                             </h3>
 
-                            <p className="mt-1 text-sm text-slate-400">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 From:{" "}
                                 {selectedMessage.senderName ||
                                     "Unknown sender"}
                             </p>
 
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-muted-foreground">
                                 {formatDate(
                                     selectedMessage.createdAt
                                 )}
@@ -378,12 +401,12 @@ function ReceiveMessages() {
 
                         <CheckCircle2
                             size={22}
-                            className="text-emerald-400"
+                            className="text-primary"
                         />
                     </div>
 
-                    <div className="mt-5 rounded-lg border border-slate-700 bg-slate-950/50 p-4">
-                        <p className="whitespace-pre-wrap text-sm leading-6 text-slate-300">
+                    <div className="mt-5 rounded-lg border border-border bg-muted p-4">
+                        <p className="whitespace-pre-wrap text-sm leading-6 text-card-foreground">
                             {selectedMessage.message}
                         </p>
                     </div>
