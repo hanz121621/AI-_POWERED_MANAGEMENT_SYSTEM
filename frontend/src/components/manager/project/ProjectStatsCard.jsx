@@ -1,132 +1,86 @@
+
 import React from "react";
 
+// ============================================================
+// AIPMS — MANAGER PROJECT STATS CARD
+//
+// Design:
+// - White card
+// - Slate borders/text
+// - Colorful gradient accent
+// - Soft icon background
+// - Professional hover effect
+// ============================================================
 
 function ProjectStatsCard({
-  title,
-  value,
-  icon: Icon,
-  color
+    title,
+    value,
+    icon: Icon,
+    color = "from-blue-500 to-cyan-600",
+    iconBg = "bg-blue-100",
+    iconColor = "text-blue-600",
 }) {
+    return (
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md">
 
+            {/* ==================================================
+                TOP COLOR ACCENT
+            ================================================== */}
 
-return (
+            <div
+                className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${color}`}
+            />
 
-<div
+            {/* ==================================================
+                CARD CONTENT
+            ================================================== */}
 
-className="
-bg-[#0f172a]
-border
-border-gray-800
-rounded-xl
-p-6
-shadow-lg
-transition-all
-duration-300
-hover:-translate-y-1
-hover:border-blue-500
-hover:shadow-xl
-"
+            <div className="flex items-center justify-between gap-4">
 
->
+                {/* ==================================================
+                    TEXT
+                ================================================== */}
 
+                <div className="min-w-0">
 
-<div className="
-flex
-items-center
-justify-between
-">
+                    <p className="text-sm font-medium text-slate-500">
+                        {title}
+                    </p>
 
+                    <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                        {value}
+                    </p>
 
-{/* Text */}
+                </div>
 
+                {/* ==================================================
+                    ICON
+                ================================================== */}
 
-<div>
+                <div
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
+                >
+                    {Icon && (
+                        <Icon
+                            size={22}
+                            className={iconColor}
+                        />
+                    )}
+                </div>
 
+            </div>
 
-<p className="
-text-sm
-text-gray-400
-font-medium
-">
+            {/* ==================================================
+                BOTTOM COLOR ACCENT
+            ================================================== */}
 
-{title}
+            <div
+                className={`mt-4 h-1 w-16 rounded-full bg-gradient-to-r ${color}`}
+            />
 
-</p>
-
-
-
-
-<h2 className="
-text-3xl
-font-bold
-text-white
-mt-2
-">
-
-{value}
-
-</h2>
-
-
-</div>
-
-
-
-
-
-
-
-{/* Icon */}
-
-
-<div
-
-className={`
-${color}
-
-w-14
-h-14
-rounded-xl
-flex
-items-center
-justify-center
-shadow-lg
-transition-all
-duration-300
-hover:scale-110
-`}
-
->
-
-
-<Icon
-
-size={28}
-
-className="text-white"
-
-/>
-
-
-</div>
-
-
-
-
-
-</div>
-
-
-
-
-
-</div>
-
-
-);
-
-
+        </div>
+    );
 }
 
-
 export default ProjectStatsCard;
+

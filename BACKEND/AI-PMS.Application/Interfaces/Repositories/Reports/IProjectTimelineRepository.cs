@@ -30,3 +30,4 @@ namespace AI_PMS.Application.Interfaces.Repositories.Reports
             Guid projectId);
     }
 }
+

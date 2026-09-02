@@ -1,14 +1,14 @@
-using System.Security.Claims;
 using AI_PMS.Application.DTOs.Communication;
 using AI_PMS.Application.Interfaces.Communication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace AI_PMS.API.Controllers.Communication
 {
     [ApiController]
     [Route("api/communication/mentions")]
-    [Authorize(Roles = "Manager")]
+    [Authorize(Roles = "Manager,Contributor")]
     public class MentionsController : ControllerBase
     {
         private readonly IMentionService _mentionService;
@@ -20,51 +20,65 @@ namespace AI_PMS.API.Controllers.Communication
         }
 
         // =========================================================
-        // MENTION TEAM LEADER
+        // MENTION TEAM MEMBERS IN TASK COMMENT
+        //
+        // DEV-COMM-003
+        // STAFF-COMM-003
+        //
         // POST:
-        // api/communication/mentions/team-leader/{messageId}
+        // api/communication/mentions/task-comment/{taskCommentId}
         // =========================================================
 
-        [HttpPost("team-leader/{messageId:guid}")]
-        public async Task<ActionResult<MessageMentionDto>>
-            MentionTeamLeader(
-                Guid messageId)
+        [HttpPost("task-comment/{taskCommentId:guid}")]
+        public async Task<ActionResult<List<MessageMentionDto>>>
+            MentionTaskComment(
+                Guid taskCommentId,
+                [FromBody] List<Guid> mentionedUserIds)
         {
             var userIdClaim =
-                User.FindFirst(
+                User.FindFirstValue(
                     ClaimTypes.NameIdentifier);
 
-            if (userIdClaim == null)
-            {
-                return Unauthorized();
-            }
-
             if (!Guid.TryParse(
-                    userIdClaim.Value,
-                    out var managerId))
+                    userIdClaim,
+                    out var userId))
             {
-                return Unauthorized();
+                return Unauthorized(new
+                {
+                    message = "Invalid authenticated user."
+                });
             }
 
             try
             {
                 var result =
                     await _mentionService
-                        .MentionTeamLeaderAsync(
-                            managerId,
-                            messageId);
+                        .MentionTeamMembersInTaskCommentAsync(
+                            userId,
+                            taskCommentId,
+                            mentionedUserIds);
 
                 return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new
                 {
-                    success = false,
                     message = ex.Message
                 });
             }
+<<<<<<< HEAD
             catch (UnauthorizedAccessException )
+=======
+            catch (UnauthorizedAccessException)
+>>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
             {
                 return Forbid();
             }
@@ -72,7 +86,6 @@ namespace AI_PMS.API.Controllers.Communication
             {
                 return BadRequest(new
                 {
-                    success = false,
                     message = ex.Message
                 });
             }

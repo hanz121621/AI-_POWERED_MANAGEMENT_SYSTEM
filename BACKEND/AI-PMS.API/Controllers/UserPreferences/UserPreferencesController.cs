@@ -20,6 +20,34 @@ public class UserPreferencesController : ControllerBase
     }
 
     // =========================================================
+    // GET SUPPORTED LANGUAGES
+    // DEV-SETTING-002
+    // =========================================================
+
+    [HttpGet("languages")]
+    public async Task<ActionResult<List<string>>>
+        GetSupportedLanguages()
+    {
+        try
+        {
+            var result =
+                await _service.GetSupportedLanguagesAsync();
+
+            return Ok(result);
+        }
+        catch
+        {
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new
+                {
+                    message =
+                        "Unable to retrieve supported languages."
+                });
+        }
+    }
+
+    // =========================================================
     // GET USER PREFERENCES
     // =========================================================
 
@@ -30,7 +58,8 @@ public class UserPreferencesController : ControllerBase
         {
             var userId = GetUserId();
 
-            var result = await _service.GetAsync(userId);
+            var result =
+                await _service.GetAsync(userId);
 
             return Ok(result);
         }
@@ -45,7 +74,8 @@ public class UserPreferencesController : ControllerBase
 
     // =========================================================
     // UPDATE USER PREFERENCES
-    // SETTING-002 + SETTING-003
+    // DEV-SETTING-002 + DEV-SETTING-003
+    // STAFF-SETTING-002 + STAFF-SETTING-003
     // =========================================================
 
     [HttpPut]
@@ -56,7 +86,8 @@ public class UserPreferencesController : ControllerBase
         {
             return BadRequest(new
             {
-                message = "Invalid user preference settings."
+                message =
+                    "Invalid user preference settings."
             });
         }
 
@@ -64,9 +95,10 @@ public class UserPreferencesController : ControllerBase
         {
             var userId = GetUserId();
 
-            var result = await _service.UpdateAsync(
-                userId,
-                request);
+            var result =
+                await _service.UpdateAsync(
+                    userId,
+                    request);
 
             return Ok(new
             {
@@ -108,10 +140,13 @@ public class UserPreferencesController : ControllerBase
     private Guid GetUserId()
     {
         var claim =
-            User.FindFirstValue(ClaimTypes.NameIdentifier)
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier)
             ?? User.FindFirstValue("sub");
 
-        if (!Guid.TryParse(claim, out var userId))
+        if (!Guid.TryParse(
+                claim,
+                out var userId))
         {
             throw new UnauthorizedAccessException(
                 "Invalid user identity.");

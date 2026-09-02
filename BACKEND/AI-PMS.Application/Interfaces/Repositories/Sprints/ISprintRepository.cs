@@ -1,6 +1,6 @@
 using AI_PMS.Domain.Entities.Sprints;
 
-namespace AI_PMS.Application.Interfaces.Sprints
+namespace AI_PMS.Application.Interfaces.Repositories.Sprints
 {
     public interface ISprintRepository
     {

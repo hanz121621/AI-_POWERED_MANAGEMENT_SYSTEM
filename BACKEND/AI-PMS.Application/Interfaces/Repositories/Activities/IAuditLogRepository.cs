@@ -11,3 +11,4 @@ public interface IAuditLogRepository
     Task<List<AuditLog>> GetByDateRangeAsync(DateTime? startDate, DateTime? endDate);
     Task<List<AuditLog>> GetByActionAsync(string action);
 }
+

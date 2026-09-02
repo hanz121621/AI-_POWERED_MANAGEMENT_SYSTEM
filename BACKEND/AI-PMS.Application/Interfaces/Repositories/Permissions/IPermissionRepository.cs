@@ -12,3 +12,4 @@ public interface IPermissionRepository
     Task UpdateAsync(Permission permission);
     Task DeleteAsync(Permission permission);
 }
+

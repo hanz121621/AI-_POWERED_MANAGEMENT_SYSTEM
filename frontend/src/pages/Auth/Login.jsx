@@ -38,39 +38,22 @@ import {
 } from "@/services/authService";
 
 function Login() {
-    const navigate =
-        useNavigate();
+    const navigate = useNavigate();
 
-    const { login } =
-        useAuth();
+    const { updateUser } = useAuth();
 
-    const [
-        formData,
-        setFormData,
-    ] = useState({
+    const [formData, setFormData] = useState({
         email: "",
         password: "",
     });
 
-    const [
-        showPassword,
-        setShowPassword,
-    ] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
-    const [
-        rememberMe,
-        setRememberMe,
-    ] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
 
-    const [
-        error,
-        setError,
-    ] = useState("");
+    const [error, setError] = useState("");
 
-    const [
-        loading,
-        setLoading,
-    ] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     // ============================================================
     // HANDLE INPUT
@@ -79,13 +62,98 @@ function Login() {
     function handleChange(e) {
         setFormData({
             ...formData,
-            [e.target.name]:
-                e.target.value,
+            [e.target.name]: e.target.value,
         });
 
         if (error) {
             setError("");
         }
+    }
+
+    // ============================================================
+    // CONTRIBUTOR DASHBOARD
+    // ============================================================
+    //
+    // Backend role:
+    //   Admin       = 1
+    //   Manager     = 2
+    //   Contributor = 3
+    //
+    // Contributor is the parent role.
+    // The actual dashboard is determined by the contributor
+    // classification returned by /Users/profile.
+    //
+    // Supported names:
+    //   Team Leader
+    //   Staff
+    //   Developer
+    //
+    // We check several normalized field names because the current
+    // authService is being aligned with the backend UserDto.
+    // ============================================================
+
+    function getContributorDashboard(user) {
+        const values = [
+            user?.contributorTypeName,
+            user?.contributorType,
+            user?.contributorSubTypeName,
+            user?.contributorSubType,
+            user?.contributorTypeDefinitionName,
+            user?.developerSpecializationName,
+            user?.staffSpecializationName,
+        ]
+            .filter(Boolean)
+            .map((value) =>
+                String(value)
+                    .trim()
+                    .toLowerCase()
+            );
+
+        console.log(
+            "CONTRIBUTOR CLASSIFICATION VALUES:",
+            values
+        );
+
+        // ========================================================
+        // TEAM LEADER
+        // ========================================================
+
+        if (
+            values.some((value) =>
+                value.includes("team leader") ||
+                value.includes("teamleader")
+            )
+        ) {
+            return "/team-leader/dashboard";
+        }
+
+        // ========================================================
+        // DEVELOPER
+        // ========================================================
+
+        if (
+            values.some((value) =>
+                value === "developer" ||
+                value.includes("developer")
+            )
+        ) {
+            return "/developer/dashboard";
+        }
+
+        // ========================================================
+        // STAFF
+        // ========================================================
+
+        if (
+            values.some((value) =>
+                value === "staff" ||
+                value.includes("staff")
+            )
+        ) {
+            return "/staff/dashboard";
+        }
+
+        return null;
     }
 
     // ============================================================
@@ -97,13 +165,11 @@ function Login() {
 
         setError("");
 
-        const email =
-            formData.email
-                .trim()
-                .toLowerCase();
+        const email = formData.email
+            .trim()
+            .toLowerCase();
 
-        const password =
-            formData.password;
+        const password = formData.password;
 
         if (!email || !password) {
             setError(
@@ -117,24 +183,34 @@ function Login() {
             setLoading(true);
 
             // ====================================================
-            // IMPORTANT:
-            // authService handles:
-            // - API request
-            // - token
+            // AUTHENTICATION
+            // ====================================================
+            //
+            // loginUser handles:
+            // - POST /Auth/login
+            // - access token
+            // - refresh token
+            // - /Users/profile
             // - current user
-            // - role normalization
             // - localStorage
             // ====================================================
 
-            const result =
-                await loginUser(
-                    email,
-                    password
-                );
+            const result = await loginUser(
+                email,
+                password
+            );
+
+            console.log(
+                "========== LOGIN RESULT =========="
+            );
 
             console.log(
                 "LOGIN RESULT:",
                 result
+            );
+
+            console.log(
+                "=================================="
             );
 
             if (
@@ -149,8 +225,7 @@ function Login() {
                 return;
             }
 
-            const user =
-                result.user;
+            const user = result.user;
 
             if (!user) {
                 setError(
@@ -163,8 +238,23 @@ function Login() {
             // ====================================================
             // UPDATE AUTH CONTEXT
             // ====================================================
+            //
+            // IMPORTANT:
+            //
+            // Do NOT call:
+            //
+            //     login(user)
+            //
+            // because AuthProvider.login expects:
+            //
+            //     login(email, password)
+            //
+            // loginUser() has already authenticated the user.
+            // updateUser() only synchronizes the authenticated
+            // user with React AuthContext.
+            // ====================================================
 
-            login(user);
+            updateUser(user);
 
             // ====================================================
             // REMEMBER ME
@@ -183,16 +273,16 @@ function Login() {
 
             // ====================================================
             // NORMALIZE ROLE
-            // Supports:
-            // 0 / Admin
-            // 1 / Manager
-            // 2 / Contributor
             // ====================================================
 
-            const role =
-                normalizeRole(
-                    user.role
-                );
+            const role = normalizeRole(
+                user.role
+            );
+
+            console.log(
+                "LOGIN USER:",
+                user
+            );
 
             console.log(
                 "LOGIN ROLE:",
@@ -200,10 +290,14 @@ function Login() {
             );
 
             // ====================================================
-            // ROLE-BASED NAVIGATION
+            // ADMIN
             // ====================================================
 
             if (role === "Admin") {
+                console.log(
+                    "REDIRECTING TO ADMIN DASHBOARD"
+                );
+
                 navigate(
                     "/admin/dashboard",
                     {
@@ -214,7 +308,15 @@ function Login() {
                 return;
             }
 
+            // ====================================================
+            // MANAGER
+            // ====================================================
+
             if (role === "Manager") {
+                console.log(
+                    "REDIRECTING TO MANAGER DASHBOARD"
+                );
+
                 navigate(
                     "/manager/dashboard",
                     {
@@ -225,12 +327,31 @@ function Login() {
                 return;
             }
 
-            if (
-                role ===
-                "Contributor"
-            ) {
+            // ====================================================
+            // CONTRIBUTOR
+            // ====================================================
+
+            if (role === "Contributor") {
+                const dashboard =
+                    getContributorDashboard(
+                        user
+                    );
+
+                console.log(
+                    "CONTRIBUTOR DASHBOARD:",
+                    dashboard
+                );
+
+                if (!dashboard) {
+                    setError(
+                        "Your Contributor account does not have a valid classification. Please contact an administrator."
+                    );
+
+                    return;
+                }
+
                 navigate(
-                    "/contributor/dashboard",
+                    dashboard,
                     {
                         replace: true,
                     }
@@ -239,16 +360,40 @@ function Login() {
                 return;
             }
 
+            // ====================================================
+            // INVALID ROLE
+            // ====================================================
+
             setError(
                 "Your account does not have a valid role."
             );
         } catch (error) {
             console.error(
-                "LOGIN PAGE ERROR:",
+                "========== LOGIN PAGE ERROR =========="
+            );
+
+            console.error(
+                "ERROR:",
                 error
             );
 
+            console.error(
+                "RESPONSE:",
+                error?.response?.data
+            );
+
+            console.error(
+                "STATUS:",
+                error?.response?.status
+            );
+
+            console.error(
+                "======================================"
+            );
+
             setError(
+                error?.response?.data?.message ??
+                error?.response?.data?.error ??
                 error?.message ??
                 "Something went wrong while signing in."
             );
@@ -346,9 +491,7 @@ function Login() {
                 >
                     <button
                         type="button"
-                        onClick={() =>
-                            navigate("/")
-                        }
+                        onClick={() => navigate("/")}
                         className="
                             group
                             flex
@@ -413,9 +556,7 @@ function Login() {
                         <Button
                             type="button"
                             variant="ghost"
-                            onClick={() =>
-                                navigate("/")
-                            }
+                            onClick={() => navigate("/")}
                             className="
                                 hidden
                                 h-10
@@ -738,9 +879,7 @@ function Login() {
                                 "
                             >
                                 <form
-                                    onSubmit={
-                                        handleSubmit
-                                    }
+                                    onSubmit={handleSubmit}
                                     className="space-y-7"
                                 >
                                     {/* EMAIL */}
@@ -772,12 +911,8 @@ function Login() {
                                                 type="email"
                                                 autoComplete="email"
                                                 placeholder="Enter your email address"
-                                                value={
-                                                    formData.email
-                                                }
-                                                onChange={
-                                                    handleChange
-                                                }
+                                                value={formData.email}
+                                                onChange={handleChange}
                                                 className="
                                                     h-13
                                                     rounded-xl
@@ -825,12 +960,8 @@ function Login() {
                                                 }
                                                 autoComplete="current-password"
                                                 placeholder="Enter your password"
-                                                value={
-                                                    formData.password
-                                                }
-                                                onChange={
-                                                    handleChange
-                                                }
+                                                value={formData.password}
+                                                onChange={handleChange}
                                                 className="
                                                     h-13
                                                     rounded-xl
@@ -868,17 +999,9 @@ function Login() {
                                                 }
                                             >
                                                 {showPassword ? (
-                                                    <EyeOff
-                                                        size={
-                                                            20
-                                                        }
-                                                    />
+                                                    <EyeOff size={20} />
                                                 ) : (
-                                                    <Eye
-                                                        size={
-                                                            20
-                                                        }
-                                                    />
+                                                    <Eye size={20} />
                                                 )}
                                             </button>
                                         </div>
@@ -903,9 +1026,7 @@ function Login() {
                                         >
                                             <Checkbox
                                                 id="remember"
-                                                checked={
-                                                    rememberMe
-                                                }
+                                                checked={rememberMe}
                                                 onCheckedChange={
                                                     setRememberMe
                                                 }
@@ -1077,9 +1198,7 @@ function Login() {
 // LARGE TRUST ITEM
 // ============================================================
 
-function LargeTrustItem({
-    children,
-}) {
+function LargeTrustItem({ children }) {
     return (
         <motion.div
             whileHover={{

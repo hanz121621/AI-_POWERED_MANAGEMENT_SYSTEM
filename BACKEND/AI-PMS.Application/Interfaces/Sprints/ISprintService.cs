@@ -61,6 +61,25 @@ Task<(bool Success, string Message)> CompleteSprintAsync(
     Guid sprintId);
 
     // =========================================================
+// CONTRIBUTOR SPRINT PARTICIPATION
+// Developer + Staff
+// =========================================================
+
+// DEV-SPRINT-001 / STAFF-SPRINT-001
+Task<IEnumerable<SprintDto>> GetMySprintsAsync(
+    Guid contributorId);
+
+// DEV-SPRINT-001 / STAFF-SPRINT-001
+Task<object?> GetMySprintTasksAsync(
+    Guid contributorId,
+    Guid sprintId);
+
+// DEV-SPRINT-002 / STAFF-SPRINT-002
+Task<SprintProgressDto?> GetMySprintProgressAsync(
+    Guid contributorId,
+    Guid sprintId);
+
+    // =========================================================
 // SPRINT-007
 // VIEW SPRINT BACKLOG
 // =========================================================
@@ -76,4 +95,6 @@ Task<SprintBacklogDto?> GetSprintBacklogAsync(
     string? search = null,
     bool sortDescending = false);
     }
+
+    
 }

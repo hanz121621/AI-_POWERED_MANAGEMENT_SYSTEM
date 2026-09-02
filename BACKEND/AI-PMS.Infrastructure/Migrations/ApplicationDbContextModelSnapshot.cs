@@ -33,7 +33,12 @@ namespace AI_PMS.Infrastructure.Migrations
 
                     b.Property<string>("AINotificationPriority")
                         .IsRequired()
+<<<<<<< HEAD
                         .HasColumnType("text");
+=======
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+>>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
 
                     b.Property<bool>("AllowAIDataUsage")
                         .HasColumnType("boolean");
@@ -227,8 +232,14 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("ReceiverId")
                         .HasColumnType("uuid");
@@ -236,8 +247,16 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Property<Guid>("SenderId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("TaskId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("TeamId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.HasKey("Id");
 
@@ -264,7 +283,10 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Property<Guid>("MentionedUserId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("MessageId")
+                    b.Property<Guid?>("MessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TaskCommentId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -272,6 +294,8 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.HasIndex("MentionedUserId");
 
                     b.HasIndex("MessageId");
+
+                    b.HasIndex("TaskCommentId");
 
                     b.ToTable("MessageMentions");
                 });
@@ -451,6 +475,9 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Property<bool>("AiRecommendationAlertsEnabled")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("CommentAndMentionNotificationsEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -463,13 +490,25 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Property<bool>("NotificationsEnabled")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("ProjectAnnouncementNotificationsEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("ProjectDeadlineRemindersEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ReviewRequestNotificationsEnabled")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("SprintUpdateNotificationsEnabled")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("TaskAssignmentAlertsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("TaskStatusUpdateNotificationsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("TeamLeaderMessageNotificationsEnabled")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -1304,6 +1343,90 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.ToTable("SystemSettings");
                 });
 
+            modelBuilder.Entity("AI_PMS.Domain.Entities.TaskComments.TaskComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TaskComments");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.TaskSubmissions.TaskSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CompletionNotes")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRejected")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RelatedLinks")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ReviewComment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SubmittedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("WorkSummary")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TaskSubmissions");
+                });
+
             modelBuilder.Entity("AI_PMS.Domain.Entities.Tasks.TaskItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1313,7 +1436,7 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Property<int>("ActualHours")
                         .HasColumnType("integer");
 
-                    b.Property<Guid?>("AssignedDeveloperId")
+                    b.Property<Guid?>("AssignedContributorSDId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1321,6 +1444,9 @@ namespace AI_PMS.Infrastructure.Migrations
 
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1332,6 +1458,9 @@ namespace AI_PMS.Infrastructure.Migrations
 
                     b.Property<int>("EstimatedHours")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Priority")
                         .HasColumnType("integer");
@@ -1746,6 +1875,9 @@ namespace AI_PMS.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1765,6 +1897,10 @@ namespace AI_PMS.Infrastructure.Migrations
 
                     b.Property<int>("Role")
                         .HasColumnType("integer");
+
+                    b.Property<string>("TechnicalSkills")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("ThemePreference")
                         .IsRequired()
@@ -1851,18 +1987,24 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.HasOne("AI_PMS.Domain.Entities.Users.User", "MentionedUser")
                         .WithMany()
                         .HasForeignKey("MentionedUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("AI_PMS.Domain.Entities.Communication.Message", "Message")
                         .WithMany()
                         .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("AI_PMS.Domain.Entities.TaskComments.TaskComment", "TaskComment")
+                        .WithMany("Mentions")
+                        .HasForeignKey("TaskCommentId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("MentionedUser");
 
                     b.Navigation("Message");
+
+                    b.Navigation("TaskComment");
                 });
 
             modelBuilder.Entity("AI_PMS.Domain.Entities.Communication.ProjectAnnouncement", b =>
@@ -2304,6 +2446,11 @@ namespace AI_PMS.Infrastructure.Migrations
             modelBuilder.Entity("AI_PMS.Domain.Entities.Risks.RiskIssueType", b =>
                 {
                     b.Navigation("RiskIssues");
+                });
+
+            modelBuilder.Entity("AI_PMS.Domain.Entities.TaskComments.TaskComment", b =>
+                {
+                    b.Navigation("Mentions");
                 });
 
             modelBuilder.Entity("AI_PMS.Domain.Entities.Teams.ContributorSubType", b =>

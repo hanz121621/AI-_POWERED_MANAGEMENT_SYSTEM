@@ -17,8 +17,8 @@ namespace AI_PMS.Application.Interfaces.Repositories.Tasks
         Task<List<TaskItem>> GetSprintTasksAsync(
             Guid sprintId);
 
-        Task<List<TaskItem>> GetDeveloperTasksAsync(
-            Guid developerId);
+        Task<List<TaskItem>> GetContributorSDTasksAsync(
+           Guid contributorSDId);
 
         Task UpdateAsync(TaskItem task);
 

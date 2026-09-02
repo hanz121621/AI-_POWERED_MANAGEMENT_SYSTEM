@@ -94,3 +94,4 @@ namespace AI_PMS.Application.DTOs.Reports
         public string Status { get; set; } = string.Empty;
     }
 }
+

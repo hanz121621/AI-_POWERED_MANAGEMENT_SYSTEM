@@ -2,6 +2,7 @@
 using System.Text;
 
 using MediatR;
+using System.Security.Claims;
 
 using AI_PMS.API.Authorization;
 using AI_PMS.API.Services;
@@ -26,21 +27,36 @@ using AI_PMS.Application.Interfaces.Repositories.Contributors;
 using AI_PMS.Application.Interfaces.Repositories.NotificationSettings;
 using AI_PMS.Application.Interfaces.Repositories.Permissions;
 using AI_PMS.Application.Interfaces.Repositories.Projects;
+using AI_PMS.Application.Interfaces.Notifications;
+using AI_PMS.Application.Interfaces.Repositories.Notifications;
+using AI_PMS.Application.Services.Notifications;
+using AI_PMS.Application.Interfaces.Repositories.Reports;
+using AI_PMS.Application.Interfaces.Reports;
+using AI_PMS.Application.Services.Reports;
+using AI_PMS.Infrastructure.Repositories.Reports;
+using AI_PMS.Infrastructure.Repositories.Notifications;
 using AI_PMS.Application.Interfaces.Repositories.SecuritySettings;
 using AI_PMS.Application.Interfaces.Repositories.SubTasks;
 using AI_PMS.Application.Interfaces.Repositories.Tasks;
 using AI_PMS.Application.Interfaces.Repositories.Teams;
 using AI_PMS.Application.Interfaces.Repositories.Users;
+using AI_PMS.Application.Interfaces.Repositories.Sprints;
 using AI_PMS.Application.Interfaces.Repositories.UserPreferences;
 using AI_PMS.Application.Interfaces.Security;
 using AI_PMS.Application.Interfaces.SecuritySettings;
 using AI_PMS.Application.Interfaces.Sprints;
+using AI_PMS.Application.Interfaces.Sprints;
+using AI_PMS.Application.Services.Sprints;
 using AI_PMS.Application.Interfaces.SubTasks;
 using AI_PMS.Application.Interfaces.SystemSettings;
 using AI_PMS.Application.Interfaces.Tasks;
 using AI_PMS.Application.Interfaces.Teams;
 using AI_PMS.Application.Interfaces.UserPreferences;
 using AI_PMS.Application.Interfaces.Users;
+using AI_PMS.Application.Interfaces.Reports;
+using AI_PMS.Application.Services.Reports;
+using AI_PMS.Application.Interfaces.Teams;
+using AI_PMS.Application.Services.Teams;
 
 using AI_PMS.Application.Services.Activities;
 using AI_PMS.Application.Services.Auth;
@@ -58,6 +74,14 @@ using AI_PMS.Application.Services.Tasks;
 using AI_PMS.Application.Services.Teams;
 using AI_PMS.Application.Services.UserPreferences;
 using AI_PMS.Application.Services.Users;
+
+using AI_PMS.Application.Interfaces.Repositories.TaskComments;
+using AI_PMS.Application.Interfaces.TaskComments;
+using AI_PMS.Application.Services.TaskComments;
+using AI_PMS.Application.Interfaces.Repositories.TaskSubmissions;
+using AI_PMS.Application.Interfaces.TaskSubmissions;
+using AI_PMS.Application.Services.TaskSubmissions;
+
 
 using AI_PMS.Application.Users.Commands.CreateUser;
 using AI_PMS.Application.Validators.SystemSettings;
@@ -81,6 +105,12 @@ using AI_PMS.Infrastructure.Repositories.Users;
 using AI_PMS.Infrastructure.Repositories.UserPreferences;
 using AI_PMS.Infrastructure.Repositories.NotificationSettings;
 using AI_PMS.Infrastructure.Security;
+using AI_PMS.Infrastructure.Repositories.TaskComments;
+using AI_PMS.Infrastructure.Repositories.TaskSubmissions;
+
+
+
+
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -136,6 +166,28 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<PasswordHasher>();
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<RefreshTokenService>();
+
+builder.Services.AddScoped<
+    IContributorReportService,
+    ContributorReportService>();
+
+    builder.Services.AddScoped<
+    ITeamLeaderProjectService,
+    TeamLeaderProjectService>();
+
+    builder.Services.AddScoped<ISprintService, SprintService>();
+
+    // =========================================================
+// TEAM LEADER SPRINT PARTICIPATION
+// =========================================================
+
+builder.Services.AddScoped<
+    ITeamLeaderSprintRepository,
+    TeamLeaderSprintRepository>();
+
+builder.Services.AddScoped<
+    ITeamLeaderSprintService,
+    TeamLeaderSprintService>();
 
 // =========================================================
 // AUTH REPOSITORIES
@@ -214,6 +266,14 @@ builder.Services.AddScoped<
     IContributorSubTypeService,
     ContributorSubTypeService>();
 
+    builder.Services.AddScoped<
+    ITeamLeaderTaskHistoryRepository,
+    TeamLeaderTaskHistoryRepository>();
+
+builder.Services.AddScoped<
+    ITeamLeaderTaskHistoryService,
+    TeamLeaderTaskHistoryService>();
+
 // =========================================================
 // TEAM MANAGEMENT
 // =========================================================
@@ -262,6 +322,13 @@ builder.Services.AddScoped<
     IProjectSpecificationService,
     ProjectSpecificationService>();
 
+    builder.Services.AddScoped<
+    IProjectService, ProjectService>();
+
+builder.Services.AddScoped<
+IProjectAssignmentService, 
+ProjectAssignmentService>();
+
 // =========================================================
 // SPRINT MANAGEMENT
 // =========================================================
@@ -271,8 +338,8 @@ builder.Services.AddScoped<
     SprintRepository>();
 
 builder.Services.AddScoped<
-    ISprintService,
-    SprintService>();
+    AI_PMS.Application.Interfaces.Repositories.Sprints.ISprintRepository,
+    SprintRepository>();
 
 // =========================================================
 // TASK MANAGEMENT
@@ -286,6 +353,22 @@ builder.Services.AddScoped<
     ITaskService,
     TaskService>();
 
+
+  builder.Services.AddScoped<
+    ITaskCommentRepository,
+    TaskCommentRepository>();
+
+    builder.Services.AddScoped<
+    ITaskCommentService,
+    TaskCommentService>();
+
+    builder.Services.AddScoped<
+    ITaskSubmissionRepository,
+    TaskSubmissionRepository>();
+
+builder.Services.AddScoped<
+    ITaskSubmissionService,
+    TaskSubmissionService>();
 // =========================================================
 // SUBTASK MANAGEMENT
 // =========================================================
@@ -326,6 +409,10 @@ builder.Services.AddScoped<
 // COMMUNICATION
 // =========================================================
 
+// ---------------------------------------------------------
+// PROJECT ANNOUNCEMENTS
+// ---------------------------------------------------------
+
 builder.Services.AddScoped<
     IProjectAnnouncementService,
     ProjectAnnouncementService>();
@@ -337,6 +424,42 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IProjectAnnouncementRecipientRepository,
     ProjectAnnouncementRecipientRepository>();
+
+// ---------------------------------------------------------
+// DIRECT MESSAGES
+// ---------------------------------------------------------
+
+builder.Services.AddScoped<
+    IMessageRepository,
+    MessageRepository>();
+
+builder.Services.AddScoped<
+    IMessageService,
+    MessageService>();
+
+    // =========================================================
+// NOTIFICATIONS
+// =========================================================
+
+builder.Services.AddScoped<
+    INotificationRepository,
+    NotificationRepository>();
+
+builder.Services.AddScoped<
+    INotificationService,
+    NotificationService>();
+
+// ---------------------------------------------------------
+// MESSAGE MENTIONS
+// ---------------------------------------------------------
+
+builder.Services.AddScoped<
+    IMessageMentionRepository,
+    MessageMentionRepository>();
+
+builder.Services.AddScoped<
+    IMentionService,
+    MentionService>();
 
 // =========================================================
 // DASHBOARD ANALYTICS
@@ -393,6 +516,14 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     INotificationSettingService,
     NotificationSettingService>();
+
+    builder.Services.AddScoped<
+    IMessageRepository,
+    MessageRepository>();
+
+builder.Services.AddScoped<
+    IMessageService,
+    MessageService>();
 
 // =========================================================
 // SYSTEM SETTINGS
@@ -494,36 +625,161 @@ builder.Services.AddCors(options =>
     });
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // =========================================================
 // JWT AUTHENTICATION
 // =========================================================
 
 builder.Services
-    .AddAuthentication(
-        JwtBearerDefaults.AuthenticationScheme)
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.TokenValidationParameters =
-            new TokenValidationParameters
+        var jwtKey = builder.Configuration["Jwt:Key"];
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+
+            IssuerSigningKey =
+                new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(jwtKey!)
+                ),
+
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+
+            ValidateLifetime = true,
+
+            NameClaimType = ClaimTypes.Name,
+            RoleClaimType = ClaimTypes.Role,
+
+            ClockSkew = TimeSpan.Zero
+        };
+
+        // =====================================================
+        // TEMPORARY JWT DEBUGGING
+        // =====================================================
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
             {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
+                Console.WriteLine(
+                    "========== JWT MESSAGE RECEIVED =========="
+                );
 
-                ValidIssuer =
-                    builder.Configuration["Jwt:Issuer"],
+                Console.WriteLine(
+                    $"Authorization Header: " +
+                    $"{context.Request.Headers.Authorization}"
+                );
 
-                ValidAudience =
-                    builder.Configuration["Jwt:Audience"],
+                return Task.CompletedTask;
+            },
 
-                IssuerSigningKey =
-                    new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(
-                            builder.Configuration["Jwt:Key"]!))
-            };
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine(
+                    "========== JWT TOKEN VALIDATED =========="
+                );
+
+                Console.WriteLine(
+                    $"User: {context.Principal?.Identity?.Name}"
+                );
+
+                Console.WriteLine(
+                    $"Authenticated: " +
+                    $"{context.Principal?.Identity?.IsAuthenticated}"
+                );
+
+                foreach (var claim in context.Principal?.Claims
+                             ?? Enumerable.Empty<Claim>())
+                {
+                    Console.WriteLine(
+                        $"CLAIM: {claim.Type} = {claim.Value}"
+                    );
+                }
+
+                return Task.CompletedTask;
+            },
+
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine(
+                    "========== JWT AUTHENTICATION FAILED =========="
+                );
+
+                Console.WriteLine(
+                    $"Exception: {context.Exception.Message}"
+                );
+
+                return Task.CompletedTask;
+            },
+
+            OnChallenge = context =>
+            {
+                Console.WriteLine(
+                    "========== JWT CHALLENGE =========="
+                );
+
+                Console.WriteLine(
+                    $"Error: {context.Error}"
+                );
+
+                Console.WriteLine(
+                    $"Error Description: " +
+                    $"{context.ErrorDescription}"
+                );
+
+                return Task.CompletedTask;
+            }
+        };
     });
-
 // =========================================================
 // BUILD APPLICATION
 // =========================================================

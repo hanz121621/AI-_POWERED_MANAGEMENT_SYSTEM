@@ -7,13 +7,17 @@ export const USER_ROLES = {
     CONTRIBUTOR: 3,
 };
 
-
+// ============================================================
+// ROLE NORMALIZATION
+// ============================================================
 
 export function normalizeUserRole(role) {
     if (
         role === 1 ||
         role === "1" ||
-        String(role ?? "").trim().toLowerCase() === "admin"
+        String(role ?? "")
+            .trim()
+            .toLowerCase() === "admin"
     ) {
         return "Admin";
     }
@@ -21,7 +25,9 @@ export function normalizeUserRole(role) {
     if (
         role === 2 ||
         role === "2" ||
-        String(role ?? "").trim().toLowerCase() === "manager"
+        String(role ?? "")
+            .trim()
+            .toLowerCase() === "manager"
     ) {
         return "Manager";
     }
@@ -29,13 +35,16 @@ export function normalizeUserRole(role) {
     if (
         role === 3 ||
         role === "3" ||
-        String(role ?? "").trim().toLowerCase() === "contributor"
+        String(role ?? "")
+            .trim()
+            .toLowerCase() === "contributor"
     ) {
         return "Contributor";
     }
 
     return "";
 }
+
 export function normalizeRole(role) {
     return normalizeUserRole(role);
 }
@@ -43,56 +52,22 @@ export function normalizeRole(role) {
 export function getRoleName(role) {
     return normalizeUserRole(role);
 }
+
+// ============================================================
+// TOKEN
+// ============================================================
+
 export function getAccessToken() {
     return localStorage.getItem("token");
 }
-export function saveCurrentUser(user) {
-    if (!user) {
-        localStorage.removeItem("user");
-        return null;
-    }
 
-    const normalizedUser =
-        normalizeUser(user);
-
-    localStorage.setItem(
-        "user",
-        JSON.stringify(normalizedUser)
-    );
-
-    return normalizedUser;
+export function getToken() {
+    return localStorage.getItem("token");
 }
 
-
-function toBackendRole(role) {
-    if (typeof role === "number") {
-        if (
-            role === USER_ROLES.ADMIN ||
-            role === USER_ROLES.MANAGER ||
-            role === USER_ROLES.CONTRIBUTOR
-        ) {
-            return role;
-        }
-
-        return USER_ROLES.CONTRIBUTOR;
-    }
-
-    const normalizedRole = normalizeUserRole(role);
-
-    if (normalizedRole === "Admin") {
-        return USER_ROLES.ADMIN;
-    }
-
-    if (normalizedRole === "Manager") {
-        return USER_ROLES.MANAGER;
-    }
-
-    if (normalizedRole === "Contributor") {
-        return USER_ROLES.CONTRIBUTOR;
-    }
-
-    return USER_ROLES.CONTRIBUTOR;
-}
+// ============================================================
+// API ERROR
+// ============================================================
 
 function getApiErrorMessage(
     error,
@@ -145,7 +120,81 @@ function getApiErrorMessage(
     );
 }
 
+// ============================================================
+// NORMALIZE CONTRIBUTOR TYPE
+// ============================================================
+//
+// Backend contributor model:
+//
+// ContributorType
+//     Id
+//     Name
+//
+// ContributorSubType
+//     Id
+//     ContributorTypeId
+//     ContributorTypeName
+//     Name
+//
+// Frontend normalized fields:
+//
+// contributorTypeId
+// contributorTypeName
+// contributorSubTypeId
+// contributorSubTypeName
+//
+// ============================================================
 
+function normalizeContributorType(user) {
+    const contributorTypeId =
+        user?.contributorTypeId ??
+        user?.ContributorTypeId ??
+        user?.contributorTypeDefinitionId ??
+        user?.ContributorTypeDefinitionId ??
+        null;
+
+    const contributorTypeName =
+        user?.contributorTypeName ??
+        user?.ContributorTypeName ??
+        user?.contributorTypeDefinitionName ??
+        user?.ContributorTypeDefinitionName ??
+        user?.contributorType ??
+        user?.ContributorType ??
+        null;
+
+    const contributorSubTypeId =
+        user?.contributorSubTypeId ??
+        user?.ContributorSubTypeId ??
+        null;
+
+    const contributorSubTypeName =
+        user?.contributorSubTypeName ??
+        user?.ContributorSubTypeName ??
+        null;
+
+    return {
+        contributorTypeId,
+        contributorTypeName,
+
+        contributorSubTypeId,
+        contributorSubTypeName,
+
+        // Preserve backend naming when it exists.
+        contributorTypeDefinitionId:
+            user?.contributorTypeDefinitionId ??
+            user?.ContributorTypeDefinitionId ??
+            contributorTypeId,
+
+        contributorTypeDefinitionName:
+            user?.contributorTypeDefinitionName ??
+            user?.ContributorTypeDefinitionName ??
+            contributorTypeName,
+    };
+}
+
+// ============================================================
+// NORMALIZE USER
+// ============================================================
 
 function normalizeUser(user) {
     if (!user) {
@@ -156,8 +205,55 @@ function normalizeUser(user) {
         user?.role ??
         user?.Role;
 
+    const normalizedRole =
+        normalizeUserRole(rawRole);
+
+    const contributorType =
+        normalizeContributorType(user);
+
+    // ========================================================
+    // ROLE ID
+    // ========================================================
+
+    let roleId = null;
+
+    if (
+        rawRole !== undefined &&
+        rawRole !== null
+    ) {
+        if (typeof rawRole === "number") {
+            roleId = rawRole;
+        } else {
+            const roleValue =
+                String(rawRole)
+                    .trim()
+                    .toLowerCase();
+
+            if (
+                roleValue === "1" ||
+                roleValue === "admin"
+            ) {
+                roleId = USER_ROLES.ADMIN;
+            } else if (
+                roleValue === "2" ||
+                roleValue === "manager"
+            ) {
+                roleId = USER_ROLES.MANAGER;
+            } else if (
+                roleValue === "3" ||
+                roleValue === "contributor"
+            ) {
+                roleId = USER_ROLES.CONTRIBUTOR;
+            }
+        }
+    }
+
     return {
         ...user,
+
+        // ========================================================
+        // BASIC USER INFORMATION
+        // ========================================================
 
         id:
             user?.id ??
@@ -188,26 +284,26 @@ function normalizeUser(user) {
             user?.Email ??
             "",
 
-        role:
-            normalizeUserRole(rawRole),
+        // ========================================================
+        // ROLE
+        // ========================================================
 
-        roleId:
-            typeof rawRole === "number"
-                ? rawRole
-                : (
-                    rawRole === "1"
-                        ? USER_ROLES.ADMIN
-                        : rawRole === "2"
-                            ? USER_ROLES.MANAGER
-                            : rawRole === "3"
-                                ? USER_ROLES.CONTRIBUTOR
-                                : null
-                ),
+        role: normalizedRole,
+
+        roleId,
+
+        // ========================================================
+        // ACCOUNT STATUS
+        // ========================================================
 
         isActive:
             user?.isActive ??
             user?.IsActive ??
             true,
+
+        // ========================================================
+        // PROFILE
+        // ========================================================
 
         phoneNumber:
             user?.phoneNumber ??
@@ -224,25 +320,35 @@ function normalizeUser(user) {
             user?.Bio ??
             null,
 
+        // ========================================================
+        // CONTRIBUTOR TYPE
+        // ========================================================
+
         contributorTypeId:
-            user?.contributorTypeId ??
-            user?.ContributorTypeId ??
-            null,
+            contributorType.contributorTypeId,
 
         contributorTypeName:
-            user?.contributorTypeName ??
-            user?.ContributorTypeName ??
-            null,
+            contributorType.contributorTypeName,
+
+        contributorTypeDefinitionId:
+            contributorType.contributorTypeDefinitionId,
+
+        contributorTypeDefinitionName:
+            contributorType.contributorTypeDefinitionName,
+
+        // ========================================================
+        // CONTRIBUTOR SUBTYPE
+        // ========================================================
 
         contributorSubTypeId:
-            user?.contributorSubTypeId ??
-            user?.ContributorSubTypeId ??
-            null,
+            contributorType.contributorSubTypeId,
 
         contributorSubTypeName:
-            user?.contributorSubTypeName ??
-            user?.ContributorSubTypeName ??
-            null,
+            contributorType.contributorSubTypeName,
+
+        // ========================================================
+        // DATES
+        // ========================================================
 
         createdAt:
             user?.createdAt ??
@@ -256,9 +362,65 @@ function normalizeUser(user) {
     };
 }
 
-export function getToken() {
-    return localStorage.getItem("token");
+// ============================================================
+// SAVE CURRENT USER
+// ============================================================
+
+export function saveCurrentUser(user) {
+    if (!user) {
+        localStorage.removeItem("user");
+        return null;
+    }
+
+    const normalizedUser =
+        normalizeUser(user);
+
+    localStorage.setItem(
+        "user",
+        JSON.stringify(normalizedUser)
+    );
+
+    return normalizedUser;
 }
+
+// ============================================================
+// BACKEND ROLE
+// ============================================================
+
+function toBackendRole(role) {
+    if (typeof role === "number") {
+        if (
+            role === USER_ROLES.ADMIN ||
+            role === USER_ROLES.MANAGER ||
+            role === USER_ROLES.CONTRIBUTOR
+        ) {
+            return role;
+        }
+
+        return USER_ROLES.CONTRIBUTOR;
+    }
+
+    const normalizedRole =
+        normalizeUserRole(role);
+
+    if (normalizedRole === "Admin") {
+        return USER_ROLES.ADMIN;
+    }
+
+    if (normalizedRole === "Manager") {
+        return USER_ROLES.MANAGER;
+    }
+
+    if (normalizedRole === "Contributor") {
+        return USER_ROLES.CONTRIBUTOR;
+    }
+
+    return USER_ROLES.CONTRIBUTOR;
+}
+
+// ============================================================
+// CURRENT USER
+// ============================================================
 
 export function getCurrentUser() {
     const storedUser =
@@ -278,12 +440,20 @@ export function getCurrentUser() {
     }
 }
 
+// ============================================================
+// AUTHENTICATION
+// ============================================================
+
 export function isAuthenticated() {
     const token = getToken();
     const user = getCurrentUser();
 
     return Boolean(token && user);
 }
+
+// ============================================================
+// SAVE AUTH DATA
+// ============================================================
 
 export function saveAuthData(
     token,
@@ -311,14 +481,40 @@ export function saveAuthData(
     return null;
 }
 
+// ============================================================
+// CLEAR AUTH
+// ============================================================
 export function clearAuthData() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    // Remove all supported authentication/session keys
+    const authKeys = [
+        "token",
+        "accessToken",
+        "aipms_access_token",
+        "user",
+        "auth",
+        "authData",
+        "aipms_auth",
+        "refreshToken",
+        "userId",
+    ];
+
+    authKeys.forEach((key) => {
+        localStorage.removeItem(key);
+    });
 }
+
+
+// ============================================================
+// LOGOUT
+// ============================================================
 
 export function logoutUser() {
     clearAuthData();
 }
+
+// ============================================================
+// ROLE HELPERS
+// ============================================================
 
 export function hasRole(role) {
     const user = getCurrentUser();
@@ -348,31 +544,60 @@ export function isContributor() {
     return hasRole(USER_ROLES.CONTRIBUTOR);
 }
 
+// ============================================================
+// LOGIN
+// ============================================================
 
-
-
-
-
-
-export async function loginUser(email, password) {
+export async function loginUser(
+    email,
+    password
+) {
     if (!email || !password) {
         return {
             success: false,
-            error: "Email and password are required.",
+            error:
+                "Email and password are required.",
         };
     }
 
     try {
-        const response = await api.post("/Auth/login", {
-            email: String(email).trim().toLowerCase(),
-            password,
-        });
+        // ========================================================
+        // LOGIN
+        // ========================================================
 
-        const data = response.data;
+        const response =
+            await api.post(
+                "/Auth/login",
+                {
+                    email:
+                        String(email)
+                            .trim()
+                            .toLowerCase(),
 
-        console.log("========== LOGIN ==========");
-        console.log("LOGIN STATUS:", response.status);
-        console.log("LOGIN RESPONSE:", data);
+                    password,
+                }
+            );
+
+        const data =
+            response.data;
+
+        console.log(
+            "========== LOGIN =========="
+        );
+
+        console.log(
+            "LOGIN STATUS:",
+            response.status
+        );
+
+        console.log(
+            "LOGIN RESPONSE:",
+            data
+        );
+
+        // ========================================================
+        // TOKEN
+        // ========================================================
 
         const accessToken =
             data?.accessToken ??
@@ -406,23 +631,33 @@ export async function loginUser(email, password) {
             );
         }
 
-        let user = null;
+        // ========================================================
+        // LOAD PROFILE
+        // ========================================================
 
-        /*
-         * The backend login response does not contain
-         * a user object.
-         *
-         * Get the authenticated user's profile using
-         * the newly saved JWT.
-         */
+        let user = null;
 
         try {
             const profileResponse =
-                await api.get("/Users/profile");
+                await api.get(
+                    "/Users/profile"
+                );
 
-            user = normalizeUser(
+            console.log(
+                "PROFILE RESPONSE:",
                 profileResponse.data
             );
+
+            user =
+                normalizeUser(
+                    profileResponse.data
+                );
+
+            console.log(
+                "NORMALIZED PROFILE:",
+                user
+            );
+
         } catch (profileError) {
             console.error(
                 "GET PROFILE AFTER LOGIN ERROR:",
@@ -430,36 +665,45 @@ export async function loginUser(email, password) {
             );
         }
 
-        /*
-         * Fallback if profile could not be loaded.
-         */
+        // ========================================================
+        // FALLBACK
+        // ========================================================
 
         if (!user) {
-            user = normalizeUser({
-                id: data.userId,
-                userId: data.userId,
-                fullName:
-                    data.fullName ??
-                    data.name ??
-                    "",
-                email:
-                    data.email ??
-                    email,
-                role:
-                    data.role ??
-                    data.userRole ??
-                    "",
-                isActive:
-                    data.isActive ??
-                    true,
-            });
+            user =
+                normalizeUser({
+                    id:
+                        data.userId,
+
+                    userId:
+                        data.userId,
+
+                    fullName:
+                        data.fullName ??
+                        data.name ??
+                        "",
+
+                    email:
+                        data.email ??
+                        email,
+
+                    role:
+                        data.role ??
+                        data.userRole ??
+                        "",
+
+                    isActive:
+                        data.isActive ??
+                        true,
+                });
         }
 
+        // ========================================================
+        // PROFILE REQUIRED
+        // ========================================================
+
         if (!user) {
-            localStorage.removeItem("token");
-            localStorage.removeItem("refreshToken");
-            localStorage.removeItem("user");
-            localStorage.removeItem("userId");
+            clearAuthData();
 
             return {
                 success: false,
@@ -468,16 +712,46 @@ export async function loginUser(email, password) {
             };
         }
 
-        saveCurrentUser(user);
+        // ========================================================
+        // SAVE USER
+        // ========================================================
+
+        const savedUser =
+            saveCurrentUser(user);
 
         console.log(
             "NORMALIZED CURRENT USER:",
-            user
+            savedUser
         );
 
         console.log(
             "CURRENT USER ROLE:",
-            user.role
+            savedUser?.role
+        );
+
+        console.log(
+            "CURRENT USER ROLE ID:",
+            savedUser?.roleId
+        );
+
+        console.log(
+            "CONTRIBUTOR TYPE ID:",
+            savedUser?.contributorTypeId
+        );
+
+        console.log(
+            "CONTRIBUTOR TYPE:",
+            savedUser?.contributorTypeName
+        );
+
+        console.log(
+            "CONTRIBUTOR SUBTYPE ID:",
+            savedUser?.contributorSubTypeId
+        );
+
+        console.log(
+            "CONTRIBUTOR SUBTYPE:",
+            savedUser?.contributorSubTypeName
         );
 
         console.log(
@@ -493,19 +767,29 @@ export async function loginUser(email, password) {
 
         return {
             success: true,
-            token: accessToken,
+
+            token:
+                accessToken,
+
             accessToken,
+
             refreshToken:
-                data.refreshToken ?? null,
-            user,
+                data.refreshToken ??
+                null,
+
+            user:
+                savedUser,
+
             userId:
                 data.userId ??
-                user.id ??
+                savedUser?.id ??
                 null,
+
             message:
                 data.message ??
                 "Login successful.",
         };
+
     } catch (error) {
         console.error(
             "LOGIN ERROR:",
@@ -519,28 +803,25 @@ export async function loginUser(email, password) {
 
         return {
             success: false,
-            error: getApiErrorMessage(
-                error,
-                "Invalid email or password."
-            ),
+
+            error:
+                getApiErrorMessage(
+                    error,
+                    "Invalid email or password."
+                ),
+
             status:
                 error?.response?.status,
+
             details:
                 error?.response?.data,
         };
     }
 }
 
-
-
-
-
-
-
-
-
-
-
+// ============================================================
+// USERS
+// ============================================================
 
 export async function getAllUsers() {
     try {
@@ -573,6 +854,7 @@ export async function getAllUsers() {
         return users
             .map(normalizeUser)
             .filter(Boolean);
+
     } catch (error) {
         console.error(
             "GET USERS ERROR:",
@@ -671,6 +953,7 @@ export async function getUserById(
         return normalizeUser(
             response.data
         );
+
     } catch (error) {
         console.error(
             "GET USER ERROR:",
@@ -721,69 +1004,82 @@ export async function getUserByEmail(
 // CREATE USER
 // ============================================================
 
-export async function createUser(userData) {
+export async function createUser(
+    userData
+) {
     if (!userData) {
         return {
             success: false,
-            error: "User information is required.",
+            error:
+                "User information is required.",
         };
     }
 
     try {
         const normalizedRole =
-            normalizeUserRole(userData.role);
+            normalizeUserRole(
+                userData.role
+            );
 
         const role =
             normalizedRole === "Admin"
                 ? USER_ROLES.ADMIN
                 : normalizedRole === "Manager"
-                ? USER_ROLES.MANAGER
-                : USER_ROLES.CONTRIBUTOR;
+                    ? USER_ROLES.MANAGER
+                    : USER_ROLES.CONTRIBUTOR;
+
+        // ========================================================
+        // CONTRIBUTOR CLASSIFICATION
+        // ========================================================
+        //
+        // Contributor:
+        //     contributorTypeId
+        //     contributorSubTypeId
+        //
+        // ========================================================
 
         const requestData = {
-            fullName: String(
-                userData.fullName || ""
-            ).trim(),
+            fullName:
+                String(
+                    userData.fullName ||
+                    ""
+                ).trim(),
 
-            email: String(
-                userData.email || ""
-            )
-                .trim()
-                .toLowerCase(),
+            email:
+                String(
+                    userData.email ||
+                    ""
+                )
+                    .trim()
+                    .toLowerCase(),
 
-            password: userData.password,
+            password:
+                userData.password,
 
             confirmPassword:
                 userData.confirmPassword,
 
             role,
 
-            // ==================================================
-            // CURRENT CONTRIBUTOR FIELDS
-            // ==================================================
-
             contributorTypeId:
-                userData.contributorTypeId || null,
+                userData.contributorTypeId ??
+                userData.contributorTypeDefinitionId ??
+                null,
 
             contributorSubTypeId:
-                userData.contributorSubTypeId || null,
-
-            // ==================================================
-            // ACCOUNT STATUS
-            // ==================================================
+                userData.contributorSubTypeId ??
+                null,
 
             isActive:
                 userData.isActive !== false,
 
-            // ==================================================
-            // OTHER USER INFORMATION
-            // ==================================================
-
             phoneNumber:
-                userData.phoneNumber || null,
+                userData.phoneNumber ||
+                null,
 
             bio:
-                userData.bio || null,
+                userData.bio ||
+                null,
 
             permissions:
                 Array.isArray(
@@ -813,10 +1109,11 @@ export async function createUser(userData) {
             "========================================"
         );
 
-        const response = await api.post(
-            "/Users",
-            requestData
-        );
+        const response =
+            await api.post(
+                "/Users",
+                requestData
+            );
 
         console.log(
             "CREATE USER API RESPONSE:",
@@ -826,12 +1123,14 @@ export async function createUser(userData) {
         return {
             success: true,
 
-            user: response.data,
+            user:
+                response.data,
 
             message:
                 response.data?.message ||
                 "User created successfully.",
         };
+
     } catch (error) {
         console.error(
             "CREATE USER ERROR:",
@@ -851,10 +1150,11 @@ export async function createUser(userData) {
         return {
             success: false,
 
-            error: getApiErrorMessage(
-                error,
-                "Unable to create user."
-            ),
+            error:
+                getApiErrorMessage(
+                    error,
+                    "Unable to create user."
+                ),
 
             status:
                 error?.response?.status,
@@ -864,6 +1164,10 @@ export async function createUser(userData) {
         };
     }
 }
+
+// ============================================================
+// EDIT USER
+// ============================================================
 
 export async function editUser(
     userId,
@@ -891,6 +1195,7 @@ export async function editUser(
 
             contributorTypeId:
                 updatedUser?.contributorTypeId ??
+                updatedUser?.contributorTypeDefinitionId ??
                 null,
 
             contributorSubTypeId:
@@ -916,6 +1221,7 @@ export async function editUser(
                 response.data?.message ||
                 "User updated successfully.",
         };
+
     } catch (error) {
         console.error(
             "UPDATE USER ERROR:",
@@ -939,6 +1245,10 @@ export async function editUser(
         };
     }
 }
+
+// ============================================================
+// DELETE USER
+// ============================================================
 
 export async function removeUser(
     userId
@@ -964,6 +1274,7 @@ export async function removeUser(
                 response.data?.message ||
                 "User deleted successfully.",
         };
+
     } catch (error) {
         console.error(
             "DELETE USER ERROR:",
@@ -987,6 +1298,10 @@ export async function removeUser(
         };
     }
 }
+
+// ============================================================
+// CHANGE USER STATUS
+// ============================================================
 
 export async function changeUserStatus(
     userId,
@@ -1022,6 +1337,7 @@ export async function changeUserStatus(
                 response.data?.message ||
                 "User status updated successfully.",
         };
+
     } catch (error) {
         console.error(
             "CHANGE USER STATUS ERROR:",
@@ -1045,6 +1361,10 @@ export async function changeUserStatus(
         };
     }
 }
+
+// ============================================================
+// CHANGE USER ROLE
+// ============================================================
 
 export async function changeUserRole(
     userId,
@@ -1089,6 +1409,7 @@ export async function changeUserRole(
                 response.data?.message ||
                 "User role changed successfully.",
         };
+
     } catch (error) {
         console.error(
             "CHANGE USER ROLE ERROR:",
@@ -1113,6 +1434,10 @@ export async function changeUserRole(
     }
 }
 
+// ============================================================
+// MY PROFILE
+// ============================================================
+
 export async function getMyProfile() {
     try {
         const response =
@@ -1123,6 +1448,7 @@ export async function getMyProfile() {
         return normalizeUser(
             response.data
         );
+
     } catch (error) {
         console.error(
             "GET MY PROFILE ERROR:",
@@ -1140,6 +1466,10 @@ export async function getMyProfile() {
         );
     }
 }
+
+// ============================================================
+// UPDATE MY PROFILE
+// ============================================================
 
 export async function updateMyProfile(
     profileData
@@ -1204,6 +1534,7 @@ export async function updateMyProfile(
                 response.data?.message ||
                 "Profile updated successfully.",
         };
+
     } catch (error) {
         console.error(
             "UPDATE MY PROFILE ERROR:",
@@ -1227,6 +1558,10 @@ export async function updateMyProfile(
         };
     }
 }
+
+// ============================================================
+// SEARCH USERS
+// ============================================================
 
 export async function searchUsers(
     searchTerm = ""
@@ -1252,6 +1587,7 @@ export async function searchUsers(
                 user?.phoneNumber,
                 user?.bio,
                 user?.contributorTypeName,
+                user?.contributorTypeDefinitionName,
                 user?.contributorSubTypeName,
             ].some(
                 (value) =>
@@ -1263,6 +1599,10 @@ export async function searchUsers(
             )
     );
 }
+
+// ============================================================
+// USER STATISTICS
+// ============================================================
 
 export async function getUserStatistics() {
     const users =
@@ -1307,37 +1647,80 @@ export async function getUserStatistics() {
     };
 }
 
+// ============================================================
+// DEFAULT EXPORT
+// ============================================================
+
 export default {
     USER_ROLES,
+
     normalizeUserRole,
+
+    normalizeRole,
+
+    getRoleName,
+
+    getAccessToken,
+
     getToken,
+
     getCurrentUser,
+
     isAuthenticated,
+
+    saveCurrentUser,
+
     saveAuthData,
+
     clearAuthData,
+
     logoutUser,
+
     hasRole,
+
     isAdmin,
+
     isManager,
+
     isContributor,
+
     loginUser,
+
     getAllUsers,
+
     getUsers,
+
     getUsersByRole,
+
     getAdmins,
+
     getManagers,
+
     getContributors,
+
     getActiveUsers,
+
     getInactiveUsers,
+
     getUserById,
+
     getUserByEmail,
+
     createUser,
+
     editUser,
+
     removeUser,
+
     changeUserStatus,
+
     changeUserRole,
+
     getMyProfile,
+
     updateMyProfile,
+
     searchUsers,
+
     getUserStatistics,
 };

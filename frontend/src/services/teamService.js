@@ -1,13 +1,17 @@
+<<<<<<< HEAD
+=======
+
+import api from "./api";
+>>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
 import { getCurrentUser } from "@/services/authService";
 // ============================================================
-// API CONFIGURATION
+// TEAM SERVICE
+// Backend Controller:
+// /api/Team
+//
+// Uses the centralized Axios API client from ./api
+// JWT authentication is handled automatically by api.js.
 // ============================================================
-
-const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:5043/api";
-
-const TEAM_ENDPOINT = `${API_BASE_URL.replace(/\/$/, "")}/Team`;
 
 // ============================================================
 // ROLE IDS
@@ -40,192 +44,6 @@ export function getRoleName(roleId) {
 }
 
 // ============================================================
-// AUTH TOKEN
-// ============================================================
-
-function getAuthToken() {
-    return (
-        localStorage.getItem("token") ||
-        localStorage.getItem("accessToken") ||
-        localStorage.getItem("aipms_token") ||
-        null
-    );
-}
-
-// ============================================================
-// REQUEST HEADERS
-// ============================================================
-
-function getHeaders(includeJson = true) {
-    const headers = {};
-
-    if (includeJson) {
-        headers["Content-Type"] = "application/json";
-    }
-
-    const token = getAuthToken();
-
-    if (token) {
-        headers.Authorization = `Bearer ${token}`;
-    }
-
-    return headers;
-}
-
-// ============================================================
-// API ERROR HANDLER
-// ============================================================
-
-async function getErrorMessage(response) {
-    try {
-        const contentType =
-            response.headers.get("content-type") || "";
-
-        if (contentType.includes("application/json")) {
-            const data = await response.json();
-
-            if (typeof data === "string") {
-                return data;
-            }
-
-            // ASP.NET validation errors
-            if (data?.errors) {
-                const validationErrors = Object.values(
-                    data.errors
-                )
-                    .flat()
-                    .filter(Boolean);
-
-                if (validationErrors.length > 0) {
-                    return validationErrors.join(" ");
-                }
-            }
-
-            return (
-                data?.message ||
-                data?.Message ||
-                data?.error ||
-                data?.Error ||
-                data?.title ||
-                data?.Title ||
-                `Request failed with status ${response.status}.`
-            );
-        }
-
-        const text = await response.text();
-
-        return (
-            text ||
-            `Request failed with status ${response.status}.`
-        );
-    } catch {
-        return `Request failed with status ${response.status}.`;
-    }
-}
-
-// ============================================================
-// API REQUEST HELPER
-// ============================================================
-
-async function apiRequest(url, options = {}) {
-    try {
-        console.log("=================================");
-        console.log("TEAM API REQUEST");
-        console.log("URL:", url);
-        console.log("METHOD:", options.method || "GET");
-        console.log("BODY:", options.body);
-        console.log("TOKEN:", getAuthToken() ? "Present" : "Missing");
-        console.log("=================================");
-
-        const response = await fetch(url, {
-            ...options,
-
-            headers: {
-                ...getHeaders(options.body !== undefined),
-                ...(options.headers || {}),
-            },
-        });
-
-        console.log(
-            "TEAM API RESPONSE:",
-            response.status,
-            response.statusText
-        );
-
-        if (!response.ok) {
-            const message = await getErrorMessage(response);
-
-            const error = new Error(message);
-
-            error.status = response.status;
-
-            throw error;
-        }
-
-        if (response.status === 204) {
-            return null;
-        }
-
-        const contentType =
-            response.headers.get("content-type") || "";
-
-        if (
-            contentType
-                .toLowerCase()
-                .includes("application/json")
-        ) {
-            return await response.json();
-        }
-
-        const text = await response.text();
-
-        if (!text) {
-            return null;
-        }
-
-        try {
-            return JSON.parse(text);
-        } catch {
-            return text;
-        }
-    } catch (error) {
-        console.error(
-            "================================="
-        );
-
-        console.error(
-            "TEAM API REQUEST FAILED"
-        );
-
-        console.error(
-            "URL:",
-            url
-        );
-
-        console.error(
-            "ERROR:",
-            error
-        );
-
-        console.error(
-            "MESSAGE:",
-            error?.message
-        );
-
-        console.error(
-            "STATUS:",
-            error?.status
-        );
-
-        console.error(
-            "================================="
-        );
-
-        throw error;
-    }
-}
-
-// ============================================================
 // SAFE USER ID
 // ============================================================
 
@@ -252,6 +70,10 @@ function getUserRoleId(user) {
         return null;
     }
 
+    // --------------------------------------------------------
+    // Direct role ID
+    // --------------------------------------------------------
+
     const directRoleId =
         user.roleId ??
         user.RoleId ??
@@ -269,7 +91,9 @@ function getUserRoleId(user) {
         }
     }
 
-    // role: { id: 2, name: "Manager" }
+    // --------------------------------------------------------
+    // Nested role object
+    // --------------------------------------------------------
 
     if (
         typeof user.role === "object" &&
@@ -292,7 +116,9 @@ function getUserRoleId(user) {
         }
     }
 
-    // Role: { id: 2, name: "Manager" }
+    // --------------------------------------------------------
+    // PascalCase nested role
+    // --------------------------------------------------------
 
     if (
         typeof user.Role === "object" &&
@@ -319,7 +145,7 @@ function getUserRoleId(user) {
 }
 
 // ============================================================
-// GET USER ROLE NAME
+// GET USER ROLE
 // ============================================================
 
 function getUserRole(user) {
@@ -385,6 +211,9 @@ function isContributor(user) {
 
 // ============================================================
 // CHECK ALLOWED TEAM MEMBER
+//
+// Team members can be Contributors.
+// "developer" is retained for compatibility with existing data.
 // ============================================================
 
 function isAllowedTeamMember(user) {
@@ -408,14 +237,14 @@ function isAllowedTeamMember(user) {
 
 function getUserName(user) {
     return (
-        user?.fullName ||
-        user?.FullName ||
-        user?.name ||
-        user?.Name ||
-        user?.username ||
-        user?.Username ||
-        user?.email ||
-        user?.Email ||
+        user?.fullName ??
+        user?.FullName ??
+        user?.name ??
+        user?.Name ??
+        user?.username ??
+        user?.Username ??
+        user?.email ??
+        user?.Email ??
         "Unknown User"
     );
 }
@@ -426,22 +255,19 @@ function getUserName(user) {
 
 function getUserEmail(user) {
     return (
-        user?.email ||
-        user?.Email ||
+        user?.email ??
+        user?.Email ??
         ""
     );
 }
 
 // ============================================================
 // GET USERS SAFELY
+//
+// Uses authService.getUsers() when available.
+// This is only for selecting managers/team members.
+// Teams themselves remain backend-managed.
 // ============================================================
-//
-// Compatibility with the existing authService.
-//
-// IMPORTANT:
-// This does NOT make localStorage the Team database.
-// Teams remain completely backend-managed.
-//
 
 async function getUsersSafely() {
     try {
@@ -466,8 +292,9 @@ async function getUsersSafely() {
         );
     }
 
-    // Compatibility fallback for existing frontend
-    // user data.
+    // --------------------------------------------------------
+    // Compatibility fallback
+    // --------------------------------------------------------
 
     try {
         const storedUsers =
@@ -569,7 +396,10 @@ export function normalizeTeamMember(member) {
         joinedAt,
         isActive,
 
+        // ----------------------------------------------------
         // Existing UI compatibility
+        // ----------------------------------------------------
+
         id: userId,
         name: fullName,
         role,
@@ -639,6 +469,10 @@ export function normalizeTeam(team) {
         team.UpdatedAt ??
         null;
 
+    // --------------------------------------------------------
+    // Members
+    // --------------------------------------------------------
+
     const rawMembers =
         Array.isArray(team.members)
             ? team.members
@@ -650,6 +484,10 @@ export function normalizeTeam(team) {
         rawMembers
             .map(normalizeTeamMember)
             .filter(Boolean);
+
+    // --------------------------------------------------------
+    // Counts
+    // --------------------------------------------------------
 
     const memberCount =
         team.memberCount ??
@@ -665,6 +503,10 @@ export function normalizeTeam(team) {
         team.staffCount ??
         team.StaffCount ??
         0;
+
+    // --------------------------------------------------------
+    // Created date
+    // --------------------------------------------------------
 
     let createdDate = "";
 
@@ -710,7 +552,10 @@ export function normalizeTeam(team) {
         members:
             normalizedMembers,
 
+        // ----------------------------------------------------
         // Existing UI compatibility
+        // ----------------------------------------------------
+
         manager:
             managerName ||
             "Not assigned",
@@ -746,17 +591,6 @@ export function normalizeTeam(team) {
 }
 
 // ============================================================
-// BUILD MEMBER DTO
-// ============================================================
-
-// ============================================================
-// GUID VALIDATION
-// ============================================================
-
-// ============================================================
-// GUID VALIDATION
-// ============================================================
-// ============================================================
 // GUID VALIDATION
 // ============================================================
 
@@ -765,7 +599,8 @@ function isValidGuid(value) {
         return false;
     }
 
-    const guid = String(value).trim();
+    const guid =
+        String(value).trim();
 
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
         guid
@@ -830,7 +665,8 @@ function buildMemberDto(member) {
     }
 
     return {
-        userId: String(userId),
+        userId:
+            String(userId),
 
         contributorTypeId:
             String(contributorTypeId),
@@ -841,10 +677,10 @@ function buildMemberDto(member) {
                 : null,
     };
 }
+
 // ============================================================
 // BUILD CREATE TEAM DTO
 // ============================================================
-
 
 function buildCreateTeamDto(teamData) {
     if (!teamData) {
@@ -854,13 +690,21 @@ function buildCreateTeamDto(teamData) {
     }
 
     const name =
-        String(teamData.name || "").trim();
+        String(
+            teamData.name || ""
+        ).trim();
 
     if (!name) {
         throw new Error(
             "Team name is required."
         );
     }
+
+    const managerId =
+        teamData.managerId &&
+        isValidGuid(teamData.managerId)
+            ? String(teamData.managerId)
+            : null;
 
     const dto = {
         name,
@@ -870,11 +714,7 @@ function buildCreateTeamDto(teamData) {
                 teamData.description || ""
             ).trim() || null,
 
-        managerId:
-            teamData.managerId &&
-            isValidGuid(teamData.managerId)
-                ? String(teamData.managerId)
-                : null,
+        managerId,
 
         members: [],
     };
@@ -886,12 +726,13 @@ function buildCreateTeamDto(teamData) {
 
     if (members.length > 0) {
         dto.members =
-            members.map(buildMemberDto);
+            members.map(
+                buildMemberDto
+            );
     }
 
     return dto;
 }
-   
 
 // ============================================================
 // BUILD UPDATE TEAM DTO
@@ -905,11 +746,25 @@ function buildUpdateTeamDto(updatedTeam) {
     }
 
     const name =
-        String(updatedTeam.name || "").trim();
+        String(
+            updatedTeam.name || ""
+        ).trim();
 
     if (!name) {
         throw new Error(
             "Team name is required."
+        );
+    }
+
+    const managerId =
+        updatedTeam.managerId;
+
+    if (
+        managerId &&
+        !isValidGuid(managerId)
+    ) {
+        throw new Error(
+            "The selected manager has an invalid User ID."
         );
     }
 
@@ -922,7 +777,9 @@ function buildUpdateTeamDto(updatedTeam) {
             ).trim() || null,
 
         managerId:
-            updatedTeam.managerId || null,
+            managerId
+                ? String(managerId)
+                : null,
 
         isActive:
             updatedTeam.isActive ??
@@ -940,15 +797,19 @@ function buildUpdateTeamDto(updatedTeam) {
             ? updatedTeam.members
             : [];
 
-    // Only include members if their DTO data
-    // is complete.
+    // --------------------------------------------------------
+    // Only include members with complete DTO information
+    // --------------------------------------------------------
+
     if (members.length > 0) {
         const validMembers =
             members.filter(
                 (member) => {
                     const userId =
                         member.userId ??
-                        member.id;
+                        member.UserId ??
+                        member.id ??
+                        member.Id;
 
                     const typeId =
                         member.contributorTypeId ??
@@ -975,33 +836,42 @@ function buildUpdateTeamDto(updatedTeam) {
 // ============================================================
 // GET ALL TEAMS
 // TEAM-004
+// GET: /api/Team
 // ============================================================
 
 export async function getTeams() {
-    const response =
-        await apiRequest(
-            TEAM_ENDPOINT,
-            {
-                method: "GET",
-            }
+    try {
+        const response =
+            await api.get("/Team");
+
+        const data =
+            response.data;
+
+        const teams =
+            Array.isArray(data)
+                ? data
+                : Array.isArray(data?.data)
+                    ? data.data
+                    : Array.isArray(data?.items)
+                        ? data.items
+                        : [];
+
+        return teams
+            .map(normalizeTeam)
+            .filter(Boolean);
+    } catch (error) {
+        console.error(
+            "Unable to get teams:",
+            error
         );
 
-    const teams =
-        Array.isArray(response)
-            ? response
-            : Array.isArray(response?.data)
-                ? response.data
-                : Array.isArray(response?.items)
-                    ? response.items
-                    : [];
-
-    return teams
-        .map(normalizeTeam)
-        .filter(Boolean);
+        throw error;
+    }
 }
 
 // ============================================================
 // GET TEAM BY ID
+// GET: /api/Team/{teamId}
 // ============================================================
 
 export async function getTeamById(teamId) {
@@ -1011,16 +881,17 @@ export async function getTeamById(teamId) {
 
     try {
         const response =
-            await apiRequest(
-                `${TEAM_ENDPOINT}/${teamId}`,
-                {
-                    method: "GET",
-                }
+            await api.get(
+                `/Team/${teamId}`
             );
 
-        return normalizeTeam(response);
+        return normalizeTeam(
+            response.data
+        );
     } catch (error) {
-        if (error?.status === 404) {
+        if (
+            error?.response?.status === 404
+        ) {
             return null;
         }
 
@@ -1031,6 +902,7 @@ export async function getTeamById(teamId) {
 // ============================================================
 // CREATE TEAM
 // TEAM-001
+// POST: /api/Team
 // ============================================================
 
 export async function createTeam(
@@ -1044,12 +916,9 @@ export async function createTeam(
             );
 
         const response =
-            await apiRequest(
-                TEAM_ENDPOINT,
-                {
-                    method: "POST",
-                    body: JSON.stringify(dto),
-                }
+            await api.post(
+                "/Team",
+                dto
             );
 
         return {
@@ -1062,7 +931,9 @@ export async function createTeam(
                 "Team created successfully.",
 
             team:
-                normalizeTeam(response),
+                normalizeTeam(
+                    response.data
+                ),
         };
     } catch (error) {
         console.error(
@@ -1077,6 +948,8 @@ export async function createTeam(
                 "TEAM_CREATE_ERROR",
 
             message:
+                error?.response?.data?.message ||
+                error?.response?.data?.Message ||
                 error?.message ||
                 "Unable to create team. Please try again.",
 
@@ -1090,6 +963,7 @@ export async function createTeam(
 // ============================================================
 // UPDATE TEAM
 // TEAM-002
+// PUT: /api/Team/{teamId}
 // ============================================================
 
 export async function updateTeam(
@@ -1115,12 +989,9 @@ export async function updateTeam(
             );
 
         const response =
-            await apiRequest(
-                `${TEAM_ENDPOINT}/${updatedTeam.id}`,
-                {
-                    method: "PUT",
-                    body: JSON.stringify(dto),
-                }
+            await api.put(
+                `/Team/${updatedTeam.id}`,
+                dto
             );
 
         return {
@@ -1133,7 +1004,9 @@ export async function updateTeam(
                 "Team updated successfully.",
 
             team:
-                normalizeTeam(response),
+                normalizeTeam(
+                    response.data
+                ),
         };
     } catch (error) {
         console.error(
@@ -1148,6 +1021,8 @@ export async function updateTeam(
                 "TEAM_UPDATE_ERROR",
 
             message:
+                error?.response?.data?.message ||
+                error?.response?.data?.Message ||
                 error?.message ||
                 "Unable to update team. Please try again.",
 
@@ -1161,6 +1036,7 @@ export async function updateTeam(
 // ============================================================
 // DELETE TEAM
 // TEAM-003
+// DELETE: /api/Team/{teamId}
 // ============================================================
 
 export async function deleteTeam(
@@ -1180,11 +1056,8 @@ export async function deleteTeam(
             };
         }
 
-        await apiRequest(
-            `${TEAM_ENDPOINT}/${teamId}`,
-            {
-                method: "DELETE",
-            }
+        await api.delete(
+            `/Team/${teamId}`
         );
 
         return {
@@ -1209,6 +1082,8 @@ export async function deleteTeam(
                 "TEAM_DELETE_ERROR",
 
             message:
+                error?.response?.data?.message ||
+                error?.response?.data?.Message ||
                 error?.message ||
                 "Unable to delete team. Please try again.",
 
@@ -1237,27 +1112,35 @@ export async function getAvailableManagers(
         ]);
 
         const managers =
-            users.filter(isManager);
+            users.filter(
+                isManager
+            );
+
+        // Managers already assigned to
+        // another team cannot be selected.
 
         const assignedManagerIds =
             new Set(
                 teams
-                    .filter((team) => {
-                        if (
-                            String(team.id) ===
-                            String(teamId)
-                        ) {
-                            return false;
-                        }
+                    .filter(
+                        (team) => {
+                            if (
+                                String(team.id) ===
+                                String(teamId)
+                            ) {
+                                return false;
+                            }
 
-                        return Boolean(
-                            team.managerId
-                        );
-                    })
-                    .map((team) =>
-                        String(
-                            team.managerId
-                        )
+                            return Boolean(
+                                team.managerId
+                            );
+                        }
+                    )
+                    .map(
+                        (team) =>
+                            String(
+                                team.managerId
+                            )
                     )
             );
 
@@ -1288,6 +1171,7 @@ export async function getAvailableManagers(
 // ============================================================
 // ASSIGN MANAGER
 // TEAM-005
+// PUT: /api/Team/{teamId}/manager/{managerId}
 // ============================================================
 
 export async function assignManagerToTeam(
@@ -1320,6 +1204,22 @@ export async function assignManagerToTeam(
             };
         }
 
+        if (!isValidGuid(managerId)) {
+            return {
+                success: false,
+
+                code:
+                    "INVALID_MANAGER_ID",
+
+                message:
+                    "The selected manager has an invalid User ID.",
+            };
+        }
+
+        // ----------------------------------------------------
+        // Verify manager role when user data is available.
+        // ----------------------------------------------------
+
         const users =
             await getUsersSafely();
 
@@ -1348,11 +1248,8 @@ export async function assignManagerToTeam(
         }
 
         const response =
-            await apiRequest(
-                `${TEAM_ENDPOINT}/${teamId}/manager/${managerId}`,
-                {
-                    method: "PUT",
-                }
+            await api.put(
+                `/Team/${teamId}/manager/${managerId}`
             );
 
         return {
@@ -1362,8 +1259,8 @@ export async function assignManagerToTeam(
                 "MANAGER_ASSIGNED",
 
             message:
-                response?.message ||
-                response?.Message ||
+                response?.data?.message ||
+                response?.data?.Message ||
                 "Manager assigned successfully.",
 
             manager,
@@ -1386,6 +1283,8 @@ export async function assignManagerToTeam(
                 "MANAGER_ASSIGN_ERROR",
 
             message:
+                error?.response?.data?.message ||
+                error?.response?.data?.Message ||
                 error?.message ||
                 "Unable to assign manager. Please try again.",
 
@@ -1405,6 +1304,9 @@ export const assignTeamManager =
 
 // ============================================================
 // REMOVE MANAGER
+// ============================================================
+//
+// Uses the existing Team PUT endpoint with managerId = null.
 // ============================================================
 
 export async function removeManagerFromTeam(
@@ -1454,15 +1356,19 @@ export async function removeManagerFromTeam(
         }
 
         const dto = {
-            name: team.name,
+            name:
+                team.name,
 
             description:
-                team.description || null,
+                team.description ||
+                null,
 
-            managerId: null,
+            managerId:
+                null,
 
             isActive:
-                team.isActive ?? true,
+                team.isActive ??
+                true,
         };
 
         const members =
@@ -1477,7 +1383,9 @@ export async function removeManagerFromTeam(
                     member.contributorTypeId
             );
 
-        if (validMembers.length > 0) {
+        if (
+            validMembers.length > 0
+        ) {
             dto.members =
                 validMembers.map(
                     buildMemberDto
@@ -1485,12 +1393,9 @@ export async function removeManagerFromTeam(
         }
 
         const response =
-            await apiRequest(
-                `${TEAM_ENDPOINT}/${teamId}`,
-                {
-                    method: "PUT",
-                    body: JSON.stringify(dto),
-                }
+            await api.put(
+                `/Team/${teamId}`,
+                dto
             );
 
         return {
@@ -1503,7 +1408,9 @@ export async function removeManagerFromTeam(
                 "Manager removed successfully.",
 
             team:
-                normalizeTeam(response),
+                normalizeTeam(
+                    response.data
+                ),
         };
     } catch (error) {
         console.error(
@@ -1518,6 +1425,8 @@ export async function removeManagerFromTeam(
                 "MANAGER_REMOVE_ERROR",
 
             message:
+                error?.response?.data?.message ||
+                error?.response?.data?.Message ||
                 error?.message ||
                 "Unable to remove manager. Please try again.",
 
@@ -1530,33 +1439,47 @@ export async function removeManagerFromTeam(
 
 // ============================================================
 // GET TEAM MEMBERS
+// GET: /api/Team/{teamId}/members
 // ============================================================
 
-export async function getTeamMembers(teamId) {
+export async function getTeamMembers(
+    teamId
+) {
     if (!teamId) {
         return [];
     }
 
-    const response =
-        await apiRequest(
-            `${TEAM_ENDPOINT}/${teamId}/members`,
-            {
-                method: "GET",
-            }
+    try {
+        const response =
+            await api.get(
+                `/Team/${teamId}/members`
+            );
+
+        const data =
+            response.data;
+
+        const members =
+            Array.isArray(data)
+                ? data
+                : Array.isArray(data?.data)
+                    ? data.data
+                    : Array.isArray(data?.items)
+                        ? data.items
+                        : [];
+
+        return members
+            .map(
+                normalizeTeamMember
+            )
+            .filter(Boolean);
+    } catch (error) {
+        console.error(
+            "Unable to get team members:",
+            error
         );
 
-    const members =
-        Array.isArray(response)
-            ? response
-            : Array.isArray(response?.data)
-                ? response.data
-                : Array.isArray(response?.items)
-                    ? response.items
-                    : [];
-
-    return members
-        .map(normalizeTeamMember)
-        .filter(Boolean);
+        throw error;
+    }
 }
 
 // ============================================================
@@ -1582,6 +1505,10 @@ export async function getAvailableTeamMembers(
             getTeamMembers(teamId),
         ]);
 
+        // ----------------------------------------------------
+        // Current team members
+        // ----------------------------------------------------
+
         const currentMemberIds =
             new Set(
                 currentMembers.map(
@@ -1591,6 +1518,10 @@ export async function getAvailableTeamMembers(
                         )
                 )
             );
+
+        // ----------------------------------------------------
+        // Users already belonging to another team
+        // ----------------------------------------------------
 
         const usersInOtherTeams =
             new Set();
@@ -1615,7 +1546,9 @@ export async function getAvailableTeamMembers(
                     (member) => {
                         const id =
                             member.userId ??
-                            member.id;
+                            member.id ??
+                            member.UserId ??
+                            member.Id;
 
                         if (id) {
                             usersInOtherTeams.add(
@@ -1627,30 +1560,36 @@ export async function getAvailableTeamMembers(
             }
         );
 
+        // ----------------------------------------------------
+        // Filter eligible contributors
+        // ----------------------------------------------------
+
         return users
             .filter(
                 isAllowedTeamMember
             )
-            .filter((user) => {
-                const id =
-                    getUserId(user);
+            .filter(
+                (user) => {
+                    const id =
+                        getUserId(user);
 
-                if (!id) {
-                    return false;
+                    if (!id) {
+                        return false;
+                    }
+
+                    const normalizedId =
+                        String(id);
+
+                    return (
+                        !currentMemberIds.has(
+                            normalizedId
+                        ) &&
+                        !usersInOtherTeams.has(
+                            normalizedId
+                        )
+                    );
                 }
-
-                const normalizedId =
-                    String(id);
-
-                return (
-                    !currentMemberIds.has(
-                        normalizedId
-                    ) &&
-                    !usersInOtherTeams.has(
-                        normalizedId
-                    )
-                );
-            });
+            );
     } catch (error) {
         console.error(
             "Unable to get available team members:",
@@ -1694,37 +1633,45 @@ export async function getTeamMemberCandidates(
             .filter(
                 isAllowedTeamMember
             )
-            .map((user) => {
-                const userId =
-                    getUserId(user);
+            .map(
+                (user) => {
+                    const userId =
+                        getUserId(user);
 
-                return {
-                    ...user,
+                    return {
+                        ...user,
 
-                    id:
+                        id:
+                            userId,
+
                         userId,
 
-                    userId,
+                        name:
+                            getUserName(
+                                user
+                            ),
 
-                    name:
-                        getUserName(user),
+                        email:
+                            getUserEmail(
+                                user
+                            ),
 
-                    email:
-                        getUserEmail(user),
+                        role:
+                            getUserRole(
+                                user
+                            ),
 
-                    role:
-                        getUserRole(user),
-
-                    isCurrentMember:
-                        userId
-                            ? memberIds.has(
-                                String(
-                                    userId
+                        isCurrentMember:
+                            userId
+                                ? memberIds.has(
+                                    String(
+                                        userId
+                                    )
                                 )
-                            )
-                            : false,
-                };
-            });
+                                : false,
+                    };
+                }
+            );
     } catch (error) {
         console.error(
             "Unable to get team member candidates:",
@@ -1738,6 +1685,7 @@ export async function getTeamMemberCandidates(
 // ============================================================
 // ADD MEMBER TO TEAM
 // TEAM-006
+// POST: /api/Team/{teamId}/members
 // ============================================================
 
 export async function addMemberToTeam(
@@ -1782,16 +1730,9 @@ export async function addMemberToTeam(
             });
 
         const response =
-            await apiRequest(
-                `${TEAM_ENDPOINT}/${teamId}/members`,
-                {
-                    method: "POST",
-
-                    body:
-                        JSON.stringify(
-                            memberDto
-                        ),
-                }
+            await api.post(
+                `/Team/${teamId}/members`,
+                memberDto
             );
 
         return {
@@ -1801,8 +1742,8 @@ export async function addMemberToTeam(
                 "MEMBER_ADDED",
 
             message:
-                response?.message ||
-                response?.Message ||
+                response?.data?.message ||
+                response?.data?.Message ||
                 "Member added successfully.",
 
             team:
@@ -1823,6 +1764,8 @@ export async function addMemberToTeam(
                 "MEMBER_ADD_ERROR",
 
             message:
+                error?.response?.data?.message ||
+                error?.response?.data?.Message ||
                 error?.message ||
                 "Unable to add member. Please try again.",
 
@@ -1894,7 +1837,9 @@ export async function addMembersToTeam(
                         }
                     );
 
-                if (result.success) {
+                if (
+                    result.success
+                ) {
                     addedMembers.push(
                         selectedMember
                     );
@@ -1923,6 +1868,10 @@ export async function addMembersToTeam(
             await getTeamById(
                 teamId
             );
+
+        // ----------------------------------------------------
+        // Nothing was added
+        // ----------------------------------------------------
 
         if (
             addedMembers.length === 0
@@ -2025,6 +1974,7 @@ export async function isTeamMember(
 // ============================================================
 // REMOVE MEMBER FROM TEAM
 // TEAM-007
+// DELETE: /api/Team/{teamId}/members/{userId}
 // ============================================================
 
 export async function removeMemberFromTeam(
@@ -2084,11 +2034,8 @@ export async function removeMemberFromTeam(
         }
 
         const response =
-            await apiRequest(
-                `${TEAM_ENDPOINT}/${teamId}/members/${userId}`,
-                {
-                    method: "DELETE",
-                }
+            await api.delete(
+                `/Team/${teamId}/members/${userId}`
             );
 
         return {
@@ -2098,8 +2045,8 @@ export async function removeMemberFromTeam(
                 "MEMBER_REMOVED",
 
             message:
-                response?.message ||
-                response?.Message ||
+                response?.data?.message ||
+                response?.data?.Message ||
                 "Member removed successfully.",
 
             removedMember,
@@ -2122,6 +2069,8 @@ export async function removeMemberFromTeam(
                 "REMOVE_MEMBER_ERROR",
 
             message:
+                error?.response?.data?.message ||
+                error?.response?.data?.Message ||
                 error?.message ||
                 "Unable to remove member. Please try again.",
 
@@ -2269,9 +2218,12 @@ export async function getTeamStatistics() {
             totalTeams,
             activeTeams,
             inactiveTeams,
+
             totalMembers,
+
             teamsWithManagers,
             teamsWithoutManagers,
+
             totalDevelopers,
             totalStaff,
         };
@@ -2298,22 +2250,21 @@ export {
 // ============================================================
 
 const teamService = {
+    // Team CRUD
     getTeams,
     getTeamById,
-
     createTeam,
     updateTeam,
     deleteTeam,
 
+    // Manager management
     getAvailableManagers,
-
     assignManagerToTeam,
     assignTeamManager,
-
     removeManagerFromTeam,
 
+    // Team members
     getTeamMembers,
-
     getAvailableTeamMembers,
     getTeamMemberCandidates,
 
@@ -2323,14 +2274,21 @@ const teamService = {
     isTeamMember,
     removeMemberFromTeam,
 
+    // Statistics
     getTeamMemberCount,
     getTotalTeamMembers,
     getTeamStatistics,
 
+    // Normalizers
     normalizeTeam,
     normalizeTeamMember,
 
+    // Roles
     getRoleName,
+
+    // Current user
+    getCurrentUser,
 };
 
 export default teamService;
+

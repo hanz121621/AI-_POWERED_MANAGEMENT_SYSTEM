@@ -60,13 +60,13 @@ public async Task<TaskItem?> GetByTitleAsync(
                 .ToListAsync();
         }
 
-        // Get Tasks By Developer
-        public async Task<List<TaskItem>> GetDeveloperTasksAsync(Guid developerId)
-        {
-            return await _context.Tasks
-                .Where(t => t.AssignedDeveloperId == developerId)
-                .ToListAsync();
-        }
+        // Get Tasks By Developer/staff
+      public async Task<List<TaskItem>> GetContributorSDTasksAsync(Guid contributorSDId)
+{
+             return await _context.Tasks
+        .Where(t => t.AssignedContributorSDId == contributorSDId)
+        .ToListAsync();
+}
 
         // Update Task
         public async Task UpdateAsync(TaskItem task)

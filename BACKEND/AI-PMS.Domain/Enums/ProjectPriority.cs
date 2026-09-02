@@ -1,4 +1,4 @@
-namespace AI_PMS.Domain.Entities.Projects
+namespace AI_PMS.Domain.Enums
 {
     public enum ProjectPriority
     {

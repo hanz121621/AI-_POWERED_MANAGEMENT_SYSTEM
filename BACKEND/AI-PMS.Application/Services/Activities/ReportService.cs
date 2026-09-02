@@ -1,6 +1,7 @@
 using AI_PMS.Application.DTOs.Activities;
 using AI_PMS.Application.Interfaces.Activities;
 using AI_PMS.Application.Interfaces.Projects;
+using AI_PMS.Application.Interfaces.Repositories.Projects;
 using AI_PMS.Application.Interfaces.Repositories.Tasks;
 using AI_PMS.Application.Interfaces.Repositories.Teams;
 using AI_PMS.Application.Interfaces.Repositories.Users;
@@ -127,7 +128,7 @@ namespace AI_PMS.Application.Services.Activities
 
                     tasks = tasks
                         .Where(t =>
-                            t.AssignedDeveloperId == userId.Value ||
+                            t.AssignedContributorSDId == userId.Value ||
                             t.CreatedBy == userId.Value)
                         .ToList();
                 }

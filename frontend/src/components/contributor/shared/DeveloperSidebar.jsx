@@ -1,29 +1,59 @@
-
 import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
     Activity,
-    AlertTriangle,
     BarChart3,
-    CheckCircle2,
+    Bell,
+    BookOpen,
+   
+    
+    ClipboardCheck,
     Code2,
-    FileCode2,
     FolderKanban,
-    GitPullRequest,
-    Home,
+   
+    History,
+    Languages,
+    ListTodo,
     MessageSquare,
-    Settings,
+    MessageSquareCode,
+   
+    PanelLeftClose,
+    PanelLeftOpen,
+    Send,
+    Settings2,
     ShieldCheck,
+    Sparkles,
+    Sun,
     UserRound,
+    UsersRound,
+    Wrench,
     X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-/* ============================================================
-   STORAGE HELPERS
-============================================================ */
+// ============================================================
+// DEVELOPER SIDEBAR
+// ============================================================
+//
+// Developer modules:
+//
+// 1. Dashboard
+// 2. Profile Management
+// 3. Project Participation
+// 4. Task Management
+// 5. Sprint Participation
+// 6. Communication
+// 7. Reports & Monitoring
+// 8. Settings & Preferences
+//
+// ============================================================
+
+
+// ============================================================
+// STORAGE KEYS
+// ============================================================
 
 const USER_STORAGE_KEYS = [
     "user",
@@ -31,6 +61,27 @@ const USER_STORAGE_KEYS = [
     "currentUser",
     "authUser",
 ];
+
+
+// ============================================================
+// DEFAULT USER
+// ============================================================
+
+const DEFAULT_USER = {
+    id: null,
+    fullName: "Developer",
+    name: "Developer",
+    email: "developer@example.com",
+    role: "Developer",
+    accountCategory: "Developer",
+    specialization: "Development",
+    avatar: null,
+};
+
+
+// ============================================================
+// GET STORED USER
+// ============================================================
 
 function getStoredUser() {
     for (const key of USER_STORAGE_KEYS) {
@@ -60,24 +111,10 @@ function getStoredUser() {
     return null;
 }
 
-/* ============================================================
-   DEFAULT USER
-============================================================ */
 
-const DEFAULT_USER = {
-    id: null,
-    fullName: "Developer",
-    name: "Developer",
-    email: "developer@example.com",
-    role: "Developer",
-    accountCategory: "Developer",
-    specialization: "Development",
-    avatar: null,
-};
-
-/* ============================================================
-   HELPERS
-============================================================ */
+// ============================================================
+// USER HELPERS
+// ============================================================
 
 function getUserName(user) {
     return (
@@ -89,6 +126,7 @@ function getUserName(user) {
     );
 }
 
+
 function getUserRole(user) {
     return (
         user?.role ||
@@ -98,6 +136,7 @@ function getUserRole(user) {
     );
 }
 
+
 function getUserSpecialization(user) {
     return (
         user?.specialization ||
@@ -106,6 +145,7 @@ function getUserSpecialization(user) {
         "Development"
     );
 }
+
 
 function getInitials(name) {
     if (!name) {
@@ -129,92 +169,314 @@ function getInitials(name) {
     ).toUpperCase();
 }
 
-/* ============================================================
-   MAIN NAVIGATION
-============================================================ */
+
+// ============================================================
+// MAIN NAVIGATION
+// ============================================================
+//
+// IMPORTANT:
+// These paths should match AppRoutes.jsx.
+//
+// ============================================================
 
 const MAIN_NAVIGATION = [
+
+    // ========================================================
+    // DASHBOARD
+    // ========================================================
+
     {
         label: "Dashboard",
-        path: "/developer",
-        icon: Home,
+        path: "/developer/dashboard",
+        icon: BarChart3,
         exact: true,
     },
-    {
-        label: "My Development Work",
-        path: "/developer/my-work",
-        icon: Code2,
-    },
-    {
-        label: "Development Tasks",
-        path: "/developer/tasks",
-        icon: FileCode2,
-    },
-    {
-        label: "Task Status",
-        path: "/developer/task-status",
-        icon: Activity,
-    },
-    {
-        label: "Technical Blockers",
-        path: "/developer/blockers",
-        icon: AlertTriangle,
-    },
-    {
-        label: "Submit Work",
-        path: "/developer/submissions",
-        icon: GitPullRequest,
-    },
-    {
-        label: "Technical Reviews",
-        path: "/developer/reviews",
-        icon: CheckCircle2,
-    },
-    {
-        label: "Technical Comments",
-        path: "/developer/comments",
-        icon: MessageSquare,
-    },
-];
 
-/* ============================================================
-   SECONDARY NAVIGATION
-============================================================ */
 
-const SECONDARY_NAVIGATION = [
+    // ========================================================
+    // PROFILE MANAGEMENT
+    // ========================================================
+
+    {
+        label: "My Profile",
+        path: "/developer/profile",
+        icon: UserRound,
+        exact: false,
+    },
+
+
+    // ========================================================
+    // PROJECT PARTICIPATION
+    // ========================================================
+
     {
         label: "Projects",
         path: "/developer/projects",
         icon: FolderKanban,
+        exact: false,
     },
+
+
+    // ========================================================
+    // TASK MANAGEMENT
+    // ========================================================
+
     {
-        label: "My Progress",
-        path: "/developer/progress",
+        label: "Tasks",
+        path: "/developer/tasks",
+        icon: ListTodo,
+        exact: false,
+    },
+
+
+    // ========================================================
+    // SPRINT PARTICIPATION
+    // ========================================================
+
+    {
+        label: "Sprint Participation",
+        path: "/developer/sprint-participation",
+        icon: Activity,
+        exact: false,
+    },
+
+
+    // ========================================================
+    // COMMUNICATION
+    // ========================================================
+
+    {
+        label: "Communication",
+        path: "/developer/communication",
+        icon: MessageSquare,
+        exact: false,
+    },
+
+
+    // ========================================================
+    // REPORTS & MONITORING
+    // ========================================================
+
+    {
+        label: "Reports & Monitoring",
+        path: "/developer/reports",
         icon: BarChart3,
+        exact: false,
     },
-    {
-        label: "My Profile",
-        path: "/profile",
-        icon: UserRound,
-    },
+
+
+    // ========================================================
+    // SETTINGS & PREFERENCES
+    // ========================================================
+
     {
         label: "Settings",
-        path: "/settings",
-        icon: Settings,
+        path: "/developer/settings",
+        icon: Settings2,
+        exact: false,
     },
 ];
 
-/* ============================================================
-   COMPONENT
-============================================================ */
+
+// ============================================================
+// PROFILE SUB NAVIGATION
+// ============================================================
+
+const PROFILE_NAVIGATION = [
+    {
+        label: "View Profile",
+        path: "/developer/profile",
+        icon: UserRound,
+        exact: true,
+    },
+    {
+        label: "Update Profile",
+        path: "/developer/profile/update",
+        icon: Wrench,
+        exact: true,
+    },
+];
+
+
+// ============================================================
+// PROJECT SUB NAVIGATION
+// ============================================================
+
+const PROJECT_NAVIGATION = [
+    {
+        label: "Assigned Projects",
+        path: "/developer/projects",
+        icon: FolderKanban,
+        exact: true,
+    },
+    {
+        label: "Project Details",
+        path: "/developer/projects/details",
+        icon: BookOpen,
+        exact: false,
+    },
+];
+
+
+// ============================================================
+// TASK SUB NAVIGATION
+// ============================================================
+
+const TASK_NAVIGATION = [
+    {
+        label: "Assigned Tasks",
+        path: "/developer/tasks",
+        icon: ListTodo,
+        exact: true,
+    },
+    {
+        label: "Update Task Status",
+        path: "/developer/tasks/status",
+        icon: Activity,
+        exact: false,
+    },
+    {
+        label: "Add Task Comment",
+        path: "/developer/tasks/comments",
+        icon: MessageSquareCode,
+        exact: false,
+    },
+    {
+        label: "Submit Completed Work",
+        path: "/developer/tasks/submit",
+        icon: Send,
+        exact: false,
+    },
+    {
+        label: "Upload Task Files",
+        path: "/developer/tasks/files",
+        icon: ClipboardCheck,
+        exact: false,
+    },
+];
+
+
+// ============================================================
+// SPRINT SUB NAVIGATION
+// ============================================================
+
+const SPRINT_NAVIGATION = [
+    {
+        label: "Sprint Tasks",
+        path: "/developer/sprints/tasks",
+        icon: ListTodo,
+        exact: false,
+    },
+    {
+        label: "Sprint Progress",
+        path: "/developer/sprints/progress",
+        icon: Activity,
+        exact: false,
+    },
+];
+
+
+// ============================================================
+// COMMUNICATION SUB NAVIGATION
+// ============================================================
+
+const COMMUNICATION_NAVIGATION = [
+    {
+        label: "Messages",
+        path: "/developer/communication/messages",
+        icon: MessageSquare,
+        exact: false,
+    },
+    {
+        label: "Task Comments",
+        path: "/developer/communication/comments",
+        icon: MessageSquareCode,
+        exact: false,
+    },
+    {
+        label: "Mentions",
+        path: "/developer/communication/mentions",
+        icon: UsersRound,
+        exact: false,
+    },
+    {
+        label: "Notifications",
+        path: "/developer/communication/notifications",
+        icon: Bell,
+        exact: false,
+    },
+];
+
+
+// ============================================================
+// REPORTS SUB NAVIGATION
+// ============================================================
+
+const REPORT_NAVIGATION = [
+    {
+        label: "Personal Performance",
+        path: "/developer/reports/performance",
+        icon: BarChart3,
+        exact: false,
+    },
+    {
+        label: "Task History",
+        path: "/developer/reports/history",
+        icon: History,
+        exact: false,
+    },
+];
+
+
+// ============================================================
+// SETTINGS SUB NAVIGATION
+// ============================================================
+
+const SETTINGS_NAVIGATION = [
+    {
+        label: "Notification Preferences",
+        path: "/developer/settings/notifications",
+        icon: Bell,
+        exact: false,
+    },
+    {
+        label: "Language Preferences",
+        path: "/developer/settings/language",
+        icon: Languages,
+        exact: false,
+    },
+    {
+        label: "Theme Preferences",
+        path: "/developer/settings/theme",
+        icon: Sun,
+        exact: false,
+    },
+    {
+        label: "AI Preferences",
+        path: "/developer/settings/ai",
+        icon: Sparkles,
+        exact: false,
+    },
+];
+
+
+// ============================================================
+// COMPONENT
+// ============================================================
 
 function DeveloperSidebar({
     open = true,
     onClose,
     collapsed = false,
+    onToggleCollapse,
 }) {
     const navigate = useNavigate();
     const location = useLocation();
+
+
+    // ========================================================
+    // USER
+    // ========================================================
 
     const user = useMemo(
         () => getStoredUser() || DEFAULT_USER,
@@ -241,9 +503,10 @@ function DeveloperSidebar({
         [userName]
     );
 
-    /* ========================================================
-       ACTIVE LINK
-    ======================================================== */
+
+    // ========================================================
+    // ACTIVE LINK
+    // ========================================================
 
     const isActive = (item) => {
         if (item.exact) {
@@ -258,11 +521,16 @@ function DeveloperSidebar({
         );
     };
 
-    /* ========================================================
-       NAVIGATION
-    ======================================================== */
+
+    // ========================================================
+    // NAVIGATION
+    // ========================================================
 
     const handleNavigation = (path) => {
+        if (!path) {
+            return;
+        }
+
         navigate(path);
 
         if (onClose) {
@@ -270,9 +538,194 @@ function DeveloperSidebar({
         }
     };
 
-    /* ========================================================
-       RENDER
-    ======================================================== */
+
+    // ========================================================
+    // RENDER NAVIGATION ITEM
+    // ========================================================
+
+    const renderNavigationItem = (item) => {
+        const Icon = item.icon;
+        const active = isActive(item);
+
+        return (
+            <button
+                key={item.path}
+                type="button"
+                onClick={() =>
+                    handleNavigation(item.path)
+                }
+                title={
+                    collapsed
+                        ? item.label
+                        : undefined
+                }
+                aria-current={
+                    active
+                        ? "page"
+                        : undefined
+                }
+                className={`
+                    group
+                    flex
+                    w-full
+                    items-center
+                    gap-2.5
+                    rounded-md
+                    px-2.5
+                    py-2
+                    text-left
+                    text-xs
+                    font-medium
+                    transition-all
+                    duration-200
+
+                    ${
+                        collapsed
+                            ? "justify-center"
+                            : ""
+                    }
+
+                    ${
+                        active
+                            ? `
+                                bg-blue-600
+                                text-white
+                                shadow-sm
+                            `
+                            : `
+                                text-slate-700
+                                hover:bg-slate-100
+                                hover:text-slate-900
+
+                                dark:text-slate-300
+                                dark:hover:bg-blue-950/60
+                                dark:hover:text-white
+                            `
+                    }
+                `}
+            >
+                <Icon
+                    className={`
+                        h-4
+                        w-4
+                        shrink-0
+
+                        ${
+                            active
+                                ? "text-white"
+                                : "text-slate-500 dark:text-slate-400"
+                        }
+                    `}
+                />
+
+                {!collapsed && (
+                    <span className="truncate">
+                        {item.label}
+                    </span>
+                )}
+
+                {!collapsed && active && (
+                    <span
+                        className="
+                            ml-auto
+                            h-1
+                            w-1
+                            shrink-0
+                            rounded-full
+                            bg-white
+                        "
+                    />
+                )}
+            </button>
+        );
+    };
+
+
+    // ========================================================
+    // RENDER SUB NAVIGATION
+    // ========================================================
+
+    const renderSubNavigation = (
+        items,
+        title
+    ) => {
+        if (collapsed) {
+            return null;
+        }
+
+        return (
+            <div className="mt-2 mb-3">
+                <p
+                    className="
+                        mb-1
+                        px-3
+                        text-[9px]
+                        font-semibold
+                        uppercase
+                        tracking-wider
+                        text-slate-400
+                        dark:text-slate-500
+                    "
+                >
+                    {title}
+                </p>
+
+                <div className="space-y-0.5">
+                    {items.map((item) =>
+                        renderNavigationItem(item)
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+
+    // ========================================================
+    // DETERMINE CURRENT MODULE
+    // ========================================================
+
+    const currentModule = useMemo(() => {
+        const path = location.pathname;
+
+        if (path.startsWith("/developer/profile")) {
+            return "profile";
+        }
+
+        if (path.startsWith("/developer/projects")) {
+            return "projects";
+        }
+
+        if (path.startsWith("/developer/tasks")) {
+            return "tasks";
+        }
+
+        if (path.startsWith("/developer/sprints")) {
+            return "sprints";
+        }
+
+        if (
+            path.startsWith(
+                "/developer/communication"
+            )
+        ) {
+            return "communication";
+        }
+
+        if (path.startsWith("/developer/reports")) {
+            return "reports";
+        }
+
+        if (path.startsWith("/developer/settings")) {
+            return "settings";
+        }
+
+        return null;
+    }, [location.pathname]);
+
+
+    // ========================================================
+    // RENDER
+    // ========================================================
 
     return (
         <>
@@ -295,6 +748,7 @@ function DeveloperSidebar({
                 />
             )}
 
+
             {/* ==================================================
                 SIDEBAR
             ================================================== */}
@@ -307,10 +761,12 @@ function DeveloperSidebar({
                     z-50
                     flex
                     flex-col
+
                     border-r
                     border-slate-200
                     bg-white
                     shadow-lg
+
                     transition-all
                     duration-300
 
@@ -351,17 +807,20 @@ function DeveloperSidebar({
                     "
                 >
 
+                    {/* LOGO */}
+
                     <button
                         type="button"
                         onClick={() =>
                             handleNavigation(
-                                "/developer"
+                                "/developer/dashboard"
                             )
                         }
                         className={`
                             flex
                             items-center
                             gap-2.5
+
                             ${
                                 collapsed
                                     ? "mx-auto"
@@ -369,9 +828,6 @@ function DeveloperSidebar({
                             }
                         `}
                     >
-
-                        {/* LOGO */}
-
                         <div
                             className="
                                 flex
@@ -391,7 +847,6 @@ function DeveloperSidebar({
 
                         {!collapsed && (
                             <div className="text-left">
-
                                 <p
                                     className="
                                         text-sm
@@ -414,10 +869,45 @@ function DeveloperSidebar({
                                 >
                                     Developer Portal
                                 </p>
-
                             </div>
                         )}
                     </button>
+
+
+                    {/* DESKTOP COLLAPSE */}
+
+                    {onToggleCollapse && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={
+                                onToggleCollapse
+                            }
+                            className="
+                                hidden
+                                h-8
+                                w-8
+                                text-slate-500
+                                hover:bg-slate-100
+                                dark:text-slate-300
+                                dark:hover:bg-blue-950/60
+                                lg:flex
+                            "
+                            aria-label={
+                                collapsed
+                                    ? "Expand sidebar"
+                                    : "Collapse sidebar"
+                            }
+                        >
+                            {collapsed ? (
+                                <PanelLeftOpen className="h-4 w-4" />
+                            ) : (
+                                <PanelLeftClose className="h-4 w-4" />
+                            )}
+                        </Button>
+                    )}
+
 
                     {/* MOBILE CLOSE */}
 
@@ -431,16 +921,18 @@ function DeveloperSidebar({
                             w-8
                             text-slate-500
                             hover:bg-slate-100
+
                             dark:text-slate-300
                             dark:hover:bg-blue-950/60
+
                             lg:hidden
                         "
                         aria-label="Close sidebar"
                     >
                         <X className="h-4 w-4" />
                     </Button>
-
                 </div>
+
 
                 {/* ==================================================
                     USER PROFILE
@@ -451,6 +943,7 @@ function DeveloperSidebar({
                         border-b
                         border-slate-200
                         p-3
+
                         dark:border-blue-900/70
 
                         ${
@@ -460,12 +953,11 @@ function DeveloperSidebar({
                         }
                     `}
                 >
-
                     <button
                         type="button"
                         onClick={() =>
                             handleNavigation(
-                                "/profile"
+                                "/developer/profile"
                             )
                         }
                         className={`
@@ -522,9 +1014,15 @@ function DeveloperSidebar({
                             </div>
                         )}
 
-                        {!collapsed && (
-                            <div className="min-w-0 flex-1 text-left">
 
+                        {!collapsed && (
+                            <div
+                                className="
+                                    min-w-0
+                                    flex-1
+                                    text-left
+                                "
+                            >
                                 <p
                                     className="
                                         truncate
@@ -549,7 +1047,6 @@ function DeveloperSidebar({
                                 </p>
 
                                 <div className="mt-0.5">
-
                                     <span
                                         className="
                                             inline-flex
@@ -562,21 +1059,19 @@ function DeveloperSidebar({
                                             text-[8px]
                                             font-semibold
                                             text-blue-700
+
                                             dark:bg-blue-950/60
                                             dark:text-blue-300
                                         "
                                     >
                                         {specialization}
                                     </span>
-
                                 </div>
-
                             </div>
                         )}
-
                     </button>
-
                 </div>
+
 
                 {/* ==================================================
                     NAVIGATION
@@ -591,9 +1086,7 @@ function DeveloperSidebar({
                     "
                 >
 
-                    {/* ==================================================
-                        MAIN LABEL
-                    ================================================== */}
+                    {/* WORKSPACE */}
 
                     {!collapsed && (
                         <p
@@ -608,246 +1101,100 @@ function DeveloperSidebar({
                                 dark:text-slate-500
                             "
                         >
-                            Development Workspace
+                            Developer Workspace
                         </p>
                     )}
 
-                    {/* ==================================================
-                        MAIN NAVIGATION
-                    ================================================== */}
 
-                    <nav className="space-y-0.5">
+                    {/* MAIN NAVIGATION */}
 
+                    <nav
+                        className="space-y-0.5"
+                        aria-label="Developer navigation"
+                    >
                         {MAIN_NAVIGATION.map(
-                            (item) => {
-
-                                const Icon =
-                                    item.icon;
-
-                                const active =
-                                    isActive(item);
-
-                                return (
-                                    <button
-                                        key={item.path}
-                                        type="button"
-                                        onClick={() =>
-                                            handleNavigation(
-                                                item.path
-                                            )
-                                        }
-                                        title={
-                                            collapsed
-                                                ? item.label
-                                                : undefined
-                                        }
-                                        className={`
-                                            group
-                                            flex
-                                            w-full
-                                            items-center
-                                            gap-2.5
-                                            rounded-md
-                                            px-2.5
-                                            py-2
-                                            text-left
-                                            text-xs
-                                            font-medium
-                                            transition
-
-                                            ${
-                                                collapsed
-                                                    ? "justify-center"
-                                                    : ""
-                                            }
-
-                                            ${
-                                                active
-                                                    ? `
-                                                        bg-blue-600
-                                                        text-white
-                                                        shadow-sm
-                                                    `
-                                                    : `
-                                                        text-slate-700
-                                                        hover:bg-slate-100
-                                                        hover:text-slate-900
-                                                        dark:text-slate-300
-                                                        dark:hover:bg-blue-950/60
-                                                        dark:hover:text-white
-                                                    `
-                                            }
-                                        `}
-                                    >
-
-                                        <Icon
-                                            className={`
-                                                h-4
-                                                w-4
-                                                shrink-0
-
-                                                ${
-                                                    active
-                                                        ? "text-white"
-                                                        : "text-slate-500 dark:text-slate-400"
-                                                }
-                                            `}
-                                        />
-
-                                        {!collapsed && (
-                                            <span className="truncate">
-                                                {item.label}
-                                            </span>
-                                        )}
-
-                                        {!collapsed &&
-                                            active && (
-                                                <span
-                                                    className="
-                                                        ml-auto
-                                                        h-1
-                                                        w-1
-                                                        shrink-0
-                                                        rounded-full
-                                                        bg-white
-                                                    "
-                                                />
-                                            )}
-
-                                    </button>
-                                );
-                            }
+                            renderNavigationItem
                         )}
-
                     </nav>
 
-                    {/* ==================================================
-                        DIVIDER
-                    ================================================== */}
-
-                    <div
-                        className="
-                            my-3
-                            border-t
-                            border-slate-200
-                            dark:border-blue-900/70
-                        "
-                    />
 
                     {/* ==================================================
-                        SECONDARY LABEL
+                        PROFILE
                     ================================================== */}
 
-                    {!collapsed && (
-                        <p
-                            className="
-                                mb-1.5
-                                px-2.5
-                                text-[9px]
-                                font-bold
-                                uppercase
-                                tracking-wider
-                                text-slate-400
-                                dark:text-slate-500
-                            "
-                        >
-                            Workspace
-                        </p>
-                    )}
-
-                    {/* ==================================================
-                        SECONDARY NAVIGATION
-                    ================================================== */}
-
-                    <nav className="space-y-0.5">
-
-                        {SECONDARY_NAVIGATION.map(
-                            (item) => {
-
-                                const Icon =
-                                    item.icon;
-
-                                const active =
-                                    isActive(item);
-
-                                return (
-                                    <button
-                                        key={item.path}
-                                        type="button"
-                                        onClick={() =>
-                                            handleNavigation(
-                                                item.path
-                                            )
-                                        }
-                                        title={
-                                            collapsed
-                                                ? item.label
-                                                : undefined
-                                        }
-                                        className={`
-                                            group
-                                            flex
-                                            w-full
-                                            items-center
-                                            gap-2.5
-                                            rounded-md
-                                            px-2.5
-                                            py-2
-                                            text-left
-                                            text-xs
-                                            font-medium
-                                            transition
-
-                                            ${
-                                                collapsed
-                                                    ? "justify-center"
-                                                    : ""
-                                            }
-
-                                            ${
-                                                active
-                                                    ? `
-                                                        bg-blue-600
-                                                        text-white
-                                                    `
-                                                    : `
-                                                        text-slate-700
-                                                        hover:bg-slate-100
-                                                        dark:text-slate-300
-                                                        dark:hover:bg-blue-950/60
-                                                    `
-                                            }
-                                        `}
-                                    >
-
-                                        <Icon
-                                            className={`
-                                                h-4
-                                                w-4
-                                                shrink-0
-
-                                                ${
-                                                    active
-                                                        ? "text-white"
-                                                        : "text-slate-500 dark:text-slate-400"
-                                                }
-                                            `}
-                                        />
-
-                                        {!collapsed && (
-                                            <span className="truncate">
-                                                {item.label}
-                                            </span>
-                                        )}
-
-                                    </button>
-                                );
-                            }
+                    {currentModule === "profile" &&
+                        renderSubNavigation(
+                            PROFILE_NAVIGATION,
+                            "Profile Management"
                         )}
 
-                    </nav>
 
+                    {/* ==================================================
+                        PROJECTS
+                    ================================================== */}
+
+                    {currentModule === "projects" &&
+                        renderSubNavigation(
+                            PROJECT_NAVIGATION,
+                            "Project Participation"
+                        )}
+
+
+                    {/* ==================================================
+                        TASKS
+                    ================================================== */}
+
+                    {currentModule === "tasks" &&
+                        renderSubNavigation(
+                            TASK_NAVIGATION,
+                            "Task Management"
+                        )}
+
+
+                    {/* ==================================================
+                        SPRINTS
+                    ================================================== */}
+
+                    {currentModule === "sprints" &&
+                        renderSubNavigation(
+                            SPRINT_NAVIGATION,
+                            "Sprint Participation"
+                        )}
+
+
+                    {/* ==================================================
+                        COMMUNICATION
+                    ================================================== */}
+
+                    {currentModule === "communication" &&
+                        renderSubNavigation(
+                            COMMUNICATION_NAVIGATION,
+                            "Communication"
+                        )}
+
+
+                    {/* ==================================================
+                        REPORTS
+                    ================================================== */}
+
+                    {currentModule === "reports" &&
+                        renderSubNavigation(
+                            REPORT_NAVIGATION,
+                            "Reports & Monitoring"
+                        )}
+
+
+                    {/* ==================================================
+                        SETTINGS
+                    ================================================== */}
+
+                    {currentModule === "settings" &&
+                        renderSubNavigation(
+                            SETTINGS_NAVIGATION,
+                            "Settings & Preferences"
+                        )}
                 </div>
+
 
                 {/* ==================================================
                     FOOTER
@@ -871,11 +1218,11 @@ function DeveloperSidebar({
                                 border-blue-100
                                 bg-blue-50
                                 p-2.5
+
                                 dark:border-blue-900/60
                                 dark:bg-blue-950/30
                             "
                         >
-
                             <div className="flex items-center gap-2.5">
 
                                 <div
@@ -919,15 +1266,11 @@ function DeveloperSidebar({
                                     >
                                         Technical work permissions
                                     </p>
-
                                 </div>
-
                             </div>
-
                         </div>
                     ) : (
                         <div className="flex justify-center">
-
                             <div
                                 className="
                                     flex
@@ -943,15 +1286,13 @@ function DeveloperSidebar({
                             >
                                 <ShieldCheck className="h-4 w-4" />
                             </div>
-
                         </div>
                     )}
-
                 </div>
-
             </aside>
         </>
     );
 }
+
 
 export default DeveloperSidebar;

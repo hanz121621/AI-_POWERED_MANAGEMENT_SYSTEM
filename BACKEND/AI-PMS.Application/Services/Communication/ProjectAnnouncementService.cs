@@ -6,6 +6,7 @@ using AI_PMS.Application.Interfaces.Projects;
 using AI_PMS.Application.Interfaces.Repositories.Communication;
 using AI_PMS.Application.Interfaces.Repositories.Teams;
 using AI_PMS.Domain.Entities.Communication;
+using AI_PMS.Application.Interfaces.Repositories.Projects;
 
 namespace AI_PMS.Application.Services.Communication
 {
@@ -433,3 +434,4 @@ namespace AI_PMS.Application.Services.Communication
         }
     }
 }
+

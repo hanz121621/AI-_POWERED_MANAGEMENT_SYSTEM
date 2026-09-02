@@ -1,5 +1,7 @@
 using AI_PMS.Application.Interfaces.Repositories.Users;
 using AI_PMS.Domain.Entities.Users;
+using AI_PMS.Domain.Entities.Projects;
+using AI_PMS.Domain.Entities.Teams;
 using AI_PMS.Domain.Enums;
 using AI_PMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -85,7 +87,61 @@ public class UserRepository : IUserRepository
 
         await _context.SaveChangesAsync();
     }
+                  // =========================================================
+// GET ACTIVE TEAM MEMBERSHIPS FOR USER
+// =========================================================
 
+public async Task<List<TeamMember>> GetActiveTeamMembershipsAsync(
+    Guid userId)
+{
+    return await _context.TeamMembers
+        .Include(tm => tm.Team)
+        .Include(tm => tm.ContributorType)
+        .Include(tm => tm.ContributorSubType)
+        .Where(tm =>
+            tm.UserId == userId &&
+            tm.IsActive &&
+            tm.Team != null &&
+            tm.Team.IsActive)
+        .OrderBy(tm => tm.JoinedAt)
+        .ToListAsync();
+}
+
+// =========================================================
+// GET ASSIGNED PROJECTS FOR USER
+// =========================================================
+//
+// A project is considered assigned to the user when:
+//
+// 1. The user is the Project Manager
+//
+// OR
+//
+// 2. The project is assigned to one of the user's active teams.
+//
+
+public async Task<List<Project>> GetAssignedProjectsAsync(
+    Guid userId)
+{
+    var teamIds = await _context.TeamMembers
+        .Where(tm =>
+            tm.UserId == userId &&
+            tm.IsActive)
+        .Select(tm => tm.TeamId)
+        .ToListAsync();
+
+    return await _context.Projects
+        .Include(p => p.Status)
+        .Where(p =>
+            !p.IsDeleted &&
+            (
+                p.ManagerId == userId ||
+                (p.TeamId.HasValue &&
+                 teamIds.Contains(p.TeamId.Value))
+            ))
+        .OrderBy(p => p.Name)
+        .ToListAsync();
+}
     // =========================================================
     // DELETE USER
     // =========================================================

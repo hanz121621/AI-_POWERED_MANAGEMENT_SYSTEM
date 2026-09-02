@@ -109,6 +109,20 @@ namespace AI_PMS.Domain.Entities.Users
 
         public ICollection<RefreshToken> RefreshTokens { get; set; }
             = new List<RefreshToken>();
+
+
+// =========================================================
+// PROFESSIONAL PROFILE
+// =========================================================
+
+[MaxLength(2000)]
+public string? TechnicalSkills { get; set; }
+
+// =========================================================
+// LOGIN INFORMATION
+// =========================================================
+
+public DateTime? LastLoginAt { get; set; }
     }
 
 }

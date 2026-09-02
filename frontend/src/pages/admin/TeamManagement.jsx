@@ -1718,6 +1718,7 @@ console.log(
     // CURRENT SELECTED CONTRIBUTOR TYPE
     // ========================================================
 
+<<<<<<< HEAD
   // ========================================================
 // CREATE TEAM CONTRIBUTOR TYPES
 // Only Staff and Developer
@@ -1742,25 +1743,27 @@ const createTeamContributorTypes =
     contributorTypes.filter(
         (type) => {
             const name =
+=======
+    const selectedContributorType =
+        contributorTypes.find(
+            (type) =>
+                String(type.id) ===
+>>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
                 String(
-                    type.name ||
-                    type.displayName ||
-                    ""
+                    memberForm.contributorTypeId
                 )
-                    .trim()
-                    .toLowerCase();
+        );
 
-            return (
-                name === "staff" ||
-                name === "developer"
-            );
-        }
-    );
+    const currentSubTypes =
+        selectedContributorType?.subTypes ||
+        selectedContributorType?.contributorSubTypes ||
+        [];
 
-// ========================================================
-// CURRENT SELECTED CONTRIBUTOR TYPE
-// ========================================================
+    // ========================================================
+    // RENDER
+    // ========================================================
 
+<<<<<<< HEAD
 const selectedContributorType =
     createTeamContributorTypes.find((type) => {
         const typeId =
@@ -1830,6 +1833,9 @@ const filteredAvailableUsers = availableUsers.filter((user) => {
 // ========================================================
 
 return (
+=======
+    return (
+>>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
         <div className="min-h-full bg-background p-4 text-foreground sm:p-6 lg:p-8">
 
             {/* ==================================================
@@ -2363,7 +2369,21 @@ return (
                 })
             );
 
+<<<<<<< HEAD
             setContributorSubTypes([]);
+=======
+                                            {contributorTypes.map(
+                                                (type) => (
+                                                    <option
+                                                        key={type.id}
+                                                        value={type.id}
+                                                    >
+                                                        {type.name ||
+                                                            type.displayName}
+                                                    </option>
+                                                )
+                                            )}
+>>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
 
             if (contributorTypeId) {
                 loadContributorSubTypes(

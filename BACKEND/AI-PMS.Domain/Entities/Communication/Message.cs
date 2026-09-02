@@ -39,12 +39,30 @@ namespace AI_PMS.Domain.Entities.Communication
         public Team? Team { get; set; }
 
         // =========================================================
+        // OPTIONAL TASK CONTEXT
+        // =========================================================
+
+        public Guid? TaskId { get; set; }
+
+        // =========================================================
         // MESSAGE
         // =========================================================
 
         [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [Required]
         [MaxLength(5000)]
         public string Content { get; set; } = string.Empty;
+
+        // =========================================================
+        // READ / UNREAD
+        // =========================================================
+
+        public bool IsRead { get; set; } = false;
+
+        public DateTime? ReadAt { get; set; }
 
         // =========================================================
         // AUDIT

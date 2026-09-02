@@ -1,3557 +1,1515 @@
 
 import React, {
+    useEffect,
     useMemo,
     useState,
 } from "react";
 
 import {
-    Users,
-    Activity,
+    UsersRound,
+    UserRound,
+    ShieldCheck,
+    BriefcaseBusiness,
     CheckCircle2,
-    Clock3,
+    Clock,
     AlertTriangle,
-    Search,
-    UserPlus,
+    CircleDot,
+    Plus,
     UserMinus,
     X,
-    BriefcaseBusiness,
-    ListTodo,
-    TrendingUp,
-    RefreshCw,
-    ShieldCheck,
-    CalendarDays,
-    Target,
     Send,
-    FileText,
-    Check,
-    XCircle,
-    Bell,
+    Target,
+    ListChecks,
+    Activity,
+    CalendarDays,
+    Eye,
+    ChevronRight,
+    RefreshCw,
 } from "lucide-react";
 
-import TeamMemberCard from "../../components/manager/team/TeamMemberCard";
+// IMPORTANT:
+// TeamManagement.jsx is inside:
+// src/pages/manager/
+//
+// teamService.js is inside:
+// src/services/
+//
+// Therefore ../../services/teamService is required.
+import teamService from "../../services/teamService";
+
+// ============================================================
+// COMPONENT
+// ============================================================
 
 function TeamManagement() {
 
-    /*
-    ============================================================
-    DEMO TEAM DATA
-    ============================================================
-    Existing structure preserved.
-    ============================================================
-    */
+    // ========================================================
+    // STATE
+    // ========================================================
 
-    const initialTeams = [
-        {
-            id: 1,
+    const [team, setTeam] = useState(null);
 
-            name: "AI Development Team",
+    const [loading, setLoading] =
+        useState(true);
 
-            description:
-                "Team responsible for developing AI-powered project management features.",
-
-            manager: "Manager",
-
-            projects: [
-                {
-                    id: 1,
-                    name: "AI-Powered Project Management System",
-                },
-            ],
-
-            members: [
-                {
-                    id: 101,
-                    name: "Abebe Kebede",
-                    email: "abebe@africom.com",
-                    phone: "+251 911 000 001",
-
-                    role: "Developer",
-                    teamRole: "Developer",
-
-                    active: true,
-                    status: "Active",
-
-                    workload: 75,
-
-                    skills: [
-                        "React",
-                        "ASP.NET Core",
-                        "PostgreSQL",
-                    ],
-
-                    assignedProjects: [
-                        "AI-Powered Project Management System",
-                    ],
-
-                    tasks: [
-                        {
-                            id: 1001,
-                            title: "Implement Authentication API",
-                            status: "In Progress",
-                            priority: "High",
-                            dueDate: "2026-08-20",
-                        },
-                        {
-                            id: 1002,
-                            title: "Build User Management",
-                            status: "Pending",
-                            priority: "Medium",
-                            dueDate: "2026-08-23",
-                        },
-                    ],
-                },
-
-                {
-                    id: 102,
-                    name: "Hana Tesfaye",
-                    email: "hana@africom.com",
-                    phone: "+251 911 000 002",
-
-                    role: "Contributor",
-                    teamRole: "Contributor",
-
-                    active: true,
-                    status: "Active",
-
-                    workload: 60,
-
-                    skills: [
-                        "React",
-                        "Tailwind CSS",
-                        "UI Design",
-                    ],
-
-                    assignedProjects: [
-                        "AI-Powered Project Management System",
-                        "FieldSync",
-                    ],
-
-                    tasks: [
-                        {
-                            id: 1003,
-                            title: "Design Manager Dashboard",
-                            status: "Completed",
-                            priority: "High",
-                            dueDate: "2026-08-10",
-                        },
-                        {
-                            id: 1004,
-                            title: "Create Team Management UI",
-                            status: "In Progress",
-                            priority: "Medium",
-                            dueDate: "2026-08-18",
-                        },
-                    ],
-                },
-
-                {
-                    id: 103,
-                    name: "Dawit Solomon",
-                    email: "dawit@africom.com",
-                    phone: "+251 911 000 003",
-
-                    role: "Developer",
-                    teamRole: "Developer",
-
-                    active: true,
-                    status: "Active",
-
-                    workload: 85,
-
-                    skills: [
-                        "Node.js",
-                        "PostgreSQL",
-                        "API Development",
-                    ],
-
-                    assignedProjects: [
-                        "FieldSync",
-                    ],
-
-                    tasks: [
-                        {
-                            id: 1005,
-                            title: "Implement Offline Sync API",
-                            status: "In Progress",
-                            priority: "High",
-                            dueDate: "2026-08-17",
-                        },
-                        {
-                            id: 1006,
-                            title: "Create Sync Audit Service",
-                            status: "Overdue",
-                            priority: "High",
-                            dueDate: "2026-08-05",
-                        },
-                        {
-                            id: 1007,
-                            title: "Database Optimization",
-                            status: "Pending",
-                            priority: "Medium",
-                            dueDate: "2026-08-22",
-                        },
-                    ],
-                },
-
-                {
-                    id: 104,
-                    name: "Marta Bekele",
-                    email: "marta@africom.com",
-                    phone: "+251 911 000 004",
-
-                    role: "Contributor",
-                    teamRole: "Contributor",
-
-                    active: true,
-                    status: "Active",
-
-                    workload: 35,
-
-                    skills: [
-                        "Testing",
-                        "Documentation",
-                        "QA",
-                    ],
-
-                    assignedProjects: [
-                        "AI-Powered Project Management System",
-                    ],
-
-                    tasks: [],
-                },
-            ],
-        },
-
-        {
-            id: 2,
-
-            name: "FieldSync Team",
-
-            description:
-                "Team responsible for the FieldSync offline-first rural reporting platform.",
-
-            manager: "Manager",
-
-            projects: [
-                {
-                    id: 2,
-                    name: "FieldSync",
-                },
-            ],
-
-            members: [
-                {
-                    id: 201,
-                    name: "Samuel Girma",
-                    email: "samuel@africom.com",
-                    phone: "+251 911 000 005",
-
-                    role: "Developer",
-                    teamRole: "Developer",
-
-                    active: true,
-                    status: "Active",
-
-                    workload: 55,
-
-                    skills: [
-                        "React",
-                        "PWA",
-                        "IndexedDB",
-                    ],
-
-                    assignedProjects: [
-                        "FieldSync",
-                    ],
-
-                    tasks: [
-                        {
-                            id: 2001,
-                            title: "Build Offline Registration",
-                            status: "In Progress",
-                            priority: "High",
-                            dueDate: "2026-08-20",
-                        },
-                    ],
-                },
-
-                {
-                    id: 202,
-                    name: "Meron Ali",
-                    email: "meron@africom.com",
-                    phone: "+251 911 000 006",
-
-                    role: "Contributor",
-                    teamRole: "Contributor",
-
-                    active: true,
-                    status: "Active",
-
-                    workload: 40,
-
-                    skills: [
-                        "Testing",
-                        "Reporting",
-                    ],
-
-                    assignedProjects: [
-                        "FieldSync",
-                    ],
-
-                    tasks: [
-                        {
-                            id: 2002,
-                            title: "Test Registration Flow",
-                            status: "Pending",
-                            priority: "Medium",
-                            dueDate: "2026-08-21",
-                        },
-                    ],
-                },
-            ],
-        },
-    ];
-
-    /*
-    ============================================================
-    STATE
-    ============================================================
-    */
-
-    const [teams, setTeams] =
-        useState(initialTeams);
-
-    const [selectedTeamId, setSelectedTeamId] =
-        useState(initialTeams[0].id);
-
-    const [searchTerm, setSearchTerm] =
-        useState("");
-
-    const [activeSection, setActiveSection] =
-        useState("members");
+    const [refreshing, setRefreshing] =
+        useState(false);
 
     const [selectedMember, setSelectedMember] =
         useState(null);
 
-    const [assignMember, setAssignMember] =
-        useState(null);
-
-    const [removeMember, setRemoveMember] =
-        useState(null);
-
-    const [selectedTaskId, setSelectedTaskId] =
-        useState("");
-
-    const [message, setMessage] =
-        useState(null);
-
-    const [loading, setLoading] =
+    const [showAddRequest, setShowAddRequest] =
         useState(false);
 
-    /*
-    ============================================================
-    TEAM-005 / TEAM-006 STATE
-    ============================================================
-    */
+    const [showRemoveRequest, setShowRemoveRequest] =
+        useState(false);
 
-    const [permissionRequests, setPermissionRequests] =
-        useState([]);
-
-    const [activityLogs, setActivityLogs] =
-        useState([]);
-
-    const [requestType, setRequestType] =
-        useState(null);
-
-    const [requestMember, setRequestMember] =
-        useState(null);
-
-    const [requestProjectId, setRequestProjectId] =
-        useState("");
+    const [showLeaderWork, setShowLeaderWork] =
+        useState(false);
 
     const [requestReason, setRequestReason] =
         useState("");
 
-    /*
-    ============================================================
-    SELECTED TEAM
-    ============================================================
-    */
+    const [selectedUserId, setSelectedUserId] =
+        useState("");
 
-    const selectedTeam = useMemo(() => {
-        return teams.find(
-            (team) =>
-                String(team.id) ===
-                String(selectedTeamId)
+    const [availableMembers, setAvailableMembers] =
+        useState([]);
+
+    const [loadingAvailableMembers, setLoadingAvailableMembers] =
+        useState(false);
+
+    const [successMessage, setSuccessMessage] =
+        useState("");
+
+    const [errorMessage, setErrorMessage] =
+        useState("");
+
+    // ========================================================
+    // CURRENT MANAGER
+    // ========================================================
+
+    const [currentManager, setCurrentManager] =
+        useState(null);
+
+    // ========================================================
+    // LOAD CURRENT MANAGER
+    // ========================================================
+
+    useEffect(() => {
+
+        let mounted = true;
+
+        async function loadCurrentManager() {
+
+            try {
+
+                if (
+                    typeof teamService.getCurrentUser ===
+                    "function"
+                ) {
+
+                    const manager =
+                        await teamService.getCurrentUser();
+
+                    if (mounted) {
+                        setCurrentManager(
+                            manager
+                        );
+                    }
+
+                }
+
+            } catch (error) {
+
+                console.error(
+                    "Unable to load current manager:",
+                    error
+                );
+
+            }
+
+        }
+
+        loadCurrentManager();
+
+        return () => {
+            mounted = false;
+        };
+
+    }, []);
+
+    // ========================================================
+    // NORMALIZE TEAM DATA FOR UI
+    // ========================================================
+
+    const normalizeTeamForPage = (
+        rawTeam
+    ) => {
+
+        if (!rawTeam) {
+            return null;
+        }
+
+        const normalized =
+            typeof teamService.normalizeTeam ===
+            "function"
+                ? teamService.normalizeTeam(
+                    rawTeam
+                )
+                : rawTeam;
+
+        const members =
+            Array.isArray(
+                normalized?.members
+            )
+                ? normalized.members
+                : [];
+
+        const teamLeader =
+            normalized?.teamLeader ||
+            normalized?.leader ||
+            normalized?.teamLeaderUser ||
+            null;
+
+        const sprints =
+            Array.isArray(
+                normalized?.sprints
+            )
+                ? normalized.sprints
+                : [];
+
+        return {
+            ...normalized,
+
+            id:
+                normalized?.id ??
+                normalized?.teamId,
+
+            name:
+                normalized?.name ||
+                normalized?.teamName ||
+                "Team",
+
+            projectId:
+                normalized?.projectId,
+
+            projectName:
+                normalized?.projectName ||
+                normalized?.project?.name ||
+                "Assigned Project",
+
+            managerId:
+                normalized?.managerId,
+
+            managerName:
+                normalized?.managerName,
+
+            teamLeader:
+                teamLeader
+                    ? {
+                        id:
+                            teamLeader.id ??
+                            teamLeader.userId ??
+                            teamLeader.UserId,
+
+                        name:
+                            teamLeader.name ??
+                            teamLeader.fullName ??
+                            teamLeader.userName ??
+                            "Team Leader",
+
+                        role:
+                            teamLeader.role ||
+                            "Team Leader",
+
+                        contributorType:
+                            teamLeader.contributorType ||
+                            teamLeader.contributorTypeName ||
+                            "Developer",
+
+                        specialization:
+                            teamLeader.specialization ||
+                            teamLeader.specializationName ||
+                            "Software Development",
+                    }
+                    : null,
+
+            members,
+
+            sprints,
+        };
+
+    };
+
+    // ========================================================
+    // LOAD ASSIGNED TEAM
+    // ========================================================
+
+    const loadTeam = async (
+        showRefresh = false
+    ) => {
+
+        try {
+
+            if (showRefresh) {
+                setRefreshing(true);
+            } else {
+                setLoading(true);
+            }
+
+            clearMessages();
+
+            const teams =
+                await teamService.getTeams();
+
+            const normalizedTeams =
+                Array.isArray(teams)
+                    ? teams
+                        .map(
+                            (item) =>
+                                normalizeTeamForPage(
+                                    item
+                                )
+                        )
+                        .filter(Boolean)
+                    : [];
+
+            if (
+                normalizedTeams.length === 0
+            ) {
+
+                setTeam(null);
+
+                return;
+            }
+
+            // ------------------------------------------------
+            // Prefer a team assigned to the current manager.
+            // ------------------------------------------------
+
+            const managerId =
+                currentManager?.id ??
+                currentManager?.userId ??
+                currentManager?.Id ??
+                currentManager?.UserId;
+
+            let selectedTeam = null;
+
+            if (managerId) {
+
+                selectedTeam =
+                    normalizedTeams.find(
+                        (item) =>
+                            String(
+                                item.managerId
+                            ) ===
+                            String(managerId)
+                    );
+            }
+
+            // ------------------------------------------------
+            // If the service/API already returns the
+            // manager's authorized team, use the first one.
+            // ------------------------------------------------
+
+            if (!selectedTeam) {
+
+                selectedTeam =
+                    normalizedTeams.find(
+                        (item) =>
+                            item.managerId
+                    ) ||
+                    normalizedTeams[0];
+            }
+
+            // ------------------------------------------------
+            // Get full team details when possible.
+            // ------------------------------------------------
+
+            if (
+                selectedTeam?.id
+            ) {
+
+                try {
+
+                    const detailedTeam =
+                        await teamService.getTeamById(
+                            selectedTeam.id
+                        );
+
+                    if (detailedTeam) {
+
+                        selectedTeam =
+                            normalizeTeamForPage(
+                                detailedTeam
+                            );
+
+                    }
+
+                } catch (detailError) {
+
+                    console.warn(
+                        "Unable to load detailed team. Using team list data:",
+                        detailError
+                    );
+
+                }
+
+            }
+
+            // ------------------------------------------------
+            // Get members directly from member endpoint.
+            // ------------------------------------------------
+
+            if (
+                selectedTeam?.id &&
+                typeof teamService.getTeamMembers ===
+                "function"
+            ) {
+
+                try {
+
+                    const members =
+                        await teamService.getTeamMembers(
+                            selectedTeam.id
+                        );
+
+                    selectedTeam = {
+                        ...selectedTeam,
+
+                        members:
+                            Array.isArray(
+                                members
+                            )
+                                ? members
+                                : selectedTeam.members ||
+                                [],
+                    };
+
+                } catch (memberError) {
+
+                    console.warn(
+                        "Unable to load team members:",
+                        memberError
+                    );
+
+                }
+
+            }
+
+            setTeam(
+                selectedTeam
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Unable to load team:",
+                error
+            );
+
+            setTeam(null);
+
+            showError(
+                error?.message ||
+                "Unable to load team management data."
+            );
+
+        } finally {
+
+            setLoading(false);
+            setRefreshing(false);
+
+        }
+
+    };
+
+    // ========================================================
+    // INITIAL LOAD
+    // ========================================================
+
+    useEffect(() => {
+
+        loadTeam();
+
+    }, []);
+
+    // ========================================================
+    // RELOAD WHEN CURRENT MANAGER BECOMES AVAILABLE
+    // ========================================================
+
+    useEffect(() => {
+
+        if (currentManager) {
+            loadTeam();
+        }
+
+    }, [currentManager]);
+
+    // ========================================================
+    // CLEAR MESSAGES
+    // ========================================================
+
+    const clearMessages = () => {
+
+        setSuccessMessage("");
+        setErrorMessage("");
+
+    };
+
+    // ========================================================
+    // SUCCESS MESSAGE
+    // ========================================================
+
+    const showSuccess = (
+        message
+    ) => {
+
+        setErrorMessage("");
+        setSuccessMessage(
+            message
         );
-    }, [teams, selectedTeamId]);
 
-    /*
-    ============================================================
-    FILTER MEMBERS
-    ============================================================
-    */
+        window.setTimeout(() => {
 
-    const filteredMembers = useMemo(() => {
+            setSuccessMessage("");
 
-        if (!selectedTeam?.members) {
+        }, 4000);
+
+    };
+
+    // ========================================================
+    // ERROR MESSAGE
+    // ========================================================
+
+    const showError = (
+        message
+    ) => {
+
+        setSuccessMessage("");
+        setErrorMessage(
+            message
+        );
+
+    };
+
+    // ========================================================
+    // TEAM MEMBERS
+    // ========================================================
+
+    const members = useMemo(() => {
+
+        return Array.isArray(
+            team?.members
+        )
+            ? team.members
+            : [];
+
+    }, [team]);
+
+    // ========================================================
+    // ALL SPRINT TASKS
+    // ========================================================
+
+    const allTasks = useMemo(() => {
+
+        if (!team) {
             return [];
         }
 
-        const search =
-            searchTerm
-                .trim()
-                .toLowerCase();
+        return (
+            team.sprints || []
+        ).flatMap(
+            (sprint) =>
+                (
+                    sprint.tasks ||
+                    []
+                ).map(
+                    (task) => ({
+                        ...task,
 
-        if (!search) {
-            return selectedTeam.members;
-        }
+                        sprintId:
+                            sprint.id,
 
-        return selectedTeam.members.filter(
-            (member) => {
+                        sprintName:
+                            sprint.name,
+                    })
+                )
+        );
 
-                const name =
-                    member.name ||
-                    member.fullName ||
-                    "";
+    }, [team]);
 
-                const email =
-                    member.email || "";
+    // ========================================================
+    // ACTIVE SPRINT
+    // ========================================================
 
-                const role =
-                    member.role ||
-                    member.teamRole ||
-                    "";
+    const activeSprint = useMemo(() => {
+
+        return (
+            team?.sprints || []
+        ).find(
+            (sprint) =>
+                String(
+                    sprint.status
+                ).toLowerCase() ===
+                "active"
+        );
+
+    }, [team]);
+
+    // ========================================================
+    // TASK STATS
+    // ========================================================
+
+    const taskStats = useMemo(() => {
+
+        const completed =
+            allTasks.filter(
+                (task) =>
+                    String(
+                        task.status
+                    ).toLowerCase() ===
+                    "completed"
+            ).length;
+
+        const inProgress =
+            allTasks.filter(
+                (task) =>
+                    String(
+                        task.status
+                    ).toLowerCase() ===
+                    "in progress"
+            ).length;
+
+        const blocked =
+            allTasks.filter(
+                (task) =>
+                    String(
+                        task.status
+                    ).toLowerCase() ===
+                    "blocked"
+            ).length;
+
+        const remaining =
+            allTasks.filter(
+                (task) =>
+                    String(
+                        task.status
+                    ).toLowerCase() !==
+                    "completed"
+            ).length;
+
+        return {
+
+            total:
+                allTasks.length,
+
+            completed,
+
+            inProgress,
+
+            blocked,
+
+            remaining,
+
+        };
+
+    }, [allTasks]);
+
+    // ========================================================
+    // OVERDUE TASKS
+    // ========================================================
+
+    const overdueTasks = useMemo(() => {
+
+        const now =
+            new Date();
+
+        return allTasks.filter(
+            (task) => {
+
+                if (
+                    String(
+                        task.status
+                    ).toLowerCase() ===
+                    "completed"
+                ) {
+                    return false;
+                }
+
+                if (
+                    !task.deadline
+                ) {
+                    return false;
+                }
+
+                const deadline =
+                    new Date(
+                        task.deadline
+                    );
 
                 return (
-                    name
-                        .toLowerCase()
-                        .includes(search) ||
-                    email
-                        .toLowerCase()
-                        .includes(search) ||
-                    role
-                        .toLowerCase()
-                        .includes(search)
+                    !Number.isNaN(
+                        deadline.getTime()
+                    ) &&
+                    deadline < now
                 );
+
             }
         );
+
+    }, [allTasks]);
+
+    // ========================================================
+    // TEAM COMPLETION
+    // ========================================================
+
+    const teamCompletion = useMemo(() => {
+
+        if (
+            !allTasks.length
+        ) {
+            return null;
+        }
+
+        return Math.round(
+            (
+                taskStats.completed /
+                allTasks.length
+            ) * 100
+        );
+
     }, [
-        selectedTeam,
-        searchTerm,
+        allTasks.length,
+        taskStats.completed,
     ]);
 
-    /*
-    ============================================================
-    TEAM PERFORMANCE
-    ============================================================
-    */
+    // ========================================================
+    // SPRINT PROGRESS
+    // ========================================================
 
-    const performance = useMemo(() => {
+    const sprintProgress = useMemo(() => {
 
-        const members =
-            selectedTeam?.members || [];
+        if (!activeSprint) {
+            return null;
+        }
 
-        const tasks = members.flatMap(
-            (member) =>
-                Array.isArray(member.tasks)
-                    ? member.tasks
-                    : []
-        );
+        const tasks =
+            activeSprint.tasks ||
+            [];
+
+        if (
+            !tasks.length
+        ) {
+            return null;
+        }
 
         const completed =
             tasks.filter(
                 (task) =>
-                    task.status ===
-                    "Completed"
+                    String(
+                        task.status
+                    ).toLowerCase() ===
+                    "completed"
             ).length;
 
-        const pending =
-            tasks.filter(
-                (task) =>
-                    task.status ===
-                    "Pending"
-            ).length;
+        return Math.round(
+            (
+                completed /
+                tasks.length
+            ) * 100
+        );
 
-        const inProgress =
-            tasks.filter(
+    }, [activeSprint]);
+
+    // ========================================================
+    // MEMBER WORKLOAD
+    // ========================================================
+
+    const memberWorkload = useMemo(() => {
+
+        return members.map(
+            (member) => {
+
+                const memberId =
+                    member.userId ??
+                    member.id ??
+                    member.UserId ??
+                    member.Id;
+
+                const memberName =
+                    member.name ??
+                    member.fullName ??
+                    member.userName ??
+                    "Unknown Member";
+
+                const tasks =
+                    allTasks.filter(
+                        (task) => {
+
+                            const assigneeId =
+                                task.assigneeId ??
+                                task.userId ??
+                                task.assignedToId;
+
+                            if (
+                                assigneeId &&
+                                memberId
+                            ) {
+
+                                return (
+                                    String(
+                                        assigneeId
+                                    ) ===
+                                    String(
+                                        memberId
+                                    )
+                                );
+
+                            }
+
+                            return (
+                                String(
+                                    task.assignee
+                                ).toLowerCase() ===
+                                String(
+                                    memberName
+                                ).toLowerCase()
+                            );
+
+                        }
+                    );
+
+                const activeTasks =
+                    tasks.filter(
+                        (task) =>
+                            String(
+                                task.status
+                            ).toLowerCase() !==
+                            "completed"
+                    );
+
+                return {
+
+                    ...member,
+
+                    id:
+                        memberId,
+
+                    userId:
+                        memberId,
+
+                    name:
+                        memberName,
+
+                    role:
+                        member.role ||
+                        member.roleName ||
+                        "Contributor",
+
+                    contributorType:
+                        member.contributorType ||
+                        member.contributorTypeName ||
+                        "Contributor",
+
+                    specialization:
+                        member.specialization ||
+                        member.specializationName ||
+                        "—",
+
+                    active:
+                        member.active ??
+                        member.isActive ??
+                        true,
+
+                    totalTasks:
+                        tasks.length,
+
+                    activeTasks:
+                        activeTasks.length,
+
+                };
+
+            }
+        );
+
+    }, [
+        members,
+        allTasks,
+    ]);
+
+    // ========================================================
+    // TEAM LEADER WORK
+    // ========================================================
+
+    const teamLeaderWork = useMemo(() => {
+
+        const leader =
+            team?.teamLeader;
+
+        if (!leader) {
+
+            return {
+
+                createdTasks: 0,
+                assignedTasks: 0,
+                completedTasks: 0,
+                inProgressTasks: 0,
+                blockedTasks: 0,
+                overdueTasks: 0,
+
+            };
+
+        }
+
+        const leaderId =
+            leader.id ??
+            leader.userId;
+
+        const leaderName =
+            leader.name ||
+            "";
+
+        const createdTasks =
+            allTasks.filter(
+                (task) => {
+
+                    const createdById =
+                        task.createdById ??
+                        task.creatorId;
+
+                    if (
+                        createdById &&
+                        leaderId
+                    ) {
+
+                        return (
+                            String(
+                                createdById
+                            ) ===
+                            String(
+                                leaderId
+                            )
+                        );
+
+                    }
+
+                    return (
+                        String(
+                            task.createdBy
+                        ).toLowerCase() ===
+                        String(
+                            leaderName
+                        ).toLowerCase()
+                    );
+
+                }
+            );
+
+        const completedTasks =
+            createdTasks.filter(
                 (task) =>
-                    task.status ===
-                    "In Progress"
-            ).length;
+                    String(
+                        task.status
+                    ).toLowerCase() ===
+                    "completed"
+            );
+
+        const inProgressTasks =
+            createdTasks.filter(
+                (task) =>
+                    String(
+                        task.status
+                    ).toLowerCase() ===
+                    "in progress"
+            );
+
+        const blockedTasks =
+            createdTasks.filter(
+                (task) =>
+                    String(
+                        task.status
+                    ).toLowerCase() ===
+                    "blocked"
+            );
 
         const overdue =
-            tasks.filter(
+            createdTasks.filter(
                 (task) =>
-                    task.status ===
-                    "Overdue"
-            ).length;
+                    overdueTasks.includes(
+                        task
+                    )
+            );
 
-        const totalTasks =
-            tasks.length;
-
-        const completionRate =
-            totalTasks > 0
-                ? Math.round(
-                      (completed /
-                          totalTasks) *
-                          100
-                  )
-                : 0;
-
-        const averageWorkload =
-            members.length > 0
-                ? Math.round(
-                      members.reduce(
-                          (
-                              total,
-                              member
-                          ) =>
-                              total +
-                              Number(
-                                  member.workload ||
-                                      0
-                              ),
-                          0
-                      ) /
-                          members.length
-                  )
-                : 0;
+        const assignedTasks =
+            createdTasks.filter(
+                (task) =>
+                    Boolean(
+                        task.assignee ||
+                        task.assigneeId ||
+                        task.userId ||
+                        task.assignedToId
+                    )
+            );
 
         return {
-            totalTasks,
-            completed,
-            pending,
-            inProgress,
-            overdue,
-            completionRate,
-            averageWorkload,
+
+            createdTasks:
+                createdTasks.length,
+
+            assignedTasks:
+                assignedTasks.length,
+
+            completedTasks:
+                completedTasks.length,
+
+            inProgressTasks:
+                inProgressTasks.length,
+
+            blockedTasks:
+                blockedTasks.length,
+
+            overdueTasks:
+                overdue.length,
+
         };
 
-    }, [selectedTeam]);
+    }, [
+        team,
+        allTasks,
+        overdueTasks,
+    ]);
 
-    /*
-    ============================================================
-    SHOW MESSAGE
-    ============================================================
-    */
+    // ========================================================
+    // LOAD AVAILABLE MEMBERS
+    // ========================================================
 
-    const showMessage = (
-        type,
-        text
-    ) => {
+    const loadAvailableMembers =
+        async () => {
 
-        setMessage({
-            type,
-            text,
-        });
-
-        setTimeout(() => {
-            setMessage(null);
-        }, 4000);
-    };
-
-    /*
-    ============================================================
-    CHANGE TEAM
-    ============================================================
-    */
-
-    const handleTeamChange = (
-        event
-    ) => {
-
-        setSelectedTeamId(
-            Number(event.target.value)
-        );
-
-        setSelectedMember(null);
-
-        setSearchTerm("");
-
-        setActiveSection(
-            "members"
-        );
-    };
-
-    /*
-    ============================================================
-    VIEW MEMBER
-    ============================================================
-    */
-
-    const handleViewMember = (
-        member
-    ) => {
-
-        setSelectedMember(member);
-    };
-
-    /*
-    ============================================================
-    OPEN ASSIGN MODAL
-    ============================================================
-    */
-
-    const handleOpenAssign = (
-        member
-    ) => {
-
-        if (!member) {
-            return;
-        }
-
-        if (
-            member.active === false ||
-            member.status ===
-                "Inactive"
-        ) {
-            showMessage(
-                "error",
-                "Contributor cannot be assigned because the member is inactive."
-            );
-
-            return;
-        }
-
-        if (
-            Number(
-                member.workload || 0
-            ) >= 80
-        ) {
-            showMessage(
-                "error",
-                "Contributor has exceeded workload capacity."
-            );
-
-            return;
-        }
-
-        setAssignMember(member);
-
-        setSelectedTaskId("");
-    };
-
-    /*
-    ============================================================
-    ASSIGN CONTRIBUTOR
-    ============================================================
-    */
-
-    const handleAssignContributor =
-        () => {
-
-            if (!assignMember) {
+            if (!team?.id) {
                 return;
             }
 
-            if (!selectedTaskId) {
-                showMessage(
-                    "error",
-                    "Please select a task."
+            try {
+
+                setLoadingAvailableMembers(
+                    true
                 );
 
-                return;
-            }
+                let users = [];
 
-            const taskId =
-                Number(
-                    selectedTaskId
-                );
+                if (
+                    typeof teamService.getAvailableTeamMembers ===
+                    "function"
+                ) {
 
-            let assignedTask = null;
-
-            const updatedTeams =
-                teams.map((team) => {
-
-                    if (
-                        team.id !==
-                        selectedTeam.id
-                    ) {
-                        return team;
-                    }
-
-                    const updatedMembers =
-                        team.members.map(
-                            (member) => {
-
-                                if (
-                                    member.id !==
-                                    assignMember.id
-                                ) {
-                                    return member;
-                                }
-
-                                const existingTasks =
-                                    Array.isArray(
-                                        member.tasks
-                                    )
-                                        ? member.tasks
-                                        : [];
-
-                                const alreadyAssigned =
-                                    existingTasks.some(
-                                        (task) =>
-                                            Number(
-                                                task.id
-                                            ) ===
-                                            taskId
-                                    );
-
-                                if (
-                                    alreadyAssigned
-                                ) {
-                                    return member;
-                                }
-
-                                const task =
-                                    team.members
-                                        .flatMap(
-                                            (
-                                                item
-                                            ) =>
-                                                item.tasks ||
-                                                []
-                                        )
-                                        .find(
-                                            (
-                                                item
-                                            ) =>
-                                                Number(
-                                                    item.id
-                                                ) ===
-                                                taskId
-                                        );
-
-                                if (!task) {
-                                    return member;
-                                }
-
-                                assignedTask =
-                                    task;
-
-                                return {
-                                    ...member,
-
-                                    tasks: [
-                                        ...existingTasks,
-                                        {
-                                            ...task,
-                                            assignedByManager:
-                                                true,
-                                        },
-                                    ],
-
-                                    workload:
-                                        Math.min(
-                                            Number(
-                                                member.workload ||
-                                                    0
-                                            ) + 10,
-                                            100
-                                        ),
-                                };
-                            }
+                    users =
+                        await teamService.getAvailableTeamMembers(
+                            team.id
                         );
 
-                    return {
-                        ...team,
-                        members:
-                            updatedMembers,
-                    };
-                });
+                } else if (
+                    typeof teamService.getTeamMemberCandidates ===
+                    "function"
+                ) {
 
-            if (!assignedTask) {
-
-                showMessage(
-                    "error",
-                    "Task not found."
-                );
-
-                return;
-            }
-
-            setTeams(
-                updatedTeams
-            );
-
-            setAssignMember(
-                null
-            );
-
-            setSelectedTaskId(
-                ""
-            );
-
-            showMessage(
-                "success",
-                "Contributor assigned successfully."
-            );
-        };
-
-    /*
-    ============================================================
-    OPEN REMOVE MODAL
-    ============================================================
-    */
-
-    const handleOpenRemove = (
-        member
-    ) => {
-
-        if (!member) {
-            return;
-        }
-
-        const tasks =
-            Array.isArray(member.tasks)
-                ? member.tasks
-                : [];
-
-        if (tasks.length === 0) {
-
-            showMessage(
-                "error",
-                "Contributor assignment not found."
-            );
-
-            return;
-        }
-
-        setRemoveMember(
-            member
-        );
-
-        setSelectedTaskId("");
-    };
-
-    /*
-    ============================================================
-    REMOVE CONTRIBUTOR
-    ============================================================
-    */
-
-    const handleRemoveContributor =
-        () => {
-
-            if (!removeMember) {
-                return;
-            }
-
-            if (!selectedTaskId) {
-
-                showMessage(
-                    "error",
-                    "Please select the task from which the contributor should be removed."
-                );
-
-                return;
-            }
-
-            const taskId =
-                Number(
-                    selectedTaskId
-                );
-
-            let foundAssignment =
-                false;
-
-            const updatedTeams =
-                teams.map((team) => {
-
-                    if (
-                        team.id !==
-                        selectedTeam.id
-                    ) {
-                        return team;
-                    }
-
-                    const updatedMembers =
-                        team.members.map(
-                            (member) => {
-
-                                if (
-                                    member.id !==
-                                    removeMember.id
-                                ) {
-                                    return member;
-                                }
-
-                                const existingTasks =
-                                    Array.isArray(
-                                        member.tasks
-                                    )
-                                        ? member.tasks
-                                        : [];
-
-                                const taskExists =
-                                    existingTasks.some(
-                                        (task) =>
-                                            Number(
-                                                task.id
-                                            ) ===
-                                            taskId
-                                    );
-
-                                if (
-                                    !taskExists
-                                ) {
-                                    return member;
-                                }
-
-                                foundAssignment =
-                                    true;
-
-                                const updatedTasks =
-                                    existingTasks.filter(
-                                        (task) =>
-                                            Number(
-                                                task.id
-                                            ) !==
-                                            taskId
-                                    );
-
-                                const newWorkload =
-                                    Math.max(
-                                        Number(
-                                            member.workload ||
-                                                0
-                                        ) - 10,
-                                        0
-                                    );
-
-                                return {
-                                    ...member,
-
-                                    tasks:
-                                        updatedTasks,
-
-                                    workload:
-                                        newWorkload,
-                                };
-                            }
+                    users =
+                        await teamService.getTeamMemberCandidates(
+                            team.id
                         );
 
-                    return {
-                        ...team,
-                        members:
-                            updatedMembers,
-                    };
-                });
+                }
 
-            if (!foundAssignment) {
+                setAvailableMembers(
+                    Array.isArray(users)
+                        ? users
+                        : []
+                );
 
-                showMessage(
-                    "error",
-                    "Contributor assignment not found."
+            } catch (error) {
+
+                console.error(
+                    "Unable to load available team members:",
+                    error
+                );
+
+                showError(
+                    error?.message ||
+                    "Unable to load available users."
+                );
+
+                setAvailableMembers([]);
+
+            } finally {
+
+                setLoadingAvailableMembers(
+                    false
+                );
+
+            }
+
+        };
+
+    // ========================================================
+    // OPEN ADD MEMBER MODAL
+    // ========================================================
+
+    const openAddMemberModal =
+        async () => {
+
+            clearMessages();
+
+            setRequestReason("");
+            setSelectedUserId("");
+            setShowAddRequest(true);
+
+            await loadAvailableMembers();
+
+        };
+
+    // ========================================================
+    // ADD MEMBER
+    //
+    // This now uses the actual team service.
+    // ========================================================
+
+    const handleAddRequest =
+        async () => {
+
+            clearMessages();
+
+            if (!team?.id) {
+
+                showError(
+                    "No team is currently assigned to this manager."
                 );
 
                 return;
             }
 
-            setTeams(
-                updatedTeams
-            );
+            if (!selectedUserId) {
 
-            setRemoveMember(
-                null
-            );
+                showError(
+                    "Please select a user."
+                );
 
-            setSelectedTaskId(
-                ""
-            );
-
-            showMessage(
-                "success",
-                "Contributor removed successfully."
-            );
-        };
-
-    /*
-    ============================================================
-    TEAM-005
-    OPEN REQUEST ADD CONTRIBUTOR
-    ============================================================
-    */
-
-    const handleOpenRequestAdd = (
-        member = null
-    ) => {
-
-        setRequestType(
-            "add"
-        );
-
-        setRequestMember(
-            member
-        );
-
-        setRequestProjectId(
-            selectedTeam?.projects?.[0]?.id
-                ? String(
-                      selectedTeam.projects[0].id
-                  )
-                : ""
-        );
-
-        setRequestReason("");
-
-        setActiveSection(
-            "requests"
-        );
-    };
-
-    /*
-    ============================================================
-    TEAM-005
-    OPEN REQUEST REMOVE CONTRIBUTOR
-    ============================================================
-    */
-
-    const handleOpenRequestRemove = (
-        member
-    ) => {
-
-        if (!member) {
-            return;
-        }
-
-        setRequestType(
-            "remove"
-        );
-
-        setRequestMember(
-            member
-        );
-
-        const firstProject =
-            selectedTeam?.projects?.find(
-                (project) =>
-                    member.assignedProjects?.includes(
-                        project.name
-                    )
-            ) ||
-            selectedTeam?.projects?.[0];
-
-        setRequestProjectId(
-            firstProject?.id
-                ? String(
-                      firstProject.id
-                  )
-                : ""
-        );
-
-        setRequestReason("");
-
-        setActiveSection(
-            "requests"
-        );
-    };
-
-    /*
-    ============================================================
-    AVAILABLE CONTRIBUTORS
-    TEAM-005
-    ============================================================
-    */
-
-    const availableContributors =
-        useMemo(() => {
-
-            if (!selectedTeam) {
-                return [];
+                return;
             }
 
-            return selectedTeam.members.filter(
-                (member) =>
-                    member.active !== false &&
-                    member.status !==
-                        "Inactive" &&
-                    (
-                        member.role ===
-                            "Contributor" ||
-                        member.teamRole ===
-                            "Contributor"
-                    )
-            );
+            if (!requestReason.trim()) {
 
-        }, [selectedTeam]);
+                showError(
+                    "Please provide a reason for the request."
+                );
 
-    /*
-    ============================================================
-    SELECTED PROJECT
-    ============================================================
-    */
+                return;
+            }
 
-    const selectedRequestProject =
-        useMemo(() => {
-
-            return (
-                selectedTeam?.projects?.find(
-                    (project) =>
+            const selectedUser =
+                availableMembers.find(
+                    (user) =>
                         String(
-                            project.id
+                            user.id ??
+                            user.userId
                         ) ===
                         String(
-                            requestProjectId
+                            selectedUserId
                         )
-                ) || null
-            );
+                );
 
-        }, [
-            selectedTeam,
-            requestProjectId,
-        ]);
+            if (!selectedUser) {
 
-    /*
-    ============================================================
-    CHECK PENDING REQUEST
-    ============================================================
-    */
-
-    const hasPendingRequest = (
-        type,
-        memberId,
-        projectId
-    ) => {
-
-        return permissionRequests.some(
-            (request) =>
-                request.type === type &&
-                request.memberId ===
-                    memberId &&
-                request.projectId ===
-                    Number(projectId) &&
-                request.status ===
-                    "Pending"
-        );
-    };
-
-    /*
-    ============================================================
-    TEAM-005 / TEAM-006
-    SUBMIT PERMISSION REQUEST
-    ============================================================
-    */
-
-    const handleSubmitPermissionRequest =
-        () => {
-
-            if (!requestType) {
-                return;
-            }
-
-            if (!requestProjectId) {
-
-                showMessage(
-                    "error",
-                    "Please select a project."
+                showError(
+                    "The selected user could not be found."
                 );
 
                 return;
             }
 
-            if (!requestMember) {
+            try {
 
-                showMessage(
-                    "error",
-                    requestType === "add"
-                        ? "Please select a contributor."
-                        : "Please select a project member."
-                );
+                // ------------------------------------------------
+                // IMPORTANT:
+                // Your current teamService.addMemberToTeam()
+                // performs the actual POST:
+                //
+                // POST /teams/{teamId}/members
+                //
+                // Therefore this is a real add operation,
+                // not merely a conceptual pending request.
+                // ------------------------------------------------
 
-                return;
-            }
-
-            if (
-                !requestReason.trim()
-            ) {
-
-                showMessage(
-                    "error",
-                    "Please provide a reason for this request."
-                );
-
-                return;
-            }
-
-            if (
-                !selectedRequestProject
-            ) {
-
-                showMessage(
-                    "error",
-                    "Project not found."
-                );
-
-                return;
-            }
-
-            /*
-            ====================================================
-            TEAM-005
-            ALREADY ASSIGNED
-            ====================================================
-            */
-
-            if (
-                requestType === "add"
-            ) {
-
-                const alreadyAssigned =
-                    requestMember.assignedProjects?.includes(
-                        selectedRequestProject.name
+                const result =
+                    await teamService.addMemberToTeam(
+                        team.id,
+                        selectedUserId
                     );
 
-                if (
-                    alreadyAssigned
-                ) {
+                if (!result?.success) {
 
-                    showMessage(
-                        "error",
-                        "Contributor is already part of this project."
+                    showError(
+                        result?.message ||
+                        "Unable to add member."
                     );
 
                     return;
                 }
+
+                showSuccess(
+                    "Team member added successfully."
+                );
+
+                setShowAddRequest(false);
+                setSelectedUserId("");
+                setRequestReason("");
+
+                await loadTeam(true);
+
+            } catch (error) {
+
+                console.error(
+                    "Unable to add team member:",
+                    error
+                );
+
+                showError(
+                    error?.message ||
+                    "Unable to add member. Please try again."
+                );
+
             }
 
-            /*
-            ====================================================
-            TEAM-006
-            MEMBER MUST BE ASSIGNED
-            ====================================================
-            */
+        };
 
-            if (
-                requestType === "remove"
-            ) {
+    // ========================================================
+    // REMOVE MEMBER
+    //
+    // Uses actual teamService.removeMemberFromTeam()
+    // ========================================================
 
-                const isAssigned =
-                    requestMember.assignedProjects?.includes(
-                        selectedRequestProject.name
-                    );
+    const handleRemoveRequest =
+        async () => {
 
-                if (
-                    !isAssigned
-                ) {
+            clearMessages();
 
-                    showMessage(
-                        "error",
-                        "Contributor is not assigned to this project."
-                    );
+            if (!team?.id) {
 
-                    return;
-                }
-            }
-
-            /*
-            ====================================================
-            DUPLICATE REQUEST
-            ====================================================
-            */
-
-            if (
-                hasPendingRequest(
-                    requestType,
-                    requestMember.id,
-                    requestProjectId
-                )
-            ) {
-
-                showMessage(
-                    "error",
-                    requestType === "add"
-                        ? "A request for this contributor is already pending."
-                        : "A removal request for this contributor is already pending."
+                showError(
+                    "No team is currently assigned to this manager."
                 );
 
                 return;
             }
 
-            /*
-            ====================================================
-            CREATE REQUEST
-            ====================================================
-            */
+            if (!selectedMember) {
 
-            const newRequest = {
-                id:
-                    Date.now(),
+                showError(
+                    "Please select a team member."
+                );
 
-                type:
-                    requestType,
-
-                memberId:
-                    requestMember.id,
-
-                memberName:
-                    requestMember.name,
-
-                memberEmail:
-                    requestMember.email,
-
-                projectId:
-                    Number(
-                        requestProjectId
-                    ),
-
-                projectName:
-                    selectedRequestProject.name,
-
-                reason:
-                    requestReason.trim(),
-
-                requestedBy:
-                    "Manager",
-
-                status:
-                    "Pending",
-
-                createdAt:
-                    new Date().toLocaleString(),
-
-                notificationSent:
-                    true,
-            };
-
-            setPermissionRequests(
-                (previous) => [
-                    newRequest,
-                    ...previous,
-                ]
-            );
-
-            /*
-            ====================================================
-            ACTIVITY LOG
-            ====================================================
-            */
-
-            const activity = {
-                id:
-                    Date.now() + 1,
-
-                type:
-                    requestType === "add"
-                        ? "Contributor Addition Request"
-                        : "Contributor Removal Request",
-
-                message:
-                    requestType === "add"
-                        ? `Manager requested permission to add ${requestMember.name} to ${selectedRequestProject.name}.`
-                        : `Manager requested permission to remove ${requestMember.name} from ${selectedRequestProject.name}.`,
-
-                date:
-                    new Date().toLocaleString(),
-
-                status:
-                    "Pending",
-            };
-
-            setActivityLogs(
-                (previous) => [
-                    activity,
-                    ...previous,
-                ]
-            );
-
-            /*
-            ====================================================
-            RESET
-            ====================================================
-            */
-
-            setRequestType(
-                null
-            );
-
-            setRequestMember(
-                null
-            );
-
-            setRequestProjectId(
-                ""
-            );
-
-            setRequestReason(
-                ""
-            );
-
-            /*
-            ====================================================
-            SUCCESS MESSAGE
-            ====================================================
-            */
-
-            showMessage(
-                "success",
-                requestType === "add"
-                    ? "Contributor addition request sent successfully."
-                    : "Contributor removal request sent successfully."
-            );
-        };
-
-    /*
-    ============================================================
-    CANCEL PERMISSION REQUEST
-    ============================================================
-    */
-
-    const handleCancelPermissionRequest =
-        () => {
-
-            setRequestType(
-                null
-            );
-
-            setRequestMember(
-                null
-            );
-
-            setRequestProjectId(
-                ""
-            );
-
-            setRequestReason(
-                ""
-            );
-
-            setActiveSection(
-                "members"
-            );
-        };
-
-    /*
-    ============================================================
-    ALL AVAILABLE TASKS
-    ============================================================
-    */
-
-    const availableTasks =
-        useMemo(() => {
-
-            if (!selectedTeam) {
-                return [];
+                return;
             }
 
-            const tasks =
-                selectedTeam.members.flatMap(
-                    (member) =>
-                        member.tasks || []
+            if (!requestReason.trim()) {
+
+                showError(
+                    "Please provide a reason for the removal."
                 );
 
-            const uniqueTasks =
-                tasks.filter(
-                    (
-                        task,
-                        index,
-                        array
-                    ) =>
-                        index ===
-                        array.findIndex(
-                            (item) =>
-                                Number(
-                                    item.id
-                                ) ===
-                                Number(
-                                    task.id
-                                )
-                        )
+                return;
+            }
+
+            const userId =
+                selectedMember.userId ??
+                selectedMember.id;
+
+            if (!userId) {
+
+                showError(
+                    "Unable to identify the selected member."
                 );
 
-            return uniqueTasks;
+                return;
+            }
 
-        }, [selectedTeam]);
+            try {
 
-    /*
-    ============================================================
-    UNASSIGNED TASKS
-    ============================================================
-    */
+                const result =
+                    await teamService.removeMemberFromTeam(
+                        team.id,
+                        userId
+                    );
 
-    const tasksForAssignment =
-        useMemo(() => {
+                if (!result?.success) {
 
-            return [
-                {
-                    id: 3001,
-                    title:
-                        "Implement AI Risk Analysis",
-                    priority: "High",
-                    status: "Pending",
-                },
-                {
-                    id: 3002,
-                    title:
-                        "Create Sprint Dashboard",
-                    priority: "Medium",
-                    status: "Pending",
-                },
-                {
-                    id: 3003,
-                    title:
-                        "Implement Notification Service",
-                    priority: "Medium",
-                    status: "Pending",
-                },
-            ];
+                    showError(
+                        result?.message ||
+                        "Unable to remove member."
+                    );
 
-        }, []);
+                    return;
+                }
 
-    /*
-    ============================================================
-    LOADING
-    ============================================================
-    */
+                showSuccess(
+                    "Team member removed successfully."
+                );
+
+                setShowRemoveRequest(false);
+                setSelectedMember(null);
+                setRequestReason("");
+
+                await loadTeam(true);
+
+            } catch (error) {
+
+                console.error(
+                    "Unable to remove team member:",
+                    error
+                );
+
+                showError(
+                    error?.message ||
+                    "Unable to remove member. Please try again."
+                );
+
+            }
+
+        };
+
+    // ========================================================
+    // LOADING
+    // ========================================================
 
     if (loading) {
+
         return (
-            <div className="flex min-h-[500px] items-center justify-center rounded-2xl border border-slate-700 bg-slate-900">
+            <div className="min-h-screen bg-slate-50">
 
-                <div className="text-center">
+                <main className="min-h-screen">
 
-                    <RefreshCw
-                        className="mx-auto animate-spin text-blue-400"
-                        size={35}
-                    />
+                    <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
 
-                    <p className="mt-4 text-sm text-slate-400">
-                        Loading team management...
-                    </p>
+                        <div className="flex min-h-[500px] items-center justify-center">
 
-                </div>
+                            <div className="text-center">
+
+                                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100">
+
+                                    <RefreshCw
+                                        size={27}
+                                        className="animate-spin text-violet-600"
+                                    />
+
+                                </div>
+
+                                <h2 className="mt-4 text-lg font-bold text-slate-900">
+                                    Loading Team Management
+                                </h2>
+
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Loading your assigned team and current workload...
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </main>
 
             </div>
         );
+
     }
 
-    /*
-    ============================================================
-    RENDER
-    ============================================================
-    */
+    // ========================================================
+    // NO TEAM
+    // ========================================================
 
-    return (
-        <div className="min-h-screen w-full bg-slate-950 p-4 sm:p-6 lg:p-8">
+    if (!team) {
 
-            {/* ==================================================
-                MESSAGE
-            ================================================== */}
+        return (
+            <div className="min-h-screen bg-slate-50 text-slate-900">
 
-            {message && (
-                <div
-                    className={`
-                        fixed
-                        right-5
-                        top-5
-                        z-[100]
-                        flex
-                        max-w-md
-                        items-center
-                        gap-3
-                        rounded-xl
-                        border
-                        px-4
-                        py-3
-                        shadow-2xl
-                        ${
-                            message.type ===
-                            "success"
-                                ? "border-emerald-500/30 bg-emerald-950/95 text-emerald-300"
-                                : "border-red-500/30 bg-red-950/95 text-red-300"
-                        }
-                    `}
-                >
+                <main className="min-h-screen">
 
-                    {message.type ===
-                    "success" ? (
-                        <CheckCircle2
-                            size={20}
-                        />
-                    ) : (
-                        <AlertTriangle
-                            size={20}
-                        />
-                    )}
+                    <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
 
-                    <span className="text-sm font-medium">
-                        {message.text}
-                    </span>
-
-                </div>
-            )}
-
-            {/* ==================================================
-                HEADER
-            ================================================== */}
-
-            <div className="mb-6 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-
-                <div>
-
-                    <div className="flex items-center gap-3">
-
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
-
-                            <Users
-                                size={26}
-                                className="text-blue-400"
-                            />
-
-                        </div>
-
-                        <div>
-
-                            <h1 className="text-2xl font-bold text-white sm:text-3xl">
-                                Team Management
-                            </h1>
-
-                            <p className="mt-1 text-sm text-slate-400">
-                                Manage team members,
-                                monitor performance
-                                and manage task
-                                assignments.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <div className="min-w-[260px]">
-
-                    <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Select Team
-                    </label>
-
-                    <select
-                        value={
-                            selectedTeamId
-                        }
-                        onChange={
-                            handleTeamChange
-                        }
-                        className="
-                            w-full
-                            rounded-xl
-                            border
-                            border-slate-700
-                            bg-slate-900
-                            px-4
-                            py-3
-                            text-sm
-                            font-medium
-                            text-white
-                            outline-none
-                            transition
-                            focus:border-blue-500
-                        "
-                    >
-
-                        {teams.map(
-                            (team) => (
-                                <option
-                                    key={
-                                        team.id
-                                    }
-                                    value={
-                                        team.id
-                                    }
-                                >
-                                    {team.name}
-                                </option>
-                            )
-                        )}
-
-                    </select>
-
-                </div>
-
-            </div>
-
-            {/* ==================================================
-                TEAM INFORMATION
-            ================================================== */}
-
-            {selectedTeam && (
-                <div className="mb-6 rounded-2xl border border-slate-700 bg-slate-900/80 p-5 shadow-xl sm:p-6">
-
-                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-
-                        <div>
-
-                            <div className="flex items-center gap-3">
-
-                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10">
-
-                                    <BriefcaseBusiness
-                                        size={24}
-                                        className="text-indigo-400"
-                                    />
-
-                                </div>
-
-                                <div>
-
-                                    <h2 className="text-xl font-semibold text-white">
-                                        {
-                                            selectedTeam.name
-                                        }
-                                    </h2>
-
-                                    <p className="mt-1 max-w-2xl text-sm text-slate-400">
-                                        {
-                                            selectedTeam.description
-                                        }
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2">
-
-                            <ShieldCheck
-                                size={17}
-                                className="text-emerald-400"
-                            />
-
-                            <span className="text-sm font-medium text-emerald-400">
-                                Manager Access
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                </div>
-            )}
-
-            {/* ==================================================
-                NAVIGATION
-            ================================================== */}
-
-            <div className="mb-6 overflow-x-auto rounded-2xl border border-slate-700 bg-slate-900/80 p-2">
-
-                <div className="flex min-w-max gap-2">
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            setActiveSection(
-                                "members"
-                            )
-                        }
-                        className={`
-                            flex
-                            items-center
-                            gap-2
-                            rounded-xl
-                            px-4
-                            py-3
-                            text-sm
-                            font-medium
-                            transition
-                            ${
-                                activeSection ===
-                                "members"
-                                    ? "bg-blue-600 text-white"
-                                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                            }
-                        `}
-                    >
-
-                        <Users size={17} />
-
-                        View Team Members
-
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            setActiveSection(
-                                "performance"
-                            )
-                        }
-                        className={`
-                            flex
-                            items-center
-                            gap-2
-                            rounded-xl
-                            px-4
-                            py-3
-                            text-sm
-                            font-medium
-                            transition
-                            ${
-                                activeSection ===
-                                "performance"
-                                    ? "bg-blue-600 text-white"
-                                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                            }
-                        `}
-                    >
-
-                        <TrendingUp
-                            size={17}
-                        />
-
-                        Team Performance
-
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            setActiveSection(
-                                "assign"
-                            )
-                        }
-                        className={`
-                            flex
-                            items-center
-                            gap-2
-                            rounded-xl
-                            px-4
-                            py-3
-                            text-sm
-                            font-medium
-                            transition
-                            ${
-                                activeSection ===
-                                "assign"
-                                    ? "bg-blue-600 text-white"
-                                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                            }
-                        `}
-                    >
-
-                        <UserPlus
-                            size={17}
-                        />
-
-                        Assign Contributors
-
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            setActiveSection(
-                                "remove"
-                            )
-                        }
-                        className={`
-                            flex
-                            items-center
-                            gap-2
-                            rounded-xl
-                            px-4
-                            py-3
-                            text-sm
-                            font-medium
-                            transition
-                            ${
-                                activeSection ===
-                                "remove"
-                                    ? "bg-red-600 text-white"
-                                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                            }
-                        `}
-                    >
-
-                        <UserMinus
-                            size={17}
-                        />
-
-                        Remove Contributors
-
-                    </button>
-
-                    {/* TEAM-005 / TEAM-006 */}
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            setActiveSection(
-                                "requests"
-                            )
-                        }
-                        className={`
-                            flex
-                            items-center
-                            gap-2
-                            rounded-xl
-                            px-4
-                            py-3
-                            text-sm
-                            font-medium
-                            transition
-                            ${
-                                activeSection ===
-                                "requests"
-                                    ? "bg-indigo-600 text-white"
-                                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                            }
-                        `}
-                    >
-
-                        <ShieldCheck
-                            size={17}
-                        />
-
-                        Permission Requests
-
-                        {permissionRequests.filter(
-                            (request) =>
-                                request.status ===
-                                "Pending"
-                        ).length >
-                            0 && (
-                            <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-                                {
-                                    permissionRequests.filter(
-                                        (
-                                            request
-                                        ) =>
-                                            request.status ===
-                                            "Pending"
-                                    ).length
-                                }
-                            </span>
-                        )}
-
-                    </button>
-
-                </div>
-
-            </div>
-
-            {/* ==================================================
-                TEAM MEMBER VIEW
-                TEAM-001
-            ================================================== */}
-
-            {activeSection ===
-                "members" && (
-                <>
-
-                    <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-                        <div>
-
-                            <h2 className="text-lg font-semibold text-white">
-                                Team Members
-                            </h2>
-
-                            <p className="mt-1 text-sm text-slate-400">
-                                View team members,
-                                roles, projects
-                                and workloads.
-                            </p>
-
-                        </div>
-
-                        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    handleOpenRequestAdd()
-                                }
-                                className="
-                                    flex
-                                    items-center
-                                    justify-center
-                                    gap-2
-                                    rounded-xl
-                                    bg-indigo-600
-                                    px-4
-                                    py-3
-                                    text-sm
-                                    font-medium
-                                    text-white
-                                    transition
-                                    hover:bg-indigo-500
-                                "
-                            >
-
-                                <Send
-                                    size={17}
-                                />
-
-                                Request Add Contributor
-
-                            </button>
-
-                            <div className="relative w-full sm:w-80">
-
-                                <Search
-                                    size={17}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                                />
-
-                                <input
-                                    type="text"
-                                    value={
-                                        searchTerm
-                                    }
-                                    onChange={(
-                                        event
-                                    ) =>
-                                        setSearchTerm(
-                                            event
-                                                .target
-                                                .value
-                                        )
-                                    }
-                                    placeholder="Search members..."
-                                    className="
-                                        w-full
-                                        rounded-xl
-                                        border
-                                        border-slate-700
-                                        bg-slate-900
-                                        py-3
-                                        pl-10
-                                        pr-4
-                                        text-sm
-                                        text-white
-                                        outline-none
-                                        placeholder:text-slate-500
-                                        focus:border-blue-500
-                                    "
-                                />
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    {filteredMembers.length ===
-                    0 ? (
-                        <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-12 text-center">
-
-                            <Users
-                                size={42}
-                                className="mx-auto text-slate-600"
-                            />
-
-                            <h3 className="mt-4 text-lg font-semibold text-white">
-                                No team members available
-                            </h3>
-
-                            <p className="mt-2 text-sm text-slate-400">
-                                No members match
-                                your search.
-                            </p>
-
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-
-                            {filteredMembers.map(
-                                (member) => (
-                                    <div
-                                        key={
-                                            member.id
-                                        }
-                                        className="space-y-3"
-                                    >
-
-                                        <TeamMemberCard
-                                            member={
-                                                member
-                                            }
-                                            onView={
-                                                handleViewMember
-                                            }
-                                            onAssign={
-                                                handleOpenAssign
-                                            }
-                                            onRemove={
-                                                handleOpenRemove
-                                            }
-                                        />
-
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleOpenRequestRemove(
-                                                    member
-                                                )
-                                            }
-                                            disabled={
-                                                !member.assignedProjects?.length
-                                            }
-                                            className="
-                                                flex
-                                                w-full
-                                                items-center
-                                                justify-center
-                                                gap-2
-                                                rounded-xl
-                                                border
-                                                border-red-500/30
-                                                bg-red-500/10
-                                                px-4
-                                                py-2.5
-                                                text-xs
-                                                font-medium
-                                                text-red-400
-                                                transition
-                                                hover:bg-red-500/20
-                                                disabled:cursor-not-allowed
-                                                disabled:opacity-40
-                                            "
-                                        >
-
-                                            <Send
-                                                size={14}
-                                            />
-
-                                            Request Remove Contributor
-
-                                        </button>
-
-                                    </div>
-                                )
-                            )}
-
-                        </div>
-                    )}
-
-                </>
-            )}
-
-            {/* ==================================================
-                TEAM PERFORMANCE
-                TEAM-002
-            ================================================== */}
-
-            {activeSection ===
-                "performance" && (
-                <div className="space-y-6">
-
-                    <div>
-
-                        <h2 className="text-xl font-semibold text-white">
-                            Team Performance
-                        </h2>
-
-                        <p className="mt-1 text-sm text-slate-400">
-                            Monitor productivity,
-                            task progress and
-                            contributor workload.
-                        </p>
-
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-
-                        <PerformanceCard
-                            title="Completed"
-                            value={
-                                performance.completed
-                            }
-                            icon={
-                                CheckCircle2
-                            }
-                            iconClass="text-emerald-400"
-                        />
-
-                        <PerformanceCard
-                            title="Pending"
-                            value={
-                                performance.pending
-                            }
-                            icon={
-                                Clock3
-                            }
-                            iconClass="text-amber-400"
-                        />
-
-                        <PerformanceCard
-                            title="In Progress"
-                            value={
-                                performance.inProgress
-                            }
-                            icon={
-                                Activity
-                            }
-                            iconClass="text-blue-400"
-                        />
-
-                        <PerformanceCard
-                            title="Overdue"
-                            value={
-                                performance.overdue
-                            }
-                            icon={
-                                AlertTriangle
-                            }
-                            iconClass="text-red-400"
-                        />
-
-                        <PerformanceCard
-                            title="Completion Rate"
-                            value={`${performance.completionRate}%`}
-                            icon={
-                                Target
-                            }
-                            iconClass="text-indigo-400"
-                        />
-
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6">
-
-                        <div className="mb-5 flex items-center justify-between">
-
-                            <div>
-
-                                <h3 className="font-semibold text-white">
-                                    Contributor Workload
-                                </h3>
-
-                                <p className="mt-1 text-sm text-slate-500">
-                                    Current workload
-                                    across the
-                                    selected team.
-                                </p>
-
-                            </div>
-
-                            <Activity
-                                className="text-blue-400"
-                            />
-
-                        </div>
-
-                        <div className="space-y-5">
-
-                            {selectedTeam?.members?.map(
-                                (member) => {
-
-                                    const workload =
-                                        Math.min(
-                                            Math.max(
-                                                Number(
-                                                    member.workload ||
-                                                        0
-                                                ),
-                                                0
-                                            ),
-                                            100
-                                        );
-
-                                    return (
-                                        <div
-                                            key={
-                                                member.id
-                                            }
-                                        >
-
-                                            <div className="mb-2 flex items-center justify-between">
-
-                                                <div className="flex items-center gap-2">
-
-                                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-xs font-semibold text-blue-400">
-
-                                                        {member.name
-                                                            ?.charAt(
-                                                                0
-                                                            )
-                                                            ?.toUpperCase()}
-
-                                                    </div>
-
-                                                    <span className="text-sm font-medium text-white">
-                                                        {
-                                                            member.name
-                                                        }
-                                                    </span>
-
-                                                </div>
-
-                                                <span className="text-sm text-slate-400">
-                                                    {
-                                                        workload
-                                                    }
-                                                    %
-                                                </span>
-
-                                            </div>
-
-                                            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
-
-                                                <div
-                                                    className={`
-                                                        h-full
-                                                        rounded-full
-                                                        ${
-                                                            workload >=
-                                                            80
-                                                                ? "bg-red-500"
-                                                                : workload >=
-                                                                  60
-                                                                ? "bg-amber-500"
-                                                                : "bg-emerald-500"
-                                                        }
-                                                    `}
-                                                    style={{
-                                                        width: `${workload}%`,
-                                                    }}
-                                                />
-
-                                            </div>
-
-                                        </div>
-                                    );
-                                }
-                            )}
-
-                        </div>
-
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6">
-
-                        <div className="flex items-center gap-3">
-
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
-
-                                <Activity
-                                    size={20}
-                                    className="text-blue-400"
-                                />
-
-                            </div>
-
-                            <div>
-
-                                <h3 className="font-semibold text-white">
-                                    Team Activity
-                                </h3>
-
-                                <p className="text-sm text-slate-500">
-                                    Recent performance
-                                    overview.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
-
-                            <ActivityItem
-                                title="Tasks Completed"
-                                value={
-                                    performance.completed
-                                }
-                                description="Completed by team"
-                            />
-
-                            <ActivityItem
-                                title="Active Work"
-                                value={
-                                    performance.inProgress
-                                }
-                                description="Tasks currently in progress"
-                            />
-
-                            <ActivityItem
-                                title="Average Workload"
-                                value={`${performance.averageWorkload}%`}
-                                description="Across team members"
-                            />
-
-                        </div>
-
-                    </div>
-
-                </div>
-            )}
-
-            {/* ==================================================
-                ASSIGN CONTRIBUTORS
-                TEAM-003
-            ================================================== */}
-
-            {activeSection ===
-                "assign" && (
-                <div className="space-y-6">
-
-                    <div>
-
-                        <h2 className="text-xl font-semibold text-white">
-                            Assign Contributors to Tasks
-                        </h2>
-
-                        <p className="mt-1 text-sm text-slate-400">
-                            Select an available
-                            contributor and assign
-                            them to a task.
-                        </p>
-
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-
-                        {filteredMembers.map(
-                            (member) => (
-                                <div
-                                    key={
-                                        member.id
-                                    }
-                                    className="rounded-2xl border border-slate-700 bg-slate-900/80 p-5"
-                                >
-
-                                    <div className="flex items-center justify-between">
-
-                                        <div className="flex items-center gap-3">
-
-                                            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
-
-                                                <Users
-                                                    size={21}
-                                                />
-
-                                            </div>
-
-                                            <div>
-
-                                                <h3 className="font-semibold text-white">
-                                                    {
-                                                        member.name
-                                                    }
-                                                </h3>
-
-                                                <p className="text-sm text-slate-500">
-                                                    {
-                                                        member.role
-                                                    }
-                                                </p>
-
-                                            </div>
-
-                                        </div>
-
-                                        <span className="text-sm font-medium text-slate-300">
-                                            {
-                                                member.workload
-                                            }
-                                            %
-                                        </span>
-
-                                    </div>
-
-                                    <div className="mt-4">
-
-                                        <div className="h-2 rounded-full bg-slate-800">
-
-                                            <div
-                                                className={`
-                                                    h-full
-                                                    rounded-full
-                                                    ${
-                                                        Number(
-                                                            member.workload
-                                                        ) >=
-                                                        80
-                                                            ? "bg-red-500"
-                                                            : "bg-emerald-500"
-                                                    }
-                                                `}
-                                                style={{
-                                                    width: `${Math.min(
-                                                        Number(
-                                                            member.workload ||
-                                                                0
-                                                        ),
-                                                        100
-                                                    )}%`,
-                                                }}
-                                            />
-
-                                        </div>
-
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleOpenAssign(
-                                                member
-                                            )
-                                        }
-                                        disabled={
-                                            member.active ===
-                                                false ||
-                                            member.status ===
-                                                "Inactive" ||
-                                            Number(
-                                                member.workload ||
-                                                    0
-                                            ) >= 80
-                                        }
-                                        className="
-                                            mt-4
-                                            flex
-                                            w-full
-                                            items-center
-                                            justify-center
-                                            gap-2
-                                            rounded-xl
-                                            bg-blue-600
-                                            px-4
-                                            py-3
-                                            text-sm
-                                            font-medium
-                                            text-white
-                                            transition
-                                            hover:bg-blue-500
-                                            disabled:cursor-not-allowed
-                                            disabled:opacity-40
-                                        "
-                                    >
-
-                                        <UserPlus
-                                            size={17}
-                                        />
-
-                                        Assign Contributor
-
-                                    </button>
-
-                                </div>
-                            )
-                        )}
-
-                    </div>
-
-                </div>
-            )}
-
-            {/* ==================================================
-                REMOVE CONTRIBUTORS
-                TEAM-004
-            ================================================== */}
-
-            {activeSection ===
-                "remove" && (
-                <div className="space-y-6">
-
-                    <div>
-
-                        <h2 className="text-xl font-semibold text-white">
-                            Remove Contributors from Tasks
-                        </h2>
-
-                        <p className="mt-1 text-sm text-slate-400">
-                            Select a contributor and
-                            remove their task
-                            assignment.
-                        </p>
-
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-
-                        {selectedTeam?.members
-                            ?.filter(
-                                (member) =>
-                                    Array.isArray(
-                                        member.tasks
-                                    ) &&
-                                    member.tasks
-                                        .length >
-                                        0
-                            )
-                            .map(
-                                (member) => (
-                                    <div
-                                        key={
-                                            member.id
-                                        }
-                                        className="rounded-2xl border border-slate-700 bg-slate-900/80 p-5"
-                                    >
-
-                                        <div className="flex items-center justify-between">
-
-                                            <div className="flex items-center gap-3">
-
-                                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-500/10">
-
-                                                    <UserMinus
-                                                        size={
-                                                            21
-                                                        }
-                                                        className="text-red-400"
-                                                    />
-
-                                                </div>
-
-                                                <div>
-
-                                                    <h3 className="font-semibold text-white">
-                                                        {
-                                                            member.name
-                                                        }
-                                                    </h3>
-
-                                                    <p className="text-sm text-slate-500">
-                                                        {
-                                                            member.email
-                                                        }
-                                                    </p>
-
-                                                </div>
-
-                                            </div>
-
-                                            <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs text-blue-400">
-                                                {
-                                                    member
-                                                        .tasks
-                                                        .length
-                                                }{" "}
-                                                tasks
-                                            </span>
-
-                                        </div>
-
-                                        <div className="mt-4 space-y-2">
-
-                                            {member.tasks.map(
-                                                (
-                                                    task
-                                                ) => (
-                                                    <div
-                                                        key={
-                                                            task.id
-                                                        }
-                                                        className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3"
-                                                    >
-
-                                                        <div>
-
-                                                            <p className="text-sm font-medium text-white">
-                                                                {
-                                                                    task.title
-                                                                }
-                                                            </p>
-
-                                                            <p className="mt-1 text-xs text-slate-500">
-                                                                {
-                                                                    task.status
-                                                                }
-                                                            </p>
-
-                                                        </div>
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setRemoveMember(
-                                                                    member
-                                                                );
-
-                                                                setSelectedTaskId(
-                                                                    String(
-                                                                        task.id
-                                                                    )
-                                                                );
-                                                            }}
-                                                            className="
-                                                                flex
-                                                                items-center
-                                                                gap-1.5
-                                                                rounded-lg
-                                                                border
-                                                                border-red-500/30
-                                                                bg-red-500/10
-                                                                px-3
-                                                                py-2
-                                                                text-xs
-                                                                font-medium
-                                                                text-red-400
-                                                                transition
-                                                                hover:bg-red-500/20
-                                                            "
-                                                        >
-
-                                                            <UserMinus
-                                                                size={
-                                                                    14
-                                                                }
-                                                            />
-
-                                                            Remove
-
-                                                        </button>
-
-                                                    </div>
-                                                )
-                                            )}
-
-                                        </div>
-
-                                    </div>
-                                )
-                            )}
-
-                    </div>
-
-                </div>
-            )}
-
-            {/* ==================================================
-                TEAM-005 / TEAM-006
-                PERMISSION REQUESTS
-            ================================================== */}
-
-            {activeSection ===
-                "requests" && (
-                <div className="space-y-6">
-
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-                        <div>
-
-                            <h2 className="text-xl font-semibold text-white">
-                                Permission Requests
-                            </h2>
-
-                            <p className="mt-1 text-sm text-slate-400">
-                                Request Admin approval
-                                before adding or
-                                removing contributors
-                                from projects.
-                            </p>
-
-                        </div>
-
-                        <div className="flex gap-3">
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    handleOpenRequestAdd()
-                                }
-                                className="
-                                    flex
-                                    items-center
-                                    gap-2
-                                    rounded-xl
-                                    bg-indigo-600
-                                    px-4
-                                    py-3
-                                    text-sm
-                                    font-medium
-                                    text-white
-                                    hover:bg-indigo-500
-                                "
-                            >
-
-                                <UserPlus
-                                    size={17}
-                                />
-
-                                Request Add
-
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                    {/* REQUEST HISTORY */}
-
-                    {permissionRequests.length ===
-                    0 ? (
-                        <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-12 text-center">
-
-                            <ShieldCheck
-                                size={42}
-                                className="mx-auto text-slate-600"
-                            />
-
-                            <h3 className="mt-4 text-lg font-semibold text-white">
-                                No permission requests
-                            </h3>
-
-                            <p className="mt-2 text-sm text-slate-400">
-                                Your contributor
-                                addition and removal
-                                requests will appear
-                                here.
-                            </p>
-
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-
-                            {permissionRequests.map(
-                                (request) => (
-                                    <div
-                                        key={
-                                            request.id
-                                        }
-                                        className="rounded-2xl border border-slate-700 bg-slate-900/80 p-5"
-                                    >
-
-                                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-
-                                            <div className="flex gap-4">
-
-                                                <div
-                                                    className={`
-                                                        flex
-                                                        h-11
-                                                        w-11
-                                                        shrink-0
-                                                        items-center
-                                                        justify-center
-                                                        rounded-xl
-                                                        ${
-                                                            request.type ===
-                                                            "add"
-                                                                ? "bg-indigo-500/10 text-indigo-400"
-                                                                : "bg-red-500/10 text-red-400"
-                                                        }
-                                                    `}
-                                                >
-
-                                                    {request.type ===
-                                                    "add" ? (
-                                                        <UserPlus
-                                                            size={
-                                                                20
-                                                            }
-                                                        />
-                                                    ) : (
-                                                        <UserMinus
-                                                            size={
-                                                                20
-                                                            }
-                                                        />
-                                                    )}
-
-                                                </div>
-
-                                                <div>
-
-                                                    <div className="flex flex-wrap items-center gap-2">
-
-                                                        <h3 className="font-semibold text-white">
-                                                            {request.type ===
-                                                            "add"
-                                                                ? "Add Contributor Request"
-                                                                : "Remove Contributor Request"}
-                                                        </h3>
-
-                                                        <span
-                                                            className={`
-                                                                rounded-full
-                                                                px-2.5
-                                                                py-1
-                                                                text-[10px]
-                                                                font-semibold
-                                                                uppercase
-                                                                ${
-                                                                    request.status ===
-                                                                    "Pending"
-                                                                        ? "bg-amber-500/10 text-amber-400"
-                                                                        : request.status ===
-                                                                          "Approved"
-                                                                        ? "bg-emerald-500/10 text-emerald-400"
-                                                                        : "bg-red-500/10 text-red-400"
-                                                                }
-                                                            `}
-                                                        >
-                                                            {
-                                                                request.status
-                                                            }
-                                                        </span>
-
-                                                    </div>
-
-                                                    <p className="mt-1 text-sm text-slate-400">
-
-                                                        <span className="font-medium text-white">
-                                                            {
-                                                                request.memberName
-                                                            }
-                                                        </span>
-
-                                                        {" → "}
-
-                                                        {
-                                                            request.projectName
-                                                        }
-
-                                                    </p>
-
-                                                    <p className="mt-3 max-w-2xl text-sm text-slate-500">
-                                                        {
-                                                            request.reason
-                                                        }
-                                                    </p>
-
-                                                    <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-600">
-
-                                                        <span>
-                                                            Requested by:{" "}
-                                                            {
-                                                                request.requestedBy
-                                                            }
-                                                        </span>
-
-                                                        <span>
-                                                            {
-                                                                request.createdAt
-                                                            }
-                                                        </span>
-
-                                                        {request.notificationSent && (
-                                                            <span className="flex items-center gap-1 text-blue-400">
-                                                                <Bell
-                                                                    size={
-                                                                        12
-                                                                    }
-                                                                />
-                                                                Admin notified
-                                                            </span>
-                                                        )}
-
-                                                    </div>
-
-                                                </div>
-
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-                                )
-                            )}
-
-                        </div>
-                    )}
-
-                    {/* ACTIVITY LOG */}
-
-                    {activityLogs.length >
-                        0 && (
-                        <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6">
-
-                            <div className="flex items-center gap-3">
-
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
-
-                                    <Activity
-                                        size={20}
-                                        className="text-blue-400"
-                                    />
-
-                                </div>
-
-                                <div>
-
-                                    <h3 className="font-semibold text-white">
-                                        Request Activity Log
-                                    </h3>
-
-                                    <p className="text-sm text-slate-500">
-                                        Recent permission
-                                        request activity.
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-                            <div className="mt-5 space-y-3">
-
-                                {activityLogs.map(
-                                    (activity) => (
-                                        <div
-                                            key={
-                                                activity.id
-                                            }
-                                            className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4"
-                                        >
-
-                                            <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10">
-
-                                                <FileText
-                                                    size={
-                                                        15
-                                                    }
-                                                    className="text-indigo-400"
-                                                />
-
-                                            </div>
-
-                                            <div className="min-w-0 flex-1">
-
-                                                <p className="text-sm text-slate-300">
-                                                    {
-                                                        activity.message
-                                                    }
-                                                </p>
-
-                                                <p className="mt-1 text-xs text-slate-600">
-                                                    {
-                                                        activity.date
-                                                    }
-                                                </p>
-
-                                            </div>
-
-                                            <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] text-amber-400">
-                                                Pending
-                                            </span>
-
-                                        </div>
-                                    )
-                                )}
-
-                            </div>
-
-                        </div>
-                    )}
-
-                </div>
-            )}
-
-            {/* ==================================================
-                MEMBER DETAILS MODAL
-                ==================================================
-            */}
-
-            {selectedMember && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-
-                    <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
-
-                        <div className="flex items-center justify-between border-b border-slate-700 p-5">
-
-                            <div>
-
-                                <h2 className="text-lg font-semibold text-white">
-                                    Member Details
-                                </h2>
-
-                                <p className="text-sm text-slate-500">
-                                    Team member information
-                                </p>
-
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setSelectedMember(
-                                        null
-                                    )
-                                }
-                                className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
-                            >
-
-                                <X
-                                    size={20}
-                                />
-
-                            </button>
-
-                        </div>
-
-                        <div className="p-5">
+                        <div className="mb-8 rounded-2xl bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-500 p-7 text-white shadow-lg">
 
                             <div className="flex items-center gap-4">
 
-                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 text-xl font-bold text-blue-400">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20">
 
-                                    {selectedMember.name
-                                        ?.charAt(
-                                            0
-                                        )
-                                        ?.toUpperCase()}
-
-                                </div>
-
-                                <div>
-
-                                    <h3 className="text-xl font-semibold text-white">
-                                        {
-                                            selectedMember.name
-                                        }
-                                    </h3>
-
-                                    <p className="mt-1 text-sm text-slate-400">
-                                        {
-                                            selectedMember.email
-                                        }
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-                            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-
-                                <InfoBox
-                                    label="Role"
-                                    value={
-                                        selectedMember.role
-                                    }
-                                    icon={
-                                        BriefcaseBusiness
-                                    }
-                                />
-
-                                <InfoBox
-                                    label="Status"
-                                    value={
-                                        selectedMember.active
-                                            ? "Active"
-                                            : "Inactive"
-                                    }
-                                    icon={
-                                        ShieldCheck
-                                    }
-                                />
-
-                                <InfoBox
-                                    label="Workload"
-                                    value={`${selectedMember.workload}%`}
-                                    icon={
-                                        Activity
-                                    }
-                                />
-
-                                <InfoBox
-                                    label="Assigned Tasks"
-                                    value={
-                                        selectedMember
-                                            .tasks
-                                            ?.length ||
-                                        0
-                                    }
-                                    icon={
-                                        ListTodo
-                                    }
-                                />
-
-                            </div>
-
-                            <div className="mt-5">
-
-                                <h3 className="mb-3 text-sm font-semibold text-white">
-                                    Skills
-                                </h3>
-
-                                <div className="flex flex-wrap gap-2">
-
-                                    {selectedMember.skills?.length >
-                                    0 ? (
-                                        selectedMember.skills.map(
-                                            (
-                                                skill
-                                            ) => (
-                                                <span
-                                                    key={
-                                                        skill
-                                                    }
-                                                    className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-300"
-                                                >
-                                                    {
-                                                        skill
-                                                    }
-                                                </span>
-                                            )
-                                        )
-                                    ) : (
-                                        <span className="text-sm text-slate-500">
-                                            No skills
-                                            available.
-                                        </span>
-                                    )}
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-            )}
-
-            {/* ==================================================
-                ASSIGN MODAL
-                TEAM-003
-            ================================================== */}
-
-            {assignMember && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-
-                    <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
-
-                        <div className="flex items-center justify-between border-b border-slate-700 p-5">
-
-                            <div>
-
-                                <h2 className="text-lg font-semibold text-white">
-                                    Assign Contributor
-                                </h2>
-
-                                <p className="mt-1 text-sm text-slate-500">
-                                    Assign a task to{" "}
-                                    <span className="text-blue-400">
-                                        {
-                                            assignMember.name
-                                        }
-                                    </span>
-                                </p>
-
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setAssignMember(
-                                        null
-                                    )
-                                }
-                                className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
-                            >
-                                <X size={20} />
-                            </button>
-
-                        </div>
-
-                        <div className="p-5">
-
-                            <div className="mb-5 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
-
-                                <div className="flex items-center justify-between">
-
-                                    <span className="text-sm text-slate-400">
-                                        Current workload
-                                    </span>
-
-                                    <span className="font-semibold text-blue-400">
-                                        {
-                                            assignMember.workload
-                                        }
-                                        %
-                                    </span>
-
-                                </div>
-
-                            </div>
-
-                            <label className="mb-2 block text-sm font-medium text-slate-300">
-                                Select Task
-                            </label>
-
-                            <select
-                                value={
-                                    selectedTaskId
-                                }
-                                onChange={(
-                                    event
-                                ) =>
-                                    setSelectedTaskId(
-                                        event
-                                            .target
-                                            .value
-                                    )
-                                }
-                                className="
-                                    w-full
-                                    rounded-xl
-                                    border
-                                    border-slate-700
-                                    bg-slate-950
-                                    px-4
-                                    py-3
-                                    text-sm
-                                    text-white
-                                    outline-none
-                                    focus:border-blue-500
-                                "
-                            >
-
-                                <option value="">
-                                    Select a task...
-                                </option>
-
-                                {tasksForAssignment.map(
-                                    (task) => (
-                                        <option
-                                            key={
-                                                task.id
-                                            }
-                                            value={
-                                                task.id
-                                            }
-                                        >
-                                            {
-                                                task.title
-                                            }{" "}
-                                            —{" "}
-                                            {
-                                                task.priority
-                                            }
-                                        </option>
-                                    )
-                                )}
-
-                            </select>
-
-                            <div className="mt-5 flex gap-3">
-
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setAssignMember(
-                                            null
-                                        )
-                                    }
-                                    className="
-                                        flex-1
-                                        rounded-xl
-                                        border
-                                        border-slate-700
-                                        bg-slate-800
-                                        px-4
-                                        py-3
-                                        text-sm
-                                        font-medium
-                                        text-slate-300
-                                        hover:bg-slate-700
-                                    "
-                                >
-                                    Cancel
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={
-                                        handleAssignContributor
-                                    }
-                                    className="
-                                        flex-1
-                                        rounded-xl
-                                        bg-blue-600
-                                        px-4
-                                        py-3
-                                        text-sm
-                                        font-medium
-                                        text-white
-                                        hover:bg-blue-500
-                                    "
-                                >
-                                    Assign Contributor
-                                </button>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-            )}
-
-            {/* ==================================================
-                REMOVE MODAL
-                TEAM-004
-            ================================================== */}
-
-            {removeMember && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-
-                    <div className="w-full max-w-lg rounded-2xl border border-red-500/20 bg-slate-900 shadow-2xl">
-
-                        <div className="flex items-center justify-between border-b border-slate-700 p-5">
-
-                            <div className="flex items-center gap-3">
-
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10">
-
-                                    <UserMinus
-                                        size={20}
-                                        className="text-red-400"
+                                    <UsersRound
+                                        size={28}
                                     />
 
                                 </div>
 
                                 <div>
 
-                                    <h2 className="text-lg font-semibold text-white">
-                                        Remove Contributor
-                                    </h2>
+                                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-white/70">
+                                        Team Workspace
+                                    </p>
 
-                                    <p className="text-sm text-slate-500">
-                                        Remove task assignment
+                                    <h1 className="text-3xl font-bold">
+                                        Team Management and Monitoring
+                                    </h1>
+
+                                    <p className="mt-1 text-sm text-white/80">
+                                        View your assigned team, monitor workload and progress, and manage team membership.
                                     </p>
 
                                 </div>
 
                             </div>
 
+                        </div>
+
+                        {errorMessage && (
+
+                            <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+
+                                <AlertTriangle
+                                    size={19}
+                                />
+
+                                {errorMessage}
+
+                            </div>
+
+                        )}
+
+                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
+
+                            <UsersRound
+                                size={40}
+                                className="mx-auto text-slate-400"
+                            />
+
+                            <h2 className="mt-4 text-xl font-bold text-slate-900">
+                                No Assigned Team
+                            </h2>
+
+                            <p className="mx-auto mt-2 max-w-lg text-sm text-slate-500">
+                                No team is currently assigned to this Manager. Once a team is assigned, its members, Team Leader, Sprint progress, and workload will appear here.
+                            </p>
+
                             <button
                                 type="button"
                                 onClick={() =>
-                                    setRemoveMember(
-                                        null
-                                    )
+                                    loadTeam(true)
                                 }
-                                className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
+                                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-violet-700"
                             >
-                                <X size={20} />
+
+                                <RefreshCw
+                                    size={17}
+                                />
+
+                                Refresh
+
                             </button>
 
                         </div>
 
-                        <div className="p-5">
+                    </div>
 
-                            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                </main>
 
-                                <p className="text-sm text-slate-300">
+            </div>
+        );
 
-                                    You are about to remove{" "}
+    }
 
-                                    <span className="font-semibold text-white">
-                                        {
-                                            removeMember.name
-                                        }
-                                    </span>{" "}
+    // ========================================================
+    // RENDER
+    // ========================================================
 
-                                    from a task.
+    return (
+        <div className="min-h-screen bg-slate-50 text-slate-900">
 
-                                </p>
+            <main className="min-h-screen">
 
-                                <p className="mt-2 text-xs text-slate-500">
-                                    The contributor will no
-                                    longer be assigned to
-                                    the selected task.
-                                </p>
+                <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+
+                    {/* ==================================================
+                        HEADER
+                    ================================================== */}
+
+                    <div className="mb-8 rounded-2xl bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-500 p-7 text-white shadow-lg">
+
+                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
+                            <div className="flex items-center gap-4">
+
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20">
+
+                                    <UsersRound
+                                        size={28}
+                                    />
+
+                                </div>
+
+                                <div>
+
+                                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-white/70">
+                                        Team Workspace
+                                    </p>
+
+                                    <h1 className="text-3xl font-bold">
+                                        Team Management and Monitoring
+                                    </h1>
+
+                                    <p className="mt-1 text-sm text-white/80">
+                                        View your assigned team, monitor workload and progress, and manage team membership.
+                                    </p>
+
+                                </div>
 
                             </div>
 
-                            <label className="mt-5 mb-2 block text-sm font-medium text-slate-300">
-                                Task
-                            </label>
+                            <div className="flex items-center gap-3">
 
-                            <select
-                                value={
-                                    selectedTaskId
-                                }
-                                onChange={(
-                                    event
-                                ) =>
-                                    setSelectedTaskId(
-                                        event
-                                            .target
-                                            .value
-                                    )
-                                }
-                                className="
-                                    w-full
-                                    rounded-xl
-                                    border
-                                    border-slate-700
-                                    bg-slate-950
-                                    px-4
-                                    py-3
-                                    text-sm
-                                    text-white
-                                    outline-none
-                                    focus:border-red-500
-                                "
-                            >
+                                <div className="rounded-xl bg-white/10 px-4 py-3 ring-1 ring-white/20">
 
-                                <option value="">
-                                    Select assigned task...
-                                </option>
+                                    <p className="text-xs text-white/70">
+                                        Project
+                                    </p>
 
-                                {removeMember.tasks?.map(
-                                    (task) => (
-                                        <option
-                                            key={
-                                                task.id
-                                            }
-                                            value={
-                                                task.id
-                                            }
-                                        >
-                                            {
-                                                task.title
-                                            }
-                                        </option>
-                                    )
-                                )}
+                                    <p className="mt-1 text-sm font-bold">
+                                        {
+                                            team.projectName
+                                        }
+                                    </p>
 
-                            </select>
-
-                            <div className="mt-5 flex gap-3">
+                                </div>
 
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        setRemoveMember(
-                                            null
-                                        )
+                                        loadTeam(true)
                                     }
-                                    className="
-                                        flex-1
-                                        rounded-xl
-                                        border
-                                        border-slate-700
-                                        bg-slate-800
-                                        px-4
-                                        py-3
-                                        text-sm
-                                        font-medium
-                                        text-slate-300
-                                        hover:bg-slate-700
-                                    "
+                                    disabled={
+                                        refreshing
+                                    }
+                                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/20 transition hover:bg-white/20 disabled:opacity-50"
+                                    title="Refresh"
                                 >
-                                    Cancel
-                                </button>
 
-                                <button
-                                    type="button"
-                                    onClick={
-                                        handleRemoveContributor
-                                    }
-                                    className="
-                                        flex-1
-                                        rounded-xl
-                                        bg-red-600
-                                        px-4
-                                        py-3
-                                        text-sm
-                                        font-medium
-                                        text-white
-                                        hover:bg-red-500
-                                    "
-                                >
-                                    Confirm Removal
+                                    <RefreshCw
+                                        size={19}
+                                        className={
+                                            refreshing
+                                                ? "animate-spin"
+                                                : ""
+                                        }
+                                    />
+
                                 </button>
 
                             </div>
@@ -3560,449 +1518,1007 @@ function TeamManagement() {
 
                     </div>
 
-                </div>
-            )}
+                    {/* ==================================================
+                        SUCCESS
+                    ================================================== */}
 
-            {/* ==================================================
-                TEAM-005 / TEAM-006 REQUEST MODAL
-            ================================================== */}
+                    {successMessage && (
 
-            {requestType && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                        <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
 
-                    <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+                            <CheckCircle2
+                                size={19}
+                            />
 
-                        <div className="flex items-center justify-between border-b border-slate-700 p-5">
+                            {successMessage}
 
-                            <div className="flex items-center gap-3">
+                        </div>
 
-                                <div
-                                    className={`
-                                        flex
-                                        h-11
-                                        w-11
-                                        items-center
-                                        justify-center
-                                        rounded-xl
-                                        ${
-                                            requestType ===
-                                            "add"
-                                                ? "bg-indigo-500/10 text-indigo-400"
-                                                : "bg-red-500/10 text-red-400"
-                                        }
-                                    `}
+                    )}
+
+                    {/* ==================================================
+                        ERROR
+                    ================================================== */}
+
+                    {errorMessage && (
+
+                        <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+
+                            <AlertTriangle
+                                size={19}
+                            />
+
+                            {errorMessage}
+
+                        </div>
+
+                    )}
+
+                    {/* ==================================================
+                        TEAM OVERVIEW
+                    ================================================== */}
+
+                    <section className="mb-8">
+
+                        <div className="mb-5">
+
+                            <h2 className="text-xl font-bold text-slate-900">
+                                Assigned Team
+                            </h2>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                                Current team relationship for your authorized project.
+                            </p>
+
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+
+                            {/* TEAM */}
+
+                            <div className="rounded-2xl border border-violet-200 bg-white p-5 shadow-sm">
+
+                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100">
+
+                                    <UsersRound
+                                        size={22}
+                                        className="text-violet-600"
+                                    />
+
+                                </div>
+
+                                <p className="mt-4 text-sm text-slate-500">
+                                    Team
+                                </p>
+
+                                <p className="mt-1 text-lg font-bold text-slate-900">
+                                    {
+                                        team.name
+                                    }
+                                </p>
+
+                            </div>
+
+                            {/* MEMBERS */}
+
+                            <div className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
+
+                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100">
+
+                                    <UserRound
+                                        size={22}
+                                        className="text-blue-600"
+                                    />
+
+                                </div>
+
+                                <p className="mt-4 text-sm text-slate-500">
+                                    Team Members
+                                </p>
+
+                                <p className="mt-1 text-3xl font-bold">
+                                    {
+                                        members.length
+                                    }
+                                </p>
+
+                            </div>
+
+                            {/* WORKLOAD */}
+
+                            <div className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
+
+                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100">
+
+                                    <BriefcaseBusiness
+                                        size={22}
+                                        className="text-amber-600"
+                                    />
+
+                                </div>
+
+                                <p className="mt-4 text-sm text-slate-500">
+                                    Current Workload
+                                </p>
+
+                                <p className="mt-1 text-3xl font-bold">
+                                    {
+                                        taskStats.remaining
+                                    }
+                                </p>
+
+                                <p className="mt-1 text-xs text-slate-400">
+                                    Active assigned tasks
+                                </p>
+
+                            </div>
+
+                            {/* COMPLETION */}
+
+                            <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
+
+                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100">
+
+                                    <Activity
+                                        size={22}
+                                        className="text-emerald-600"
+                                    />
+
+                                </div>
+
+                                <p className="mt-4 text-sm text-slate-500">
+                                    Team Completion
+                                </p>
+
+                                <p className="mt-1 text-3xl font-bold">
+                                    {
+                                        teamCompletion ===
+                                            null
+                                            ? "—"
+                                            : `${teamCompletion}%`
+                                    }
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+                    {/* ==================================================
+                        TEAM LEADER
+                    ================================================== */}
+
+                    <section className="mb-8">
+
+                        <div className="mb-5 flex items-end justify-between">
+
+                            <div>
+
+                                <h2 className="text-xl font-bold">
+                                    Team Leader
+                                </h2>
+
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Current Team Leader identified from the team relationship.
+                                </p>
+
+                            </div>
+
+                            {team.teamLeader && (
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setShowLeaderWork(
+                                            true
+                                        )
+                                    }
+                                    className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700"
                                 >
 
-                                    {requestType ===
-                                    "add" ? (
-                                        <UserPlus
-                                            size={
-                                                21
-                                            }
-                                        />
-                                    ) : (
-                                        <UserMinus
-                                            size={
-                                                21
-                                            }
-                                        />
-                                    )}
+                                    <Eye
+                                        size={17}
+                                    />
+
+                                    Monitor Work
+
+                                </button>
+
+                            )}
+
+                        </div>
+
+                        {team.teamLeader ? (
+
+                            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+                                <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+
+                                    <div className="flex items-center gap-4">
+
+                                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-violet-100">
+
+                                            <ShieldCheck
+                                                size={27}
+                                                className="text-violet-600"
+                                            />
+
+                                        </div>
+
+                                        <div>
+
+                                            <h3 className="text-lg font-bold">
+                                                {
+                                                    team.teamLeader.name
+                                                }
+                                            </h3>
+
+                                            <p className="text-sm text-slate-500">
+                                                {
+                                                    team.teamLeader.role
+                                                }
+                                            </p>
+
+                                            <div className="mt-2 flex flex-wrap gap-2">
+
+                                                <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+                                                    {
+                                                        team.teamLeader
+                                                            .contributorType
+                                                    }
+                                                </span>
+
+                                                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                                                    {
+                                                        team.teamLeader
+                                                            .specialization
+                                                    }
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+
+                                        <div>
+
+                                            <p className="text-xs text-slate-400">
+                                                Created
+                                            </p>
+
+                                            <p className="mt-1 text-lg font-bold">
+                                                {
+                                                    teamLeaderWork.createdTasks
+                                                }
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <p className="text-xs text-slate-400">
+                                                Completed
+                                            </p>
+
+                                            <p className="mt-1 text-lg font-bold text-emerald-600">
+                                                {
+                                                    teamLeaderWork.completedTasks
+                                                }
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <p className="text-xs text-slate-400">
+                                                In Progress
+                                            </p>
+
+                                            <p className="mt-1 text-lg font-bold text-blue-600">
+                                                {
+                                                    teamLeaderWork.inProgressTasks
+                                                }
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <p className="text-xs text-slate-400">
+                                                Blocked
+                                            </p>
+
+                                            <p className="mt-1 text-lg font-bold text-red-600">
+                                                {
+                                                    teamLeaderWork.blockedTasks
+                                                }
+                                            </p>
+
+                                        </div>
+
+                                    </div>
 
                                 </div>
 
-                                <div>
+                            </div>
 
-                                    <h2 className="text-lg font-semibold text-white">
+                        ) : (
 
-                                        {requestType ===
-                                        "add"
-                                            ? "Request Add Contributor"
-                                            : "Request Remove Contributor"}
+                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
 
-                                    </h2>
+                                <ShieldCheck
+                                    size={32}
+                                    className="mx-auto text-slate-400"
+                                />
 
-                                    <p className="mt-1 text-sm text-slate-500">
+                                <h3 className="mt-3 font-bold">
+                                    No Team Leader Assigned
+                                </h3>
 
-                                        {requestType ===
-                                        "add"
-                                            ? "Admin approval is required before adding a contributor."
-                                            : "Admin approval is required before removing a contributor."}
+                                <p className="mt-1 text-sm text-slate-500">
+                                    This team currently has no Team Leader.
+                                </p>
 
-                                    </p>
+                            </div>
 
-                                </div>
+                        )}
+
+                    </section>
+
+                    {/* ==================================================
+                        MEMBERS
+                    ================================================== */}
+
+                    <section className="mb-8">
+
+                        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+
+                            <div>
+
+                                <h2 className="text-xl font-bold">
+                                    Team Members
+                                </h2>
+
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Developers and Staff with their current contributor classifications and workload.
+                                </p>
 
                             </div>
 
                             <button
                                 type="button"
                                 onClick={
-                                    handleCancelPermissionRequest
+                                    openAddMemberModal
                                 }
-                                className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
+                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:from-violet-700 hover:to-blue-700"
                             >
 
-                                <X
-                                    size={20}
+                                <Plus
+                                    size={17}
                                 />
+
+                                Add Member
 
                             </button>
 
                         </div>
 
-                        <div className="space-y-5 p-5">
+                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-                            {/* PROJECT */}
+                            <div className="overflow-x-auto">
 
-                            <div>
+                                <table className="w-full min-w-[850px]">
 
-                                <label className="mb-2 block text-sm font-medium text-slate-300">
-                                    Project
-                                </label>
+                                    <thead className="border-b border-slate-200 bg-slate-50">
 
-                                <select
-                                    value={
-                                        requestProjectId
-                                    }
-                                    onChange={(
-                                        event
-                                    ) => {
+                                        <tr>
 
-                                        setRequestProjectId(
-                                            event
-                                                .target
-                                                .value
-                                        );
+                                            <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                                                Member
+                                            </th>
 
-                                        if (
-                                            requestType ===
-                                            "add"
-                                        ) {
-                                            setRequestMember(
-                                                null
-                                            );
-                                        }
+                                            <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                                                Type
+                                            </th>
 
-                                    }}
-                                    className="
-                                        w-full
-                                        rounded-xl
-                                        border
-                                        border-slate-700
-                                        bg-slate-950
-                                        px-4
-                                        py-3
-                                        text-sm
-                                        text-white
-                                        outline-none
-                                        focus:border-indigo-500
-                                    "
-                                >
+                                            <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                                                Specialization
+                                            </th>
 
-                                    <option value="">
-                                        Select project...
-                                    </option>
+                                            <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                                                Workload
+                                            </th>
 
-                                    {selectedTeam?.projects?.map(
-                                        (
-                                            project
-                                        ) => (
-                                            <option
-                                                key={
-                                                    project.id
-                                                }
-                                                value={
-                                                    project.id
-                                                }
-                                            >
-                                                {
-                                                    project.name
-                                                }
-                                            </option>
-                                        )
-                                    )}
+                                            <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                                                Status
+                                            </th>
 
-                                </select>
+                                            <th className="px-5 py-4 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                                                Action
+                                            </th>
 
-                            </div>
+                                        </tr>
 
-                            {/* MEMBER */}
+                                    </thead>
 
-                            <div>
+                                    <tbody className="divide-y divide-slate-100">
 
-                                <label className="mb-2 block text-sm font-medium text-slate-300">
+                                        {memberWorkload.length > 0 ? (
 
-                                    {requestType ===
-                                    "add"
-                                        ? "Available Contributor"
-                                        : "Project Member"}
+                                            memberWorkload.map(
+                                                (member) => (
 
-                                </label>
-
-                                {requestType ===
-                                "add" ? (
-                                    <select
-                                        value={
-                                            requestMember?.id ||
-                                            ""
-                                        }
-                                        onChange={(
-                                            event
-                                        ) => {
-
-                                            const member =
-                                                availableContributors.find(
-                                                    (
-                                                        item
-                                                    ) =>
-                                                        String(
-                                                            item.id
-                                                        ) ===
-                                                        String(
-                                                            event
-                                                                .target
-                                                                .value
-                                                        )
-                                                );
-
-                                            setRequestMember(
-                                                member ||
-                                                    null
-                                            );
-
-                                        }}
-                                        className="
-                                            w-full
-                                            rounded-xl
-                                            border
-                                            border-slate-700
-                                            bg-slate-950
-                                            px-4
-                                            py-3
-                                            text-sm
-                                            text-white
-                                            outline-none
-                                            focus:border-indigo-500
-                                        "
-                                    >
-
-                                        <option value="">
-                                            Select contributor...
-                                        </option>
-
-                                        {availableContributors.map(
-                                            (
-                                                member
-                                            ) => {
-
-                                                const alreadyAssigned =
-                                                    member.assignedProjects?.includes(
-                                                        selectedRequestProject?.name
-                                                    );
-
-                                                const pending =
-                                                    hasPendingRequest(
-                                                        "add",
-                                                        member.id,
-                                                        requestProjectId
-                                                    );
-
-                                                return (
-                                                    <option
+                                                    <tr
                                                         key={
                                                             member.id
                                                         }
-                                                        value={
-                                                            member.id
-                                                        }
-                                                        disabled={
-                                                            alreadyAssigned ||
-                                                            pending
-                                                        }
+                                                        className="transition hover:bg-slate-50"
                                                     >
-                                                        {
-                                                            member.name
-                                                        }{" "}
-                                                        —{" "}
-                                                        {
-                                                            member.email
-                                                        }
-                                                        {alreadyAssigned
-                                                            ? " (Already assigned)"
-                                                            : pending
-                                                            ? " (Request pending)"
-                                                            : ""}
-                                                    </option>
-                                                );
-                                            }
+
+                                                        <td className="px-5 py-4">
+
+                                                            <div className="flex items-center gap-3">
+
+                                                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+
+                                                                    <UserRound
+                                                                        size={18}
+                                                                        className="text-blue-600"
+                                                                    />
+
+                                                                </div>
+
+                                                                <div>
+
+                                                                    <p className="font-semibold text-slate-900">
+                                                                        {
+                                                                            member.name
+                                                                        }
+                                                                    </p>
+
+                                                                    <p className="text-xs text-slate-500">
+                                                                        {
+                                                                            member.role
+                                                                        }
+                                                                    </p>
+
+                                                                </div>
+
+                                                            </div>
+
+                                                        </td>
+
+                                                        <td className="px-5 py-4">
+
+                                                            <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+                                                                {
+                                                                    member.contributorType
+                                                                }
+                                                            </span>
+
+                                                        </td>
+
+                                                        <td className="px-5 py-4 text-sm text-slate-600">
+                                                            {
+                                                                member.specialization
+                                                            }
+                                                        </td>
+
+                                                        <td className="px-5 py-4">
+
+                                                            <div className="flex items-center gap-3">
+
+                                                                <span className="font-bold text-slate-900">
+                                                                    {
+                                                                        member.activeTasks
+                                                                    }
+                                                                </span>
+
+                                                                <span className="text-xs text-slate-400">
+                                                                    active
+                                                                </span>
+
+                                                            </div>
+
+                                                        </td>
+
+                                                        <td className="px-5 py-4">
+
+                                                            <span
+                                                                className={
+                                                                    member.active
+                                                                        ? "inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
+                                                                        : "inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
+                                                                }
+                                                            >
+
+                                                                <CircleDot
+                                                                    size={11}
+                                                                />
+
+                                                                {
+                                                                    member.active
+                                                                        ? "Active"
+                                                                        : "Inactive"
+                                                                }
+
+                                                            </span>
+
+                                                        </td>
+
+                                                        <td className="px-5 py-4 text-right">
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+
+                                                                    clearMessages();
+
+                                                                    setSelectedMember(
+                                                                        member
+                                                                    );
+
+                                                                    setRequestReason(
+                                                                        ""
+                                                                    );
+
+                                                                    setShowRemoveRequest(
+                                                                        true
+                                                                    );
+
+                                                                }}
+                                                                className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50"
+                                                            >
+
+                                                                <UserMinus
+                                                                    size={15}
+                                                                />
+
+                                                                Remove
+
+                                                            </button>
+
+                                                        </td>
+
+                                                    </tr>
+
+                                                )
+                                            )
+
+                                        ) : (
+
+                                            <tr>
+
+                                                <td
+                                                    colSpan="6"
+                                                    className="px-5 py-12 text-center"
+                                                >
+
+                                                    <UsersRound
+                                                        size={32}
+                                                        className="mx-auto text-slate-400"
+                                                    />
+
+                                                    <p className="mt-3 font-semibold text-slate-700">
+                                                        No team members
+                                                    </p>
+
+                                                    <p className="mt-1 text-sm text-slate-500">
+                                                        This team currently has no members.
+                                                    </p>
+
+                                                </td>
+
+                                            </tr>
+
                                         )}
 
-                                    </select>
-                                ) : (
-                                    <select
-                                        value={
-                                            requestMember?.id ||
-                                            ""
-                                        }
-                                        onChange={(
-                                            event
-                                        ) => {
+                                    </tbody>
 
-                                            const member =
-                                                selectedTeam?.members?.find(
-                                                    (
-                                                        item
-                                                    ) =>
-                                                        String(
-                                                            item.id
-                                                        ) ===
-                                                        String(
-                                                            event
-                                                                .target
-                                                                .value
-                                                        )
-                                                );
-
-                                            setRequestMember(
-                                                member ||
-                                                    null
-                                            );
-
-                                        }}
-                                        className="
-                                            w-full
-                                            rounded-xl
-                                            border
-                                            border-slate-700
-                                            bg-slate-950
-                                            px-4
-                                            py-3
-                                            text-sm
-                                            text-white
-                                            outline-none
-                                            focus:border-red-500
-                                        "
-                                    >
-
-                                        <option value="">
-                                            Select project member...
-                                        </option>
-
-                                        {selectedTeam?.members
-                                            ?.filter(
-                                                (
-                                                    member
-                                                ) =>
-                                                    member.assignedProjects?.includes(
-                                                        selectedRequestProject?.name
-                                                    )
-                                            )
-                                            .map(
-                                                (
-                                                    member
-                                                ) => {
-
-                                                    const pending =
-                                                        hasPendingRequest(
-                                                            "remove",
-                                                            member.id,
-                                                            requestProjectId
-                                                        );
-
-                                                    return (
-                                                        <option
-                                                            key={
-                                                                member.id
-                                                            }
-                                                            value={
-                                                                member.id
-                                                            }
-                                                            disabled={
-                                                                pending
-                                                            }
-                                                        >
-                                                            {
-                                                                member.name
-                                                            }{" "}
-                                                            —{" "}
-                                                            {
-                                                                member.role
-                                                            }
-                                                            {pending
-                                                                ? " (Request pending)"
-                                                                : ""}
-                                                        </option>
-                                                    );
-                                                }
-                                            )}
-
-                                    </select>
-                                )}
+                                </table>
 
                             </div>
 
-                            {/* SELECTED MEMBER */}
+                        </div>
 
-                            {requestMember && (
-                                <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-4">
+                    </section>
 
-                                    <div className="flex items-center gap-3">
+                    {/* ==================================================
+                        PROGRESS
+                    ================================================== */}
 
-                                        <div
-                                            className={`
-                                                flex
-                                                h-11
-                                                w-11
-                                                items-center
-                                                justify-center
-                                                rounded-xl
-                                                ${
-                                                    requestType ===
-                                                    "add"
-                                                        ? "bg-indigo-500/10 text-indigo-400"
-                                                        : "bg-red-500/10 text-red-400"
+                    <section className="mb-8">
+
+                        <div className="mb-5">
+
+                            <h2 className="text-xl font-bold">
+                                Team Progress
+                            </h2>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                                Calculated from current Sprint and task records.
+                            </p>
+
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+
+                            <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
+
+                                <CheckCircle2
+                                    size={23}
+                                    className="text-emerald-600"
+                                />
+
+                                <p className="mt-4 text-sm text-slate-500">
+                                    Team Completion
+                                </p>
+
+                                <p className="mt-1 text-3xl font-bold">
+                                    {
+                                        teamCompletion ===
+                                            null
+                                            ? "—"
+                                            : `${teamCompletion}%`
+                                    }
+                                </p>
+
+                            </div>
+
+                            <div className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
+
+                                <CheckCircle2
+                                    size={23}
+                                    className="text-blue-600"
+                                />
+
+                                <p className="mt-4 text-sm text-slate-500">
+                                    Completed Tasks
+                                </p>
+
+                                <p className="mt-1 text-3xl font-bold">
+                                    {
+                                        taskStats.completed
+                                    }
+                                </p>
+
+                            </div>
+
+                            <div className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
+
+                                <Clock
+                                    size={23}
+                                    className="text-amber-600"
+                                />
+
+                                <p className="mt-4 text-sm text-slate-500">
+                                    Remaining Tasks
+                                </p>
+
+                                <p className="mt-1 text-3xl font-bold">
+                                    {
+                                        taskStats.remaining
+                                    }
+                                </p>
+
+                            </div>
+
+                            <div className="rounded-2xl border border-red-200 bg-white p-5 shadow-sm">
+
+                                <AlertTriangle
+                                    size={23}
+                                    className="text-red-600"
+                                />
+
+                                <p className="mt-4 text-sm text-slate-500">
+                                    Blocked Tasks
+                                </p>
+
+                                <p className="mt-1 text-3xl font-bold">
+                                    {
+                                        taskStats.blocked
+                                    }
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+                    {/* ==================================================
+                        CURRENT SPRINT
+                    ================================================== */}
+
+                    <section>
+
+                        <div className="mb-5">
+
+                            <h2 className="text-xl font-bold">
+                                Current Sprint
+                            </h2>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                                Sprint progress for the assigned Team.
+                            </p>
+
+                        </div>
+
+                        {activeSprint ? (
+
+                            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+                                <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
+                                    <div>
+
+                                        <div className="flex items-center gap-2">
+
+                                            <Target
+                                                size={20}
+                                                className="text-violet-600"
+                                            />
+
+                                            <h3 className="text-lg font-bold">
+                                                {
+                                                    activeSprint.name
                                                 }
-                                            `}
-                                        >
+                                            </h3>
 
-                                            {requestMember.name
-                                                ?.charAt(
-                                                    0
-                                                )
-                                                ?.toUpperCase()}
+                                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                                                Active
+                                            </span>
 
                                         </div>
 
-                                        <div>
+                                        <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-500">
 
-                                            <p className="font-semibold text-white">
-                                                {
-                                                    requestMember.name
-                                                }
-                                            </p>
+                                            <span className="flex items-center gap-1.5">
 
-                                            <p className="text-sm text-slate-500">
+                                                <CalendarDays
+                                                    size={15}
+                                                />
+
                                                 {
-                                                    requestMember.email
+                                                    activeSprint.startDate ||
+                                                    activeSprint.startDateTime ||
+                                                    "—"
                                                 }
-                                            </p>
+
+                                            </span>
+
+                                            <span>
+                                                →
+                                            </span>
+
+                                            <span>
+                                                {
+                                                    activeSprint.endDate ||
+                                                    activeSprint.endDateTime ||
+                                                    "—"
+                                                }
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div className="w-full max-w-sm">
+
+                                        <div className="mb-2 flex items-center justify-between">
+
+                                            <span className="text-sm font-semibold text-slate-600">
+                                                Sprint Progress
+                                            </span>
+
+                                            <span className="text-sm font-bold text-violet-600">
+                                                {
+                                                    sprintProgress ===
+                                                        null
+                                                        ? "—"
+                                                        : `${sprintProgress}%`
+                                                }
+                                            </span>
+
+                                        </div>
+
+                                        <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+
+                                            {sprintProgress !==
+                                                null && (
+
+                                                    <div
+                                                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-blue-600 transition-all"
+                                                        style={{
+                                                            width: `${sprintProgress}%`,
+                                                        }}
+                                                    />
+
+                                                )}
 
                                         </div>
 
                                     </div>
 
                                 </div>
-                            )}
 
-                            {/* REASON */}
+                            </div>
+
+                        ) : (
+
+                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+
+                                <ListChecks
+                                    size={32}
+                                    className="mx-auto text-slate-400"
+                                />
+
+                                <h3 className="mt-3 font-bold">
+                                    No Active Sprint
+                                </h3>
+
+                                <p className="mt-1 text-sm text-slate-500">
+                                    There is currently no active Sprint assigned to this Team.
+                                </p>
+
+                            </div>
+
+                        )}
+
+                    </section>
+
+                </div>
+
+            </main>
+
+            {/* ==========================================================
+                ADD MEMBER MODAL
+            ========================================================== */}
+
+            {showAddRequest && (
+
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm">
+
+                    <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+
+                        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
 
                             <div>
 
-                                <label className="mb-2 block text-sm font-medium text-slate-300">
-                                    Reason for Request
+                                <h2 className="text-lg font-bold">
+                                    Add Team Member
+                                </h2>
+
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Select an eligible Developer or Staff member.
+                                </p>
+
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setShowAddRequest(
+                                        false
+                                    )
+                                }
+                                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+                            >
+
+                                <X
+                                    size={19}
+                                />
+
+                            </button>
+
+                        </div>
+
+                        <div className="space-y-5 px-6 py-6">
+
+                            <div>
+
+                                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                    Available User
+                                </label>
+
+                                {loadingAvailableMembers ? (
+
+                                    <div className="flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-3 text-sm text-slate-500">
+
+                                        <RefreshCw
+                                            size={16}
+                                            className="animate-spin"
+                                        />
+
+                                        Loading eligible users...
+
+                                    </div>
+
+                                ) : (
+
+                                    <select
+                                        value={
+                                            selectedUserId
+                                        }
+                                        onChange={(
+                                            event
+                                        ) =>
+                                            setSelectedUserId(
+                                                event.target.value
+                                            )
+                                        }
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                                    >
+
+                                        <option value="">
+                                            Select user
+                                        </option>
+
+                                        {availableMembers.map(
+                                            (user) => {
+
+                                                const id =
+                                                    user.id ??
+                                                    user.userId;
+
+                                                const name =
+                                                    user.name ??
+                                                    user.fullName ??
+                                                    user.userName ??
+                                                    "Unknown User";
+
+                                                const type =
+                                                    user.contributorType ??
+                                                    user.contributorTypeName ??
+                                                    user.role ??
+                                                    "Contributor";
+
+                                                return (
+
+                                                    <option
+                                                        key={
+                                                            id
+                                                        }
+                                                        value={
+                                                            id
+                                                        }
+                                                    >
+                                                        {name} — {type}
+                                                    </option>
+
+                                                );
+
+                                            }
+                                        )}
+
+                                    </select>
+
+                                )}
+
+                                {!loadingAvailableMembers &&
+                                    availableMembers.length ===
+                                    0 && (
+
+                                        <p className="mt-2 text-xs text-slate-500">
+                                            No eligible users are currently available for this team.
+                                        </p>
+
+                                    )}
+
+                            </div>
+
+                            <div>
+
+                                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                    Reason
                                 </label>
 
                                 <textarea
+                                    rows={4}
                                     value={
                                         requestReason
                                     }
@@ -4010,112 +2526,173 @@ function TeamManagement() {
                                         event
                                     ) =>
                                         setRequestReason(
-                                            event
-                                                .target
-                                                .value
+                                            event.target.value
                                         )
                                     }
-                                    rows={
-                                        5
-                                    }
-                                    placeholder={
-                                        requestType ===
-                                        "add"
-                                            ? "Explain why this contributor should be added to the project..."
-                                            : "Explain why this contributor should be removed from the project..."
-                                    }
-                                    className="
-                                        w-full
-                                        resize-none
-                                        rounded-xl
-                                        border
-                                        border-slate-700
-                                        bg-slate-950
-                                        px-4
-                                        py-3
-                                        text-sm
-                                        text-white
-                                        outline-none
-                                        placeholder:text-slate-600
-                                        focus:border-indigo-500
-                                    "
+                                    placeholder="Explain why this user should be added to the team..."
+                                    className="w-full resize-none rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                                 />
-
-                                <div className="mt-2 flex items-center justify-between">
-
-                                    <p className="text-xs text-slate-600">
-                                        Admin will review
-                                        this request.
-                                    </p>
-
-                                    <span className="text-xs text-slate-600">
-                                        {
-                                            requestReason.length
-                                        }
-                                        /500
-                                    </span>
-
-                                </div>
 
                             </div>
 
-                            {/* NOTICE */}
+                        </div>
 
-                            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                        <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
 
-                                <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setShowAddRequest(
+                                        false
+                                    )
+                                }
+                                className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
+                            >
+                                Cancel
+                            </button>
 
-                                    <ShieldCheck
+                            <button
+                                type="button"
+                                onClick={
+                                    handleAddRequest
+                                }
+                                disabled={
+                                    loadingAvailableMembers ||
+                                    !selectedUserId
+                                }
+                                className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+
+                                <Send
+                                    size={17}
+                                />
+
+                                Add Member
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            )}
+
+            {/* ==========================================================
+                REMOVE MEMBER MODAL
+            ========================================================== */}
+
+            {showRemoveRequest &&
+                selectedMember && (
+
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm">
+
+                        <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+
+                            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+
+                                <div>
+
+                                    <h2 className="text-lg font-bold">
+                                        Remove Team Member
+                                    </h2>
+
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        This action removes the member from the current team.
+                                    </p>
+
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setShowRemoveRequest(
+                                            false
+                                        )
+                                    }
+                                    className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+                                >
+
+                                    <X
                                         size={19}
-                                        className="mt-0.5 shrink-0 text-amber-400"
                                     />
 
-                                    <div>
+                                </button>
 
-                                        <p className="text-sm font-medium text-amber-300">
-                                            Admin approval required
-                                        </p>
+                            </div>
 
-                                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                            <div className="px-6 py-6">
 
-                                            The contributor will
-                                            not be added or
-                                            removed immediately.
-                                            The Admin must approve
-                                            this permission request
-                                            first.
+                                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
 
-                                        </p>
+                                    <div className="flex items-center gap-3">
+
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+
+                                            <UserMinus
+                                                size={19}
+                                                className="text-red-600"
+                                            />
+
+                                        </div>
+
+                                        <div>
+
+                                            <p className="font-bold text-slate-900">
+                                                {
+                                                    selectedMember.name
+                                                }
+                                            </p>
+
+                                            <p className="text-sm text-slate-500">
+                                                {
+                                                    selectedMember.contributorType
+                                                }
+                                            </p>
+
+                                        </div>
 
                                     </div>
 
                                 </div>
 
+                                <div className="mt-5">
+
+                                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                        Reason
+                                    </label>
+
+                                    <textarea
+                                        rows={4}
+                                        value={
+                                            requestReason
+                                        }
+                                        onChange={(
+                                            event
+                                        ) =>
+                                            setRequestReason(
+                                                event.target.value
+                                            )
+                                        }
+                                        placeholder="Explain why removal is required..."
+                                        className="w-full resize-none rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                                    />
+
+                                </div>
+
                             </div>
 
-                            {/* ACTIONS */}
-
-                            <div className="flex gap-3">
+                            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
 
                                 <button
                                     type="button"
-                                    onClick={
-                                        handleCancelPermissionRequest
+                                    onClick={() =>
+                                        setShowRemoveRequest(
+                                            false
+                                        )
                                     }
-                                    className="
-                                        flex-1
-                                        rounded-xl
-                                        border
-                                        border-slate-700
-                                        bg-slate-800
-                                        px-4
-                                        py-3
-                                        text-sm
-                                        font-medium
-                                        text-slate-300
-                                        transition
-                                        hover:bg-slate-700
-                                    "
+                                    className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
                                 >
                                     Cancel
                                 </button>
@@ -4123,37 +2700,16 @@ function TeamManagement() {
                                 <button
                                     type="button"
                                     onClick={
-                                        handleSubmitPermissionRequest
+                                        handleRemoveRequest
                                     }
-                                    className={`
-                                        flex
-                                        flex-1
-                                        items-center
-                                        justify-center
-                                        gap-2
-                                        rounded-xl
-                                        px-4
-                                        py-3
-                                        text-sm
-                                        font-medium
-                                        text-white
-                                        transition
-                                        ${
-                                            requestType ===
-                                            "add"
-                                                ? "bg-indigo-600 hover:bg-indigo-500"
-                                                : "bg-red-600 hover:bg-red-500"
-                                        }
-                                    `}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-700"
                                 >
 
-                                    <Send
-                                        size={
-                                            17
-                                        }
+                                    <UserMinus
+                                        size={17}
                                     />
 
-                                    Send Request
+                                    Remove Member
 
                                 </button>
 
@@ -4163,111 +2719,417 @@ function TeamManagement() {
 
                     </div>
 
+                )}
+
+            {/* ==========================================================
+                TEAM LEADER MONITORING MODAL
+            ========================================================== */}
+
+            {showLeaderWork && (
+
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm">
+
+                    <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
+
+                        <div className="sticky top-0 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5">
+
+                            <div>
+
+                                <h2 className="text-lg font-bold">
+                                    Monitor Team Leader Work
+                                </h2>
+
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Monitoring only — task assignment remains the Team Leader's responsibility.
+                                </p>
+
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setShowLeaderWork(
+                                        false
+                                    )
+                                }
+                                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+                            >
+
+                                <X
+                                    size={19}
+                                />
+
+                            </button>
+
+                        </div>
+
+                        <div className="space-y-6 px-6 py-6">
+
+                            {/* WORKFLOW */}
+
+                            <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
+
+                                <p className="text-xs font-bold uppercase tracking-wide text-violet-600">
+                                    Management Workflow
+                                </p>
+
+                                <div className="mt-4 flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-700">
+
+                                    <span>
+                                        Manager
+                                    </span>
+
+                                    <ChevronRight
+                                        size={16}
+                                    />
+
+                                    <span>
+                                        Sprint
+                                    </span>
+
+                                    <ChevronRight
+                                        size={16}
+                                    />
+
+                                    <span>
+                                        Team
+                                    </span>
+
+                                    <ChevronRight
+                                        size={16}
+                                    />
+
+                                    <span>
+                                        Team Leader
+                                    </span>
+
+                                    <ChevronRight
+                                        size={16}
+                                    />
+
+                                    <span>
+                                        Tasks
+                                    </span>
+
+                                    <ChevronRight
+                                        size={16}
+                                    />
+
+                                    <span>
+                                        Developer / Staff
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                            {/* STATS */}
+
+                            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+
+                                <LeaderStat
+                                    label="Tasks Created"
+                                    value={
+                                        teamLeaderWork.createdTasks
+                                    }
+                                />
+
+                                <LeaderStat
+                                    label="Tasks Assigned"
+                                    value={
+                                        teamLeaderWork.assignedTasks
+                                    }
+                                />
+
+                                <LeaderStat
+                                    label="Completed"
+                                    value={
+                                        teamLeaderWork.completedTasks
+                                    }
+                                />
+
+                                <LeaderStat
+                                    label="In Progress"
+                                    value={
+                                        teamLeaderWork.inProgressTasks
+                                    }
+                                />
+
+                                <LeaderStat
+                                    label="Blocked"
+                                    value={
+                                        teamLeaderWork.blockedTasks
+                                    }
+                                />
+
+                                <LeaderStat
+                                    label="Overdue"
+                                    value={
+                                        teamLeaderWork.overdueTasks
+                                    }
+                                />
+
+                            </div>
+
+                            {/* ACTIVE SPRINT */}
+
+                            <div>
+
+                                <h3 className="mb-3 font-bold">
+                                    Active Sprint
+                                </h3>
+
+                                {activeSprint ? (
+
+                                    <div className="rounded-xl border border-slate-200 p-4">
+
+                                        <div className="flex items-center justify-between">
+
+                                            <div>
+
+                                                <p className="font-bold">
+                                                    {
+                                                        activeSprint.name
+                                                    }
+                                                </p>
+
+                                                <p className="mt-1 text-sm text-slate-500">
+                                                    {
+                                                        activeSprint.tasks?.length ||
+                                                        0
+                                                    }{" "}
+                                                    tasks
+                                                </p>
+
+                                            </div>
+
+                                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                                                Active
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+                                ) : (
+
+                                    <div className="rounded-xl bg-slate-50 p-5 text-sm text-slate-500">
+                                        No active Sprint.
+                                    </div>
+
+                                )}
+
+                            </div>
+
+                            {/* TASK LIST */}
+
+                            <div>
+
+                                <h3 className="mb-3 font-bold">
+                                    Team Leader Managed Tasks
+                                </h3>
+
+                                <div className="space-y-2">
+
+                                    {allTasks
+                                        .filter(
+                                            (task) => {
+
+                                                const leader =
+                                                    team.teamLeader;
+
+                                                if (
+                                                    !leader
+                                                ) {
+                                                    return false;
+                                                }
+
+                                                const leaderId =
+                                                    leader.id ??
+                                                    leader.userId;
+
+                                                const creatorId =
+                                                    task.createdById ??
+                                                    task.creatorId;
+
+                                                if (
+                                                    creatorId &&
+                                                    leaderId
+                                                ) {
+
+                                                    return (
+                                                        String(
+                                                            creatorId
+                                                        ) ===
+                                                        String(
+                                                            leaderId
+                                                        )
+                                                    );
+
+                                                }
+
+                                                return (
+                                                    String(
+                                                        task.createdBy
+                                                    ).toLowerCase() ===
+                                                    String(
+                                                        leader.name
+                                                    ).toLowerCase()
+                                                );
+
+                                            }
+                                        )
+                                        .map(
+                                            (task) => (
+
+                                                <div
+                                                    key={
+                                                        task.id
+                                                    }
+                                                    className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 md:flex-row md:items-center md:justify-between"
+                                                >
+
+                                                    <div>
+
+                                                        <p className="font-semibold">
+                                                            {
+                                                                task.title
+                                                            }
+                                                        </p>
+
+                                                        <p className="mt-1 text-xs text-slate-500">
+                                                            Sprint:{" "}
+                                                            {
+                                                                task.sprintName
+                                                            }
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="flex flex-wrap items-center gap-2">
+
+                                                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                                                            {
+                                                                task.assignee ||
+                                                                "Unassigned"
+                                                            }
+                                                        </span>
+
+                                                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                                                            {
+                                                                task.status ||
+                                                                "Unknown"
+                                                            }
+                                                        </span>
+
+                                                    </div>
+
+                                                </div>
+
+                                            )
+                                        )}
+
+                                    {allTasks.filter(
+                                        (task) => {
+
+                                            const leader =
+                                                team.teamLeader;
+
+                                            if (
+                                                !leader
+                                            ) {
+                                                return false;
+                                            }
+
+                                            const leaderId =
+                                                leader.id ??
+                                                leader.userId;
+
+                                            const creatorId =
+                                                task.createdById ??
+                                                task.creatorId;
+
+                                            if (
+                                                creatorId &&
+                                                leaderId
+                                            ) {
+
+                                                return (
+                                                    String(
+                                                        creatorId
+                                                    ) ===
+                                                    String(
+                                                        leaderId
+                                                    )
+                                                );
+
+                                            }
+
+                                            return (
+                                                String(
+                                                    task.createdBy
+                                                ).toLowerCase() ===
+                                                String(
+                                                    leader.name
+                                                ).toLowerCase()
+                                            );
+
+                                        }
+                                    ).length ===
+                                        0 && (
+
+                                            <div className="rounded-xl bg-slate-50 p-5 text-sm text-slate-500">
+                                                No Team Leader managed tasks found.
+                                            </div>
+
+                                        )}
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
                 </div>
+
             )}
 
         </div>
     );
 }
 
-/*
-================================================================
-PERFORMANCE CARD
-================================================================
-*/
+// ============================================================
+// LEADER STAT
+// ============================================================
 
-function PerformanceCard({
-    title,
-    value,
-    icon: Icon,
-    iconClass,
-}) {
-    return (
-        <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-5">
-
-            <div className="flex items-center justify-between">
-
-                <div>
-
-                    <p className="text-xs uppercase tracking-wide text-slate-500">
-                        {title}
-                    </p>
-
-                    <p className="mt-2 text-2xl font-bold text-white">
-                        {value}
-                    </p>
-
-                </div>
-
-                <Icon
-                    size={23}
-                    className={iconClass}
-                />
-
-            </div>
-
-        </div>
-    );
-}
-
-/*
-================================================================
-ACTIVITY ITEM
-================================================================
-*/
-
-function ActivityItem({
-    title,
-    value,
-    description,
-}) {
-    return (
-        <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-
-            <p className="text-xs uppercase tracking-wide text-slate-500">
-                {title}
-            </p>
-
-            <p className="mt-2 text-2xl font-bold text-white">
-                {value}
-            </p>
-
-            <p className="mt-1 text-xs text-slate-500">
-                {description}
-            </p>
-
-        </div>
-    );
-}
-
-/*
-================================================================
-INFO BOX
-================================================================
-*/
-
-function InfoBox({
+function LeaderStat({
     label,
     value,
-    icon: Icon,
 }) {
+
     return (
-        <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
 
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
 
-                <Icon size={14} />
-
+            <p className="text-xs font-medium text-slate-500">
                 {label}
+            </p>
 
-            </div>
-
-            <p className="mt-2 text-sm font-semibold text-white">
+            <p className="mt-2 text-2xl font-bold text-slate-900">
                 {value}
             </p>
 
         </div>
+
     );
+
 }
 
+// ============================================================
+// DEFAULT EXPORT
+// ============================================================
+
 export default TeamManagement;
+

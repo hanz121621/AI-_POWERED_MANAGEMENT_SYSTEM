@@ -82,3 +82,4 @@ namespace AI_PMS.Application.DTOs.Teams
         public decimal SprintProgressPercentage { get; set; }
     }
 }
+

@@ -14,7 +14,7 @@ namespace AI_PMS.Application.DTOs.Tasks
 
         public string Description { get; set; } = string.Empty;
 
-        public Guid? AssignedDeveloperId { get; set; }
+        public Guid? AssignedContributorSDId { get; set; }
 
         public TaskPriority Priority { get; set; }
 
@@ -31,3 +31,4 @@ namespace AI_PMS.Application.DTOs.Tasks
         public DateTime? UpdatedAt { get; set; }
     }
 }
+

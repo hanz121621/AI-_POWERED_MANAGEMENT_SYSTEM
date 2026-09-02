@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -5,16 +6,17 @@ import {
     BarChart3,
     ChevronDown,
     ClipboardList,
-    FileText,
     Gauge,
-    HelpCircle,
     LayoutDashboard,
     MessageSquare,
     UsersRound,
     Workflow,
-    FolderKanban,
     X,
 } from "lucide-react";
+
+// ============================================================
+// TEAM LEADER SIDEBAR
+// ============================================================
 
 function TeamLeaderSidebar({
     isOpen = true,
@@ -23,16 +25,13 @@ function TeamLeaderSidebar({
     const [teamLeaderOpen, setTeamLeaderOpen] =
         useState(true);
 
-    const [projectParticipationOpen, setProjectParticipationOpen] =
-        useState(true);
-
-    /* ========================================================
-       TEAM LEADER MENU
-    ======================================================== */
+    // ========================================================
+    // TEAM LEADER MENU
+    // ========================================================
 
     const teamLeaderItems = [
         {
-            label: "View Assigned Team",
+            label: "View Assigned Projects",
             path: "/team-leader/assigned-team",
             icon: UsersRound,
         },
@@ -48,12 +47,12 @@ function TeamLeaderSidebar({
         },
         {
             label: "Coordinate Team Work",
-            path: "/team-leader/coordinate-work",
+            path: "/team-leader/create-team-task",
             icon: Workflow,
         },
         {
             label: "Communicate with Manager",
-            path: "/team-leader/manager-communication",
+            path: "/team-leader/communication/messages",
             icon: MessageSquare,
         },
         {
@@ -63,56 +62,9 @@ function TeamLeaderSidebar({
         },
     ];
 
-    /* ========================================================
-       PROJECT PARTICIPATION SUB MENU
-    ======================================================== */
-
-    const projectParticipationItems = [
-        {
-            label: "View Assigned Projects",
-            icon: FolderKanban,
-            section: "assigned-projects",
-        },
-        {
-            label: "View Project Details",
-            icon: FileText,
-            section: "details",
-        },
-        {
-            label: "View Project Team",
-            icon: UsersRound,
-            section: "team",
-        },
-        {
-            label: "View Project Tasks",
-            icon: ClipboardList,
-            section: "tasks",
-        },
-        {
-            label: "View Project Progress",
-            icon: Gauge,
-            section: "progress",
-        },
-        {
-            label: "Participate in Project Communication",
-            icon: MessageSquare,
-            section: "communication",
-        },
-        {
-            label: "View Project Files",
-            icon: FileText,
-            section: "files",
-        },
-        {
-            label: "Request Project Assistance",
-            icon: HelpCircle,
-            section: "assistance",
-        },
-    ];
-
-    /* ========================================================
-       NAV ITEM CLASS
-    ======================================================== */
+    // ========================================================
+    // MAIN NAV ITEM CLASS
+    // ========================================================
 
     const navItemClass = ({ isActive }) =>
         `
@@ -144,9 +96,9 @@ function TeamLeaderSidebar({
         }
         `;
 
-    /* ========================================================
-       SUB ITEM CLASS
-    ======================================================== */
+    // ========================================================
+    // SUB ITEM CLASS
+    // ========================================================
 
     const subItemClass = ({ isActive }) =>
         `
@@ -177,35 +129,9 @@ function TeamLeaderSidebar({
         }
         `;
 
-    /* ========================================================
-       PROJECT SUB ITEM CLASS
-    ======================================================== */
-
-    const projectSubItemClass =
-        `
-        group
-        flex
-        w-full
-        items-center
-        gap-3
-        rounded-lg
-        px-3
-        py-2
-        text-xs
-        transition-all
-        duration-200
-        text-slate-400
-        hover:bg-blue-950/60
-        hover:text-white
-        `;
-
-    /* ========================================================
-       PROJECT PARTICIPATION MAIN BUTTON
-    ======================================================== */
-
-    const isProjectParticipationPage =
-        window.location.pathname ===
-            "/team-leader/project-participation";
+    // ========================================================
+    // RENDER
+    // ========================================================
 
     return (
         <>
@@ -234,13 +160,12 @@ function TeamLeaderSidebar({
 
             <aside
                 className={`
-                    fixed
-                    left-0
-                    top-0
+                    relative
                     z-50
                     flex
-                    h-screen
+                    min-h-screen
                     w-72
+                    shrink-0
                     flex-col
                     border-r
                     border-blue-900/70
@@ -279,6 +204,8 @@ function TeamLeaderSidebar({
                 >
                     <div className="flex items-center gap-3">
 
+                        {/* LOGO */}
+
                         <div
                             className="
                                 flex
@@ -294,6 +221,8 @@ function TeamLeaderSidebar({
                         >
                             <UsersRound className="h-5 w-5" />
                         </div>
+
+                        {/* TITLE */}
 
                         <div>
                             <p
@@ -345,7 +274,6 @@ function TeamLeaderSidebar({
                 <nav
                     className="
                         flex-1
-                        overflow-y-auto
                         px-3
                         py-5
                     "
@@ -356,8 +284,7 @@ function TeamLeaderSidebar({
 
                     <div className="mb-2">
                         <NavLink
-                            to="/team-leader"
-                            end
+                            to="/team-leader/dashboard"
                             onClick={onClose}
                             className={navItemClass}
                         >
@@ -405,7 +332,7 @@ function TeamLeaderSidebar({
 
                     <div>
 
-                        {/* TEAM LEADER BUTTON */}
+                        {/* DROPDOWN BUTTON */}
 
                         <button
                             type="button"
@@ -434,13 +361,8 @@ function TeamLeaderSidebar({
                                 teamLeaderOpen
                             }
                         >
-                            <span
-                                className="
-                                    flex
-                                    items-center
-                                    gap-3
-                                "
-                            >
+                            <span className="flex items-center gap-3">
+
                                 <UsersRound
                                     className="
                                         h-5
@@ -453,6 +375,7 @@ function TeamLeaderSidebar({
                                 <span>
                                     Team Leader
                                 </span>
+
                             </span>
 
                             <ChevronDown
@@ -473,24 +396,20 @@ function TeamLeaderSidebar({
                         </button>
 
                         {/* ==================================================
-                            TEAM LEADER CONTENT
+                            DROPDOWN CONTENT
                         ================================================== */}
 
                         {teamLeaderOpen && (
                             <div
                                 className="
                                     mt-1
+                                    ml-5
                                     space-y-1
                                     border-l
                                     border-blue-900
-                                    ml-5
                                     pl-2
                                 "
                             >
-                                {/* ==================================================
-                                    TEAM LEADER FEATURES
-                                ================================================== */}
-
                                 {teamLeaderItems.map(
                                     (item) => {
                                         const Icon =
@@ -528,171 +447,6 @@ function TeamLeaderSidebar({
                                         );
                                     }
                                 )}
-
-                                {/* ==================================================
-                                    PROJECT PARTICIPATION
-                                ================================================== */}
-
-                                <div className="pt-1">
-
-                                    {/* PROJECT PARTICIPATION BUTTON */}
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setProjectParticipationOpen(
-                                                (current) =>
-                                                    !current
-                                            )
-                                        }
-                                        className={`
-                                            flex
-                                            w-full
-                                            items-center
-                                            justify-between
-                                            rounded-lg
-                                            px-3
-                                            py-2.5
-                                            text-sm
-                                            font-semibold
-                                            transition-all
-                                            duration-200
-
-                                            ${
-                                                isProjectParticipationPage
-                                                    ? "bg-blue-600 text-white"
-                                                    : "text-slate-300 hover:bg-blue-950/70 hover:text-white"
-                                            }
-                                        `}
-                                        aria-expanded={
-                                            projectParticipationOpen
-                                        }
-                                    >
-                                        <span
-                                            className="
-                                                flex
-                                                items-center
-                                                gap-3
-                                            "
-                                        >
-                                            <FolderKanban
-                                                className="
-                                                    h-4
-                                                    w-4
-                                                    shrink-0
-                                                    text-blue-400
-                                                "
-                                            />
-
-                                            <span>
-                                                Project Participation
-                                            </span>
-                                        </span>
-
-                                        <ChevronDown
-                                            className={`
-                                                h-4
-                                                w-4
-                                                text-slate-400
-                                                transition-transform
-                                                duration-200
-
-                                                ${
-                                                    projectParticipationOpen
-                                                        ? "rotate-180"
-                                                        : ""
-                                                }
-                                            `}
-                                        />
-                                    </button>
-
-                                    {/* ==================================================
-                                        PROJECT PARTICIPATION SUB MENU
-                                    ================================================== */}
-
-                                    {projectParticipationOpen && (
-                                        <div
-                                            className="
-                                                ml-5
-                                                mt-1
-                                                space-y-1
-                                                border-l
-                                                border-blue-900
-                                                pl-2
-                                            "
-                                        >
-                                            {/* ==================================================
-                                                MAIN PROJECT PARTICIPATION PAGE
-                                            ================================================== */}
-
-                                            <NavLink
-                                                to="/team-leader/project-participation"
-                                                onClick={onClose}
-                                                className={`
-                                                    ${projectSubItemClass}
-
-                                                    ${
-                                                        isProjectParticipationPage
-                                                            ? "bg-blue-600/80 text-white"
-                                                            : ""
-                                                    }
-                                                `}
-                                            >
-                                                <FolderKanban
-                                                    className="
-                                                        h-4
-                                                        w-4
-                                                        shrink-0
-                                                    "
-                                                />
-
-                                                <span>
-                                                    Project Participation
-                                                </span>
-                                            </NavLink>
-
-                                            {/* ==================================================
-                                                8 PROJECT USE CASES
-                                            ================================================== */}
-
-                                            {projectParticipationItems.map(
-                                                (item) => {
-                                                    const Icon =
-                                                        item.icon;
-
-                                                    return (
-                                                        <NavLink
-                                                            key={
-                                                                item.section
-                                                            }
-                                                            to={`/team-leader/project-participation?section=${item.section}`}
-                                                            onClick={
-                                                                onClose
-                                                            }
-                                                            className={
-                                                                projectSubItemClass
-                                                            }
-                                                        >
-                                                            <Icon
-                                                                className="
-                                                                    h-3.5
-                                                                    w-3.5
-                                                                    shrink-0
-                                                                "
-                                                            />
-
-                                                            <span>
-                                                                {
-                                                                    item.label
-                                                                }
-                                                            </span>
-                                                        </NavLink>
-                                                    );
-                                                }
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
                             </div>
                         )}
                     </div>
@@ -726,6 +480,8 @@ function TeamLeaderSidebar({
                                 gap-3
                             "
                         >
+                            {/* AVATAR */}
+
                             <div
                                 className="
                                     flex
@@ -737,8 +493,12 @@ function TeamLeaderSidebar({
                                     bg-blue-600
                                 "
                             >
-                                <UsersRound className="h-4 w-4" />
+                                <UsersRound
+                                    className="h-4 w-4"
+                                />
                             </div>
+
+                            {/* USER INFO */}
 
                             <div className="min-w-0">
                                 <p

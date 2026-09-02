@@ -19,7 +19,33 @@ public class UserPreferenceService : IUserPreferenceService
         _context = context;
         _customThemeRepository = customThemeRepository;
     }
+                       // =========================================================
+// GET SUPPORTED LANGUAGES
+// =========================================================
 
+public async Task<List<string>>
+    GetSupportedLanguagesAsync()
+{
+    var systemSetting =
+        await _context.SystemSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync();
+
+    if (systemSetting == null)
+    {
+        return new List<string>();
+    }
+
+    return systemSetting.AvailableLanguages
+        .Split(
+            ',',
+            StringSplitOptions.RemoveEmptyEntries)
+        .Select(x => x.Trim().ToLowerInvariant())
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct()
+        .OrderBy(x => x)
+        .ToList();
+}
     // =========================================================
     // GET CURRENT USER PREFERENCES
     // =========================================================
@@ -99,14 +125,45 @@ public class UserPreferenceService : IUserPreferenceService
         // language options.
         //
 
-        var language =
-            request.LanguagePreference.Trim().ToLowerInvariant();
+      var language =
+    request.LanguagePreference?
+        .Trim()
+        .ToLowerInvariant();
 
-        if (string.IsNullOrWhiteSpace(language))
-        {
-            throw new ArgumentException(
-                "Language preference is required.");
-        }
+if (string.IsNullOrWhiteSpace(language))
+{
+    throw new ArgumentException(
+        "Language preference is required.");
+}
+
+// =====================================================
+// VALIDATE AGAINST SYSTEM SUPPORTED LANGUAGES
+// =====================================================
+
+var systemSetting =
+    await _context.SystemSettings
+        .AsNoTracking()
+        .FirstOrDefaultAsync();
+
+if (systemSetting == null)
+{
+    throw new InvalidOperationException(
+        "System language settings are not configured.");
+}
+
+var supportedLanguages =
+    systemSetting.AvailableLanguages
+        .Split(
+            ',',
+            StringSplitOptions.RemoveEmptyEntries)
+        .Select(x => x.Trim().ToLowerInvariant())
+        .ToHashSet();
+
+if (!supportedLanguages.Contains(language))
+{
+    throw new ArgumentException(
+        "Selected language is not available.");
+}
 
         // =====================================================
         // VALIDATE THEME

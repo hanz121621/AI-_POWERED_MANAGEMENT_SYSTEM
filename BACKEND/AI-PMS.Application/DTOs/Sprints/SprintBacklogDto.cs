@@ -36,7 +36,7 @@ namespace AI_PMS.Application.DTOs.Sprints
 
         public string Description { get; set; } = string.Empty;
 
-        public Guid? AssignedDeveloperId { get; set; }
+        public Guid? AssignedContributorSDId { get; set; }
 
         public string? AssignedDeveloperName { get; set; }
 

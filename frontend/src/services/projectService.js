@@ -1,6 +1,8 @@
-
 import api from "@/services/api";
 
+// ============================================================
+// PROJECT STATUS NAMES
+// ============================================================
 
 export const PROJECT_STATUS_NAMES = {
     Active: "Active",
@@ -12,7 +14,140 @@ export const PROJECT_STATUS_NAMES = {
     Rejected: "Rejected",
 };
 
+// ============================================================
+// EMPTY PROJECT SPECIFICATION
+// ============================================================
 
+export const EMPTY_PROJECT_SPECIFICATION = {
+    objectives: "",
+    scope: "",
+    functionalRequirements: "",
+    nonFunctionalRequirements: "",
+    deliverables: "",
+    technologyStack: "",
+    assumptions: "",
+    constraints: "",
+};
+
+// ============================================================
+// ERROR HELPER
+// ============================================================
+
+function getApiErrorMessage(
+    error,
+    fallback = "Unable to complete the request."
+) {
+    const response = error?.response;
+
+    if (!response) {
+        return error?.message || fallback;
+    }
+
+    const data = response.data;
+
+    console.error(
+        "API ERROR STATUS:",
+        response.status
+    );
+
+    console.error(
+        "API ERROR DATA:",
+        data
+    );
+
+    // --------------------------------------------------------
+    // 401
+    // --------------------------------------------------------
+
+    if (response.status === 401) {
+        return (
+            data?.message ||
+            data?.detail ||
+            "Unauthorized. Please login again."
+        );
+    }
+
+    // --------------------------------------------------------
+    // 403
+    // --------------------------------------------------------
+
+    if (response.status === 403) {
+        return (
+            data?.message ||
+            data?.detail ||
+            "You do not have permission to perform this action."
+        );
+    }
+
+    // --------------------------------------------------------
+    // 404
+    // --------------------------------------------------------
+
+    if (response.status === 404) {
+        return (
+            data?.message ||
+            data?.detail ||
+            "The requested resource was not found."
+        );
+    }
+
+    // --------------------------------------------------------
+    // Validation errors
+    // --------------------------------------------------------
+
+    if (
+        data?.errors &&
+        typeof data.errors === "object"
+    ) {
+        const messages = [];
+
+        Object.entries(data.errors).forEach(
+            ([field, fieldMessages]) => {
+                if (Array.isArray(fieldMessages)) {
+                    fieldMessages.forEach((message) => {
+                        messages.push(
+                            `${field}: ${message}`
+                        );
+                    });
+                } else if (fieldMessages) {
+                    messages.push(
+                        `${field}: ${fieldMessages}`
+                    );
+                }
+            }
+        );
+
+        if (messages.length > 0) {
+            return messages.join("\n");
+        }
+    }
+
+    // --------------------------------------------------------
+    // ProblemDetails
+    // --------------------------------------------------------
+
+    if (data?.detail) {
+        return data.detail;
+    }
+
+    if (data?.title) {
+        return data.title;
+    }
+
+    if (data?.message) {
+        return data.message;
+    }
+
+    if (typeof data === "string") {
+        return data;
+    }
+
+    return fallback;
+}
+
+// ============================================================
+// NORMALIZE PROJECT
+// ============================================================
 
 function normalizeProject(project) {
     if (!project) {
@@ -29,12 +164,14 @@ function normalizeProject(project) {
         id:
             project?.id ??
             project?.projectId ??
-            project?.ProjectId,
+            project?.ProjectId ??
+            null,
 
         projectId:
             project?.projectId ??
             project?.id ??
-            project?.ProjectId,
+            project?.ProjectId ??
+            null,
 
         // ----------------------------------------------------
         // BASIC INFORMATION
@@ -51,12 +188,6 @@ function normalizeProject(project) {
 
         // ----------------------------------------------------
         // STATUS
-        //
-        // Backend may return:
-        //
-        // statusId
-        // statusName
-        // status
         // ----------------------------------------------------
 
         statusId:
@@ -79,9 +210,6 @@ function normalizeProject(project) {
 
         // ----------------------------------------------------
         // MANAGER
-        //
-        // IMPORTANT:
-        // Keep both ID and name.
         // ----------------------------------------------------
 
         managerId:
@@ -148,8 +276,6 @@ function normalizeProject(project) {
 
         // ----------------------------------------------------
         // OPTIONAL FRONTEND FIELDS
-        //
-        // These may be supplied by the backend.
         // ----------------------------------------------------
 
         progress:
@@ -187,21 +313,15 @@ function normalizeProject(project) {
 function normalizeProjectList(data) {
     let projects = [];
 
-    // --------------------------------------------------------
     // Backend returns:
-    //
     // [ {...}, {...} ]
-    // --------------------------------------------------------
 
     if (Array.isArray(data)) {
         projects = data;
     }
 
-    // --------------------------------------------------------
     // Possible wrapper:
-    //
     // { projects: [...] }
-    // --------------------------------------------------------
 
     else if (
         Array.isArray(data?.projects)
@@ -209,11 +329,8 @@ function normalizeProjectList(data) {
         projects = data.projects;
     }
 
-    // --------------------------------------------------------
     // Possible wrapper:
-    //
     // { data: [...] }
-    // --------------------------------------------------------
 
     else if (
         Array.isArray(data?.data)
@@ -221,11 +338,8 @@ function normalizeProjectList(data) {
         projects = data.data;
     }
 
-    // --------------------------------------------------------
     // Possible wrapper:
-    //
     // { items: [...] }
-    // --------------------------------------------------------
 
     else if (
         Array.isArray(data?.items)
@@ -239,148 +353,74 @@ function normalizeProjectList(data) {
 }
 
 // ============================================================
-// ERROR HELPER
+// NORMALIZE PROJECT SPECIFICATION
 // ============================================================
 
-function getApiErrorMessage(
-    error,
-    fallback = "Unable to complete the request."
-) {
-    const response =
-        error?.response;
-
-    if (!response) {
-        return (
-            error?.message ||
-            fallback
-        );
+function normalizeProjectSpecification(data) {
+    if (!data) {
+        return null;
     }
 
-    const data =
-        response.data;
+    return {
+        ...data,
 
-    console.error(
-        "API ERROR STATUS:",
-        response.status
-    );
+        id:
+            data?.id ??
+            data?.specificationId ??
+            data?.SpecificationId ??
+            null,
 
-    console.error(
-        "API ERROR DATA:",
-        data
-    );
+        specificationId:
+            data?.specificationId ??
+            data?.SpecificationId ??
+            data?.id ??
+            null,
 
-    // --------------------------------------------------------
-    // 401
-    // --------------------------------------------------------
+        projectId:
+            data?.projectId ??
+            data?.ProjectId ??
+            null,
 
-    if (
-        response.status === 401
-    ) {
-        return (
-            data?.message ||
-            data?.detail ||
-            "Unauthorized. Please login again."
-        );
-    }
+        objectives:
+            data?.objectives ??
+            data?.Objectives ??
+            "",
 
-    // --------------------------------------------------------
-    // 403
-    // --------------------------------------------------------
+        scope:
+            data?.scope ??
+            data?.Scope ??
+            "",
 
-    if (
-        response.status === 403
-    ) {
-        return (
-            data?.message ||
-            data?.detail ||
-            "You do not have permission to perform this action."
-        );
-    }
+        functionalRequirements:
+            data?.functionalRequirements ??
+            data?.FunctionalRequirements ??
+            "",
 
-    // --------------------------------------------------------
-    // 404
-    // --------------------------------------------------------
+        nonFunctionalRequirements:
+    data?.nonFunctionalRequirements ??
+    data?.NonFunctionalRequirements ??
+    "",
 
-    if (
-        response.status === 404
-    ) {
-        return (
-            data?.message ||
-            data?.detail ||
-            "Project was not found."
-        );
-    }
+        deliverables:
+            data?.deliverables ??
+            data?.Deliverables ??
+            "",
 
-    // --------------------------------------------------------
-    // Validation errors
-    // --------------------------------------------------------
+        technologyStack:
+            data?.technologyStack ??
+            data?.TechnologyStack ??
+            "",
 
-    if (
-        data?.errors &&
-        typeof data.errors ===
-            "object"
-    ) {
-        const messages = [];
+        assumptions:
+            data?.assumptions ??
+            data?.Assumptions ??
+            "",
 
-        Object.entries(
-            data.errors
-        ).forEach(
-            ([field, fieldMessages]) => {
-                if (
-                    Array.isArray(
-                        fieldMessages
-                    )
-                ) {
-                    fieldMessages.forEach(
-                        (message) => {
-                            messages.push(
-                                `${field}: ${message}`
-                            );
-                        }
-                    );
-                } else if (
-                    fieldMessages
-                ) {
-                    messages.push(
-                        `${field}: ${fieldMessages}`
-                    );
-                }
-            }
-        );
-
-        if (
-            messages.length > 0
-        ) {
-            return messages.join(
-                "\n"
-            );
-        }
-    }
-
-    // --------------------------------------------------------
-    // ProblemDetails
-    // --------------------------------------------------------
-
-    if (data?.detail) {
-        return data.detail;
-    }
-
-    if (data?.title) {
-        return data.title;
-    }
-
-    if (data?.message) {
-        return data.message;
-    }
-
-    if (
-        typeof data ===
-        "string"
-    ) {
-        return data;
-    }
-
-    return fallback;
+        constraints:
+            data?.constraints ??
+            data?.Constraints ??
+            "",
+    };
 }
 
 // ============================================================
@@ -391,40 +431,13 @@ function getApiErrorMessage(
 
 export async function getProjects() {
     try {
-        console.log(
-            "========== GET PROJECTS =========="
-        );
-
-        console.log(
-            "GET:",
+        const response = await api.get(
             "/projects"
         );
 
-        const response =
-            await api.get(
-                "/projects"
-            );
-
-        console.log(
-            "PROJECTS RESPONSE:",
+        return normalizeProjectList(
             response.data
         );
-
-        const projects =
-            normalizeProjectList(
-                response.data
-            );
-
-        console.log(
-            "NORMALIZED PROJECTS:",
-            projects
-        );
-
-        console.log(
-            "=================================="
-        );
-
-        return projects;
     } catch (error) {
         console.error(
             "GET PROJECTS ERROR:",
@@ -451,10 +464,9 @@ export async function getProjects() {
 
 export async function getActiveProjects() {
     try {
-        const response =
-            await api.get(
-                "/projects/active"
-            );
+        const response = await api.get(
+            "/projects/active"
+        );
 
         return normalizeProjectList(
             response.data
@@ -485,10 +497,9 @@ export async function getActiveProjects() {
 
 export async function getArchivedProjects() {
     try {
-        const response =
-            await api.get(
-                "/projects/archived"
-            );
+        const response = await api.get(
+            "/projects/archived"
+        );
 
         return normalizeProjectList(
             response.data
@@ -515,11 +526,6 @@ export async function getArchivedProjects() {
 // GET PROJECT BY ID
 //
 // GET /api/projects/{id}
-//
-// IMPORTANT:
-// This requires the PROJECT UUID.
-//
-// Do NOT pass the project name.
 // ============================================================
 
 export async function getProjectById(
@@ -532,10 +538,9 @@ export async function getProjectById(
     }
 
     try {
-        const response =
-            await api.get(
-                `/projects/${projectId}`
-            );
+        const response = await api.get(
+            `/projects/${projectId}`
+        );
 
         return normalizeProject(
             response.data
@@ -562,22 +567,6 @@ export async function getProjectById(
 // CREATE PROJECT
 //
 // POST /api/projects
-//
-// Backend request:
-//
-// {
-//     name,
-//     description,
-//     statusId,
-//     managerId,
-//     teamId,
-//     priorityId,
-//     startDate,
-//     deadline
-// }
-//
-// IMPORTANT:
-// managerId and teamId must be UUIDs.
 // ============================================================
 
 export async function createProject(
@@ -593,17 +582,13 @@ export async function createProject(
 
     try {
         const requestData = {
-            name:
-                String(
-                    projectData.name ||
-                        ""
-                ).trim(),
+            name: String(
+                projectData.name || ""
+            ).trim(),
 
-            description:
-                String(
-                    projectData.description ||
-                        ""
-                ).trim(),
+            description: String(
+                projectData.description || ""
+            ).trim(),
 
             statusId:
                 projectData.statusId ||
@@ -632,47 +617,9 @@ export async function createProject(
                 null,
         };
 
-        console.log(
-            "================================================"
-        );
-
-        console.log(
-            "CREATE PROJECT BACKEND REQUEST"
-        );
-
-        console.log(
-            "POST:",
-            "/projects"
-        );
-
-        console.log(
-            "REQUEST DATA:",
+        const response = await api.post(
+            "/projects",
             requestData
-        );
-
-        console.log(
-            "MANAGER ID:",
-            requestData.managerId
-        );
-
-        console.log(
-            "TEAM ID:",
-            requestData.teamId
-        );
-
-        console.log(
-            "================================================"
-        );
-
-        const response =
-            await api.post(
-                "/projects",
-                requestData
-            );
-
-        console.log(
-            "CREATE PROJECT SUCCESS:",
-            response.data
         );
 
         return {
@@ -689,35 +636,8 @@ export async function createProject(
         };
     } catch (error) {
         console.error(
-            "================================================"
-        );
-
-        console.error(
-            "CREATE PROJECT ERROR"
-        );
-
-        console.error(
-            "STATUS:",
-            error?.response?.status
-        );
-
-        console.error(
-            "REQUEST URL:",
-            error?.config?.url
-        );
-
-        console.error(
-            "REQUEST BODY:",
-            error?.config?.data
-        );
-
-        console.error(
-            "BACKEND RESPONSE:",
-            error?.response?.data
-        );
-
-        console.error(
-            "================================================"
+            "CREATE PROJECT ERROR:",
+            error
         );
 
         return {
@@ -797,11 +717,10 @@ export async function updateProject(
                 null,
         };
 
-        const response =
-            await api.put(
-                `/projects/${projectId}`,
-                requestData
-            );
+        const response = await api.put(
+            `/projects/${projectId}`,
+            requestData
+        );
 
         return {
             success: true,
@@ -905,24 +824,17 @@ export async function approveProject(
     if (!projectId) {
         return {
             success: false,
-            error:
-                "Project ID is required.",
+            error: "Project ID is required.",
         };
     }
 
     try {
-        const response =
-            await api.post(
-                `/projects/${projectId}/approve`
-            );
+        const response = await api.post(
+            `/projects/${projectId}/approve`
+        );
 
         return {
             success: true,
-
-            project:
-                normalizeProject(
-                    response.data
-                ),
 
             message:
                 response.data?.message ||
@@ -937,11 +849,16 @@ export async function approveProject(
         return {
             success: false,
 
-            error:
-                getApiErrorMessage(
-                    error,
-                    "Unable to approve project."
-                ),
+            error: getApiErrorMessage(
+                error,
+                "Unable to approve project."
+            ),
+
+            status:
+                error?.response?.status,
+
+            details:
+                error?.response?.data,
         };
     }
 }
@@ -952,30 +869,28 @@ export async function approveProject(
 // POST /api/projects/{id}/reject
 // ============================================================
 
+
+
+
+
+
 export async function rejectProject(
     projectId
 ) {
     if (!projectId) {
         return {
             success: false,
-            error:
-                "Project ID is required.",
+            error: "Project ID is required.",
         };
     }
 
     try {
-        const response =
-            await api.post(
-                `/projects/${projectId}/reject`
-            );
+        const response = await api.post(
+            `/projects/${projectId}/reject`
+        );
 
         return {
             success: true,
-
-            project:
-                normalizeProject(
-                    response.data
-                ),
 
             message:
                 response.data?.message ||
@@ -990,11 +905,16 @@ export async function rejectProject(
         return {
             success: false,
 
-            error:
-                getApiErrorMessage(
-                    error,
-                    "Unable to reject project."
-                ),
+            error: getApiErrorMessage(
+                error,
+                "Unable to reject project."
+            ),
+
+            status:
+                error?.response?.status,
+
+            details:
+                error?.response?.data,
         };
     }
 }
@@ -1004,52 +924,54 @@ export async function rejectProject(
 //
 // PUT /api/projects/{id}/status
 //
-// Backend:
-//
+// Body:
 // {
 //     statusId: "UUID"
 // }
-//
-// IMPORTANT:
-// The frontend must provide the STATUS UUID.
 // ============================================================
+
+
+
+
+
+
 
 export async function changeProjectStatus(
     projectId,
-    statusId
+    statusId,
+    notes = null
 ) {
     if (!projectId) {
         return {
             success: false,
-            error:
-                "Project ID is required.",
+            error: "Project ID is required.",
         };
     }
 
     if (!statusId) {
         return {
             success: false,
-            error:
-                "Status ID is required.",
+            error: "Status ID is required.",
         };
     }
 
     try {
-        const response =
-            await api.put(
-                `/projects/${projectId}/status`,
-                {
-                    statusId,
-                }
-            );
+        const response = await api.put(
+            `/projects/${projectId}/status`,
+            {
+                statusId,
+                notes,
+            }
+        );
 
         return {
             success: true,
 
-            project:
-                normalizeProject(
-                    response.data
-                ),
+            project: normalizeProject(
+                response.data?.project ??
+                response.data?.data ??
+                response.data
+            ),
 
             message:
                 response.data?.message ||
@@ -1064,30 +986,60 @@ export async function changeProjectStatus(
         return {
             success: false,
 
-            error:
-                getApiErrorMessage(
-                    error,
-                    "Unable to update project status."
-                ),
+            error: getApiErrorMessage(
+                error,
+                "Unable to update project status."
+            ),
+
+            status:
+                error?.response?.status,
+
+            details:
+                error?.response?.data,
         };
+    }
+}
+
+// ============================================================
+// GET MY PROJECTS
+//
+// GET /api/projects/my-projects
+//
+// Intended for authenticated Manager.
+// ============================================================
+
+export async function getMyProjects() {
+    try {
+        const response =
+            await api.get(
+                "/projects/my-projects"
+            );
+
+        return normalizeProjectList(
+            response.data
+        );
+    } catch (error) {
+        console.error(
+            "GET MY PROJECTS ERROR:",
+            error
+        );
+
+        throw new Error(
+            getApiErrorMessage(
+                error,
+                "Unable to load your projects."
+            ),
+            {
+                cause: error,
+            }
+        );
     }
 }
 
 // ============================================================
 // ARCHIVE PROJECT
 //
-// There is NO dedicated:
-//
-// POST /api/projects/{id}/archive
-//
-// in the Swagger you provided.
-//
-// Therefore archive must be done through:
-//
 // PUT /api/projects/{id}/status
-//
-// with the backend's Archived status UUID.
-//
 // ============================================================
 
 export async function archiveProject(
@@ -1119,9 +1071,7 @@ export async function archiveProject(
 // ============================================================
 // RESTORE PROJECT
 //
-// Restore is also implemented through the status endpoint.
-//
-// Pass the backend UUID for the desired active status.
+// PUT /api/projects/{id}/status
 // ============================================================
 
 export async function restoreProject(
@@ -1151,12 +1101,11 @@ export async function restoreProject(
 }
 
 // ============================================================
-// ASSIGN MANAGER
+// ASSIGN PROJECT MANAGER
 //
 // POST /api/projects/{id}/assign-manager
 //
 // Body:
-//
 // {
 //     managerId: UUID
 // }
@@ -1225,12 +1174,6 @@ export async function assignProjectManager(
 // UPDATE PROJECT MANAGER
 //
 // PUT /api/projects/{id}/manager
-//
-// Body:
-//
-// {
-//     managerId: UUID
-// }
 // ============================================================
 
 export async function updateProjectManager(
@@ -1336,9 +1279,6 @@ export async function getProjectManager(
 // GET PROJECTS BY MANAGER
 //
 // GET /api/projects/manager/{managerId}
-//
-// IMPORTANT:
-// managerId must be the UUID.
 // ============================================================
 
 export async function getProjectsByManager(
@@ -1378,33 +1318,22 @@ export async function getProjectsByManager(
 }
 
 // ============================================================
-// GET PROJECTS BY MANAGER NAME
+// GET PROJECTS BY MANAGER USER
 //
-// FRONTEND HELPER
-//
-// The backend does NOT provide:
-//
-// GET /api/projects/manager/name/{name}
-//
-// So if the UI only has a manager name,
-// first obtain the manager's UUID from the
-// users/team service, then call the backend
-// using that UUID.
-//
-// This helper accepts a manager object:
+// Frontend helper.
+// Accepts:
 //
 // {
 //     id: "...",
-//     fullName: "Hana Nigussie"
+//     fullName: "..."
 // }
 //
-// OR:
+// OR
 //
 // {
 //     userId: "...",
-//     fullName: "Hana Nigussie"
+//     fullName: "..."
 // }
-//
 // ============================================================
 
 export async function getProjectsByManagerUser(
@@ -1428,9 +1357,6 @@ export async function getProjectsByManagerUser(
 
 // ============================================================
 // GET PROJECT STATISTICS
-//
-// Uses backend project list.
-//
 // ============================================================
 
 export async function getProjectStatistics() {
@@ -1480,14 +1406,481 @@ export async function getProjectStatistics() {
 }
 
 // ============================================================
-// DEFAULT EXPORT
+// PROJECT SPECIFICATION
+// ============================================================
+//
+// GET    /api/projects/{projectId}/specification
+// POST   /api/projects/{projectId}/specification
+// PUT    /api/projects/{projectId}/specification
+// DELETE /api/projects/{projectId}/specification
+//
 // ============================================================
 
+// ============================================================
+// GET PROJECT SPECIFICATION
+// ============================================================
+
+export async function getProjectSpecification(
+    projectId
+) {
+    if (!projectId) {
+        throw new Error(
+            "Project ID is required."
+        );
+    }
+
+    try {
+        const response =
+            await api.get(
+                `/projects/${projectId}/specification`
+            );
+
+        return normalizeProjectSpecification(
+            response.data
+        );
+    } catch (error) {
+        console.error(
+            "GET PROJECT SPECIFICATION ERROR:",
+            error
+        );
+
+        throw new Error(
+            getApiErrorMessage(
+                error,
+                "Unable to load project specification."
+            ),
+            {
+                cause: error,
+            }
+        );
+    }
+}
+
+// ============================================================
+// CREATE PROJECT SPECIFICATION
+// ============================================================
+
+export async function createProjectSpecification(
+    projectId,
+    specificationData
+) {
+    if (!projectId) {
+        return {
+            success: false,
+            error:
+                "Project ID is required.",
+        };
+    }
+
+    if (!specificationData) {
+        return {
+            success: false,
+            error:
+                "Project specification information is required.",
+        };
+    }
+
+    try {
+        const requestData = {
+            objectives:
+                String(
+                    specificationData.objectives ||
+                    ""
+                ).trim(),
+
+            scope:
+                String(
+                    specificationData.scope ||
+                    ""
+                ).trim(),
+
+            functionalRequirements:
+                String(
+                    specificationData.functionalRequirements ||
+                    ""
+                ).trim(),
+
+            nonFunctionalRequirements:
+                String(
+                    specificationData.nonFunctionalRequirements ||
+                    ""
+                ).trim(),
+
+            deliverables:
+                String(
+                    specificationData.deliverables ||
+                    ""
+                ).trim(),
+
+            technologyStack:
+                String(
+                    specificationData.technologyStack ||
+                    ""
+                ).trim(),
+
+            assumptions:
+                String(
+                    specificationData.assumptions ||
+                    ""
+                ).trim(),
+
+            constraints:
+                String(
+                    specificationData.constraints ||
+                    ""
+                ).trim(),
+        };
+
+        const response =
+            await api.post(
+                `/projects/${projectId}/specification`,
+                requestData
+            );
+
+        return {
+            success: true,
+
+            specification:
+                normalizeProjectSpecification(
+                    response.data
+                ),
+
+            message:
+                response.data?.message ||
+                "Project specification created successfully.",
+        };
+    } catch (error) {
+        console.error(
+            "CREATE PROJECT SPECIFICATION ERROR:",
+            error
+        );
+
+        return {
+            success: false,
+
+            error:
+                getApiErrorMessage(
+                    error,
+                    "Unable to create project specification."
+                ),
+
+            status:
+                error?.response?.status,
+
+            details:
+                error?.response?.data,
+        };
+    }
+}
+
+// ============================================================
+// UPDATE PROJECT SPECIFICATION
+// ============================================================
+
+export async function updateProjectSpecification(
+    projectId,
+    specificationData
+) {
+    if (!projectId) {
+        return {
+            success: false,
+            error:
+                "Project ID is required.",
+        };
+    }
+
+    if (!specificationData) {
+        return {
+            success: false,
+            error:
+                "Project specification information is required.",
+        };
+    }
+
+    try {
+        const requestData = {
+            objectives:
+                String(
+                    specificationData.objectives ||
+                    ""
+                ).trim(),
+
+            scope:
+                String(
+                    specificationData.scope ||
+                    ""
+                ).trim(),
+
+            functionalRequirements:
+                String(
+                    specificationData.functionalRequirements ||
+                    ""
+                ).trim(),
+
+            nonFunctionalRequirements:
+                String(
+                    specificationData.nonFunctionalRequirements ||
+                    ""
+                ).trim(),
+
+            deliverables:
+                String(
+                    specificationData.deliverables ||
+                    ""
+                ).trim(),
+
+            technologyStack:
+                String(
+                    specificationData.technologyStack ||
+                    ""
+                ).trim(),
+
+            assumptions:
+                String(
+                    specificationData.assumptions ||
+                    ""
+                ).trim(),
+
+            constraints:
+                String(
+                    specificationData.constraints ||
+                    ""
+                ).trim(),
+        };
+
+        const response =
+            await api.put(
+                `/projects/${projectId}/specification`,
+                requestData
+            );
+
+        return {
+            success: true,
+
+            specification:
+                normalizeProjectSpecification(
+                    response.data
+                ),
+
+            message:
+                response.data?.message ||
+                "Project specification updated successfully.",
+        };
+    } catch (error) {
+        console.error(
+            "UPDATE PROJECT SPECIFICATION ERROR:",
+            error
+        );
+
+        return {
+            success: false,
+
+            error:
+                getApiErrorMessage(
+                    error,
+                    "Unable to update project specification."
+                ),
+
+            status:
+                error?.response?.status,
+
+            details:
+                error?.response?.data,
+        };
+    }
+}
+
+
+
+// ============================================================
+// UPDATE PROJECT TIMELINE
+//
+// PUT /api/projects/{projectId}/timeline
+// ============================================================
+
+export async function updateProjectTimeline(
+    projectId,
+    timelineData
+) {
+    if (!projectId) {
+        return {
+            success: false,
+            error: "Project ID is required.",
+        };
+    }
+
+    if (!timelineData) {
+        return {
+            success: false,
+            error: "Timeline information is required.",
+        };
+    }
+
+    try {
+        const response = await api.put(
+            `/projects/${projectId}/timeline`,
+            timelineData
+        );
+
+        return {
+            success: true,
+
+            project: normalizeProject(
+                response.data?.data ??
+                response.data
+            ),
+
+            message:
+                response.data?.message ||
+                "Project timeline updated successfully.",
+        };
+    } catch (error) {
+        console.error(
+            "UPDATE PROJECT TIMELINE ERROR:",
+            error
+        );
+
+        return {
+            success: false,
+
+            error: getApiErrorMessage(
+                error,
+                "Unable to update project timeline."
+            ),
+
+            status:
+                error?.response?.status,
+
+            details:
+                error?.response?.data,
+        };
+    }
+}
+// ============================================================
+// DELETE PROJECT SPECIFICATION
+// ============================================================
+
+export async function deleteProjectSpecification(
+    projectId
+) {
+    if (!projectId) {
+        return {
+            success: false,
+            error:
+                "Project ID is required.",
+        };
+    }
+
+    try {
+        const response =
+            await api.delete(
+                `/projects/${projectId}/specification`
+            );
+
+        return {
+            success: true,
+
+            message:
+                response.data?.message ||
+                "Project specification deleted successfully.",
+        };
+    } catch (error) {
+        console.error(
+            "DELETE PROJECT SPECIFICATION ERROR:",
+            error
+        );
+
+        return {
+            success: false,
+
+            error:
+                getApiErrorMessage(
+                    error,
+                    "Unable to delete project specification."
+                ),
+
+            status:
+                error?.response?.status,
+
+            details:
+                error?.response?.data,
+        };
+    }
+}
+
+
+   // ============================================================
+// UPDATE PROJECT DEADLINE
+//
+// PUT /api/projects/{projectId}/deadline
+// ============================================================
+
+export async function updateProjectDeadline(
+    projectId,
+    deadlineData
+) {
+    if (!projectId) {
+        return {
+            success: false,
+            error: "Project ID is required.",
+        };
+    }
+
+    if (!deadlineData) {
+        return {
+            success: false,
+            error: "Deadline information is required.",
+        };
+    }
+
+    try {
+        const response = await api.put(
+            `/projects/${projectId}/deadline`,
+            deadlineData
+        );
+
+        return {
+            success: true,
+
+            project: normalizeProject(
+                response.data?.data ??
+                response.data
+            ),
+
+            message:
+                response.data?.message ||
+                "Project deadline updated successfully.",
+        };
+    } catch (error) {
+        console.error(
+            "UPDATE PROJECT DEADLINE ERROR:",
+            error
+        );
+
+        return {
+            success: false,
+
+            error: getApiErrorMessage(
+                error,
+                "Unable to update project deadline."
+            ),
+
+            status:
+                error?.response?.status,
+
+            details:
+                error?.response?.data,
+        };
+    }
+}
+// ============================================================
+// DEFAULT EXPORT
+// ============================================================
 export default {
+    // Projects
     getProjects,
     getActiveProjects,
     getArchivedProjects,
-
     getProjectById,
 
     createProject,
@@ -1501,12 +1894,25 @@ export default {
     archiveProject,
     restoreProject,
 
+    getMyProjects,
+
+    // Timeline / Deadline
+    updateProjectTimeline,
+    updateProjectDeadline,
+
+    // Manager
     assignProjectManager,
     updateProjectManager,
-
     getProjectManager,
+
     getProjectsByManager,
     getProjectsByManagerUser,
 
     getProjectStatistics,
+
+    // Project Specification
+    getProjectSpecification,
+    createProjectSpecification,
+    updateProjectSpecification,
+    deleteProjectSpecification,
 };

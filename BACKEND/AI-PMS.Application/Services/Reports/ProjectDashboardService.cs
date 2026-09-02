@@ -207,9 +207,9 @@ namespace AI_PMS.Application.Services.Reports
 
             var teamAssignedTasks =
                 tasks.Where(t =>
-                    t.AssignedDeveloperId.HasValue &&
+                    t.AssignedContributorSDId.HasValue &&
                     teamMemberIds.Contains(
-                        t.AssignedDeveloperId.Value))
+                        t.AssignedContributorSDId.Value))
                 .ToList();
 
             var teamAssignedWorkItems =
@@ -263,7 +263,7 @@ namespace AI_PMS.Application.Services.Reports
                 teamLeaderTasksAssigned =
                     tasks.Count(t =>
                         t.CreatedBy == leaderId &&
-                        t.AssignedDeveloperId.HasValue);
+                        t.AssignedContributorSDId.HasValue);
 
                 var leaderTasks =
                     tasks.Where(t =>

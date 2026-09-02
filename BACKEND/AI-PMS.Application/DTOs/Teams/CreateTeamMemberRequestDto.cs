@@ -22,3 +22,4 @@ namespace AI_PMS.Application.DTOs.Teams
         public string? Reason { get; set; }
     }
 }
+

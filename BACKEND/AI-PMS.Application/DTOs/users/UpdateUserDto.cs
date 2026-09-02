@@ -59,7 +59,7 @@ namespace AI_PMS.Application.DTOs.Users
         public Guid? ContributorSubTypeId { get; set; }
 
         // =========================================================
-        // OTHER INFORMATION
+        // CONTACT / PROFILE INFORMATION
         // =========================================================
 
         [Phone]
@@ -68,5 +68,18 @@ namespace AI_PMS.Application.DTOs.Users
 
         [MaxLength(500)]
         public string? Bio { get; set; }
+
+        // =========================================================
+        // PROFESSIONAL INFORMATION
+        // =========================================================
+
+        [MaxLength(2000)]
+        public string? TechnicalSkills { get; set; }
+
+        // =========================================================
+        // PROFILE IMAGE
+        // =========================================================
+
+        public string? ProfileImage { get; set; }
     }
 }

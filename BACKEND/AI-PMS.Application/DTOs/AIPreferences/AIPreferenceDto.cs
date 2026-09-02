@@ -43,3 +43,4 @@ public class AIPreferenceDto
 
     public DateTime UpdatedAt { get; set; }
 }
+

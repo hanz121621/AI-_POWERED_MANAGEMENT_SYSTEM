@@ -1,4 +1,3 @@
-
 using AI_PMS.Application.DTOs.Communication;
 
 namespace AI_PMS.Application.Interfaces.Communication
@@ -12,6 +11,19 @@ namespace AI_PMS.Application.Interfaces.Communication
         Task<List<MessageResponseDto>> GetConversationAsync(
             Guid managerId,
             Guid projectId);
+
+        Task<List<MessageResponseDto>> GetMyInboxAsync(
+            Guid userId);
+
+        Task<MessageResponseDto?> GetMessageByIdAsync(
+            Guid userId,
+            Guid messageId);
+
+        Task<(bool Success, string Message)> MarkAsReadAsync(
+            Guid userId,
+            Guid messageId);
+
+        Task<int> GetUnreadCountAsync(
+            Guid userId);
     }
 }
-

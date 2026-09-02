@@ -56,3 +56,4 @@ namespace AI_PMS.Application.DTOs.Contributors
         public bool IsActive { get; set; }
     }
 }
+

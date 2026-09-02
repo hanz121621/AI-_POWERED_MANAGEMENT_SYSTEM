@@ -1,33 +1,56 @@
+
+// ============================================================
+// AIPMS - MANAGER LAYOUT
+// ============================================================
+
 import { Outlet } from "react-router-dom";
 
 import ManagerSidebar from "@/components/manager/ManagerSidebar";
 import ManagerNavbar from "@/components/manager/ManagerNavbar";
-import ManagerThemeProvider from "@/contexts/ManagerThemeProvider";
 
 function ManagerLayout() {
     return (
-        <ManagerThemeProvider>
-            <div className="flex min-h-screen bg-background text-foreground">
+        <div className="flex min-h-screen bg-white">
 
-                {/* Sidebar */}
-                <ManagerSidebar />
+            {/* ==================================================
+                SIDEBAR
+            ================================================== */}
 
-                {/* Main area */}
-                <div className="ml-64 flex-1">
+            <ManagerSidebar />
 
-                    {/* Navbar */}
-                    <ManagerNavbar />
+            {/* ==================================================
+                MAIN AREA
+            ================================================== */}
 
-                    {/* Manager pages */}
-                    <main className="min-h-screen bg-background p-6">
-                        <Outlet />
-                    </main>
+            <div className="ml-64 flex min-h-screen flex-1 flex-col bg-white">
 
-                </div>
+                {/* ==================================================
+                    NAVBAR
+                ================================================== */}
+
+                <ManagerNavbar />
+
+                {/* ==================================================
+                    PAGE CONTENT
+                ================================================== */}
+
+                <main
+                    className="
+                        min-h-[calc(100vh-80px)]
+                        flex-1
+                        bg-white
+                        p-6
+                        text-slate-900
+                    "
+                >
+                    <Outlet />
+                </main>
 
             </div>
-        </ManagerThemeProvider>
+
+        </div>
     );
 }
 
 export default ManagerLayout;
+

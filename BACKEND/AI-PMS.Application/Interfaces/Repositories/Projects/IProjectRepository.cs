@@ -1,6 +1,6 @@
 using AI_PMS.Domain.Entities.Projects;
 
-namespace AI_PMS.Application.Interfaces.Projects
+namespace AI_PMS.Application.Interfaces.Repositories.Projects
 {
     public interface IProjectRepository
     {

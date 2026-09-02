@@ -41,3 +41,4 @@ namespace AI_PMS.Application.Interfaces.Permissions
                 Guid permissionId);
     }
 }
+

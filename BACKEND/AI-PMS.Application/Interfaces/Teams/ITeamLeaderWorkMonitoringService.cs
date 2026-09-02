@@ -14,3 +14,4 @@ namespace AI_PMS.Application.Interfaces.Teams
             Guid teamId);
     }
 }
+

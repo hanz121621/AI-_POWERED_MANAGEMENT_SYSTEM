@@ -21,7 +21,7 @@ namespace AI_PMS.Domain.Entities.Tasks
         [MaxLength(1000)]
         public string Description { get; set; } = string.Empty;
 
-        public Guid? AssignedDeveloperId { get; set; }
+       public Guid? AssignedContributorSDId { get; set; }
 
         public TaskPriority Priority { get; set; }
             = TaskPriority.Medium;
@@ -34,10 +34,17 @@ namespace AI_PMS.Domain.Entities.Tasks
         public int ActualHours { get; set; }
 
         public DateTime DueDate { get; set; }
+          
+          
 
         public DateTime CreatedAt { get; set; }
             = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }
+
+        public bool IsDeleted { get; set; } = false;
+
+        public DateTime? DeletedAt { get; set; }
     }
 }
+

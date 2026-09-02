@@ -1,5 +1,5 @@
-
 using AI_PMS.Domain.Enums;
+using AI_PMS.Domain.Entities.Projects;
 
 namespace AI_PMS.Application.DTOs.Users
 {
@@ -24,7 +24,7 @@ namespace AI_PMS.Application.DTOs.Users
         public bool IsActive { get; set; }
 
         // =========================================================
-        // OTHER INFORMATION
+        // CONTACT / PROFILE
         // =========================================================
 
         public string? PhoneNumber { get; set; }
@@ -34,31 +34,43 @@ namespace AI_PMS.Application.DTOs.Users
         public string? Bio { get; set; }
 
         // =========================================================
+        // PROFESSIONAL INFORMATION
+        // =========================================================
+
+        public string? TechnicalSkills { get; set; }
+
+        // =========================================================
         // CONTRIBUTOR CLASSIFICATION
         // =========================================================
 
-        // Selected contributor type.
-        //
-        // Example:
-        // Developer
-        // Staff
         public Guid? ContributorTypeId { get; set; }
 
         public string? ContributorTypeName { get; set; }
 
-        // Selected contributor subtype.
-        //
-        // Example:
-        // Frontend Developer
-        // Backend Developer
-        // Full Stack Developer
-        // Mobile Developer
-        // QA
-        // UI/UX Designer
-        // Business Analyst
         public Guid? ContributorSubTypeId { get; set; }
 
         public string? ContributorSubTypeName { get; set; }
+
+        // =========================================================
+        // TEAM
+        // =========================================================
+
+        public Guid? TeamId { get; set; }
+
+        public string? TeamName { get; set; }
+
+        // =========================================================
+        // ASSIGNED PROJECTS
+        // =========================================================
+
+        public IEnumerable<UserProjectDto> AssignedProjects { get; set; }
+            = new List<UserProjectDto>();
+
+        // =========================================================
+        // LOGIN INFORMATION
+        // =========================================================
+
+        public DateTime? LastLoginAt { get; set; }
 
         // =========================================================
         // AUDIT
@@ -67,5 +79,26 @@ namespace AI_PMS.Application.DTOs.Users
         public DateTime CreatedAt { get; set; }
 
         public DateTime? UpdatedAt { get; set; }
+    }
+
+    // =============================================================
+    // ASSIGNED PROJECT DTO
+    // =============================================================
+
+    public class UserProjectDto
+    {
+        public Guid Id { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+
+        public string? Description { get; set; }
+
+        public ProjectPriority Priority { get; set; }
+
+        public decimal ProgressPercentage { get; set; }
+
+        public DateTime StartDate { get; set; }
+
+        public DateTime Deadline { get; set; }
     }
 }

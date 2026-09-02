@@ -1,7 +1,9 @@
 using AI_PMS.Application.DTOs.Sprints;
 using AI_PMS.Application.Interfaces.Sprints;
 using AI_PMS.Application.Interfaces.Projects;
+using AI_PMS.Application.Interfaces.Repositories.Projects;
 using AI_PMS.Domain.Entities.Sprints;
+using  AI_PMS.Application.Interfaces.Repositories.Sprints;
 using AI_PMS.Application.Interfaces.Repositories.Teams;
 using AI_PMS.Application.Interfaces.Repositories.Tasks;
 using AI_PMS.Application.Interfaces.Repositories.Users;
@@ -231,6 +233,443 @@ namespace AI_PMS.Application.Services.Sprints
                 "Sprint created successfully."
             );
         }
+
+                 
+            
+
+// =========================================================
+// DEV-SPRINT-001 / STAFF-SPRINT-001
+// VIEW MY SPRINTS
+// =========================================================
+
+public async Task<IEnumerable<SprintDto>> GetMySprintsAsync(
+    Guid contributorId)
+{
+    // ---------------------------------------------------------
+    // 1. VALIDATE USER ID
+    // ---------------------------------------------------------
+
+    if (contributorId == Guid.Empty)
+    {
+        throw new InvalidOperationException(
+            "Invalid contributor identity.");
+    }
+
+    // ---------------------------------------------------------
+    // 2. GET USER
+    // ---------------------------------------------------------
+
+    var contributor =
+        await _userRepository.GetByIdAsync(
+            contributorId);
+
+    if (contributor == null)
+    {
+        throw new InvalidOperationException(
+            "Contributor not found.");
+    }
+
+    // ---------------------------------------------------------
+    // 3. USER MUST BE CONTRIBUTOR
+    // ---------------------------------------------------------
+
+    if (contributor.Role != Role.Contributor)
+    {
+        throw new InvalidOperationException(
+            "Only Contributors can access Sprint Participation.");
+    }
+
+    // ---------------------------------------------------------
+    // 4. USER MUST BE ACTIVE
+    // ---------------------------------------------------------
+
+    if (!contributor.IsActive)
+    {
+        throw new InvalidOperationException(
+            "Contributor account is inactive.");
+    }
+
+    // ---------------------------------------------------------
+    // 5. GET ALL SPRINTS
+    // ---------------------------------------------------------
+
+    var allSprints =
+        await _sprintRepository.GetAllAsync();
+
+    // ---------------------------------------------------------
+    // 6. FIND SPRINTS WHERE CONTRIBUTOR HAS TASKS
+    // ---------------------------------------------------------
+
+    var result = new List<SprintDto>();
+
+    foreach (var sprint in allSprints)
+    {
+        var tasks =
+            await _taskRepository
+                .GetSprintTasksAsync(sprint.Id);
+
+        // Only expose sprints where the contributor
+        // actually has assigned work.
+        var hasMyTasks =
+            tasks.Any(t =>
+                t.AssignedContributorSDId ==
+                contributorId);
+
+        if (!hasMyTasks)
+            continue;
+
+        result.Add(
+            MapToDto(sprint));
+    }
+
+    // ---------------------------------------------------------
+    // 7. RETURN
+    // ---------------------------------------------------------
+
+    return result;
+}
+
+
+// =========================================================
+// DEV-SPRINT-001 / STAFF-SPRINT-001
+// VIEW MY SPRINT TASKS
+// =========================================================
+
+public async Task<object?> GetMySprintTasksAsync(
+    Guid contributorId,
+    Guid sprintId)
+{
+    // ---------------------------------------------------------
+    // 1. VALIDATE CONTRIBUTOR
+    // ---------------------------------------------------------
+
+    if (contributorId == Guid.Empty)
+    {
+        return null;
+    }
+
+    var contributor =
+        await _userRepository.GetByIdAsync(
+            contributorId);
+
+    if (contributor == null)
+    {
+        return null;
+    }
+
+    if (contributor.Role != Role.Contributor ||
+        !contributor.IsActive)
+    {
+        return null;
+    }
+
+    // ---------------------------------------------------------
+    // 2. GET SPRINT
+    // ---------------------------------------------------------
+
+    var sprint =
+        await _sprintRepository.GetByIdAsync(
+            sprintId);
+
+    if (sprint == null)
+    {
+        return null;
+    }
+
+    // ---------------------------------------------------------
+    // 3. GET SPRINT TASKS
+    // ---------------------------------------------------------
+
+    var allTasks =
+        await _taskRepository
+            .GetSprintTasksAsync(sprintId);
+
+    // ---------------------------------------------------------
+    // 4. ONLY THIS CONTRIBUTOR'S TASKS
+    // ---------------------------------------------------------
+
+    var myTasks =
+        allTasks
+            .Where(t =>
+                t.AssignedContributorSDId ==
+                contributorId)
+            .Select(task => new
+            {
+                task.Id,
+                task.SprintId,
+                task.Title,
+                task.Description,
+                task.AssignedContributorSDId,
+                task.Priority,
+                task.Status,
+                task.EstimatedHours,
+                task.ActualHours,
+                task.DueDate,
+                task.CreatedAt,
+                task.UpdatedAt
+            })
+            .ToList();
+
+    // ---------------------------------------------------------
+    // 5. NO TASKS
+    // ---------------------------------------------------------
+
+    if (!myTasks.Any())
+    {
+        return new
+        {
+            Sprint = MapToDto(sprint),
+            Tasks = myTasks,
+            TaskCount = 0,
+            HasTasks = false,
+            Message = "No sprint tasks assigned."
+        };
+    }
+
+    // ---------------------------------------------------------
+    // 6. RETURN SPRINT + TASKS
+    // ---------------------------------------------------------
+
+    return new
+    {
+        Sprint = MapToDto(sprint),
+
+        Tasks = myTasks,
+
+        TaskCount = myTasks.Count,
+
+        HasTasks = true,
+
+        Message = (string?)null
+    };
+}
+
+
+// =========================================================
+// DEV-SPRINT-002 / STAFF-SPRINT-002
+// VIEW MY SPRINT GOALS AND PROGRESS
+// =========================================================
+
+public async Task<SprintProgressDto?> GetMySprintProgressAsync(
+    Guid contributorId,
+    Guid sprintId)
+{
+    // ---------------------------------------------------------
+    // 1. VALIDATE CONTRIBUTOR
+    // ---------------------------------------------------------
+
+    if (contributorId == Guid.Empty)
+    {
+        return null;
+    }
+
+    var contributor =
+        await _userRepository.GetByIdAsync(
+            contributorId);
+
+    if (contributor == null)
+    {
+        return null;
+    }
+
+    if (contributor.Role != Role.Contributor ||
+        !contributor.IsActive)
+    {
+        return null;
+    }
+
+    // ---------------------------------------------------------
+    // 2. GET SPRINT
+    // ---------------------------------------------------------
+
+    var sprint =
+        await _sprintRepository.GetByIdAsync(
+            sprintId);
+
+    if (sprint == null)
+    {
+        return null;
+    }
+
+    // ---------------------------------------------------------
+    // 3. GET ALL SPRINT TASKS
+    // ---------------------------------------------------------
+
+    var allTasks =
+        await _taskRepository
+            .GetSprintTasksAsync(
+                sprintId);
+
+    // ---------------------------------------------------------
+    // 4. VERIFY CONTRIBUTOR HAS ACCESS
+    // ---------------------------------------------------------
+
+    var myTasks =
+        allTasks
+            .Where(t =>
+                t.AssignedContributorSDId ==
+                contributorId)
+            .ToList();
+
+    if (!myTasks.Any())
+    {
+        return new SprintProgressDto
+        {
+            SprintId = sprint.Id,
+            ProjectId = sprint.ProjectId,
+            SprintName = sprint.Name,
+            Goal = sprint.Goal,
+            Status = sprint.Status.ToString(),
+            TeamId = sprint.TeamId,
+
+            TotalTasks = 0,
+            CompletedTasks = 0,
+            InProgressTasks = 0,
+            PendingTasks = 0,
+            InReviewTasks = 0,
+            BlockedTasks = 0,
+            OverdueTasks = 0,
+
+            CompletionPercentage = 0,
+            TeamProgressPercentage = 0,
+
+            HasTasks = false,
+
+            Message = "No sprint tasks assigned."
+        };
+    }
+
+    // ---------------------------------------------------------
+    // 5. CALCULATE TEAM / SPRINT PROGRESS
+    // ---------------------------------------------------------
+
+    int totalTasks =
+        allTasks.Count;
+
+    int completedTasks =
+        allTasks.Count(t =>
+            t.Status ==
+            ProjectTaskStatus.Completed);
+
+    int inProgressTasks =
+        allTasks.Count(t =>
+            t.Status ==
+            ProjectTaskStatus.InProgress);
+
+    int pendingTasks =
+        allTasks.Count(t =>
+            t.Status ==
+            ProjectTaskStatus.Todo);
+
+    int inReviewTasks =
+        allTasks.Count(t =>
+            t.Status ==
+            ProjectTaskStatus.InReview);
+
+    int blockedTasks =
+        allTasks.Count(t =>
+            t.Status ==
+            ProjectTaskStatus.Blocked);
+
+    int overdueTasks =
+        allTasks.Count(t =>
+            t.DueDate.Date < DateTime.UtcNow.Date &&
+            t.Status !=
+                ProjectTaskStatus.Completed);
+
+    // ---------------------------------------------------------
+    // 6. CONTRIBUTOR PROGRESS
+    // ---------------------------------------------------------
+
+    int myTotalTasks =
+        myTasks.Count;
+
+    int myCompletedTasks =
+        myTasks.Count(t =>
+            t.Status ==
+            ProjectTaskStatus.Completed);
+
+    double myProgress =
+        myTotalTasks == 0
+            ? 0
+            : Math.Round(
+                (double)myCompletedTasks /
+                myTotalTasks * 100,
+                2);
+
+    // ---------------------------------------------------------
+    // 7. TEAM / SPRINT PROGRESS
+    // ---------------------------------------------------------
+
+    double teamProgress =
+        totalTasks == 0
+            ? 0
+            : Math.Round(
+                (double)completedTasks /
+                totalTasks * 100,
+                2);
+
+    // ---------------------------------------------------------
+    // 8. RETURN PROGRESS
+    // ---------------------------------------------------------
+
+    return new SprintProgressDto
+    {
+        SprintId =
+            sprint.Id,
+
+        ProjectId =
+            sprint.ProjectId,
+
+        SprintName =
+            sprint.Name,
+
+        Goal =
+            sprint.Goal,
+
+        Status =
+            sprint.Status.ToString(),
+
+        TeamId =
+            sprint.TeamId,
+
+        TotalTasks =
+            totalTasks,
+
+        CompletedTasks =
+            completedTasks,
+
+        InProgressTasks =
+            inProgressTasks,
+
+        PendingTasks =
+            pendingTasks,
+
+        InReviewTasks =
+            inReviewTasks,
+
+        BlockedTasks =
+            blockedTasks,
+
+        OverdueTasks =
+            overdueTasks,
+
+        CompletionPercentage =
+            teamProgress,
+
+        TeamProgressPercentage =
+            teamProgress,
+
+        TeamLeaderProgressPercentage =
+            teamProgress,
+
+        HasTasks =
+            true,
+
+        Message =
+            null
+    };
+}
 
         // =========================================================
         // GET ALL SPRINTS
@@ -1375,7 +1814,7 @@ public async Task<SprintBacklogDto?> GetSprintBacklogAsync(
     {
         tasks = tasks
             .Where(t =>
-                t.AssignedDeveloperId ==
+                t.AssignedContributorSDId ==
                 assignedUserId.Value)
             .ToList();
     }
@@ -1449,11 +1888,11 @@ public async Task<SprintBacklogDto?> GetSprintBacklogAsync(
     {
         string? contributorName = null;
 
-        if (task.AssignedDeveloperId.HasValue)
+        if (task.AssignedContributorSDId.HasValue)
         {
             var contributor =
                 await _userRepository.GetByIdAsync(
-                    task.AssignedDeveloperId.Value);
+                    task.AssignedContributorSDId.Value);
 
             if (contributor != null)
             {
@@ -1472,8 +1911,8 @@ public async Task<SprintBacklogDto?> GetSprintBacklogAsync(
 
             Description = task.Description,
 
-            AssignedDeveloperId =
-                task.AssignedDeveloperId,
+            AssignedContributorSDId =
+                task.AssignedContributorSDId,
 
             AssignedDeveloperName =
                 contributorName,
