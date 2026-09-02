@@ -104,38 +104,7 @@ namespace AI_PMS.API.Controllers.SubTasks
             }
         }
 
-        // =========================================================
-        // APPROVE SUBTASK
-        // PUT: api/subtasks/{id}/approve
-        // Manager only
-        // =========================================================
-        [HttpPut("{id}/approve")]
-        public async Task<IActionResult> Approve(Guid id)
-        {
-            var result =
-                await _subTaskService.ApproveSubTaskAsync(id);
-
-            if (!result.Success)
-            {
-                if (result.Message == "Subtask not found.")
-                {
-                    return NotFound(new
-                    {
-                        message = result.Message
-                    });
-                }
-
-                return Conflict(new
-                {
-                    message = result.Message
-                });
-            }
-
-            return Ok(new
-            {
-                message = result.Message
-            });
-        }
+        
 
         // =========================================================
         // UPDATE SUBTASK

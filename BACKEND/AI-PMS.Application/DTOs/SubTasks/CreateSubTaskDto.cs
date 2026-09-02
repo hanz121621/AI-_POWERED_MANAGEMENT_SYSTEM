@@ -10,6 +10,6 @@ namespace AI_PMS.Application.DTOs.SubTasks
 
         public int EstimatedHours { get; set; }
 
-        public bool IsAIGenerated { get; set; } = true;
+        public bool IsAIGenerated { get; set; } = false;
     }
 }

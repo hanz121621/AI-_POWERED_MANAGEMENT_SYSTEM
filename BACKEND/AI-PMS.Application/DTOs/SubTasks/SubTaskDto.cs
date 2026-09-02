@@ -14,6 +14,8 @@ namespace AI_PMS.Application.DTOs.SubTasks
 
         public bool IsAIGenerated { get; set; }
 
+        // Kept for database compatibility.
+        // It is NOT used as an approval workflow.
         public bool IsApproved { get; set; }
 
         public DateTime CreatedAt { get; set; }

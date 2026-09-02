@@ -28,12 +28,6 @@ namespace AI_PMS.Application.Interfaces.SubTasks
             Guid taskId);
 
         // =========================================================
-        // APPROVE SUBTASK
-        // =========================================================
-        Task<(bool Success, string Message)> ApproveSubTaskAsync(
-            Guid id);
-
-        // =========================================================
         // UPDATE SUBTASK
         // =========================================================
         Task<SubTaskUpdateResult> UpdateSubTaskAsync(
