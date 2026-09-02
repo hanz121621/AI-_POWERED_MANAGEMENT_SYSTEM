@@ -2,9 +2,16 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 function ThemeToggle() {
-    const { theme, setTheme } = useTheme();
+    const {
+        theme,
+        resolvedTheme,
+        setTheme,
+    } = useTheme();
 
-    const isDark = theme === "dark";
+    const isDark =
+        theme === "dark" ||
+        (theme === "system" &&
+            resolvedTheme === "dark");
 
     const toggleTheme = () => {
         setTheme(isDark ? "light" : "dark");
@@ -48,8 +55,6 @@ function ThemeToggle() {
                     : "Switch to dark mode"
             }
         >
-            {/* Background icons */}
-
             <div
                 className="
                     pointer-events-none
@@ -80,29 +85,12 @@ function ThemeToggle() {
                 />
             </div>
 
-            {/* Sliding button */}
-
             <span
-                className={`
-                    relative
-                    z-10
-                    flex
-                    h-8
-                    w-8
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-background
-                    shadow-md
-                    transition-transform
-                    duration-300
-                    ease-in-out
-                    ${
-                        isDark
-                            ? "translate-x-10"
-                            : "translate-x-0"
-                    }
-                `}
+                className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background shadow-md transition-transform duration-300 ease-in-out ${
+                    isDark
+                        ? "translate-x-10"
+                        : "translate-x-0"
+                }`}
             >
                 {isDark ? (
                     <Moon

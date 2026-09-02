@@ -1,3 +1,4 @@
+
 // ============================================================
 // AIPMS - MANAGER SIDEBAR
 // src/components/manager/ManagerSidebar.jsx
@@ -121,8 +122,21 @@ function ManagerSidebar() {
                         "duration-200",
 
                         isActive
-                            ? "bg-slate-100 text-slate-900 shadow-sm"
-                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                            ? [
+                                "bg-slate-100",
+                                "text-slate-900",
+                                "shadow-sm",
+                                "dark:bg-slate-800",
+                                "dark:text-slate-100",
+                            ].join(" ")
+                            : [
+                                "text-slate-600",
+                                "hover:bg-slate-100",
+                                "hover:text-slate-900",
+                                "dark:text-slate-400",
+                                "dark:hover:bg-slate-800",
+                                "dark:hover:text-slate-100",
+                            ].join(" "),
                     ].join(" ")
                 }
             >
@@ -135,8 +149,8 @@ function ManagerSidebar() {
                             }
                             className={
                                 isActive
-                                    ? "text-slate-900"
-                                    : "text-slate-500 group-hover:text-slate-900"
+                                    ? "text-slate-900 dark:text-slate-100"
+                                    : "text-slate-500 group-hover:text-slate-900 dark:text-slate-500 dark:group-hover:text-slate-100"
                             }
                         />
 
@@ -168,6 +182,11 @@ function ManagerSidebar() {
                 border-slate-200
                 bg-white
                 text-slate-900
+                transition-colors
+                duration-200
+                dark:border-slate-800
+                dark:bg-slate-900
+                dark:text-slate-100
             "
         >
 
@@ -184,6 +203,7 @@ function ManagerSidebar() {
                     border-b
                     border-slate-200
                     px-6
+                    dark:border-slate-800
                 "
             >
                 <div className="flex items-center gap-3">
@@ -200,6 +220,8 @@ function ManagerSidebar() {
                             rounded-xl
                             bg-slate-100
                             text-slate-700
+                            dark:bg-slate-800
+                            dark:text-slate-200
                         "
                     >
                         <Sparkles
@@ -211,11 +233,25 @@ function ManagerSidebar() {
                     {/* BRAND */}
 
                     <div>
-                        <h1 className="text-base font-bold tracking-wide text-slate-900">
+                        <h1
+                            className="
+                                text-base
+                                font-bold
+                                tracking-wide
+                                text-slate-900
+                                dark:text-slate-100
+                            "
+                        >
                             AIPMS
                         </h1>
 
-                        <p className="text-xs text-slate-500">
+                        <p
+                            className="
+                                text-xs
+                                text-slate-500
+                                dark:text-slate-400
+                            "
+                        >
                             Manager
                         </p>
                     </div>
@@ -242,7 +278,13 @@ function ManagerSidebar() {
                 ================================================== */}
 
                 <div className="my-5 px-3">
-                    <div className="h-px bg-slate-200" />
+                    <div
+                        className="
+                            h-px
+                            bg-slate-200
+                            dark:bg-slate-800
+                        "
+                    />
                 </div>
 
                 {/* ==================================================
@@ -280,6 +322,9 @@ function ManagerSidebar() {
                         duration-200
                         hover:bg-red-50
                         hover:text-red-600
+                        dark:text-slate-400
+                        dark:hover:bg-red-950/40
+                        dark:hover:text-red-400
                     "
                 >
                     <LogOut
@@ -289,6 +334,8 @@ function ManagerSidebar() {
                             text-slate-500
                             transition-colors
                             group-hover:text-red-600
+                            dark:text-slate-500
+                            dark:group-hover:text-red-400
                         "
                     />
 
@@ -311,9 +358,18 @@ function ManagerSidebar() {
                     bg-white
                     px-5
                     py-4
+                    dark:border-slate-800
+                    dark:bg-slate-900
                 "
             >
-                <p className="text-center text-xs text-slate-500">
+                <p
+                    className="
+                        text-center
+                        text-xs
+                        text-slate-500
+                        dark:text-slate-400
+                    "
+                >
                     AI-Powered Project Management
                 </p>
             </div>

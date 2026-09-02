@@ -2,6 +2,7 @@ using AI_PMS.Application.DTOs.UserPreferences;
 using AI_PMS.Application.Interfaces.Data;
 using AI_PMS.Application.Interfaces.UserPreferences;
 using AI_PMS.Domain.Entities.UserPreferences;
+using AI_PMS.Domain.Entities.SystemSettings;
 using AI_PMS.Application.Interfaces.Repositories.UserPreferences;
 using Microsoft.EntityFrameworkCore;
 
@@ -147,8 +148,26 @@ var systemSetting =
 
 if (systemSetting == null)
 {
-    throw new InvalidOperationException(
-        "System language settings are not configured.");
+    systemSetting = new SystemSetting
+    {
+        Id = Guid.NewGuid(),
+        SystemName = "AI-PMS",
+        DefaultLanguage = "en",
+        AvailableLanguages = "en,am,fr,zh,es,ar,pt,de",
+        DefaultTheme = "system",
+        AvailableThemes = "system,light,dark",
+        DateTimeFormat = "yyyy-MM-dd HH:mm",
+        AllowUserRegistration = false,
+        SessionTimeoutMinutes = 60,
+        MaxFileUploadSizeMb = 10,
+        MaintenanceMode = false,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    _context.SystemSettings.Add(systemSetting);
+
+    await _context.SaveChangesAsync();
 }
 
 var supportedLanguages =
@@ -169,8 +188,16 @@ if (!supportedLanguages.Contains(language))
         // VALIDATE THEME
         // =====================================================
 
-        var theme =
-            request.ThemePreference.Trim().ToLowerInvariant();
+var theme = request.ThemePreference?
+    .Trim()
+    .ToLowerInvariant();
+
+if (string.IsNullOrWhiteSpace(theme))
+{
+    throw new ArgumentException(
+        "Theme preference is required."
+    );
+}
 
         var supportedSystemThemes = new[]
         {

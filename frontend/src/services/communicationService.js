@@ -18,60 +18,24 @@
 // - Uses authenticated API requests
 // - Backend is responsible for authorization
 // - Data is retrieved dynamically
+// - Uses the shared AIPMS API client
 // ============================================================
 
-import axios from "axios";
-
-// ============================================================
-// API BASE URL
-// ============================================================
-
-const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:5024/api";
-
-// ============================================================
-// AXIOS CLIENT
-// ============================================================
-
-const api = axios.create({
-    baseURL: API_BASE_URL,
-
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
-
-// ============================================================
-// AUTHENTICATION
-// ============================================================
-
-api.interceptors.request.use(
-    (config) => {
-        const token =
-            sessionStorage.getItem("aipms_access_token") ||
-            sessionStorage.getItem("access_token") ||
-            localStorage.getItem("aipms_access_token") ||
-            localStorage.getItem("access_token");
-
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
+import api from "@/services/api";
 
 // ============================================================
 // ERROR HANDLER
 // ============================================================
 
 function handleApiError(error) {
-    console.error("Communication API error:", error);
+    console.error(
+        "Communication API error:",
+        error
+    );
 
     if (error?.response) {
-        const responseData = error.response.data;
+        const responseData =
+            error.response.data;
 
         if (typeof responseData === "string") {
             throw new Error(responseData);
@@ -113,13 +77,20 @@ function getResponseData(response) {
 // ARRAY NORMALIZER
 // ============================================================
 
-function normalizeArray(result, propertyNames = []) {
+function normalizeArray(
+    result,
+    propertyNames = []
+) {
     if (Array.isArray(result)) {
         return result;
     }
 
     for (const property of propertyNames) {
-        if (Array.isArray(result?.[property])) {
+        if (
+            Array.isArray(
+                result?.[property]
+            )
+        ) {
             return result[property];
         }
     }
@@ -131,12 +102,56 @@ function normalizeArray(result, propertyNames = []) {
 // COMM-001
 // VIEW MANAGER NOTIFICATIONS
 // ============================================================
+//
+// Backend:
+// GET /api/notifications
+//
+// Backend controller:
+// [Authorize(Roles = "Manager,Contributor")]
+// ============================================================
 
 export async function getManagerNotifications() {
     try {
-        const response = await api.get(
-            "/notifications/manager"
+        const response =
+            await api.get(
+                "/notifications"
+            );
+
+        const data =
+            getResponseData(response);
+
+        return normalizeArray(data, [
+            "notifications",
+            "items",
+            "data",
+        ]);
+    } catch (error) {
+        handleApiError(error);
+    }
+}
+
+// ============================================================
+// GET SINGLE NOTIFICATION
+// ============================================================
+//
+// Backend:
+// GET /api/notifications/{id}
+// ============================================================
+
+export async function getManagerNotificationById(
+    notificationId
+) {
+    if (!notificationId) {
+        throw new Error(
+            "Notification ID is required."
         );
+    }
+
+    try {
+        const response =
+            await api.get(
+                `/notifications/${notificationId}`
+            );
 
         return getResponseData(response);
     } catch (error) {
@@ -146,6 +161,10 @@ export async function getManagerNotifications() {
 
 // ============================================================
 // MARK ONE NOTIFICATION AS READ
+// ============================================================
+//
+// Backend:
+// PATCH /api/notifications/{id}/read
 // ============================================================
 
 export async function markManagerNotificationAsRead(
@@ -158,11 +177,36 @@ export async function markManagerNotificationAsRead(
     }
 
     try {
-        const response = await api.patch(
-            `/notifications/${notificationId}/read`
-        );
+        const response =
+            await api.patch(
+                `/notifications/${notificationId}/read`
+            );
 
-        return getResponseData(response);
+        return response?.data ?? null;
+    } catch (error) {
+        handleApiError(error);
+    }
+}
+
+// ============================================================
+// GET UNREAD NOTIFICATION COUNT
+// ============================================================
+//
+// Backend:
+// GET /api/notifications/unread-count
+// ============================================================
+
+export async function getManagerUnreadNotificationCount() {
+    try {
+        const response =
+            await api.get(
+                "/notifications/unread-count"
+            );
+
+        return (
+            response?.data?.unreadCount ??
+            0
+        );
     } catch (error) {
         handleApiError(error);
     }
@@ -171,30 +215,90 @@ export async function markManagerNotificationAsRead(
 // ============================================================
 // MARK ALL MANAGER NOTIFICATIONS AS READ
 // ============================================================
+//
+// IMPORTANT:
+// The backend DOES NOT provide:
+//
+// PATCH /api/notifications/manager/read-all
+//
+// Therefore we retrieve the user's notifications and
+// individually call:
+//
+// PATCH /api/notifications/{id}/read
+//
+// ============================================================
 
 export async function markAllManagerNotificationsAsRead() {
     try {
-        const response = await api.patch(
-            "/notifications/manager/read-all"
+        const notifications =
+            await getManagerNotifications();
+
+        const unreadNotifications =
+            notifications.filter(
+                (notification) =>
+                    notification &&
+                    !notification.isRead &&
+                    notification.id
+            );
+
+        if (
+            unreadNotifications.length ===
+            0
+        ) {
+            return {
+                success: true,
+                count: 0,
+                message:
+                    "There are no unread notifications.",
+            };
+        }
+
+        const results =
+            await Promise.all(
+                unreadNotifications.map(
+                    (notification) =>
+                        markManagerNotificationAsRead(
+                            notification.id
+                        )
+                )
+            );
+
+        return {
+            success: true,
+            count: results.length,
+            message:
+                "All notifications marked as read.",
+        };
+    } catch (error) {
+        console.error(
+            "Failed to mark all manager notifications as read:",
+            error
         );
 
-        return getResponseData(response);
-    } catch (error) {
-        handleApiError(error);
+        throw error;
     }
 }
 
 // ============================================================
 // GET MANAGER PROJECTS
 // ============================================================
+//
+// Backend expected:
+// GET /api/projects/manager
+//
+// Uses shared api.js:
+// http://localhost:5043/api
+// ============================================================
 
 export async function getManagerProjects() {
     try {
-        const response = await api.get(
-            "/projects/manager"
-        );
+        const response =
+            await api.get(
+                "/projects/manager"
+            );
 
-        const data = getResponseData(response);
+        const data =
+            getResponseData(response);
 
         return normalizeArray(data, [
             "projects",
@@ -210,7 +314,9 @@ export async function getManagerProjects() {
 // GET ALL TEAMS FOR A PROJECT
 // ============================================================
 
-export async function getProjectTeams(projectId) {
+export async function getProjectTeams(
+    projectId
+) {
     if (!projectId) {
         throw new Error(
             "Project ID is required."
@@ -218,11 +324,13 @@ export async function getProjectTeams(projectId) {
     }
 
     try {
-        const response = await api.get(
-            `/projects/${projectId}/teams`
-        );
+        const response =
+            await api.get(
+                `/projects/${projectId}/teams`
+            );
 
-        const data = getResponseData(response);
+        const data =
+            getResponseData(response);
 
         return normalizeArray(data, [
             "teams",
@@ -255,9 +363,10 @@ export async function getProjectTeam(
     }
 
     try {
-        const response = await api.get(
-            `/projects/${projectId}/teams/${teamId}`
-        );
+        const response =
+            await api.get(
+                `/projects/${projectId}/teams/${teamId}`
+            );
 
         return getResponseData(response);
     } catch (error) {
@@ -269,7 +378,9 @@ export async function getProjectTeam(
 // GET TEAM LEADER
 // ============================================================
 
-export async function getTeamLeader(teamId) {
+export async function getTeamLeader(
+    teamId
+) {
     if (!teamId) {
         throw new Error(
             "Team ID is required."
@@ -277,9 +388,10 @@ export async function getTeamLeader(teamId) {
     }
 
     try {
-        const response = await api.get(
-            `/teams/${teamId}/leader`
-        );
+        const response =
+            await api.get(
+                `/teams/${teamId}/leader`
+            );
 
         return getResponseData(response);
     } catch (error) {
@@ -291,7 +403,9 @@ export async function getTeamLeader(teamId) {
 // GET TEAM MEMBERS
 // ============================================================
 
-export async function getTeamMembers(teamId) {
+export async function getTeamMembers(
+    teamId
+) {
     if (!teamId) {
         throw new Error(
             "Team ID is required."
@@ -299,11 +413,13 @@ export async function getTeamMembers(teamId) {
     }
 
     try {
-        const response = await api.get(
-            `/teams/${teamId}/members`
-        );
+        const response =
+            await api.get(
+                `/teams/${teamId}/members`
+            );
 
-        const data = getResponseData(response);
+        const data =
+            getResponseData(response);
 
         return normalizeArray(data, [
             "members",
@@ -330,11 +446,13 @@ export async function getProjectRecipients(
     }
 
     try {
-        const response = await api.get(
-            `/projects/${projectId}/communication-recipients`
-        );
+        const response =
+            await api.get(
+                `/projects/${projectId}/communication-recipients`
+            );
 
-        const data = getResponseData(response);
+        const data =
+            getResponseData(response);
 
         return normalizeArray(data, [
             "recipients",
@@ -387,15 +505,20 @@ export async function sendMessageToTeamLeader({
     }
 
     try {
-        const response = await api.post(
-            "/communications/messages",
-            {
-                projectId,
-                teamId,
-                recipientId: teamLeaderId,
-                message: String(message).trim(),
-            }
-        );
+        const response =
+            await api.post(
+                "/communications/messages",
+                {
+                    projectId,
+                    teamId,
+                    recipientId:
+                        teamLeaderId,
+                    message:
+                        String(
+                            message
+                        ).trim(),
+                }
+            );
 
         return getResponseData(response);
     } catch (error) {
@@ -431,17 +554,20 @@ export async function getTeamLeaderConversation({
         };
 
         if (teamLeaderId) {
-            params.teamLeaderId = teamLeaderId;
+            params.teamLeaderId =
+                teamLeaderId;
         }
 
-        const response = await api.get(
-            "/communications/messages",
-            {
-                params,
-            }
-        );
+        const response =
+            await api.get(
+                "/communications/messages",
+                {
+                    params,
+                }
+            );
 
-        const data = getResponseData(response);
+        const data =
+            getResponseData(response);
 
         return normalizeArray(data, [
             "messages",
@@ -455,16 +581,7 @@ export async function getTeamLeaderConversation({
 }
 
 // ============================================================
-// GET TEAM LEADER MESSAGES
-// ============================================================
-//
-// COMM-002 compatibility function.
-//
-// SendMessageToTeamLeader.jsx may import:
-//
-// getTeamLeaderMessages
-//
-// This function uses the same backend conversation endpoint.
+// COMM-002 COMPATIBILITY FUNCTION
 // ============================================================
 
 export async function getTeamLeaderMessages({
@@ -553,16 +670,20 @@ export async function mentionTeamLeader({
     }
 
     try {
-        const response = await api.post(
-            "/communications/mentions",
-            {
-                projectId,
-                teamId,
-                teamLeaderId,
-                content: String(content).trim(),
-                activityId,
-            }
-        );
+        const response =
+            await api.post(
+                "/communications/mentions",
+                {
+                    projectId,
+                    teamId,
+                    teamLeaderId,
+                    content:
+                        String(
+                            content
+                        ).trim(),
+                    activityId,
+                }
+            );
 
         return getResponseData(response);
     } catch (error) {
@@ -589,46 +710,49 @@ export async function getManagerActivityFeed(
     filters = {}
 ) {
     try {
-        const response = await api.get(
-            "/activities/manager",
-            {
-                params: {
-                    projectId:
-                        filters.projectId ||
-                        undefined,
+        const response =
+            await api.get(
+                "/activities/manager",
+                {
+                    params: {
+                        projectId:
+                            filters.projectId ||
+                            undefined,
 
-                    teamId:
-                        filters.teamId ||
-                        undefined,
+                        teamId:
+                            filters.teamId ||
+                            undefined,
 
-                    activityType:
-                        filters.activityType ||
-                        undefined,
+                        activityType:
+                            filters.activityType ||
+                            undefined,
 
-                    startDate:
-                        filters.startDate ||
-                        undefined,
+                        startDate:
+                            filters.startDate ||
+                            undefined,
 
-                    endDate:
-                        filters.endDate ||
-                        undefined,
+                        endDate:
+                            filters.endDate ||
+                            undefined,
 
-                    search:
-                        filters.search ||
-                        undefined,
+                        search:
+                            filters.search ||
+                            undefined,
 
-                    page:
-                        filters.page ||
-                        undefined,
+                        page:
+                            filters.page ||
+                            undefined,
 
-                    pageSize:
-                        filters.pageSize ||
-                        undefined,
-                },
-            }
+                        pageSize:
+                            filters.pageSize ||
+                            undefined,
+                    },
+                }
+            );
+
+        return getResponseData(
+            response
         );
-
-        return getResponseData(response);
     } catch (error) {
         handleApiError(error);
     }
@@ -641,7 +765,9 @@ export async function getManagerActivityFeed(
 export async function getActivityFeed(
     filters = {}
 ) {
-    return getManagerActivityFeed(filters);
+    return getManagerActivityFeed(
+        filters
+    );
 }
 
 // ============================================================
@@ -658,11 +784,14 @@ export async function getManagerActivityById(
     }
 
     try {
-        const response = await api.get(
-            `/activities/${activityId}`
-        );
+        const response =
+            await api.get(
+                `/activities/${activityId}`
+            );
 
-        return getResponseData(response);
+        return getResponseData(
+            response
+        );
     } catch (error) {
         handleApiError(error);
     }
@@ -675,7 +804,9 @@ export async function getManagerActivityById(
 export async function getActivityById(
     activityId
 ) {
-    return getManagerActivityById(activityId);
+    return getManagerActivityById(
+        activityId
+    );
 }
 
 // ============================================================
@@ -722,7 +853,9 @@ export async function sendProjectAnnouncement({
     }
 
     if (
-        !Array.isArray(recipientIds) ||
+        !Array.isArray(
+            recipientIds
+        ) ||
         recipientIds.length === 0
     ) {
         throw new Error(
@@ -731,27 +864,34 @@ export async function sendProjectAnnouncement({
     }
 
     try {
-        const response = await api.post(
-            "/communications/announcements",
-            {
-                projectId,
+        const response =
+            await api.post(
+                "/communications/announcements",
+                {
+                    projectId,
 
-                teamId:
-                    teamId || null,
+                    teamId:
+                        teamId || null,
 
-                title:
-                    String(title).trim(),
+                    title:
+                        String(
+                            title
+                        ).trim(),
 
-                message:
-                    String(message).trim(),
+                    message:
+                        String(
+                            message
+                        ).trim(),
 
-                priority,
+                    priority,
 
-                recipientIds,
-            }
+                    recipientIds,
+                }
+            );
+
+        return getResponseData(
+            response
         );
-
-        return getResponseData(response);
     } catch (error) {
         handleApiError(error);
     }
@@ -764,7 +904,9 @@ export async function sendProjectAnnouncement({
 export async function createProjectAnnouncement(
     data
 ) {
-    return sendProjectAnnouncement(data);
+    return sendProjectAnnouncement(
+        data
+    );
 }
 
 // ============================================================
@@ -773,11 +915,13 @@ export async function createProjectAnnouncement(
 
 export async function getAnnouncementPriorities() {
     try {
-        const response = await api.get(
-            "/communications/announcement-priorities"
-        );
+        const response =
+            await api.get(
+                "/communications/announcement-priorities"
+            );
 
-        const data = getResponseData(response);
+        const data =
+            getResponseData(response);
 
         return normalizeArray(data, [
             "priorities",
@@ -795,11 +939,13 @@ export async function getAnnouncementPriorities() {
 
 export async function getCommunicationTypes() {
     try {
-        const response = await api.get(
-            "/communications/types"
-        );
+        const response =
+            await api.get(
+                "/communications/types"
+            );
 
-        const data = getResponseData(response);
+        const data =
+            getResponseData(response);
 
         return normalizeArray(data, [
             "types",
@@ -821,8 +967,10 @@ const communicationService = {
     // --------------------------------------------------------
 
     getManagerNotifications,
+    getManagerNotificationById,
     markManagerNotificationAsRead,
     markAllManagerNotificationsAsRead,
+    getManagerUnreadNotificationCount,
 
     // --------------------------------------------------------
     // PROJECTS / TEAMS

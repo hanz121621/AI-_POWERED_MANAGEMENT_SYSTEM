@@ -121,16 +121,47 @@ public class UserPreferencesController : ControllerBase
                 message = ex.Message
             });
         }
-        catch
+
+
+
+
+
+
+
+
+
+
+
+
+       catch (Exception ex)
+{
+    Console.WriteLine("========== USER PREFERENCES ERROR ==========");
+    Console.WriteLine(ex.ToString());
+    Console.WriteLine("============================================");
+
+    return StatusCode(
+        StatusCodes.Status500InternalServerError,
+        new
         {
-            return StatusCode(
-                StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message =
-                        "Unable to update user preferences. Please try again."
-                });
-        }
+            message = ex.Message,
+            detail = ex.InnerException?.Message
+        });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
     // =========================================================
