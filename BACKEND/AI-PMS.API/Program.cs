@@ -45,7 +45,6 @@ using AI_PMS.Application.Interfaces.Repositories.UserPreferences;
 using AI_PMS.Application.Interfaces.Security;
 using AI_PMS.Application.Interfaces.SecuritySettings;
 using AI_PMS.Application.Interfaces.Sprints;
-using AI_PMS.Application.Services.Sprints;
 using AI_PMS.Application.Interfaces.SubTasks;
 using AI_PMS.Application.Interfaces.SystemSettings;
 using AI_PMS.Application.Interfaces.Tasks;
@@ -64,6 +63,8 @@ using AI_PMS.Application.Services.Permissions;
 using AI_PMS.Application.Services.Preferences;
 using AI_PMS.Application.Services.Projects;
 using AI_PMS.Application.Services.SecuritySettings;
+using AI_PMS.Application.Services.Sprints;
+
 using AI_PMS.Application.Services.SystemSettings;
 using AI_PMS.Application.Services.Tasks;
 using AI_PMS.Application.Services.UserPreferences;
