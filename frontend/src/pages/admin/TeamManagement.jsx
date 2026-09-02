@@ -2276,99 +2276,63 @@ console.log(
 
                                     </div>
 
-                                    {/* CONTRIBUTOR TYPE */}
+                                                                     {/* CONTRIBUTOR TYPE */}
 
-                                   <div className="mb-4">
+                                    <div className="mb-4">
+                                        <label className="mb-2 block text-sm font-semibold">
+                                            Contributor Type
+                                        </label>
 
-    <label className="mb-2 block text-sm font-semibold">
-        Contributor Type
-    </label>
+                                        <select
+                                            name="contributorTypeId"
+                                            value={memberForm.contributorTypeId}
+                                            onChange={(event) => {
+                                                const contributorTypeId = event.target.value;
 
-    <select
-        name="contributorTypeId"
-        value={
-            memberForm.contributorTypeId
-        }
-        onChange={(
-            event
-        ) => {
-            const contributorTypeId =
-                event.target.value;
+                                                setMemberForm((previous) => ({
+                                                    ...previous,
+                                                    contributorTypeId,
+                                                    contributorSubTypeId: "",
+                                                }));
 
-            setMemberForm(
-                (previous) => ({
-                    ...previous,
+                                                setContributorSubTypes([]);
 
-                    contributorTypeId,
+                                                if (contributorTypeId) {
+                                                    loadContributorSubTypes(contributorTypeId);
+                                                }
+                                            }}
+                                            disabled={creating}
+                                            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                        >
+                                            <option value="">Select contributor type</option>
 
-                    contributorSubTypeId:
-                        "",
-                })
-            );
+                                           {contributorTypes
+    .filter((type) => {
+        // Filter out "Team Leader" so it doesn't show in the dropdown
+        const name = (type.name || type.displayName || "").toLowerCase();
+        return name !== "team leader";
+    })
+    .map((type) => {
+        const typeId =
+            type?.id ??
+            type?.contributorTypeId ??
+            type?.Id ??
+            type?.ContributorTypeId;
 
+        return (
+            <option key={typeId} value={typeId}>
+                {type.name || type.displayName || "Unnamed Type"}
+            </option>
+        );
+    })}
+                                        </select>
 
-            setContributorSubTypes([]);
-
-                                            {contributorTypes.map(
-                                                (type) => (
-                                                    <option
-                                                        key={type.id}
-                                                        value={type.id}
-                                                    >
-                                                        {type.name ||
-                                                            type.displayName}
-                                                    </option>
-                                                )
-                                            )}
-
-            if (contributorTypeId) {
-                loadContributorSubTypes(
-                    contributorTypeId
-                );
-            }
-        }}
-        disabled={creating}
-        className="
-            w-full rounded-xl border border-border
-            bg-background px-4 py-2.5 text-sm
-            outline-none transition
-            focus:border-primary
-            focus:ring-2 focus:ring-primary/20
-        "
-    >
-
-        <option value="">
-            Select contributor type
-        </option>
-
-       {createTeamContributorTypes.map((type) => {
-    const typeId =
-        type?.id ??
-        type?.contributorTypeId ??
-        type?.Id ??
-        type?.ContributorTypeId;
-
-    return (
-        <option
-            key={typeId}
-            value={typeId}
-        >
-            {type.name ||
-                type.displayName ||
-                "Unnamed Type"}
-        </option>
-    );
-})}
-
-    </select>
-
-    {contributorTypes.length === 0 && (
-        <p className="mt-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            Contributor types are not loaded from the backend yet.
-        </p>
-    )}
-
-</div>
+                                        {contributorTypes.length === 0 && (
+                                            <p className="mt-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                                                Contributor types are not loaded from the backend yet.
+                                            </p>
+                                        )}
+                                    </div>
 
                                     {/* CONTRIBUTOR SUBTYPE */}
 
