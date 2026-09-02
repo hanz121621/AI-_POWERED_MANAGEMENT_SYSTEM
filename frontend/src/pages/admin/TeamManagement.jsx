@@ -1714,128 +1714,65 @@ console.log(
         }
     };
 
-    // ========================================================
+       // ========================================================
     // CURRENT SELECTED CONTRIBUTOR TYPE
     // ========================================================
 
-<<<<<<< HEAD
-  // ========================================================
-// CREATE TEAM CONTRIBUTOR TYPES
-// Only Staff and Developer
-// ========================================================
-console.log(
-    "ALL CONTRIBUTOR TYPES:",
-    contributorTypes
-);
-console.log(
-    "AVAILABLE USERS:",
-    JSON.stringify(
-        availableUsers,
-        null,
-        2
-    )
-);
-console.log(
-    "FIRST AVAILABLE USER:",
-    availableUsers[0]
-);
-const createTeamContributorTypes =
-    contributorTypes.filter(
-        (type) => {
-            const name =
-=======
     const selectedContributorType =
-        contributorTypes.find(
-            (type) =>
-                String(type.id) ===
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
-                String(
-                    memberForm.contributorTypeId
-                )
-        );
+        contributorTypes.find((type) => {
+            const typeId =
+                type?.id ??
+                type?.contributorTypeId ??
+                type?.Id ??
+                type?.ContributorTypeId;
 
-    const currentSubTypes =
-        selectedContributorType?.subTypes ||
-        selectedContributorType?.contributorSubTypes ||
-        [];
+            return (
+                String(typeId) ===
+                String(memberForm.contributorTypeId)
+            );
+        });
+
+    // ========================================================
+    // CURRENT SUBTYPES
+    // ========================================================
+
+    const currentSubTypes = contributorSubTypes;
+
+    // ========================================================
+    // FILTER USERS BY SELECTED CONTRIBUTOR TYPE + SUBTYPE
+    // ========================================================
+
+    const filteredAvailableUsers = availableUsers.filter((user) => {
+        // No contributor type selected yet
+        if (!memberForm.contributorTypeId) {
+            return true;
+        }
+
+        const userTypeId = String(user?.contributorTypeId || "");
+        const selectedTypeId = String(memberForm.contributorTypeId || "");
+
+        // First filter by contributor type
+        if (userTypeId !== selectedTypeId) {
+            return false;
+        }
+
+        // If no subtype is selected, show all users belonging to the selected contributor type.
+        if (!memberForm.contributorSubTypeId) {
+            return true;
+        }
+
+        const userSubTypeId = String(user?.contributorSubTypeId || "");
+        const selectedSubTypeId = String(memberForm.contributorSubTypeId || "");
+
+        // Then filter by subtype
+        return userSubTypeId === selectedSubTypeId;
+    });
 
     // ========================================================
     // RENDER
     // ========================================================
 
-<<<<<<< HEAD
-const selectedContributorType =
-    createTeamContributorTypes.find((type) => {
-        const typeId =
-            type?.id ??
-            type?.contributorTypeId ??
-            type?.Id ??
-            type?.ContributorTypeId;
-
-        return (
-            String(typeId) ===
-            String(memberForm.contributorTypeId)
-        );
-    });
-
-// ========================================================
-// CURRENT SUBTYPES
-// ========================================================
-
-const currentSubTypes =
-    contributorSubTypes;
-console.log(
-    "CURRENT SUBTYPES:",
-    currentSubTypes
-);
-// ========================================================
-// FILTER USERS BY SELECTED CONTRIBUTOR TYPE + SUBTYPE
-// ========================================================
-
-const filteredAvailableUsers = availableUsers.filter((user) => {
-    // No contributor type selected yet
-    if (!memberForm.contributorTypeId) {
-        return true;
-    }
-
-    const userTypeId =
-        String(user?.contributorTypeId || "");
-
-    const selectedTypeId =
-        String(memberForm.contributorTypeId || "");
-
-    // First filter by contributor type
-    if (userTypeId !== selectedTypeId) {
-        return false;
-    }
-
-    // If no subtype is selected, show all users
-    // belonging to the selected contributor type.
-    if (!memberForm.contributorSubTypeId) {
-        return true;
-    }
-
-    const userSubTypeId =
-        String(user?.contributorSubTypeId || "");
-
-    const selectedSubTypeId =
-        String(
-            memberForm.contributorSubTypeId || ""
-        );
-
-    // Then filter by subtype
     return (
-        userSubTypeId === selectedSubTypeId
-    );
-});
-// ========================================================
-// RENDER
-// ========================================================
-
-return (
-=======
-    return (
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
         <div className="min-h-full bg-background p-4 text-foreground sm:p-6 lg:p-8">
 
             {/* ==================================================
@@ -2369,9 +2306,9 @@ return (
                 })
             );
 
-<<<<<<< HEAD
+
             setContributorSubTypes([]);
-=======
+
                                             {contributorTypes.map(
                                                 (type) => (
                                                     <option
@@ -2383,7 +2320,6 @@ return (
                                                     </option>
                                                 )
                                             )}
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
 
             if (contributorTypeId) {
                 loadContributorSubTypes(

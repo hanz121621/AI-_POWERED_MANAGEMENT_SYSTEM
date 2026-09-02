@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-=======
-
 import api from "./api";
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
 import { getCurrentUser } from "@/services/authService";
 // ============================================================
 // TEAM SERVICE
