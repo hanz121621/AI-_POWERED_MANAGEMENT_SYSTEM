@@ -1,33 +1,4 @@
-// ============================================================
-// TEAM SERVICE
-// ============================================================
-//
-// AI-PMS Team Management
-//
-// Backend API:
-//
-// GET    /api/Team
-// GET    /api/Team/{id}
-// POST   /api/Team
-// PUT    /api/Team/{id}
-// DELETE /api/Team/{id}
-//
-// PUT    /api/Team/{teamId}/manager/{managerId}
-//
-// GET    /api/Team/{teamId}/members
-// POST   /api/Team/{teamId}/members
-// DELETE /api/Team/{teamId}/members/{userId}
-//
-// IMPORTANT
-// ------------------------------------------------------------
-// Teams are managed by the .NET backend.
-// Team data is NOT stored in localStorage.
-//
-// Existing frontend UI is preserved through normalization.
-// ============================================================
-
 import { getCurrentUser } from "@/services/authService";
-
 // ============================================================
 // API CONFIGURATION
 // ============================================================
@@ -796,7 +767,7 @@ function isValidGuid(value) {
 
     const guid = String(value).trim();
 
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
         guid
     );
 }

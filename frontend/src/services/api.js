@@ -311,9 +311,21 @@ api.interceptors.response.use(
         );
     }
 );
+// ============================================================
+// AI
+// ============================================================
 
+export const generateAIResponse = async (prompt) => {
+    const response = await api.post(
+        "/AI/generate",
+        {
+            prompt: prompt,
+        }
+    );
+
+    return response.data;
+};
 // ============================================================
 // EXPORT
 // ============================================================
-
 export default api;

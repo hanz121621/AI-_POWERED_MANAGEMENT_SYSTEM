@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
     CalendarDays,
@@ -17,30 +17,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    getAllUsers,
+} from "@/services/userService";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-// ============================================================
-// CREATE PROJECT MODAL
-//
-// PROJ-001: Create Project
-//
-// Creates a project with:
-// - Project name
-// - Description
-// - Assigned team
-// - Team leader
-// - Start date
-// - Deadline
-// - Creation date
-// - Status
-// - Sprint count
-// - Progress
-// - Task information
-// - Completion information
-// ============================================================
-
 function CreateProjectModal({
     open,
     onClose,
@@ -53,13 +35,15 @@ function CreateProjectModal({
     // ========================================================
 
     const initialFormData = {
-        name: "",
-        description: "",
-        team: "",
-        teamLeader: "",
-        startDate: "",
-        deadline: "",
-    };
+    name: "",
+    description: "",
+    team: "",
+    teamId: "",
+    teamLeader: "",
+    teamLeaderId: "",
+    startDate: "",
+    deadline: "",
+};
 
     // ========================================================
     // FORM DATA
@@ -68,12 +52,92 @@ function CreateProjectModal({
     const [formData, setFormData] =
         useState(initialFormData);
 
-    // ========================================================
-    // ERROR
-    // ========================================================
+  // ========================================================
+// ERROR
+// ========================================================
 
-    const [error, setError] = useState("");
+const [error, setError] = useState("");
 
+// ========================================================
+// USERS FROM DATABASE
+// ========================================================
+
+const [users, setUsers] = useState([]);
+
+const [loadingUsers, setLoadingUsers] =
+    useState(false);
+
+const selectedTeam = useMemo(() => {
+    if (!formData.team) {
+        return null;
+    }
+
+    return teams.find(
+        (team) =>
+            team?.name === formData.team
+    ) || null;
+}, [teams, formData.team]);
+
+// ========================================================
+// FILTER TEAM LEADERS FROM DATABASE USERS
+// ========================================================
+
+const teamLeaders = useMemo(() => {
+    return users.filter((user) => {
+        const contributorType =
+            String(
+                user?.contributorType ||
+                ""
+            )
+                .trim()
+                .toLowerCase();
+
+        return (
+            user?.isActive !== false &&
+            contributorType === "team leader"
+        );
+    });
+}, [users]);
+// ========================================================
+// LOAD USERS FROM DATABASE
+// ========================================================
+
+useEffect(() => {
+    if (!open) {
+        return;
+    }
+
+    const loadUsers = async () => {
+        try {
+            setLoadingUsers(true);
+
+            const result =
+                await getAllUsers();
+
+            console.log(
+                "PROJECT MODAL USERS:",
+                result
+            );
+
+            setUsers(
+                Array.isArray(result)
+                    ? result
+                    : []
+            );
+        } catch (error) {
+            console.error(
+                "LOAD USERS ERROR:",
+                error
+            );
+
+            setUsers([]);
+        } finally {
+            setLoadingUsers(false);
+        }
+    };
+
+    loadUsers();
+}, [open]);
     // ========================================================
     // HANDLE INPUT CHANGE
     // ========================================================
@@ -217,11 +281,17 @@ function CreateProjectModal({
             // TEAM INFORMATION
             // =================================================
 
-            team:
-                formData.team.trim(),
+          team:
+    formData.team.trim(),
 
-            teamLeader:
-                formData.teamLeader.trim(),
+teamId:
+    formData.teamId || null,
+
+teamLeader:
+    formData.teamLeader.trim(),
+
+teamLeaderId:
+    formData.teamLeaderId || null,
 
             // =================================================
             // PROJECT DATES
@@ -474,9 +544,7 @@ function CreateProjectModal({
                             value={
                                 formData.name
                             }
-                            onChange={
-                                handleChange
-                            }
+                           onChange={handleChange}
                             placeholder="Enter project name"
                             className="
                                 h-11
@@ -609,35 +677,60 @@ function CreateProjectModal({
                             {Array.isArray(teams) &&
                             teams.length > 0 ? (
 
-                                <select
-                                    id="project-team"
-                                    name="team"
-                                    value={
-                                        formData.team
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
-                                    className="
-                                        h-11
-                                        w-full
-                                        rounded-md
-                                        border
-                                        border-blue-700
-                                        bg-blue-900
-                                        px-3
-                                        text-sm
-                                        text-white
-                                        outline-none
-                                        transition-all
-                                        duration-300
-                                        hover:border-blue-400
-                                        focus:border-cyan-300
-                                        focus:ring-2
-                                        focus:ring-cyan-300/30
-                                    "
-                                >
+                              <select
+    id="project-team"
+    name="team"
+    value={formData.team}
+ onChange={(event) => {
+    const teamName =
+        event.target.value;
 
+    const selectedTeam =
+        teams.find(
+            (team) =>
+                team?.name === teamName
+        );
+
+    setFormData((current) => ({
+        ...current,
+
+        team:
+            teamName,
+
+        teamId:
+            selectedTeam?.id ??
+            selectedTeam?.teamId ??
+            "",
+
+        // Reset team leader when team changes
+        teamLeader:
+            "",
+
+        teamLeaderId:
+            "",
+    }));
+
+    setError("");
+}}
+    className="
+        h-11
+        w-full
+        rounded-md
+        border
+        border-blue-700
+        bg-blue-900
+        px-3
+        text-sm
+        text-white
+        outline-none
+        transition-all
+        duration-300
+        hover:border-blue-400
+        focus:border-cyan-300
+        focus:ring-2
+        focus:ring-cyan-300/30
+    "
+>
                                     <option
                                         value=""
                                         className="bg-blue-950"
@@ -735,33 +828,100 @@ function CreateProjectModal({
                                 </span>
 
                             </label>
+<select
+    id="project-team-leader"
+    name="teamLeader"
+    value={formData.teamLeaderId}
+    disabled={
+        !formData.team ||
+        loadingUsers ||
+        teamLeaders.length === 0
+    }
+    onChange={(event) => {
+        const leaderId =
+            event.target.value;
 
-                            <Input
-                                id="project-team-leader"
-                                name="teamLeader"
-                                value={
-                                    formData.teamLeader
-                                }
-                                onChange={
-                                    handleChange
-                                }
-                                placeholder="Enter team leader name"
-                                className="
-                                    h-11
-                                    border-blue-700
-                                    bg-blue-900
-                                    text-white
-                                    placeholder:text-blue-400
-                                    transition-all
-                                    duration-300
-                                    hover:border-blue-400
-                                    hover:bg-blue-800
-                                    focus:border-cyan-300
-                                    focus:bg-blue-800
-                                    focus:ring-2
-                                    focus:ring-cyan-300/30
-                                "
-                            />
+        const selectedLeader =
+            teamLeaders.find(
+                (leader) =>
+                    String(
+                        leader?.userId ||
+                        leader?.id
+                    ) ===
+                    String(leaderId)
+            );
+
+        setFormData((current) => ({
+            ...current,
+
+            teamLeader:
+                selectedLeader?.fullName ||
+                "",
+
+            teamLeaderId:
+                selectedLeader?.userId ||
+                selectedLeader?.id ||
+                "",
+        }));
+
+        setError("");
+    }}
+  className="
+    w-full
+    h-11
+    rounded-md
+    border
+    border-blue-700
+    bg-blue-900
+    px-3
+    text-sm
+    text-white
+    transition-all
+    duration-300
+    hover:border-blue-400
+    hover:bg-blue-800
+    focus:border-cyan-300
+    focus:bg-blue-800
+    focus:outline-none
+    focus:ring-2
+    focus:ring-cyan-300/30
+    disabled:cursor-not-allowed
+    disabled:opacity-60
+    disabled:bg-blue-950
+    disabled:border-blue-900
+    disabled:bg-slate-100
+    "
+>
+    <option
+    value=""
+    className="bg-blue-950 text-white"
+>
+        {loadingUsers
+            ? "Loading team leaders..."
+            : !formData.team
+                ? "Select a team first"
+                : teamLeaders.length === 0
+                    ? "No team leaders found"
+                    : "Select team leader"}
+    </option>
+
+    {teamLeaders.map((leader) => {
+        const leaderId =
+            leader?.userId ||
+            leader?.id;
+
+        return (
+            <option
+                key={leaderId}
+                value={leaderId}
+            >
+                {leader?.fullName ||
+                    leader?.email ||
+                    "Unknown User"}
+            </option>
+        );
+    })}
+</select>
 
                         </div>
 

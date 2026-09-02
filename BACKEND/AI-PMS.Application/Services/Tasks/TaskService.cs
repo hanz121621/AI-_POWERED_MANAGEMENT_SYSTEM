@@ -5,7 +5,7 @@ using AI_PMS.Application.Interfaces.Tasks;
 using AI_PMS.Application.Interfaces.Sprints;
 using AI_PMS.Application.Interfaces.Repositories.Tasks;
 using AI_PMS.Application.Interfaces.Repositories.Users;
-
+using AI_PMS.Application.Interfaces.AI;
 using AI_PMS.Domain.Entities.Tasks;
 using AI_PMS.Domain.Enums;
 
@@ -15,15 +15,18 @@ namespace AI_PMS.Application.Services.Tasks
     {private readonly ITaskRepository _taskRepository;
 private readonly ISprintRepository _sprintRepository;
 private readonly IUserRepository _userRepository;
+private readonly IAiSuggestionService _aiSuggestionService;
 
      public TaskService(
     ITaskRepository taskRepository,
     ISprintRepository sprintRepository,
-    IUserRepository userRepository)
+    IUserRepository userRepository,
+    IAiSuggestionService aiSuggestionService)
 {
     _taskRepository = taskRepository;
     _sprintRepository = sprintRepository;
     _userRepository = userRepository;
+    _aiSuggestionService = aiSuggestionService;
 }
 
         // =========================================================
@@ -105,43 +108,45 @@ private readonly IUserRepository _userRepository;
             "A task with this title already exists in this sprint.");
     }
 
-    // 7. Create task
-    var task = new TaskItem
-    {
-        Id = Guid.NewGuid(),
+  // 7. Create task
+var task = new TaskItem
+{
+    Id = Guid.NewGuid(),
 
-        SprintId = dto.SprintId,
+    SprintId = dto.SprintId,
 
-        Title = dto.Title.Trim(),
+    Title = dto.Title.Trim(),
 
-        Description = dto.Description,
+    Description = dto.Description,
 
-        AssignedDeveloperId =
-            dto.AssignedDeveloperId,
+    AssignedDeveloperId =
+        dto.AssignedDeveloperId,
 
-        Priority = dto.Priority,
+    Priority = dto.Priority,
 
-        Status = ProjectTaskStatus.Todo,
+    Status = ProjectTaskStatus.Todo,
 
-        EstimatedHours = dto.EstimatedHours,
+    EstimatedHours = dto.EstimatedHours,
 
-        ActualHours = 0,
+    ActualHours = 0,
 
-        DueDate = dto.DueDate,
+    DueDate = dto.DueDate,
 
-        CreatedBy = managerId,
+    CreatedBy = managerId,
 
-        CreatedAt = DateTime.UtcNow
-    };
+    CreatedAt = DateTime.UtcNow
+};
 
-    await _taskRepository.AddAsync(task);
 
-    return true;
+// Save task ONLY ONCE
+await _taskRepository.AddAsync(task);
+return true;
 }
 
         // =========================================================
         // GET ALL TASKS
         // =========================================================
+
         public async Task<IEnumerable<TaskDto>> GetAllTasksAsync()
         {
             var tasks =
@@ -446,27 +451,50 @@ public async Task<IEnumerable<UserDto>> GetAssignableUsersAsync()
             );
         }
 
-        // =========================================================
-        // DELETE TASK
-        // =========================================================
-        public async Task<bool> DeleteTaskAsync(Guid id)
-        {
-            var task =
-                await _taskRepository.GetByIdAsync(id);
+      // =========================================================
+// DELETE TASK
+// =========================================================
+public async Task<bool> DeleteTaskAsync(Guid id)
+{
+    var task =
+        await _taskRepository.GetByIdAsync(id);
 
-            if (task == null)
-                return false;
+    if (task == null)
+        return false;
 
-            await _taskRepository.DeleteAsync(task);
+    await _taskRepository.DeleteAsync(task);
 
-            return true;
-        }
+    return true;
+}
 
-        // =========================================================
-        // ENTITY -> DTO
-        // =========================================================
-       private static TaskDto MapToDto(TaskItem task)
+
+// =========================================================
+// AI-001
+// GENERATE TASK AI SUGGESTION
+// =========================================================
+public async Task<string?> GenerateTaskSuggestionAsync(Guid taskId)
+{
+    var task =
+        await _taskRepository.GetByIdAsync(taskId);
+
+    if (task == null)
     {
+        return null;
+    }
+
+    var taskDto =
+        MapToDto(task);
+
+    return await _aiSuggestionService
+        .AnalyzeTaskAsync(taskDto);
+}
+
+
+// =========================================================
+// ENTITY -> DTO
+// =========================================================
+private static TaskDto MapToDto(TaskItem task)
+{
     return new TaskDto
     {
         Id = task.Id,
@@ -487,7 +515,7 @@ public async Task<IEnumerable<UserDto>> GetAssignableUsersAsync()
         CreatedAt = task.CreatedAt,
         UpdatedAt = task.UpdatedAt
     };
-          }
+}
         
     }
 }

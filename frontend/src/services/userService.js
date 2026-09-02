@@ -25,33 +25,69 @@ export const USER_ROLES = {
 // Supports numeric and string backend values.
 // ============================================================
 
+// ============================================================
+// NORMALIZE ROLE
+// ============================================================
+
 export function normalizeUserRole(role) {
     if (
+        role === null ||
+        role === undefined
+    ) {
+        return "";
+    }
+
+    // Handle numeric values
+    if (
         role === 1 ||
-        role === "1" ||
-        String(role).trim().toLowerCase() === "admin"
+        role === "1"
     ) {
         return "Admin";
     }
 
     if (
         role === 2 ||
-        role === "2" ||
-        String(role).trim().toLowerCase() === "manager"
+        role === "2"
     ) {
         return "Manager";
     }
 
     if (
         role === 3 ||
-        role === "3" ||
-        String(role).trim().toLowerCase() === "contributor"
+        role === "3"
     ) {
         return "Contributor";
     }
 
+    // Handle string values
+    const normalized =
+        String(role)
+            .trim()
+            .toLowerCase();
+
+    if (normalized === "admin") {
+        return "Admin";
+    }
+
+    if (normalized === "manager") {
+        return "Manager";
+    }
+
+    if (
+        normalized === "contributor" ||
+        normalized === "contributors"
+    ) {
+        return "Contributor";
+    }
+
+    console.warn(
+        "UNKNOWN USER ROLE:",
+        role
+    );
+
     return "";
 }
+
 
 // ============================================================
 // NORMALIZE USER
@@ -62,27 +98,44 @@ export function normalizeUser(user) {
         return null;
     }
 
-    return {
+    console.log(
+        "NORMALIZING USER:",
+        user
+    );
+
+    const rawRole =
+        user?.role ??
+        user?.Role ??
+        user?.roleId ??
+        user?.RoleId ??
+        user?.userRole ??
+        user?.UserRole;
+
+    const normalizedUser = {
         ...user,
 
         id:
             user?.id ??
             user?.userId ??
             user?.Id ??
-            user?.UserId,
+            user?.UserId ??
+            null,
 
         userId:
             user?.userId ??
             user?.id ??
             user?.Id ??
-            user?.UserId,
+            user?.UserId ??
+            null,
 
         fullName:
             user?.fullName ??
-            user?.name ??
-            user?.userName ??
-            user?.username ??
             user?.FullName ??
+            user?.name ??
+            user?.Name ??
+            user?.userName ??
+            user?.UserName ??
+            user?.username ??
             "",
 
         email:
@@ -90,23 +143,17 @@ export function normalizeUser(user) {
             user?.Email ??
             "",
 
-        role: normalizeUserRole(
-            user?.role ??
-            user?.Role
-        ),
+        role:
+            normalizeUserRole(
+                rawRole
+            ),
 
-        // ====================================================
-        // ACCOUNT STATUS
-        // ====================================================
+        rawRole,
 
         isActive:
             user?.isActive ??
             user?.IsActive ??
             true,
-
-        // ====================================================
-        // CONTACT
-        // ====================================================
 
         phoneNumber:
             user?.phoneNumber ??
@@ -117,10 +164,6 @@ export function normalizeUser(user) {
             user?.bio ??
             user?.Bio ??
             null,
-
-        // ====================================================
-        // CONTRIBUTOR
-        // ====================================================
 
         contributorTypeId:
             user?.contributorTypeId ??
@@ -146,10 +189,6 @@ export function normalizeUser(user) {
             user?.ContributorSubTypeName ??
             null,
 
-        // ====================================================
-        // OTHER POSSIBLE BACKEND FIELDS
-        // ====================================================
-
         contributorTypeDefinitionId:
             user?.contributorTypeDefinitionId ??
             user?.ContributorTypeDefinitionId ??
@@ -165,6 +204,13 @@ export function normalizeUser(user) {
             user?.StaffSpecializationId ??
             null,
     };
+
+    console.log(
+        "NORMALIZED USER RESULT:",
+        normalizedUser
+    );
+
+    return normalizedUser;
 }
 
 // ============================================================
@@ -408,28 +454,75 @@ export async function getUsers() {
 // GET USERS BY ROLE
 // ============================================================
 
-export async function getUsersByRole(
-    role
-) {
-    const users =
-        await getAllUsers();
+export async function getUsersByRole(role) {
+    const users = await getAllUsers();
 
     const normalizedRole =
-        normalizeUserRole(
-            role
-        );
+        normalizeUserRole(role);
+
+    console.log(
+        "========== FILTER USERS BY ROLE =========="
+    );
+
+    console.log(
+        "REQUESTED ROLE:",
+        role
+    );
+
+    console.log(
+        "NORMALIZED REQUESTED ROLE:",
+        normalizedRole
+    );
+
+    console.log(
+        "ALL USERS:",
+        users
+    );
 
     if (!normalizedRole) {
+        console.warn(
+            "INVALID ROLE - RETURNING ALL USERS"
+        );
+
         return users;
     }
 
-    return users.filter(
-        (user) =>
-            normalizeUserRole(
-                user?.role
-            ) ===
-            normalizedRole
+    const filteredUsers =
+        users.filter((user) => {
+            const userRole =
+                normalizeUserRole(
+                    user?.role ??
+                    user?.rawRole ??
+                    user?.roleId ??
+                    user?.RoleId
+                );
+
+            console.log(
+                "CHECKING USER:",
+                {
+                    name: user?.fullName,
+                    role: user?.role,
+                    rawRole: user?.rawRole,
+                    normalizedRole: userRole,
+                }
+            );
+
+            return (
+                userRole ===
+                normalizedRole
+            );
+        });
+
+    console.log(
+        "FILTERED USERS:",
+        filteredUsers
     );
+
+    console.log(
+        "=========================================="
+    );
+
+    return filteredUsers;
 }
 
 // ============================================================
@@ -457,11 +550,42 @@ export async function getManagers() {
 // ============================================================
 
 export async function getContributors() {
-    return getUsersByRole(
-        USER_ROLES.CONTRIBUTOR
-    );
-}
+    const users =
+        await getAllUsers();
 
+    const contributors =
+        users.filter((user) => {
+            const role =
+                normalizeUserRole(
+                    user?.role ??
+                    user?.rawRole ??
+                    user?.roleId ??
+                    user?.RoleId
+                );
+
+            return role === "Contributor";
+        });
+
+    console.log(
+        "========== CONTRIBUTORS =========="
+    );
+
+    console.log(
+        "ALL USERS:",
+        users
+    );
+
+    console.log(
+        "CONTRIBUTORS:",
+        contributors
+    );
+
+    console.log(
+        "=================================="
+    );
+
+    return contributors;
+}
 // ============================================================
 // GET ACTIVE USERS
 // ============================================================

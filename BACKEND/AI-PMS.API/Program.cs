@@ -7,7 +7,9 @@ using AI_PMS.API.Authorization;
 using AI_PMS.API.Services;
 
 using AI_PMS.Application.DTOs.Auth;
-
+using AI_PMS.Application.Interfaces.AI;
+using AI_PMS.Infrastructure.AI.Configuration;
+using AI_PMS.Infrastructure.AI.Services;
 using AI_PMS.Application.Interfaces.Activities;
 using AI_PMS.Application.Interfaces.Auth;
 using AI_PMS.Application.Interfaces.Communication;
@@ -85,9 +87,23 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using AI_PMS.Application.Services.AI;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// =========================================================
+// AI / OLLAMA
+// =========================================================
+
+builder.Services.AddHttpClient<IAiSuggestionService, AiSuggestionService>(
+    client =>
+    {
+        client.BaseAddress =
+            new Uri("http://localhost:11434");
+
+        client.Timeout =
+            TimeSpan.FromMinutes(120);
+    });
 // =========================================================
 // DATABASE
 // =========================================================

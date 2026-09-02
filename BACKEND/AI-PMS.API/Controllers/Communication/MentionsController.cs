@@ -64,7 +64,7 @@ namespace AI_PMS.API.Controllers.Communication
                     message = ex.Message
                 });
             }
-            catch (UnauthorizedAccessException ex)
+            catch (UnauthorizedAccessException )
             {
                 return Forbid();
             }

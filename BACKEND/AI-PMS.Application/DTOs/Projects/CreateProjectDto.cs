@@ -15,11 +15,14 @@ namespace AI_PMS.Application.DTOs.Projects
         // If omitted, the configured initial status is used.
         public Guid? StatusId { get; set; }
 
-        // Optional manager assignment
-        public Guid? ManagerId { get; set; }
+       // Optional manager assignment
+public Guid? ManagerId { get; set; }
 
-        // Optional team assignment
-        public Guid? TeamId { get; set; }
+// Optional team assignment
+public Guid? TeamId { get; set; }
+
+// Optional team leader assignment
+public Guid? TeamLeaderId { get; set; }
 
         // Project priority
         [Range(1, 4)]

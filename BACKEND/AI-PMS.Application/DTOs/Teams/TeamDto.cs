@@ -47,5 +47,6 @@ namespace AI_PMS.Application.DTOs.Teams
         public DateTime JoinedAt { get; set; }
 
         public bool IsActive { get; set; }
+        public bool IsTeamLeader { get; set; }
     }
 }

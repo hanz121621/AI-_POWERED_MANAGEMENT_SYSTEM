@@ -12,7 +12,7 @@ namespace AI_PMS.Application.Interfaces.Tasks
         Task<IEnumerable<TaskDto>> GetAllTasksAsync();
 
         Task<TaskDto?> GetTaskByIdAsync(Guid id);
-
+        Task<string?> GenerateTaskSuggestionAsync(Guid taskId);
         Task<IEnumerable<TaskDto>> GetSprintTasksAsync(Guid sprintId);
 
         Task<IEnumerable<TaskDto>> GetDeveloperTasksAsync(Guid developerId);

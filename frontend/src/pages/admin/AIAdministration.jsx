@@ -30,7 +30,7 @@ import {
 import AISuggestions from "@/components/admin/ai-administration/AISuggestions";
 import AISettings from "@/components/admin/ai-administration/AISettings";
 import AIUsageStatistics from "@/components/admin/ai-administration/AIUsageStatistics";
-
+import AITest from "@/components/admin/ai-administration/AITest";
 // ============================================================
 // AI ADMINISTRATION
 //
@@ -440,6 +440,10 @@ function AIAdministration({
               Usage Statistics
 
             </TabsTrigger>
+            <TabsTrigger value="test">
+  <Bot className="mr-2 h-4 w-4" />
+  AI Connection Test
+</TabsTrigger>
 
           </TabsList>
 
@@ -508,7 +512,12 @@ function AIAdministration({
           />
 
         </TabsContent>
-
+<TabsContent
+  value="test"
+  className="space-y-6"
+>
+  <AITest />
+</TabsContent>
       </Tabs>
 
 

@@ -32,14 +32,15 @@ namespace AI_PMS.Infrastructure.Repositories.Projects
         // GET ALL
         // =========================================================
 
-        public async Task<List<Project>> GetAllAsync()
-        {
-            return await _context.Projects
-                .AsNoTracking()
-                .Include(p => p.Status)
-                .OrderBy(p => p.Name)
-                .ToListAsync();
-        }
+      public async Task<List<Project>> GetAllAsync()
+{
+    return await _context.Projects
+        .AsNoTracking()
+        .Include(p => p.Status)
+        .Where(p => !p.IsDeleted)
+        .OrderBy(p => p.Name)
+        .ToListAsync();
+}
 
         // =========================================================
         // GET BY ID
