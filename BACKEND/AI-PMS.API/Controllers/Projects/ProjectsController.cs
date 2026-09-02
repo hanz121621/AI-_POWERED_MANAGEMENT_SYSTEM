@@ -3,7 +3,7 @@ using AI_PMS.Application.Interfaces.Projects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-
+using AI_PMS.Application.Interfaces.AI;
 namespace AI_PMS.API.Controllers.Projects
 {
     [ApiController]
@@ -13,15 +13,68 @@ namespace AI_PMS.API.Controllers.Projects
     {
         private readonly IProjectService _projectService;
         private readonly IProjectAssignmentService _assignmentService;
+        private readonly IAiSuggestionService _aiSuggestionService;
 
         public ProjectsController(
-            IProjectService projectService,
-            IProjectAssignmentService assignmentService)
+    IProjectService projectService,
+    IProjectAssignmentService assignmentService,
+    IAiSuggestionService aiSuggestionService)
+{
+    _projectService = projectService;
+    _assignmentService = assignmentService;
+    _aiSuggestionService = aiSuggestionService;
+}
+
+// =====================================================
+// AI-001
+// GET AI PROJECT SUGGESTION
+// =====================================================
+
+// GET: api/projects/{id}/ai-suggestion
+[HttpGet("{id:guid}/ai-suggestion")]
+public async Task<IActionResult> GetAiSuggestion(Guid id)
+{
+    try
+    {
+        var project =
+            await _projectService.GetByIdAsync(id);
+
+        if (project == null)
         {
-            _projectService = projectService;
-            _assignmentService = assignmentService;
+            return NotFound(new
+            {
+                message = "Project not found."
+            });
         }
 
+        var suggestion =
+            await _aiSuggestionService
+                .AnalyzeProjectAsync(project);
+
+        if (string.IsNullOrWhiteSpace(suggestion))
+        {
+            return StatusCode(503, new
+            {
+                message =
+                    "AI suggestion service is currently unavailable."
+            });
+        }
+
+        return Ok(new
+        {
+            projectId = project.Id,
+            suggestion = suggestion
+        });
+    }
+    catch (Exception)
+    {
+        return StatusCode(500, new
+        {
+            message =
+                "Unable to generate AI project suggestion."
+        });
+    }
+}
         // =========================================================
         // PM-004
         // VIEW ASSIGNED PROJECTS
@@ -272,28 +325,35 @@ namespace AI_PMS.API.Controllers.Projects
         // PROJ-001
         // =========================================================
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            try
-            {
-                var projects =
-                    await _projectService.GetAllAsync();
+       [HttpGet]
+public async Task<IActionResult> GetAll()
+{
+    try
+    {
+        var projects =
+            await _projectService.GetAllAsync();
 
-                return Ok(projects);
-            }
-            catch
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new
-                    {
-                        message =
-                            "Unable to load projects. Please try again."
-                    });
-            }
-        }
+        return Ok(projects);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("======================================");
+        Console.WriteLine("GET /api/projects FAILED");
+        Console.WriteLine($"Message: {ex.Message}");
+        Console.WriteLine($"InnerException: {ex.InnerException?.Message}");
+        Console.WriteLine($"StackTrace: {ex.StackTrace}");
+        Console.WriteLine("======================================");
 
+        return StatusCode(
+            StatusCodes.Status500InternalServerError,
+            new
+            {
+                message = "Unable to load projects.",
+                error = ex.Message,
+                innerError = ex.InnerException?.Message
+            });
+    }
+}
         // =========================================================
         // GET ACTIVE PROJECTS
         // =========================================================
@@ -768,7 +828,7 @@ public async Task<IActionResult> ChangeStatus(
 
         return Ok(result);
     }
-    catch (UnauthorizedAccessException ex)
+    catch (UnauthorizedAccessException )
     {
         return Forbid();
     }

@@ -602,6 +602,8 @@ export async function createProject(
                 projectData.teamId ||
                 null,
 
+                teamLeaderId:
+    projectData.teamLeaderId || null,
             priorityId:
                 projectData.priorityId ??
                 null,

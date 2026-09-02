@@ -69,7 +69,11 @@ public async Task<ActionResult<MessageResponseDto>>
                     message = ex.Message
                 });
             }
+<<<<<<< HEAD
+            catch (UnauthorizedAccessException )
+=======
             catch (UnauthorizedAccessException)
+>>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
             {
                 return Forbid();
             }

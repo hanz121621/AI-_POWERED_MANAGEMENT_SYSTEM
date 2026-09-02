@@ -84,7 +84,7 @@ namespace AI_PMS.API.Controllers.Reports
                         message = ex.Message
                     });
             }
-            catch (UnauthorizedAccessException ex)
+            catch (UnauthorizedAccessException )
             {
                 return Forbid();
             }

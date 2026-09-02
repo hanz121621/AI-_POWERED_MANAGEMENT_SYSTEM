@@ -21,6 +21,9 @@ namespace AI_PMS.Application.DTOs.Projects
         // Team assignment
         public Guid? TeamId { get; set; }
 
+        // Team leader assignment
+        public Guid? TeamLeaderId { get; set; }
+
         // Project priority
         [Range(1, 4)]
         public int PriorityId { get; set; } = 2;
