@@ -19,17 +19,15 @@ namespace AI_PMS.Domain.Entities.SubTasks
 
         public int EstimatedHours { get; set; }
 
-        // AI generated or manually edited
-        public bool IsAIGenerated { get; set; } = true;
+        public bool IsAIGenerated { get; set; } = false;
 
-        // Manager approval
+        // Kept for compatibility with the existing database/model.
+        // It is not part of the new use-case workflow.
         public bool IsApproved { get; set; } = false;
 
-        // Global soft-delete rule
         public bool IsDeleted { get; set; } = false;
 
-        public DateTime CreatedAt { get; set; }
-            = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }
 
