@@ -254,6 +254,46 @@ namespace AI_PMS.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TaskComments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    TaskId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    Content = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TaskComments", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TaskSubmissions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    TaskId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SubmittedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    CompletionNotes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    WorkSummary = table.Column<string>(type: "character varying(5000)", maxLength: 5000, nullable: false),
+                    RelatedLinks = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    SubmittedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsApproved = table.Column<bool>(type: "boolean", nullable: false),
+                    IsRejected = table.Column<bool>(type: "boolean", nullable: false),
+                    ReviewComment = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    ReviewedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ReviewedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TaskSubmissions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ContributorSubTypes",
                 columns: table => new
                 {
@@ -380,7 +420,9 @@ namespace AI_PMS.Infrastructure.Migrations
                     PasswordResetToken = table.Column<string>(type: "text", nullable: true),
                     PasswordResetTokenExpiry = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    TechnicalSkills = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    LastLoginAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -473,7 +515,7 @@ namespace AI_PMS.Infrastructure.Migrations
                     SummaryFrequencyMinutes = table.Column<int>(type: "integer", nullable: false),
                     RecommendationDisplayEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     AIInsightsVisible = table.Column<bool>(type: "boolean", nullable: false),
-                    AINotificationPriority = table.Column<string>(type: "text", nullable: false),
+                    AINotificationPriority = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -595,8 +637,13 @@ namespace AI_PMS.Infrastructure.Migrations
                     EmailNotificationsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     InSystemNotificationsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     TaskAssignmentAlertsEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    ProjectDeadlineRemindersEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    TaskStatusUpdateNotificationsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    CommentAndMentionNotificationsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    TeamLeaderMessageNotificationsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     SprintUpdateNotificationsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    ProjectDeadlineRemindersEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    ReviewRequestNotificationsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    ProjectAnnouncementNotificationsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     AiRecommendationAlertsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     UserActivityNotificationsEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -695,14 +742,16 @@ namespace AI_PMS.Infrastructure.Migrations
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
                     Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
-                    AssignedDeveloperId = table.Column<Guid>(type: "uuid", nullable: true),
+                    AssignedContributorSDId = table.Column<Guid>(type: "uuid", nullable: true),
                     Priority = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     EstimatedHours = table.Column<int>(type: "integer", nullable: false),
                     ActualHours = table.Column<int>(type: "integer", nullable: false),
                     DueDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -745,7 +794,11 @@ namespace AI_PMS.Infrastructure.Migrations
                     ReceiverId = table.Column<Guid>(type: "uuid", nullable: false),
                     ProjectId = table.Column<Guid>(type: "uuid", nullable: false),
                     TeamId = table.Column<Guid>(type: "uuid", nullable: false),
+                    TaskId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Content = table.Column<string>(type: "character varying(5000)", maxLength: 5000, nullable: false),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false),
+                    ReadAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -989,7 +1042,8 @@ namespace AI_PMS.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    MessageId = table.Column<Guid>(type: "uuid", nullable: false),
+                    MessageId = table.Column<Guid>(type: "uuid", nullable: true),
+                    TaskCommentId = table.Column<Guid>(type: "uuid", nullable: true),
                     MentionedUserId = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -1003,11 +1057,17 @@ namespace AI_PMS.Infrastructure.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
+                        name: "FK_MessageMentions_TaskComments_TaskCommentId",
+                        column: x => x.TaskCommentId,
+                        principalTable: "TaskComments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
                         name: "FK_MessageMentions_Users_MentionedUserId",
                         column: x => x.MentionedUserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1044,7 +1104,8 @@ namespace AI_PMS.Infrastructure.Migrations
                 values: new object[,]
                 {
                     { new Guid("11111111-1111-1111-1111-111111111111"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Software development and technical roles.", true, "Developer", null },
-                    { new Guid("22222222-2222-2222-2222-222222222222"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Administrative and support roles.", true, "Staff", null }
+                    { new Guid("22222222-2222-2222-2222-222222222222"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Administrative and support roles.", true, "Staff", null },
+                    { new Guid("33333333-3333-3333-3333-333333333333"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Responsible for managing and leading a project team.", true, "Team Leader", null }
                 });
 
             migrationBuilder.InsertData(
@@ -1152,6 +1213,11 @@ namespace AI_PMS.Infrastructure.Migrations
                 name: "IX_MessageMentions_MessageId",
                 table: "MessageMentions",
                 column: "MessageId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MessageMentions_TaskCommentId",
+                table: "MessageMentions",
+                column: "TaskCommentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Messages_ProjectId",
@@ -1512,6 +1578,9 @@ namespace AI_PMS.Infrastructure.Migrations
                 name: "SystemSettings");
 
             migrationBuilder.DropTable(
+                name: "TaskSubmissions");
+
+            migrationBuilder.DropTable(
                 name: "TeamMemberRequests");
 
             migrationBuilder.DropTable(
@@ -1525,6 +1594,9 @@ namespace AI_PMS.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Messages");
+
+            migrationBuilder.DropTable(
+                name: "TaskComments");
 
             migrationBuilder.DropTable(
                 name: "NotificationTypes");

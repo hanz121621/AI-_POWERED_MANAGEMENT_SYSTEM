@@ -45,7 +45,6 @@ using AI_PMS.Application.Interfaces.Repositories.UserPreferences;
 using AI_PMS.Application.Interfaces.Security;
 using AI_PMS.Application.Interfaces.SecuritySettings;
 using AI_PMS.Application.Interfaces.Sprints;
-using AI_PMS.Application.Interfaces.Sprints;
 using AI_PMS.Application.Services.Sprints;
 using AI_PMS.Application.Interfaces.SubTasks;
 using AI_PMS.Application.Interfaces.SystemSettings;
@@ -53,9 +52,7 @@ using AI_PMS.Application.Interfaces.Tasks;
 using AI_PMS.Application.Interfaces.Teams;
 using AI_PMS.Application.Interfaces.UserPreferences;
 using AI_PMS.Application.Interfaces.Users;
-using AI_PMS.Application.Interfaces.Reports;
-using AI_PMS.Application.Services.Reports;
-using AI_PMS.Application.Interfaces.Teams;
+
 using AI_PMS.Application.Services.Teams;
 
 using AI_PMS.Application.Services.Activities;
@@ -67,11 +64,8 @@ using AI_PMS.Application.Services.Permissions;
 using AI_PMS.Application.Services.Preferences;
 using AI_PMS.Application.Services.Projects;
 using AI_PMS.Application.Services.SecuritySettings;
-using AI_PMS.Application.Services.Sprints;
-
 using AI_PMS.Application.Services.SystemSettings;
 using AI_PMS.Application.Services.Tasks;
-using AI_PMS.Application.Services.Teams;
 using AI_PMS.Application.Services.UserPreferences;
 using AI_PMS.Application.Services.Users;
 
@@ -108,10 +102,6 @@ using AI_PMS.Infrastructure.Security;
 using AI_PMS.Infrastructure.Repositories.TaskComments;
 using AI_PMS.Infrastructure.Repositories.TaskSubmissions;
 
-
-
-
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -134,6 +124,7 @@ builder.Services.AddHttpClient<IAiSuggestionService, AiSuggestionService>(
         client.Timeout =
             TimeSpan.FromMinutes(120);
     });
+    builder.Services.AddScoped<AI_PMS.Application.Interfaces.Repositories.AI.IAiSuggestionRepository, AI_PMS.Infrastructure.Repositories.AI.AiSuggestionRepository>();
 // =========================================================
 // DATABASE
 // =========================================================
@@ -783,6 +774,11 @@ builder.Services
 // =========================================================
 // BUILD APPLICATION
 // =========================================================
+// Register HttpClient for Ollama
+builder.Services.AddHttpClient<AI_PMS.Application.Interfaces.AI.IAiSuggestionService, AI_PMS.Application.Services.AI.AiSuggestionService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60); // AI generation can take a few seconds
+});
 
 var app = builder.Build();
 

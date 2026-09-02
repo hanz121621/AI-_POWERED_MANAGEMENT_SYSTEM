@@ -119,13 +119,12 @@ var task = new TaskItem
 
     Description = dto.Description,
 
-<<<<<<< HEAD
-    AssignedDeveloperId =
-        dto.AssignedDeveloperId,
-=======
+
+   // AssignedDeveloperId =
+     //   dto.AssignedDeveloperId,
+
         AssignedContributorSDId =
             dto.AssignedContributorSDId,
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
 
     Priority = dto.Priority,
 
@@ -727,19 +726,18 @@ public async Task<bool> DeleteTaskAsync(Guid id)
 // =========================================================
 public async Task<string?> GenerateTaskSuggestionAsync(Guid taskId)
 {
-    var task =
-        await _taskRepository.GetByIdAsync(taskId);
+    var task = await _taskRepository.GetByIdAsync(taskId);
 
     if (task == null)
     {
         return null;
     }
 
-    var taskDto =
-        MapToDto(task);
-
-    return await _aiSuggestionService
-        .AnalyzeTaskAsync(taskDto);
+    // For now, return a placeholder suggestion
+    // Later, you can implement actual AI analysis for tasks
+    return $"Task '{task.Title}' is currently {task.Status}. " +
+           $"Estimated hours: {task.EstimatedHours}, Actual hours: {task.ActualHours}. " +
+           $"Consider reviewing progress if actual hours are approaching estimated hours.";
 }
 
 

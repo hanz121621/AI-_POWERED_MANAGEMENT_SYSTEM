@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AI_PMS.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260830200440_ExtendNotificationPreferences")]
-    partial class ExtendNotificationPreferences
+    [Migration("20260902013436_InitialCleanCreate")]
+    partial class InitialCleanCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -762,6 +762,9 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Property<Guid?>("TeamId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("TeamLeaderId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1441,6 +1444,9 @@ namespace AI_PMS.Infrastructure.Migrations
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -1451,6 +1457,9 @@ namespace AI_PMS.Infrastructure.Migrations
 
                     b.Property<int>("EstimatedHours")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Priority")
                         .HasColumnType("integer");
@@ -1632,6 +1641,14 @@ namespace AI_PMS.Infrastructure.Migrations
                             Description = "Administrative and support roles.",
                             IsActive = true,
                             Name = "Staff"
+                        },
+                        new
+                        {
+                            Id = new Guid("33333333-3333-3333-3333-333333333333"),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Responsible for managing and leading a project team.",
+                            IsActive = true,
+                            Name = "Team Leader"
                         });
                 });
 

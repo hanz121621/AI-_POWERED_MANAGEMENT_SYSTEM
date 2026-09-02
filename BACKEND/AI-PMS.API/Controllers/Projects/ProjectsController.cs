@@ -3,6 +3,7 @@ using AI_PMS.Application.Interfaces.Projects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using AI_PMS.Application.DTOs.AI;
 using AI_PMS.Application.Interfaces.AI;
 namespace AI_PMS.API.Controllers.Projects
 {
@@ -36,43 +37,46 @@ public async Task<IActionResult> GetAiSuggestion(Guid id)
 {
     try
     {
-        var project =
-            await _projectService.GetByIdAsync(id);
+        var project = await _projectService.GetByIdAsync(id);
 
         if (project == null)
         {
-            return NotFound(new
-            {
-                message = "Project not found."
-            });
+            return NotFound(new { message = "Project not found." });
         }
 
-        var suggestion =
-            await _aiSuggestionService
-                .AnalyzeProjectAsync(project);
-
-        if (string.IsNullOrWhiteSpace(suggestion))
+        // Map to the DTO expected by the AI service
+        var request = new GenerateAiSuggestionRequestDto
         {
-            return StatusCode(503, new
-            {
-                message =
-                    "AI suggestion service is currently unavailable."
-            });
+            ProjectId = project.Id,
+            ProjectName = project.Name,
+            ProjectDescription = project.Description,
+            
+            // FIX 1: Use 'StatusName' instead of 'Status'
+            CurrentStatus = project.StatusName ?? "Unknown", 
+            
+            // FIX 2: Use 0 as a fallback, or change to 'project.ActiveTaskCount' if that property exists in your ProjectDto
+            ActiveTasks = 0, 
+            
+            // FIX 3: Remove the '?' because Deadline is not a nullable DateTime in your DTO
+            Deadline = project.Deadline.ToString("yyyy-MM-dd") 
+        };
+
+        var suggestion = await _aiSuggestionService.GenerateSuggestionForProjectAsync(request);
+
+        if (suggestion == null)
+        {
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new { message = "AI suggestion service is currently unavailable." });
         }
 
-        return Ok(new
-        {
-            projectId = project.Id,
-            suggestion = suggestion
-        });
+        return Ok(new { projectId = project.Id, suggestion = suggestion });
     }
-    catch (Exception)
+    catch (Exception ex)
     {
-        return StatusCode(500, new
-        {
-            message =
-                "Unable to generate AI project suggestion."
-        });
+        return StatusCode(
+            StatusCodes.Status500InternalServerError,
+            new { message = "Unable to generate AI project suggestion.", error = ex.Message });
     }
 }
         // =========================================================
