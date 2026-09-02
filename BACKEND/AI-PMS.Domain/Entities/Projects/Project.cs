@@ -27,11 +27,14 @@ namespace AI_PMS.Domain.Entities.Projects
         // PROJECT ASSIGNMENT
         // =========================================================
 
-        // Project manager
-        public Guid? ManagerId { get; set; }
+      // Project manager
+public Guid? ManagerId { get; set; }
 
-        // Assigned team
-        public Guid? TeamId { get; set; }
+// Assigned team
+public Guid? TeamId { get; set; }
+
+// Team leader selected for this project
+public Guid? TeamLeaderId { get; set; }
 
         // =========================================================
         // PROJECT PRIORITY

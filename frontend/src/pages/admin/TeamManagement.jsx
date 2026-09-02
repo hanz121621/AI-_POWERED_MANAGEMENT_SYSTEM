@@ -31,21 +31,12 @@ import {
     removeMemberFromTeam,
     updateTeam,
 } from "@/services/teamService";
-
-import { getUsersByRole } from "@/services/userService";
-
-// ============================================================
-// TEAM MANAGEMENT
-//
-// TEAM-001 Create Team
-// TEAM-002 Update Team
-// TEAM-003 Delete Team
-// TEAM-004 View Teams
-// TEAM-005 Assign Manager
-// TEAM-006 Add Members
-// TEAM-007 Remove Members
-// ============================================================
-
+import api from "@/services/api";
+import {
+    getAllUsers,
+    getUsersByRole,
+    USER_ROLES,
+} from "@/services/userService";
 function TeamManagement() {
     // ========================================================
     // TEAMS
@@ -54,7 +45,7 @@ function TeamManagement() {
     const [teams, setTeams] = useState([]);
     const [managers, setManagers] = useState([]);
     const [availableUsers, setAvailableUsers] = useState([]);
-
+const [allUsers, setAllUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
 
     const [loading, setLoading] = useState(true);
@@ -79,22 +70,14 @@ function TeamManagement() {
         description: "",
         managerId: "",
     });
-
-    // ========================================================
-    // CONTRIBUTOR TYPES
-    //
-    // IMPORTANT:
-    // The id MUST be a real GUID returned by your backend.
-    // Do NOT use:
-    // "developer"
-    // "staff"
-    // "team-leader"
-    //
-    // Example:
-    // "550e8400-e29b-41d4-a716-446655440000"
-    // ========================================================
-
     const [contributorTypes, setContributorTypes] = useState([]);
+    const [contributorSubTypes, setContributorSubTypes] =
+    useState([]);
+
+const [
+    isLoadingContributorSubTypes,
+    setIsLoadingContributorSubTypes
+] = useState(false);
 
     const [memberForm, setMemberForm] = useState({
         userId: "",
@@ -305,26 +288,61 @@ function TeamManagement() {
     // LOAD CONTRIBUTORS
     // ========================================================
 
-    const loadAvailableUsers = useCallback(async () => {
-        try {
-            const result = await getUsersByRole("Contributor");
+  const loadAvailableUsers = useCallback(async () => {
+    try {
+        const users = await getAllUsers();
 
-            const data =
-                Array.isArray(result)
-                    ? result
-                    : Array.isArray(result?.data)
-                        ? result.data
-                        : Array.isArray(result?.users)
-                            ? result.users
-                            : [];
+        console.log(
+            "========== LOAD AVAILABLE USERS =========="
+        );
 
-            setAvailableUsers(data);
-        } catch (err) {
-            console.error("LOAD CONTRIBUTORS ERROR:", err);
+        console.log(
+            "ALL USERS FROM getAllUsers:",
+            users
+        );
 
-            setAvailableUsers([]);
-        }
-    }, []);
+        users.forEach((user, index) => {
+            console.log(
+                `USER ${index}:`,
+                {
+                    id: user?.id,
+                    userId: user?.userId,
+                    fullName: user?.fullName,
+                    email: user?.email,
+                    role: user?.role,
+                    rawRole: user?.rawRole,
+                    isActive: user?.isActive,
+                }
+            );
+        });
+
+        const activeContributors = users.filter(
+            (user) =>
+                user?.role === "Contributor" &&
+                user?.isActive !== false
+        );
+
+        console.log(
+            "ACTIVE CONTRIBUTORS:",
+            activeContributors
+        );
+
+        setAvailableUsers(
+            activeContributors
+        );
+
+        console.log(
+            "=========================================="
+        );
+    } catch (err) {
+        console.error(
+            "LOAD AVAILABLE USERS ERROR:",
+            err
+        );
+
+        setAvailableUsers([]);
+    }
+}, []);
 
     // ========================================================
     // LOAD CONTRIBUTOR TYPES
@@ -334,53 +352,78 @@ function TeamManagement() {
     // have an endpoint for contributor types.
     // ========================================================
 
-    const loadContributorTypes = useCallback(async () => {
-        try {
-            /*
-             * IMPORTANT:
-             *
-             * Your backend must provide the real GUIDs.
-             *
-             * Example expected response:
-             *
-             * [
-             *   {
-             *      id: "GUID-HERE",
-             *      name: "Team Leader"
-             *   },
-             *   {
-             *      id: "GUID-HERE",
-             *      name: "Developer"
-             *   },
-             *   {
-             *      id: "GUID-HERE",
-             *      name: "Staff"
-             *   }
-             * ]
-             *
-             * If you already have getContributorTypes()
-             * in a service, call it here.
-             */
+  const loadContributorTypes = useCallback(async () => {
+    try {
+        const response = await api.get(
+            "/ContributorTypes/active"
+        );
 
-            /*
-             * TEMPORARY:
-             *
-             * Keep this empty until the real backend IDs
-             * are available.
-             *
-             * DO NOT put "developer", "staff", etc. here.
-             */
-            setContributorTypes([]);
-        } catch (err) {
-            console.error(
-                "LOAD CONTRIBUTOR TYPES ERROR:",
-                err
-            );
+        console.log(
+            "CONTRIBUTOR TYPES RESPONSE:",
+            response.data
+        );
 
-            setContributorTypes([]);
-        }
-    }, []);
+        const types =
+            Array.isArray(response.data)
+                ? response.data
+                : [];
 
+        setContributorTypes(types);
+    } catch (err) {
+        console.error(
+            "LOAD CONTRIBUTOR TYPES ERROR:",
+            err
+        );
+
+        setContributorTypes([]);
+    }
+}, []);
+const loadContributorSubTypes =
+    useCallback(
+        async (contributorTypeId) => {
+            if (!contributorTypeId) {
+                setContributorSubTypes([]);
+                return;
+            }
+
+            try {
+                setIsLoadingContributorSubTypes(
+                    true
+                );
+
+                const response =
+                    await api.get(
+                        `/ContributorSubTypes/type/${contributorTypeId}`
+                    );
+
+                console.log(
+                    "CONTRIBUTOR SUBTYPES RESPONSE:",
+                    response.data
+                );
+
+                const subTypes =
+                    Array.isArray(response.data)
+                        ? response.data
+                        : [];
+
+                setContributorSubTypes(
+                    subTypes
+                );
+            } catch (err) {
+                console.error(
+                    "LOAD CONTRIBUTOR SUBTYPES ERROR:",
+                    err
+                );
+
+                setContributorSubTypes([]);
+            } finally {
+                setIsLoadingContributorSubTypes(
+                    false
+                );
+            }
+        },
+        []
+    );
     // ========================================================
     // INITIAL LOAD
     // ========================================================
@@ -571,43 +614,73 @@ function TeamManagement() {
                 String(memberForm.userId)
         );
 
-        const contributorType = contributorTypes.find(
-            (item) =>
-                String(item.id) ===
-                String(memberForm.contributorTypeId)
+       const contributorType =
+    contributorTypes.find((item) => {
+        const typeId =
+            item?.id ??
+            item?.contributorTypeId ??
+            item?.Id ??
+            item?.ContributorTypeId;
+
+        return (
+            String(typeId) ===
+            String(memberForm.contributorTypeId)
         );
+    });
 
-        const contributorSubType =
-            contributorType?.subTypes?.find(
-                (item) =>
-                    String(item.id) ===
-                    String(memberForm.contributorSubTypeId)
-            );
+const contributorTypeId =
+    contributorType?.id ??
+    contributorType?.contributorTypeId ??
+    contributorType?.Id ??
+    contributorType?.ContributorTypeId ??
+    memberForm.contributorTypeId;
+       const contributorSubType =
+    contributorSubTypes.find((item) => {
+        const subTypeId =
+            item?.id ??
+            item?.contributorSubTypeId ??
+            item?.Id ??
+            item?.ContributorSubTypeId;
 
-        setSelectedMembers((previous) => [
-            ...previous,
-            {
-                userId: memberForm.userId,
-                user,
+        return (
+            String(subTypeId) ===
+            String(memberForm.contributorSubTypeId)
+        );
+    });
+    console.log("ADDING MEMBER:", {
+    user: getUserName(user),
+    memberFormContributorTypeId:
+        memberForm.contributorTypeId,
+    foundContributorType:
+        contributorType,
+    calculatedContributorTypeId:
+        contributorTypeId,
+});
+      setSelectedMembers((previous) => [
+    ...previous,
+    {
+        userId: memberForm.userId,
+        user,
 
-                contributorTypeId:
-                    memberForm.contributorTypeId,
+        // IMPORTANT: Store the real Contributor Type UUID/GUID
+        contributorTypeId,
 
-                contributorTypeName:
-                    contributorType?.name ||
-                    contributorType?.displayName ||
-                    "Contributor",
+        // Display name only for the UI
+        contributorTypeName:
+            contributorType?.name ||
+            contributorType?.displayName ||
+            "Contributor",
 
-                contributorSubTypeId:
-                    memberForm.contributorSubTypeId ||
-                    null,
+        contributorSubTypeId:
+            memberForm.contributorSubTypeId ||
+            null,
 
-                contributorSubTypeName:
-                    contributorSubType?.name ||
-                    contributorSubType?.displayName ||
-                    "",
-            },
-        ]);
+        contributorSubTypeName:
+            contributorSubType?.name ||
+            contributorSubType?.displayName ||
+            "",
+    },
+]);;
 
         setMemberForm({
             userId: "",
@@ -663,7 +736,10 @@ function TeamManagement() {
             );
             return;
         }
-
+console.log(
+    "SELECTED MEMBERS BEFORE CREATE:",
+    JSON.stringify(selectedMembers, null, 2)
+);
         /*
          * Validate contributor IDs before sending.
          *
@@ -672,9 +748,8 @@ function TeamManagement() {
          * xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
          */
 
-        const guidRegex =
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
+       const guidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         for (const member of selectedMembers) {
             if (
                 !guidRegex.test(
@@ -1639,23 +1714,59 @@ function TeamManagement() {
         }
     };
 
-    // ========================================================
+       // ========================================================
     // CURRENT SELECTED CONTRIBUTOR TYPE
     // ========================================================
 
     const selectedContributorType =
-        contributorTypes.find(
-            (type) =>
-                String(type.id) ===
-                String(
-                    memberForm.contributorTypeId
-                )
-        );
+        contributorTypes.find((type) => {
+            const typeId =
+                type?.id ??
+                type?.contributorTypeId ??
+                type?.Id ??
+                type?.ContributorTypeId;
 
-    const currentSubTypes =
-        selectedContributorType?.subTypes ||
-        selectedContributorType?.contributorSubTypes ||
-        [];
+            return (
+                String(typeId) ===
+                String(memberForm.contributorTypeId)
+            );
+        });
+
+    // ========================================================
+    // CURRENT SUBTYPES
+    // ========================================================
+
+    const currentSubTypes = contributorSubTypes;
+
+    // ========================================================
+    // FILTER USERS BY SELECTED CONTRIBUTOR TYPE + SUBTYPE
+    // ========================================================
+
+    const filteredAvailableUsers = availableUsers.filter((user) => {
+        // No contributor type selected yet
+        if (!memberForm.contributorTypeId) {
+            return true;
+        }
+
+        const userTypeId = String(user?.contributorTypeId || "");
+        const selectedTypeId = String(memberForm.contributorTypeId || "");
+
+        // First filter by contributor type
+        if (userTypeId !== selectedTypeId) {
+            return false;
+        }
+
+        // If no subtype is selected, show all users belonging to the selected contributor type.
+        if (!memberForm.contributorSubTypeId) {
+            return true;
+        }
+
+        const userSubTypeId = String(user?.contributorSubTypeId || "");
+        const selectedSubTypeId = String(memberForm.contributorSubTypeId || "");
+
+        // Then filter by subtype
+        return userSubTypeId === selectedSubTypeId;
+    });
 
     // ========================================================
     // RENDER
@@ -2117,108 +2228,86 @@ function TeamManagement() {
                                             Member
                                         </label>
 
-                                        <select
-                                            name="userId"
-                                            value={memberForm.userId}
-                                            onChange={
-                                                handleMemberFormChange
-                                            }
-                                            disabled={
-                                                creating ||
-                                                !memberForm.contributorTypeId
-                                            }
-                                            className="
-                                                w-full rounded-xl border border-border
-                                                bg-background px-4 py-2.5 text-sm
-                                                outline-none transition
-                                                focus:border-primary
-                                                focus:ring-2 focus:ring-primary/20
-                                                disabled:cursor-not-allowed
-                                                disabled:opacity-60
-                                            "
-                                        >
+                                    <select
+    name="userId"
+    value={memberForm.userId}
+    onChange={handleMemberFormChange}
+    disabled={!memberForm.contributorTypeId}
+    className="
+        w-full rounded-xl
+        border border-border
+        bg-card
+        px-4 py-3
+        text-sm text-foreground
+        shadow-sm
+        outline-none
+        transition-all duration-200
+        focus:border-primary
+        focus:ring-2 focus:ring-primary/20
+        disabled:cursor-not-allowed
+        disabled:opacity-60
+    "
+>
+    <option
+        value=""
+        className="bg-card text-muted-foreground"
+    >
+        Select team member
+    </option>
 
-                                            <option value="">
-                                                {!memberForm.contributorTypeId
-                                                    ? "Select contributor type first"
-                                                    : availableUsers.length === 0
-                                                        ? "No contributors available"
-                                                        : "Select team member"}
-                                            </option>
+    {filteredAvailableUsers.map((user) => {
+        const id = getUserId(user);
 
-                                            {availableUsers.map(
-                                                (user) => {
-                                                    const id =
-                                                        getUserId(
-                                                            user
-                                                        );
+        if (!id) {
+            return null;
+        }
 
-                                                    if (!id) {
-                                                        return null;
-                                                    }
-
-                                                    return (
-                                                        <option
-                                                            key={id}
-                                                            value={id}
-                                                        >
-                                                            {getUserName(
-                                                                user
-                                                            )}
-                                                        </option>
-                                                    );
-                                                }
-                                            )}
-
-                                        </select>
+        return (
+            <option
+                key={id}
+                value={id}
+                className="bg-card text-foreground"
+            >
+                {getUserName(user)}
+            </option>
+        );
+    })}
+</select>
 
                                     </div>
 
                                     {/* CONTRIBUTOR TYPE */}
 
-                                    <div className="mb-4">
+                                   <div className="mb-4">
 
-                                        <label className="mb-2 block text-sm font-semibold">
-                                            Contributor Type
-                                        </label>
+    <label className="mb-2 block text-sm font-semibold">
+        Contributor Type
+    </label>
 
-                                        <select
-                                            name="contributorTypeId"
-                                            value={
-                                                memberForm.contributorTypeId
-                                            }
-                                            onChange={(
-                                                event
-                                            ) => {
-                                                setMemberForm(
-                                                    (
-                                                        previous
-                                                    ) => ({
-                                                        ...previous,
+    <select
+        name="contributorTypeId"
+        value={
+            memberForm.contributorTypeId
+        }
+        onChange={(
+            event
+        ) => {
+            const contributorTypeId =
+                event.target.value;
 
-                                                        contributorTypeId:
-                                                            event
-                                                                .target
-                                                                .value,
+            setMemberForm(
+                (previous) => ({
+                    ...previous,
 
-                                                        contributorSubTypeId:
-                                                            "",
-                                                    })
-                                                );
-                                            }}
-                                            disabled={creating}
-                                            className="
-                                                w-full rounded-xl border border-border
-                                                bg-background px-4 py-2.5 text-sm
-                                                outline-none transition
-                                                focus:border-primary
-                                                focus:ring-2 focus:ring-primary/20
-                                            "
-                                        >
+                    contributorTypeId,
 
-                                            <option value="">
-                                                Select contributor type
-                                            </option>
+                    contributorSubTypeId:
+                        "",
+                })
+            );
+
+
+            setContributorSubTypes([]);
 
                                             {contributorTypes.map(
                                                 (type) => (
@@ -2232,73 +2321,118 @@ function TeamManagement() {
                                                 )
                                             )}
 
-                                        </select>
+            if (contributorTypeId) {
+                loadContributorSubTypes(
+                    contributorTypeId
+                );
+            }
+        }}
+        disabled={creating}
+        className="
+            w-full rounded-xl border border-border
+            bg-background px-4 py-2.5 text-sm
+            outline-none transition
+            focus:border-primary
+            focus:ring-2 focus:ring-primary/20
+        "
+    >
 
-                                        {contributorTypes.length === 0 && (
-                                            <p className="mt-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                                                Contributor types are not loaded from the backend yet. The backend requires real GUIDs for Contributor Type ID.
-                                            </p>
-                                        )}
+        <option value="">
+            Select contributor type
+        </option>
 
-                                    </div>
+       {createTeamContributorTypes.map((type) => {
+    const typeId =
+        type?.id ??
+        type?.contributorTypeId ??
+        type?.Id ??
+        type?.ContributorTypeId;
+
+    return (
+        <option
+            key={typeId}
+            value={typeId}
+        >
+            {type.name ||
+                type.displayName ||
+                "Unnamed Type"}
+        </option>
+    );
+})}
+
+    </select>
+
+    {contributorTypes.length === 0 && (
+        <p className="mt-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            Contributor types are not loaded from the backend yet.
+        </p>
+    )}
+
+</div>
 
                                     {/* CONTRIBUTOR SUBTYPE */}
 
                                     {currentSubTypes.length > 0 && (
-                                        <div className="mb-4">
 
-                                            <label className="mb-2 block text-sm font-semibold">
-                                                Contributor Subtype
-                                            </label>
+<div className="mb-4">
 
-                                            <select
-                                                name="contributorSubTypeId"
-                                                value={
-                                                    memberForm.contributorSubTypeId
-                                                }
-                                                onChange={
-                                                    handleMemberFormChange
-                                                }
-                                                disabled={
-                                                    creating ||
-                                                    !memberForm.userId
-                                                }
-                                                className="
-                                                    w-full rounded-xl border border-border
-                                                    bg-background px-4 py-2.5 text-sm
-                                                    outline-none transition
-                                                    focus:border-primary
-                                                    focus:ring-2 focus:ring-primary/20
-                                                    disabled:cursor-not-allowed
-                                                    disabled:opacity-60
-                                                "
-                                            >
+    <label className="mb-2 block text-sm font-semibold">
+        Contributor Subtype
+    </label>
 
-                                                <option value="">
-                                                    Select subtype
-                                                </option>
+    <select
+        name="contributorSubTypeId"
+        value={
+            memberForm.contributorSubTypeId
+        }
+        onChange={
+            handleMemberFormChange
+        }
+        disabled={
+            creating ||
+            !memberForm.contributorTypeId
+        }
+        className="
+            w-full rounded-xl border border-border
+            bg-background px-4 py-2.5 text-sm
+            outline-none transition
+            focus:border-primary
+            focus:ring-2 focus:ring-primary/20
+            disabled:cursor-not-allowed
+            disabled:opacity-60
+        "
+    >
 
-                                                {currentSubTypes.map(
-                                                    (
-                                                        subtype
-                                                    ) => (
-                                                        <option
-                                                            key={
-                                                                subtype.id
-                                                            }
-                                                            value={
-                                                                subtype.id
-                                                            }
-                                                        >
-                                                            {subtype.name ||
-                                                                subtype.displayName}
-                                                        </option>
-                                                    )
-                                                )}
+        <option value="">
+            {memberForm.contributorTypeId
+                ? currentSubTypes.length > 0
+                    ? "Select subtype"
+                    : "Loading or no subtypes available"
+                : "Select contributor type first"}
+        </option>
 
-                                            </select>
+        {currentSubTypes.map(
+            (subtype) => (
+                <option
+                    key={subtype.id}
+                    value={subtype.id}
+                >
+                    {subtype.name ||
+                        subtype.displayName}
+                </option>
+            )
+        )}
 
-                                        </div>
+    </select>
+
+    {memberForm.contributorTypeId &&
+        currentSubTypes.length === 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">
+                No subtypes loaded yet.
+            </p>
+        )}
+
+</div>
                                     )}
 
                                     {/* ADD MEMBER */}

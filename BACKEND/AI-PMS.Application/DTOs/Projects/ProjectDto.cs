@@ -39,6 +39,7 @@ namespace AI_PMS.Application.DTOs.Projects
         public string ManagerName { get; set; } = string.Empty;
 
         public Guid? TeamId { get; set; }
+        public Guid? TeamLeaderId { get; set; }
 
         public string TeamName { get; set; } = string.Empty;
 

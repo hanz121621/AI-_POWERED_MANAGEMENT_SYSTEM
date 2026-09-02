@@ -3,7 +3,8 @@ using AI_PMS.Application.Interfaces.Projects;
 using AI_PMS.Application.Interfaces.Repositories.Projects;
 using AI_PMS.Domain.Entities.Projects;
 using AI_PMS.Application.Interfaces.Activities;
-
+using AI_PMS.Application.Interfaces.AI;
+using AI_PMS.Domain.Enums;
 namespace AI_PMS.Application.Services.Projects
 {
     public class ProjectService : IProjectService
@@ -11,12 +12,17 @@ namespace AI_PMS.Application.Services.Projects
         private readonly IProjectRepository _projectRepository;
         
          private readonly IActivityLogService _activityLogService;
-        public ProjectService(IProjectRepository projectRepository,
-        IActivityLogService activityLogService)
-        {
-            _projectRepository = projectRepository;
-            _activityLogService = activityLogService;
-        }
+         private readonly IAiSuggestionService _aiSuggestionService;
+         
+       public ProjectService(
+    IProjectRepository projectRepository,
+    IActivityLogService activityLogService,
+    IAiSuggestionService aiSuggestionService)
+{
+    _projectRepository = projectRepository;
+    _activityLogService = activityLogService;
+    _aiSuggestionService = aiSuggestionService;
+}
 
         // =========================================================
         // CREATE
@@ -63,41 +69,33 @@ namespace AI_PMS.Application.Services.Projects
                     return null;
             }
 
-            var project = new Project
-            {
-                Id = Guid.NewGuid(),
+          // Inside ProjectService.cs, CreateAsync method
 
-                Name = dto.Name.Trim(),
+var project = new Project
+{
+    Id = Guid.NewGuid(),
+    Name = dto.Name.Trim(),
+    Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
+    StatusId = status.Id,
+    ManagerId = dto.ManagerId,
+    TeamId = dto.TeamId,
+    TeamLeaderId = dto.TeamLeaderId,
+    Priority = (ProjectPriority)dto.PriorityId,
 
-                Description =
-                    string.IsNullOrWhiteSpace(dto.Description)
-                        ? null
-                        : dto.Description.Trim(),
+    // ✅ CRITICAL FIX: Force UTC to prevent PostgreSQL timestamp errors
+    StartDate = DateTime.SpecifyKind(dto.StartDate, DateTimeKind.Utc),
+    Deadline = DateTime.SpecifyKind(dto.Deadline, DateTimeKind.Utc),
 
-                StatusId = status.Id,
-
-                ManagerId = dto.ManagerId,
-
-                TeamId = dto.TeamId,
-
-                StartDate = dto.StartDate,
-
-                Deadline = dto.Deadline,
-
-                ProgressPercentage = 0,
-
-                CreatedAt = DateTime.UtcNow,
-
-                UpdatedAt = null,
-
-                CompletedAt = null,
-
-                ArchivedAt = null
-            };
+    ProgressPercentage = 0,
+    CreatedAt = DateTime.UtcNow,
+    UpdatedAt = null,
+    CompletedAt = null,
+    ArchivedAt = null
+};
 
             await _projectRepository.AddAsync(project);
 
-            await _activityLogService.CreateAsync(
+         await _activityLogService.CreateAsync(
     createdBy,
     "Project Created",
     "Project",
@@ -107,8 +105,16 @@ namespace AI_PMS.Application.Services.Projects
     project.Id,
     project.TeamId);
 
-            return await GetByIdAsync(project.Id);
+// Get the complete created project
+var createdProject = await GetByIdAsync(project.Id);
+
+// Generate AI suggestion without breaking project creation
+
+return createdProject;
         }
+        //
+
+
 
 
 
@@ -169,12 +175,14 @@ public async Task<IEnumerable<ProjectDto>> GetAssignedProjectsAsync(
             IsCancelledStatus =
                 project.Status?.IsCancelledStatus ?? false,
 
-            ManagerId = project.ManagerId,
+       ManagerId = project.ManagerId,
 
-            TeamId = project.TeamId,
+TeamId = project.TeamId,
 
-            PriorityId =
-                (int)project.Priority,
+TeamLeaderId = project.TeamLeaderId,
+
+PriorityId =
+    (int)project.Priority,
 
             PriorityName =
                 project.Priority.ToString(),
@@ -905,8 +913,9 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(
                 project.ManagerId == dto.ManagerId
                 &&
                 project.TeamId == dto.TeamId
-                &&
-                project.StartDate == dto.StartDate
+               && project.TeamLeaderId == dto.TeamLeaderId
+               && (int)project.Priority == dto.PriorityId
+               && project.StartDate == dto.StartDate  
                 &&
                 project.Deadline == dto.Deadline
                 &&
@@ -926,10 +935,13 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(
             project.Name = newName;
             project.Description = newDescription;
 
-            project.ManagerId = dto.ManagerId;
-            project.TeamId = dto.TeamId;
+         project.ManagerId = dto.ManagerId;
+         project.TeamId = dto.TeamId;
+         project.TeamLeaderId = dto.TeamLeaderId;
 
-            project.StartDate = dto.StartDate;
+         project.Priority = (ProjectPriority)dto.PriorityId;
+
+            project.StartDate = dto.StartDate;  
             project.Deadline = dto.Deadline;
 
             project.StatusId = dto.StatusId;
@@ -1420,12 +1432,14 @@ public async Task<ProjectUpdateResultDto> ChangeStatusAsync(
         IsCancelledStatus =
             project.Status?.IsCancelledStatus ?? false,
 
-        ManagerId = project.ManagerId,
+       ManagerId = project.ManagerId,
 
-        TeamId = project.TeamId,
+TeamId = project.TeamId,
 
-        PriorityId =
-            (int)project.Priority,
+TeamLeaderId = project.TeamLeaderId,
+
+PriorityId =
+    (int)project.Priority,
 
         PriorityName =
             project.Priority.ToString(),

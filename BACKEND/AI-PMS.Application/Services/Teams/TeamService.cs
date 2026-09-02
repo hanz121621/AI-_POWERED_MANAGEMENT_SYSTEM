@@ -792,7 +792,9 @@ private readonly IContributorSubTypeRepository _contributorSubTypeRepository;
                         member.JoinedAt,
 
                     IsActive =
-                        member.IsActive
+                        member.IsActive,
+                      IsTeamLeader =
+                        member.IsTeamLeader  
                 });
         }
         // =========================================================
@@ -1010,7 +1012,9 @@ public async Task<(bool Success, string Message)>
                             tm.JoinedAt,
 
                         IsActive =
-                            tm.IsActive
+                            tm.IsActive,
+                         IsTeamLeader =
+                            tm.IsTeamLeader
                     })
                 .ToList()
     };

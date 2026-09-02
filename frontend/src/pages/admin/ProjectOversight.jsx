@@ -1,6 +1,4 @@
-
 import { useCallback, useEffect, useMemo, useState } from "react";
-
 import CreateProjectModal from "@/components/admin/projects/CreateProjectModal";
 import EditProjectModal from "@/components/admin/projects/EditProjectModal";
 import DeleteProjectDialog from "@/components/admin/projects/DeleteProjectDialog";
@@ -39,21 +37,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-// ============================================================
-// PROJECT SERVICE
-//
-// IMPORTANT:
-// These functions must be exported by projectService.js:
-//
-// getProjects()
-// createProject()
-// updateProject()
-// deleteProject()
-// archiveProject()
-// restoreProject()
-// ============================================================
-
 import {
     getProjects,
     createProject,
@@ -62,56 +45,25 @@ import {
     archiveProject,
     restoreProject,
 } from "@/services/projectService";
-
-// ============================================================
-// PROJECT OVERSIGHT
-//
-// PROJ-001: View All Projects
-// PROJ-002: Archive / Restore Projects
-// PROJ-003: Create Project
-// PROJ-004: Edit Project
-// PROJ-005: Delete Project
-//
-// Backend-connected version.
-// ============================================================
+import { getTeams } from "@/services/teamService";
+import { getAllUsers } from "@/services/userService";
 
 function ProjectOversight() {
-    // ========================================================
-    // PROJECTS
-    // ========================================================
-
+   
     const [projects, setProjects] = useState([]);
-
-    // ========================================================
-    // LOADING
-    // ========================================================
-
     const [loading, setLoading] = useState(true);
 
     const [actionLoading, setActionLoading] =
         useState(false);
-
-    // ========================================================
-    // CREATE PROJECT
-    // ========================================================
-
     const [createProjectOpen, setCreateProjectOpen] =
         useState(false);
-
-    // ========================================================
-    // EDIT PROJECT
-    // ========================================================
-
     const [editProject, setEditProject] =
         useState(null);
-
-    // ========================================================
-    // DELETE PROJECT
-    // ========================================================
-
     const [deleteProjectState, setDeleteProjectState] =
         useState(null);
-
+    const [teams, setTeams] = useState([]);
+const [teamLeaders, setTeamLeaders] =
+    useState([]);
     // ========================================================
     // SEARCH
     // ========================================================
@@ -172,36 +124,7 @@ function ProjectOversight() {
         },
     ];
 
-    // ========================================================
-    // TEAMS
-    //
-    // These can later come from teamService.
-    // ========================================================
-
-    const teams = [
-        {
-            id: 1,
-            name: "Development Team",
-            teamLeader: "Abebe Kebede",
-        },
-        {
-            id: 2,
-            name: "Enterprise Team",
-            teamLeader: "Betty Alemu",
-        },
-        {
-            id: 3,
-            name: "Digital Team",
-            teamLeader: "Samuel Tadesse",
-        },
-        {
-            id: 4,
-            name: "BPO Team",
-            teamLeader: "Michael Girma",
-        },
-    ];
-
-    // ========================================================
+  // ========================================================
     // NORMALIZE PROJECT
     //
     // Supports common .NET naming conventions:
@@ -377,7 +300,114 @@ function ProjectOversight() {
         },
         []
     );
+    // ========================================================
+// LOAD TEAMS FROM BACKEND
+// ========================================================
 
+const loadTeams = useCallback(
+    async () => {
+        try {
+            console.log(
+                "========== GET TEAMS =========="
+            );
+
+            const result =
+                await getTeams();
+
+            console.log(
+                "GET TEAMS RESULT:",
+                result
+            );
+
+            const data =
+                Array.isArray(result)
+                    ? result
+                    : Array.isArray(result?.data)
+                        ? result.data
+                        : Array.isArray(result?.teams)
+                            ? result.teams
+                            : Array.isArray(result?.items)
+                                ? result.items
+                                : [];
+
+            setTeams(data);
+
+            console.log(
+                "PROJECT TEAMS:",
+                data
+            );
+
+            return data;
+        } catch (error) {
+            console.error(
+                "LOAD TEAMS ERROR:",
+                error
+            );
+
+            setTeams([]);
+
+            return [];
+        }
+    },
+    []
+);
+const loadTeamLeaders = useCallback(
+    async () => {
+        try {
+            console.log(
+                "========== LOAD TEAM LEADERS =========="
+            );
+
+            const users =
+                await getAllUsers();
+
+            console.log(
+                "ALL DATABASE USERS:",
+                users
+            );
+
+            const leaders =
+                Array.isArray(users)
+                    ? users.filter(
+                        (user) => {
+                            const contributorType =
+                                String(
+                                    user?.contributorType ||
+                                    ""
+                                )
+                                    .trim()
+                                    .toLowerCase();
+
+                            return (
+                                user?.isActive !== false &&
+                                contributorType ===
+                                    "team leader"
+                            );
+                        }
+                    )
+                    : [];
+
+            console.log(
+                "DATABASE TEAM LEADERS:",
+                leaders
+            );
+
+            setTeamLeaders(leaders);
+
+            return leaders;
+        } catch (error) {
+            console.error(
+                "LOAD TEAM LEADERS ERROR:",
+                error
+            );
+
+            setTeamLeaders([]);
+
+            return [];
+        }
+    },
+    []
+);
     // ========================================================
     // LOAD PROJECTS FROM BACKEND
     // ========================================================
@@ -443,14 +473,19 @@ function ProjectOversight() {
             normalizeProject,
         ]
     );
+    
 
     // ========================================================
     // LOAD PROJECTS WHEN PAGE OPENS
     // ========================================================
 
-    useEffect(() => {
-        loadProjects();
-    }, [loadProjects]);
+useEffect(() => {
+    loadProjects();
+    loadTeams();
+}, [
+    loadProjects,
+    loadTeams,
+]);
 
     // ========================================================
     // CREATE PROJECT
@@ -547,72 +582,20 @@ function ProjectOversight() {
             // Keep this object compatible with projectService.
             // ------------------------------------------------
 
-            const requestData = {
-                name:
-                    String(
-                        newProject.name ||
-                            ""
-                    ).trim(),
-
-                description:
-                    String(
-                        newProject.description ||
-                            ""
-                    ).trim(),
-
-                manager:
-                    newProject.manager ||
-                    "Not assigned",
-
-                team:
-                    newProject.team ||
-                    "No team assigned",
-
-                teamLeader:
-                    newProject.teamLeader ||
-                    selectedTeam?.teamLeader ||
-                    "Not assigned",
-
-                status:
-                    newProject.status ||
-                    "Planning",
-
-                startDate:
-                    newProject.startDate ||
-                    null,
-
-                deadline:
-                    newProject.deadline ||
-                    null,
-
-                progress:
-                    Number(
-                        newProject.progress
-                    ) || 0,
-
-                tasks:
-                    Number(
-                        newProject.tasks
-                    ) || 0,
-
-                activeTasks:
-                    Number(
-                        newProject.activeTasks
-                    ) || 0,
-
-                sprints:
-                    Number(
-                        newProject.sprints
-                    ) || 0,
-
-                completedAt:
-                    newProject.completedAt ||
-                    null,
-
-                completionNote:
-                    newProject.completionNote ||
-                    null,
-            };
+                 const requestData = {
+    name: String(newProject.name || "").trim(),
+    description: String(newProject.description || "").trim(),
+    
+    // ✅ FIX: Provide valid defaults instead of null
+    statusId: newProject.statusId || "a1b2c3d4-e5f6-7890-abcd-ef1234567890", // Your Planning status UUID
+    priorityId: newProject.priorityId || 1, // Default to 1 (Medium)
+    
+    managerId: newProject.managerId || null,
+    teamId: newProject.teamId ?? selectedTeam?.id ?? selectedTeam?.teamId ?? null,
+    teamLeaderId: newProject.teamLeaderId || null,
+    startDate: newProject.startDate || null,
+    deadline: newProject.deadline || null,
+};
 
             console.log(
                 "CREATE PROJECT REQUEST:",
@@ -664,7 +647,6 @@ function ProjectOversight() {
             setActionLoading(false);
         }
     };
-
     // ========================================================
     // EDIT PROJECT
     // ========================================================
@@ -2679,22 +2661,23 @@ function ProjectOversight() {
                 CREATE PROJECT MODAL
             ================================================== */}
 
-            <CreateProjectModal
-                open={
-                    createProjectOpen
-                }
-                onClose={
-                    handleCloseCreateProject
-                }
-                onSave={
-                    handleSaveProject
-                }
-                existingProjects={
-                    projects
-                }
-                managers={managers}
-                teams={teams}
-            />
+           <CreateProjectModal
+    open={
+        createProjectOpen
+    }
+    onClose={
+        handleCloseCreateProject
+    }
+    onSave={
+        handleSaveProject
+    }
+    existingProjects={
+        projects
+    }
+    managers={managers}
+    teams={teams}
+    teamLeaders={teamLeaders}
+/>
 
             {/* ==================================================
                 EDIT PROJECT MODAL

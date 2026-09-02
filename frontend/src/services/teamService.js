@@ -1,7 +1,5 @@
-
 import api from "./api";
 import { getCurrentUser } from "@/services/authService";
-
 // ============================================================
 // TEAM SERVICE
 // Backend Controller:
@@ -600,7 +598,7 @@ function isValidGuid(value) {
     const guid =
         String(value).trim();
 
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
         guid
     );
 }
