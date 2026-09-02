@@ -7,13 +7,12 @@ import {
     BriefcaseBusiness,
     ChevronDown,
     ChevronRight,
+    FolderKanban,
     ListTodo,
     MessageSquare,
-    Upload,
-    Send,
-    Wrench,
-    UserRound,
+    BarChart3,
     Settings,
+    UserRound,
     LogOut,
     X,
     ShieldCheck,
@@ -21,70 +20,74 @@ import {
 
 import { Button } from "@/components/ui/button";
 
-/* ============================================================
-   STAFF SIDEBAR
-   ------------------------------------------------------------
-   STAFF AUTHORITY:
+// ============================================================
+// STAFF SIDEBAR
+// ============================================================
+// Staff works under the Team Leader / Manager workflow.
+//
+// Manager
+//    ↓
+// Team Leader
+//    ↓
+// Staff
+//    ↓
+// Performs assigned work
+//    ↓
+// Submits completed work
+//    ↓
+// Manager / Team Leader reviews
+// ============================================================
 
-   MANAGER
-       ↓
-   Assigns Work
-       ↓
-   TEAM LEADER
-       ↓
-   Coordinates
-       ↓
-   STAFF
-       ↓
-   Performs Work
-       ↓
-   Submit for Review
-       ↓
-   MANAGER
-       ↓
-   Final Approval
-============================================================ */
-
-/* ============================================================
-   STAFF MENU
-============================================================ */
+// ============================================================
+// STAFF MENU ITEMS
+// ============================================================
 
 const STAFF_MENU_ITEMS = [
     {
-        label: "My Work",
-        path: "/staff/my-work",
+        label: "Staff Work",
+        path: "/staff/work",
+        icon: BriefcaseBusiness,
+    },
+    {
+        label: "Profile Management",
+        path: "/staff/profile",
+        icon: UserRound,
+    },
+    {
+        label: "Project Participation",
+        path: "/staff/projects",
+        icon: FolderKanban,
+    },
+    {
+        label: "Task Management",
+        path: "/staff/tasks",
         icon: ListTodo,
     },
     {
-        label: "Update Task Status",
-        path: "/staff/update-task-status",
-        icon: Wrench,
+        label: "Sprint Participation",
+        path: "/staff/sprint-participation",
+        icon: BarChart3,
     },
     {
-        label: "Add Task Comments",
-        path: "/staff/task-comments",
+        label: "Communication",
+        path: "/staff/communication",
         icon: MessageSquare,
     },
     {
-        label: "Upload Work Files",
-        path: "/staff/upload-files",
-        icon: Upload,
+        label: "Reports & Monitoring",
+        path: "/staff/reports",
+        icon: BarChart3,
     },
     {
-        label: "Submit Completed Work",
-        path: "/staff/submit-work",
-        icon: Send,
-    },
-    {
-        label: "Perform Specialized Work",
-        path: "/staff/specialized-work",
-        icon: BriefcaseBusiness,
+        label: "Settings & Preferences",
+        path: "/staff/settings",
+        icon: Settings,
     },
 ];
 
-/* ============================================================
-   COMPONENT
-============================================================ */
+// ============================================================
+// COMPONENT
+// ============================================================
 
 function StaffSidebar({
     sidebarOpen = true,
@@ -96,23 +99,21 @@ function StaffSidebar({
     const [staffMenuOpen, setStaffMenuOpen] =
         useState(true);
 
-    /* ========================================================
-       ACTIVE ROUTE
-    ======================================================== */
+    // ========================================================
+    // ACTIVE ROUTE
+    // ========================================================
 
     const isActive = (path) => {
         if (location.pathname === path) {
             return true;
         }
 
-        return location.pathname.startsWith(
-            `${path}/`
-        );
+        return location.pathname.startsWith(`${path}/`);
     };
 
-    /* ========================================================
-       NAVIGATION
-    ======================================================== */
+    // ========================================================
+    // NAVIGATION
+    // ========================================================
 
     const handleNavigation = (path) => {
         navigate(path);
@@ -122,29 +123,21 @@ function StaffSidebar({
         }
     };
 
+    // ========================================================
+    // DASHBOARD
+    // ========================================================
+
     const handleDashboard = () => {
-        navigate("/staff");
+        navigate("/staff/dashboard");
 
         if (onClose) {
             onClose();
         }
     };
 
-    const handleProfile = () => {
-        navigate("/profile");
-
-        if (onClose) {
-            onClose();
-        }
-    };
-
-    const handleSettings = () => {
-        navigate("/settings");
-
-        if (onClose) {
-            onClose();
-        }
-    };
+    // ========================================================
+    // LOGOUT
+    // ========================================================
 
     const handleLogout = () => {
         const keysToRemove = [
@@ -176,9 +169,9 @@ function StaffSidebar({
         }
     };
 
-    /* ========================================================
-       RENDER
-    ======================================================== */
+    // ========================================================
+    // RENDER
+    // ========================================================
 
     return (
         <>
@@ -277,9 +270,7 @@ function StaffSidebar({
                                 shadow-sm
                             "
                         >
-                            <ShieldCheck
-                                className="h-4 w-4"
-                            />
+                            <ShieldCheck className="h-4 w-4" />
                         </div>
 
                         {/* BRAND TEXT */}
@@ -367,7 +358,7 @@ function StaffSidebar({
 
                             ${
                                 location.pathname ===
-                                "/staff"
+                                "/staff/dashboard"
                                     ? `
                                         bg-blue-600
                                         text-white
@@ -581,12 +572,16 @@ function StaffSidebar({
                     />
 
                     {/* ==================================================
-                        PROFILE
+                        QUICK PROFILE
                     ================================================== */}
 
                     <button
                         type="button"
-                        onClick={handleProfile}
+                        onClick={() =>
+                            handleNavigation(
+                                "/staff/profile"
+                            )
+                        }
                         className={`
                             flex
                             w-full
@@ -600,7 +595,9 @@ function StaffSidebar({
                             transition
 
                             ${
-                                isActive("/profile")
+                                isActive(
+                                    "/staff/profile"
+                                )
                                     ? `
                                         bg-blue-600
                                         font-semibold
@@ -625,12 +622,16 @@ function StaffSidebar({
                     </button>
 
                     {/* ==================================================
-                        SETTINGS
+                        QUICK SETTINGS
                     ================================================== */}
 
                     <button
                         type="button"
-                        onClick={handleSettings}
+                        onClick={() =>
+                            handleNavigation(
+                                "/staff/settings"
+                            )
+                        }
                         className={`
                             mt-0.5
                             flex
@@ -645,7 +646,9 @@ function StaffSidebar({
                             transition
 
                             ${
-                                isActive("/settings")
+                                isActive(
+                                    "/staff/settings"
+                                )
                                     ? `
                                         bg-blue-600
                                         font-semibold
