@@ -6,8 +6,8 @@ import {
     UsersRound,
 } from "lucide-react";
 
-import ViewTeamPerformanceReport from "@/components/contributor/teamleader/reports/ViewTeamPerformanceReport";
-import ViewTeamTaskHistory from "@/components/contributor/teamleader/reports/ViewTeamTaskHistory";
+import TeamPerformanceReport from "@/components/contributor/teamleader/reports/TeamPerformanceReport";
+import TeamTaskHistory from "@/components/contributor/teamleader/reports/TeamTaskHistory";
 
 const REPORT_TABS = {
     PERFORMANCE: "performance",
@@ -126,9 +126,9 @@ export default function Reports() {
                     REPORT CONTENT
                 ====================================================== */}
                 {activeTab === REPORT_TABS.PERFORMANCE ? (
-                    <ViewTeamPerformanceReport />
+                    <TeamPerformanceReport />
                 ) : (
-                    <ViewTeamTaskHistory />
+                    <TeamTaskHistory />
                 )}
             </div>
         </div>
