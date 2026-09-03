@@ -9,98 +9,8 @@ import {
     UsersRound,
 } from "lucide-react";
 
-const DEFAULT_PROJECT = {
-    id: 1,
-    name: "AI-Powered Management System",
-    description:
-        "A web-based project management system that uses AI to support project planning, task management, monitoring, and decision making.",
-    objectives: [
-        "Improve project planning and monitoring.",
-        "Provide centralized task and sprint management.",
-        "Support communication between project team members.",
-        "Provide AI-assisted project insights and recommendations.",
-    ],
-    status: "In Progress",
-    progress: 68,
-    startDate: "2026-08-01",
-    expectedCompletionDate: "2026-10-15",
-    currentSprint: {
-        name: "Sprint 4",
-        goal: "Complete contributor task management and communication features.",
-        status: "Active",
-        startDate: "2026-08-25",
-        endDate: "2026-09-08",
-        progress: 72,
-    },
-    manager: "Project Manager",
-    teamLeader: "Team Leader",
-    assignedRole: "Developer",
-    teamMembers: [
-        {
-            id: 1,
-            name: "Project Manager",
-            role: "Manager",
-        },
-        {
-            id: 2,
-            name: "Team Leader",
-            role: "Team Leader",
-        },
-        {
-            id: 3,
-            name: "Developer",
-            role: "Developer",
-        },
-        {
-            id: 4,
-            name: "Developer 2",
-            role: "Developer",
-        },
-    ],
-    resources: [
-        {
-            id: 1,
-            name: "Project Requirements",
-            type: "Document",
-        },
-        {
-            id: 2,
-            name: "Technical Documentation",
-            type: "Document",
-        },
-        {
-            id: 3,
-            name: "Development Guidelines",
-            type: "Document",
-        },
-    ],
-    activities: [
-        {
-            id: 1,
-            title: "Sprint progress updated",
-            description:
-                "The current sprint progress was updated.",
-            date: "2026-09-01 09:30",
-        },
-        {
-            id: 2,
-            title: "Task assigned",
-            description:
-                "A new development task was assigned to the team.",
-            date: "2026-08-31 14:20",
-        },
-        {
-            id: 3,
-            title: "Project discussion",
-            description:
-                "The team discussed the current development priorities.",
-            date: "2026-08-30 11:15",
-        },
-    ],
-};
-
 export default function ViewProjectDetails({
-    project = DEFAULT_PROJECT,
+    project,
     onBack,
 }) {
     if (!project) {
@@ -112,11 +22,12 @@ export default function ViewProjectDetails({
                 />
 
                 <h2 className="text-lg font-semibold text-red-700">
-                    Project not found.
+                    No Project Selected
                 </h2>
 
                 <p className="mt-2 text-sm text-red-600">
-                    Unable to load project details.
+                    Select a project from your assigned projects to view
+                    its details.
                 </p>
 
                 {onBack && (
@@ -131,6 +42,73 @@ export default function ViewProjectDetails({
             </div>
         );
     }
+
+    const progress = Math.min(
+        100,
+        Math.max(
+            0,
+            Number(
+                project?.progressPercentage ??
+                project?.progress ??
+                0
+            )
+        )
+    );
+
+    const status =
+        project?.statusName ||
+        project?.status ||
+        "Unknown";
+
+    const manager =
+        project?.managerName ||
+        project?.manager ||
+        "Not available";
+
+    const teamLeader =
+        project?.teamLeaderName ||
+        project?.teamLeader ||
+        "Not available";
+
+    const assignedRole =
+        project?.assignedRole ||
+        project?.role ||
+        "Developer";
+
+    const startDate =
+        formatDate(project?.startDate);
+
+    const expectedCompletionDate =
+        formatDate(
+            project?.expectedCompletionDate ??
+            project?.endDate ??
+            project?.completionDate
+        );
+
+    const objectives = Array.isArray(project?.objectives)
+        ? project.objectives
+        : [];
+
+    const teamMembers = Array.isArray(
+        project?.teamMembers
+    )
+        ? project.teamMembers
+        : [];
+
+    const resources = Array.isArray(
+        project?.resources
+    )
+        ? project.resources
+        : [];
+
+    const activities = Array.isArray(
+        project?.activities
+    )
+        ? project.activities
+        : [];
+
+    const currentSprint =
+        project?.currentSprint || null;
 
     return (
         <div className="space-y-6">
@@ -153,7 +131,8 @@ export default function ViewProjectDetails({
 
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">
-                            {project.name}
+                            {project?.name ||
+                                "Unnamed Project"}
                         </h1>
 
                         <p className="text-sm text-gray-500">
@@ -163,7 +142,7 @@ export default function ViewProjectDetails({
                 </div>
 
                 <span className="w-fit rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700">
-                    {project.status}
+                    {status}
                 </span>
             </div>
 
@@ -172,7 +151,8 @@ export default function ViewProjectDetails({
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                     <div className="max-w-3xl">
                         <p className="text-sm leading-7 text-gray-600">
-                            {project.description}
+                            {project?.description ||
+                                "No project description available."}
                         </p>
 
                         <div className="mt-5">
@@ -185,37 +165,37 @@ export default function ViewProjectDetails({
                                     <div
                                         className="h-full rounded-full bg-blue-600"
                                         style={{
-                                            width: `${project.progress}%`,
+                                            width: `${progress}%`,
                                         }}
                                     />
                                 </div>
 
                                 <span className="text-sm font-bold text-blue-600">
-                                    {project.progress}%
+                                    {progress}%
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 lg:min-w-[300px]">
+                    <div className="grid grid-cols-2 gap-3 lg:min-w-75">
                         <InfoBox
                             label="Assigned Role"
-                            value={project.assignedRole}
+                            value={assignedRole}
                         />
 
                         <InfoBox
                             label="Manager"
-                            value={project.manager}
+                            value={manager}
                         />
 
                         <InfoBox
                             label="Team Leader"
-                            value={project.teamLeader}
+                            value={teamLeader}
                         />
 
                         <InfoBox
                             label="Status"
-                            value={project.status}
+                            value={status}
                         />
                     </div>
                 </div>
@@ -230,13 +210,13 @@ export default function ViewProjectDetails({
                     <div className="space-y-4">
                         <TimelineItem
                             label="Start Date"
-                            value={project.startDate}
+                            value={startDate}
                         />
 
                         <TimelineItem
                             label="Expected Completion"
                             value={
-                                project.expectedCompletionDate
+                                expectedCompletionDate
                             }
                         />
                     </div>
@@ -246,74 +226,92 @@ export default function ViewProjectDetails({
                     icon={<Clock3 size={21} />}
                     title="Current Sprint"
                 >
-                    <div>
-                        <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-gray-900">
-                                {project.currentSprint.name}
-                            </h3>
+                    {currentSprint ? (
+                        <div>
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-semibold text-gray-900">
+                                    {currentSprint?.name ||
+                                        "Current Sprint"}
+                                </h3>
 
-                            <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                                {project.currentSprint.status}
-                            </span>
-                        </div>
-
-                        <p className="mt-2 text-sm text-gray-600">
-                            {project.currentSprint.goal}
-                        </p>
-
-                        <div className="mt-4">
-                            <div className="mb-2 flex justify-between text-xs">
-                                <span className="text-gray-500">
-                                    Sprint Progress
-                                </span>
-
-                                <span className="font-semibold text-blue-600">
-                                    {
-                                        project.currentSprint
-                                            .progress
-                                    }
-                                    %
+                                <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                                    {currentSprint?.status ||
+                                        "Active"}
                                 </span>
                             </div>
 
-                            <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-                                <div
-                                    className="h-full rounded-full bg-blue-600"
-                                    style={{
-                                        width: `${project.currentSprint.progress}%`,
-                                    }}
-                                />
+                            <p className="mt-2 text-sm text-gray-600">
+                                {currentSprint?.goal ||
+                                    "No sprint goal available."}
+                            </p>
+
+                            <div className="mt-4">
+                                <div className="mb-2 flex justify-between text-xs">
+                                    <span className="text-gray-500">
+                                        Sprint Progress
+                                    </span>
+
+                                    <span className="font-semibold text-blue-600">
+                                        {Number(
+                                            currentSprint?.progress ??
+                                            currentSprint?.progressPercentage ??
+                                            0
+                                        )}
+                                        %
+                                    </span>
+                                </div>
+
+                                <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                                    <div
+                                        className="h-full rounded-full bg-blue-600"
+                                        style={{
+                                            width: `${Math.min(
+                                                100,
+                                                Math.max(
+                                                    0,
+                                                    Number(
+                                                        currentSprint?.progress ??
+                                                        currentSprint?.progressPercentage ??
+                                                        0
+                                                    )
+                                                )
+                                            )}%`,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                    <p className="text-gray-400">
+                                        Start
+                                    </p>
+
+                                    <p className="mt-1 font-medium text-gray-700">
+                                        {formatDate(
+                                            currentSprint?.startDate
+                                        )}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-gray-400">
+                                        End
+                                    </p>
+
+                                    <p className="mt-1 font-medium text-gray-700">
+                                        {formatDate(
+                                            currentSprint?.endDate
+                                        )}
+                                    </p>
+                                </div>
                             </div>
                         </div>
-
-                        <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                            <div>
-                                <p className="text-gray-400">
-                                    Start
-                                </p>
-
-                                <p className="mt-1 font-medium text-gray-700">
-                                    {
-                                        project.currentSprint
-                                            .startDate
-                                    }
-                                </p>
-                            </div>
-
-                            <div>
-                                <p className="text-gray-400">
-                                    End
-                                </p>
-
-                                <p className="mt-1 font-medium text-gray-700">
-                                    {
-                                        project.currentSprint
-                                            .endDate
-                                    }
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                    ) : (
+                        <EmptySection
+                            message="No current sprint information is available."
+                        />
+                    )}
                 </InfoCard>
             </div>
 
@@ -322,25 +320,36 @@ export default function ViewProjectDetails({
                 icon={<CheckCircle2 size={21} />}
                 title="Project Objectives"
             >
-                <div className="space-y-3">
-                    {project.objectives?.map(
-                        (objective, index) => (
-                            <div
-                                key={index}
-                                className="flex items-start gap-3 rounded-lg bg-gray-50 p-3"
-                            >
-                                <CheckCircle2
-                                    size={18}
-                                    className="mt-0.5 shrink-0 text-green-600"
-                                />
+                {objectives.length > 0 ? (
+                    <div className="space-y-3">
+                        {objectives.map(
+                            (objective, index) => (
+                                <div
+                                    key={index}
+                                    className="flex items-start gap-3 rounded-lg bg-gray-50 p-3"
+                                >
+                                    <CheckCircle2
+                                        size={18}
+                                        className="mt-0.5 shrink-0 text-green-600"
+                                    />
 
-                                <p className="text-sm text-gray-700">
-                                    {objective}
-                                </p>
-                            </div>
-                        )
-                    )}
-                </div>
+                                    <p className="text-sm text-gray-700">
+                                        {typeof objective ===
+                                        "string"
+                                            ? objective
+                                            : objective?.description ||
+                                              objective?.title ||
+                                              "Objective"}
+                                    </p>
+                                </div>
+                            )
+                        )}
+                    </div>
+                ) : (
+                    <EmptySection
+                        message="No project objectives are available."
+                    />
+                )}
             </InfoCard>
 
             {/* Team */}
@@ -348,32 +357,51 @@ export default function ViewProjectDetails({
                 icon={<UsersRound size={21} />}
                 title="Authorized Team Members"
             >
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-                    {project.teamMembers?.map((member) => (
-                        <div
-                            key={member.id}
-                            className="rounded-lg border border-gray-200 p-4"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-600">
-                                    {member.name
-                                        ?.charAt(0)
-                                        ?.toUpperCase()}
-                                </div>
+                {teamMembers.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                        {teamMembers.map(
+                            (member, index) => (
+                                <div
+                                    key={
+                                        member?.id ??
+                                        index
+                                    }
+                                    className="rounded-lg border border-gray-200 p-4"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-600">
+                                            {(
+                                                member?.name ||
+                                                member?.fullName ||
+                                                "U"
+                                            )
+                                                ?.charAt(0)
+                                                ?.toUpperCase()}
+                                        </div>
 
-                                <div className="min-w-0">
-                                    <p className="truncate text-sm font-semibold text-gray-800">
-                                        {member.name}
-                                    </p>
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-semibold text-gray-800">
+                                                {member?.name ||
+                                                    member?.fullName ||
+                                                    "Unknown Member"}
+                                            </p>
 
-                                    <p className="text-xs text-gray-500">
-                                        {member.role}
-                                    </p>
+                                            <p className="text-xs text-gray-500">
+                                                {member?.role ||
+                                                    member?.roleName ||
+                                                    "Team Member"}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                            )
+                        )}
+                    </div>
+                ) : (
+                    <EmptySection
+                        message="No team member details are available."
+                    />
+                )}
             </InfoCard>
 
             {/* Authorized sections */}
@@ -382,21 +410,10 @@ export default function ViewProjectDetails({
                 title="Authorized Project Activities"
             >
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-                    <ActivityButton
-                        title="Assigned Tasks"
-                    />
-
-                    <ActivityButton
-                        title="Sprint Board"
-                    />
-
-                    <ActivityButton
-                        title="Discussions"
-                    />
-
-                    <ActivityButton
-                        title="Project Resources"
-                    />
+                    <ActivityButton title="Assigned Tasks" />
+                    <ActivityButton title="Sprint Board" />
+                    <ActivityButton title="Discussions" />
+                    <ActivityButton title="Project Resources" />
                 </div>
             </InfoCard>
 
@@ -405,37 +422,51 @@ export default function ViewProjectDetails({
                 icon={<FileText size={21} />}
                 title="Project Documents & Resources"
             >
-                <div className="space-y-3">
-                    {project.resources?.map((resource) => (
-                        <div
-                            key={resource.id}
-                            className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
-                                    <FileText size={19} />
+                {resources.length > 0 ? (
+                    <div className="space-y-3">
+                        {resources.map(
+                            (resource, index) => (
+                                <div
+                                    key={
+                                        resource?.id ??
+                                        index
+                                    }
+                                    className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
+                                            <FileText size={19} />
+                                        </div>
+
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-800">
+                                                {resource?.name ||
+                                                    resource?.title ||
+                                                    "Project Resource"}
+                                            </p>
+
+                                            <p className="text-xs text-gray-500">
+                                                {resource?.type ||
+                                                    "Document"}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                    >
+                                        View
+                                    </button>
                                 </div>
-
-                                <div>
-                                    <p className="text-sm font-medium text-gray-800">
-                                        {resource.name}
-                                    </p>
-
-                                    <p className="text-xs text-gray-500">
-                                        {resource.type}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <button
-                                type="button"
-                                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                            >
-                                View
-                            </button>
-                        </div>
-                    ))}
-                </div>
+                            )
+                        )}
+                    </div>
+                ) : (
+                    <EmptySection
+                        message="No project documents or resources are available."
+                    />
+                )}
             </InfoCard>
 
             {/* Recent activities */}
@@ -443,30 +474,46 @@ export default function ViewProjectDetails({
                 icon={<Clock3 size={21} />}
                 title="Recent Project Activities"
             >
-                <div className="space-y-4">
-                    {project.activities?.map((activity) => (
-                        <div
-                            key={activity.id}
-                            className="flex gap-4"
-                        >
-                            <div className="mt-1 h-3 w-3 shrink-0 rounded-full bg-blue-600" />
+                {activities.length > 0 ? (
+                    <div className="space-y-4">
+                        {activities.map(
+                            (activity, index) => (
+                                <div
+                                    key={
+                                        activity?.id ??
+                                        index
+                                    }
+                                    className="flex gap-4"
+                                >
+                                    <div className="mt-1 h-3 w-3 shrink-0 rounded-full bg-blue-600" />
 
-                            <div>
-                                <p className="text-sm font-semibold text-gray-800">
-                                    {activity.title}
-                                </p>
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-800">
+                                            {activity?.title ||
+                                                "Project Activity"}
+                                        </p>
 
-                                <p className="mt-1 text-sm text-gray-500">
-                                    {activity.description}
-                                </p>
+                                        <p className="mt-1 text-sm text-gray-500">
+                                            {activity?.description ||
+                                                "No activity description available."}
+                                        </p>
 
-                                <p className="mt-1 text-xs text-gray-400">
-                                    {activity.date}
-                                </p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                                        <p className="mt-1 text-xs text-gray-400">
+                                            {formatDateTime(
+                                                activity?.date ??
+                                                activity?.createdAt
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                            )
+                        )}
+                    </div>
+                ) : (
+                    <EmptySection
+                        message="No recent project activities are available."
+                    />
+                )}
             </InfoCard>
 
             {/* Bottom */}
@@ -493,7 +540,9 @@ export default function ViewProjectDetails({
 function InfoBox({ label, value }) {
     return (
         <div className="rounded-lg bg-gray-50 p-3">
-            <p className="text-xs text-gray-400">{label}</p>
+            <p className="text-xs text-gray-400">
+                {label}
+            </p>
 
             <p className="mt-1 text-sm font-semibold text-gray-800">
                 {value || "Not available"}
@@ -528,7 +577,7 @@ function TimelineItem({ label, value }) {
             </span>
 
             <span className="text-sm font-semibold text-gray-800">
-                {value}
+                {value || "Not available"}
             </span>
         </div>
     );
@@ -543,4 +592,42 @@ function ActivityButton({ title }) {
             {title}
         </button>
     );
+}
+
+function EmptySection({ message }) {
+    return (
+        <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-5 text-center">
+            <p className="text-sm text-gray-500">
+                {message}
+            </p>
+        </div>
+    );
+}
+
+function formatDate(date) {
+    if (!date) {
+        return "Not set";
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return "Not set";
+    }
+
+    return parsedDate.toLocaleDateString();
+}
+
+function formatDateTime(date) {
+    if (!date) {
+        return "Not available";
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return "Not available";
+    }
+
+    return parsedDate.toLocaleString();
 }

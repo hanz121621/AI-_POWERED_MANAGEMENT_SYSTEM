@@ -27,7 +27,6 @@ export default function Communication() {
                 </div>
 
                 <div className="space-y-6">
-
                     <ReceiveMessages />
 
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -36,7 +35,6 @@ export default function Communication() {
                     </div>
 
                     <ViewNotifications />
-
                 </div>
             </div>
         </div>

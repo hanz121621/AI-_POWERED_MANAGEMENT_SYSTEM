@@ -1,4 +1,5 @@
-import {  useState } from "react";
+import { useEffect, useState } from "react";
+
 import {
     UserRound,
     Mail,
@@ -16,76 +17,11 @@ import {
     BriefcaseBusiness,
 } from "lucide-react";
 
-// ============================================================
-// STORAGE
-// ============================================================
-
-const USER_KEYS = [
-    "user",
-    "aipms_user",
-    "currentUser",
-];
-
-const USERS_KEY = "users";
+import { getMyProfile } from "@/services/userService";
 
 // ============================================================
 // HELPERS
 // ============================================================
-
-const readStoredUser = () => {
-    for (const key of USER_KEYS) {
-        try {
-            const value = localStorage.getItem(key);
-
-            if (value) {
-                const parsed = JSON.parse(value);
-
-                if (parsed) {
-                    return parsed;
-                }
-            }
-        } catch {
-            // Ignore invalid localStorage values
-        }
-    }
-
-    return null;
-};
-
-const readUsers = () => {
-    try {
-        const value = localStorage.getItem(USERS_KEY);
-
-        if (!value) {
-            return [];
-        }
-
-        const parsed = JSON.parse(value);
-
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
-};
-
-const getCurrentUser = () => {
-    const storedUser = readStoredUser();
-
-    if (storedUser) {
-        return storedUser;
-    }
-
-    const users = readUsers();
-
-    return users.find((user) => {
-        const role = String(user?.role || "").toLowerCase();
-
-        return (
-            role === "developer" ||
-            role === "contributor"
-        );
-    }) || null;
-};
 
 const formatDate = (value) => {
     if (!value) {
@@ -161,6 +97,53 @@ const getFullName = (user) => {
     return fullName || "Developer";
 };
 
+const normalizeRole = (user) => {
+    if (!user) {
+        return "Developer";
+    }
+
+    const role = user.role || user.rawRole;
+
+    if (typeof role === "number") {
+        if (role === 1) {
+            return "Admin";
+        }
+
+        if (role === 2) {
+            return "Manager";
+        }
+
+        if (role === 3) {
+            return "Developer";
+        }
+    }
+
+    const normalizedRole = String(role || "")
+        .trim()
+        .toLowerCase();
+
+    if (
+        normalizedRole === "admin" ||
+        normalizedRole === "administrator"
+    ) {
+        return "Admin";
+    }
+
+    if (normalizedRole === "manager") {
+        return "Manager";
+    }
+
+    if (
+        normalizedRole === "developer" ||
+        normalizedRole === "contributor" ||
+        normalizedRole === "staff"
+    ) {
+        return "Developer";
+    }
+
+    return role || "Developer";
+};
+
 // ============================================================
 // EMPTY PROFILE
 // ============================================================
@@ -191,22 +174,25 @@ export default function ViewDeveloperProfile({ onEdit }) {
     const [lastLoaded, setLastLoaded] = useState(null);
 
     // ========================================================
-    // LOAD PROFILE
+    // LOAD PROFILE FROM BACKEND
     // ========================================================
 
-    const loadProfile = () => {
+    const loadProfile = async () => {
         setLoading(true);
         setError("");
 
         try {
-            const user = getCurrentUser();
+            const user = await getMyProfile();
 
             if (!user) {
                 setProfile(EMPTY_PROFILE);
                 setError("Profile not found.");
-                setLoading(false);
                 return;
             }
+
+            // ------------------------------------------------
+            // Assigned projects
+            // ------------------------------------------------
 
             const projects =
                 user.assignedProjects ||
@@ -218,11 +204,19 @@ export default function ViewDeveloperProfile({ onEdit }) {
                 ? projects
                 : [];
 
+            // ------------------------------------------------
+            // Technical skills
+            // ------------------------------------------------
+
             const skills = normalizeSkills(
                 user.technicalSkills ||
-                user.skills ||
-                user.specializations
+                    user.skills ||
+                    user.specializations
             );
+
+            // ------------------------------------------------
+            // Normalize backend profile
+            // ------------------------------------------------
 
             const normalizedProfile = {
                 id:
@@ -240,18 +234,18 @@ export default function ViewDeveloperProfile({ onEdit }) {
                     "",
 
                 phone:
-                    user.phone ||
                     user.phoneNumber ||
+                    user.phone ||
                     "",
 
                 profilePicture:
-                    user.profilePicture ||
                     user.profileImage ||
+                    user.profilePicture ||
                     user.avatar ||
                     user.image ||
                     "",
 
-                role: "Developer",
+                role: normalizeRole(user),
 
                 team:
                     user.teamName ||
@@ -266,7 +260,9 @@ export default function ViewDeveloperProfile({ onEdit }) {
                 accountStatus:
                     user.accountStatus ||
                     user.status ||
-                    "Active",
+                    (user.isActive === false
+                        ? "Inactive"
+                        : "Active"),
 
                 accountCreatedAt:
                     user.accountCreatedAt ||
@@ -284,16 +280,163 @@ export default function ViewDeveloperProfile({ onEdit }) {
 
             setProfile(normalizedProfile);
             setLastLoaded(new Date());
-        } catch {
+        } catch (loadError) {
+            console.error(
+                "LOAD DEVELOPER PROFILE ERROR:",
+                loadError
+            );
+
+            setProfile(EMPTY_PROFILE);
+
             setError(
-                "Unable to load profile information. Please try again."
+                loadError?.message ||
+                    "Unable to load profile information. Please try again."
             );
         } finally {
             setLoading(false);
         }
     };
 
-    
+    // ========================================================
+    // INITIAL BACKEND LOAD
+    // ========================================================
+    //
+    // The initial request is performed asynchronously so the
+    // effect itself does not synchronously invoke a function
+    // containing setState().
+    //
+    // ========================================================
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadInitialProfile = async () => {
+            setLoading(true);
+            setError("");
+
+            try {
+                const user = await getMyProfile();
+
+                if (cancelled) {
+                    return;
+                }
+
+                if (!user) {
+                    setProfile(EMPTY_PROFILE);
+                    setError("Profile not found.");
+                    return;
+                }
+
+                const projects =
+                    user.assignedProjects ||
+                    user.projects ||
+                    user.projectAssignments ||
+                    [];
+
+                const normalizedProjects = Array.isArray(
+                    projects
+                )
+                    ? projects
+                    : [];
+
+                const skills = normalizeSkills(
+                    user.technicalSkills ||
+                        user.skills ||
+                        user.specializations
+                );
+
+                const normalizedProfile = {
+                    id:
+                        user.id ||
+                        user.userId ||
+                        user.userID ||
+                        user.UserId ||
+                        null,
+
+                    fullName: getFullName(user),
+
+                    email:
+                        user.email ||
+                        user.emailAddress ||
+                        "",
+
+                    phone:
+                        user.phoneNumber ||
+                        user.phone ||
+                        "",
+
+                    profilePicture:
+                        user.profileImage ||
+                        user.profilePicture ||
+                        user.avatar ||
+                        user.image ||
+                        "",
+
+                    role: normalizeRole(user),
+
+                    team:
+                        user.teamName ||
+                        user.team ||
+                        user.teamLeaderName ||
+                        "Not assigned",
+
+                    assignedProjects:
+                        normalizedProjects,
+
+                    technicalSkills: skills,
+
+                    accountStatus:
+                        user.accountStatus ||
+                        user.status ||
+                        (user.isActive === false
+                            ? "Inactive"
+                            : "Active"),
+
+                    accountCreatedAt:
+                        user.accountCreatedAt ||
+                        user.createdAt ||
+                        user.creationDate ||
+                        user.createdDate ||
+                        null,
+
+                    lastLogin:
+                        user.lastLogin ||
+                        user.lastLoginAt ||
+                        user.lastLoginDate ||
+                        null,
+                };
+
+                setProfile(normalizedProfile);
+                setLastLoaded(new Date());
+            } catch (loadError) {
+                if (cancelled) {
+                    return;
+                }
+
+                console.error(
+                    "INITIAL DEVELOPER PROFILE LOAD ERROR:",
+                    loadError
+                );
+
+                setProfile(EMPTY_PROFILE);
+
+                setError(
+                    loadError?.message ||
+                        "Unable to load profile information. Please try again."
+                );
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadInitialProfile();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     // ========================================================
     // LOADING
@@ -301,8 +444,8 @@ export default function ViewDeveloperProfile({ onEdit }) {
 
     if (loading) {
         return (
-            <div className="min-h-[400px] w-full rounded-2xl bg-white p-8 shadow-sm dark:bg-slate-900">
-                <div className="flex min-h-[300px] items-center justify-center">
+            <div className="min-h-100 w-full rounded-2xl bg-white p-8 shadow-sm dark:bg-slate-900">
+                <div className="flex min-h-75 items-center justify-center">
                     <div className="flex flex-col items-center gap-3">
                         <RefreshCw
                             size={28}
@@ -324,8 +467,8 @@ export default function ViewDeveloperProfile({ onEdit }) {
 
     if (error) {
         return (
-            <div className="min-h-[400px] w-full rounded-2xl bg-white p-8 shadow-sm dark:bg-slate-900">
-                <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
+            <div className="min-h-100 w-full rounded-2xl bg-white p-8 shadow-sm dark:bg-slate-900">
+                <div className="flex min-h-75 flex-col items-center justify-center text-center">
                     <div className="mb-4 rounded-full bg-red-100 p-4 dark:bg-red-950/40">
                         <CircleAlert
                             size={34}
@@ -401,7 +544,9 @@ export default function ViewDeveloperProfile({ onEdit }) {
                         <button
                             type="button"
                             onClick={() => {
-                                if (typeof onEdit === "function") {
+                                if (
+                                    typeof onEdit === "function"
+                                ) {
                                     onEdit(profile);
                                 }
                             }}
@@ -419,7 +564,7 @@ export default function ViewDeveloperProfile({ onEdit }) {
             ================================================== */}
 
             <div className="overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-slate-900">
-                <div className="bg-gradient-to-r from-blue-700 to-indigo-700 px-6 py-8">
+                <div className="bg-linear-to-r from-blue-700 to-indigo-700 px-6 py-8">
                     <div className="flex flex-col items-center gap-5 sm:flex-row">
                         {/* Profile picture */}
 
@@ -481,13 +626,17 @@ export default function ViewDeveloperProfile({ onEdit }) {
                     <InfoItem
                         icon={<Mail size={18} />}
                         label="Email Address"
-                        value={profile.email || "Not available"}
+                        value={
+                            profile.email || "Not available"
+                        }
                     />
 
                     <InfoItem
                         icon={<Phone size={18} />}
                         label="Phone Number"
-                        value={profile.phone || "Not available"}
+                        value={
+                            profile.phone || "Not available"
+                        }
                     />
 
                     <InfoItem
@@ -511,20 +660,25 @@ export default function ViewDeveloperProfile({ onEdit }) {
                     <InfoItem
                         icon={<CalendarDays size={18} />}
                         label="Account Created"
-                        value={formatDate(profile.accountCreatedAt)}
+                        value={formatDate(
+                            profile.accountCreatedAt
+                        )}
                     />
 
                     <InfoItem
                         icon={<Clock3 size={18} />}
                         label="Last Login"
-                        value={formatDateTime(profile.lastLogin)}
+                        value={formatDateTime(
+                            profile.lastLogin
+                        )}
                     />
 
                     <InfoItem
                         icon={<FolderKanban size={18} />}
                         label="Assigned Projects"
                         value={`${profile.assignedProjects.length} project${
-                            profile.assignedProjects.length === 1
+                            profile.assignedProjects.length ===
+                            1
                                 ? ""
                                 : "s"
                         }`}
@@ -559,14 +713,16 @@ export default function ViewDeveloperProfile({ onEdit }) {
 
                 {profile.technicalSkills.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                        {profile.technicalSkills.map((skill, index) => (
-                            <span
-                                key={`${skill}-${index}`}
-                                className="rounded-full bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 dark:bg-purple-950/40 dark:text-purple-300"
-                            >
-                                {skill}
-                            </span>
-                        ))}
+                        {profile.technicalSkills.map(
+                            (skill, index) => (
+                                <span
+                                    key={`${skill}-${index}`}
+                                    className="rounded-full bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 dark:bg-purple-950/40 dark:text-purple-300"
+                                >
+                                    {skill}
+                                </span>
+                            )
+                        )}
                     </div>
                 ) : (
                     <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center dark:border-slate-700">
@@ -576,7 +732,8 @@ export default function ViewDeveloperProfile({ onEdit }) {
                         />
 
                         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                            No technical skills have been added yet.
+                            No technical skills have been added
+                            yet.
                         </p>
                     </div>
                 )}
@@ -611,14 +768,18 @@ export default function ViewDeveloperProfile({ onEdit }) {
                         {profile.assignedProjects.map(
                             (project, index) => {
                                 const projectName =
-                                    typeof project === "string"
+                                    typeof project ===
+                                    "string"
                                         ? project
                                         : project?.name ||
                                           project?.projectName ||
-                                          `Project ${index + 1}`;
+                                          `Project ${
+                                              index + 1
+                                          }`;
 
                                 const projectStatus =
-                                    typeof project === "object"
+                                    typeof project ===
+                                    "object"
                                         ? project?.status ||
                                           project?.projectStatus ||
                                           "Assigned"
@@ -636,7 +797,9 @@ export default function ViewDeveloperProfile({ onEdit }) {
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
                                                 <h3 className="font-semibold text-slate-900 dark:text-white">
-                                                    {projectName}
+                                                    {
+                                                        projectName
+                                                    }
                                                 </h3>
 
                                                 {typeof project ===
@@ -651,7 +814,9 @@ export default function ViewDeveloperProfile({ onEdit }) {
                                             </div>
 
                                             <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-                                                {projectStatus}
+                                                {
+                                                    projectStatus
+                                                }
                                             </span>
                                         </div>
                                     </div>
@@ -671,7 +836,8 @@ export default function ViewDeveloperProfile({ onEdit }) {
                         </p>
 
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            Projects assigned to you will appear here.
+                            Projects assigned to you will
+                            appear here.
                         </p>
                     </div>
                 )}
@@ -683,7 +849,8 @@ export default function ViewDeveloperProfile({ onEdit }) {
 
             <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm dark:border-slate-700 dark:bg-slate-800/50 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-slate-500 dark:text-slate-400">
-                    Profile information is read-only from this page.
+                    Profile information is read-only from this
+                    page.
                 </span>
 
                 {lastLoaded && (
@@ -713,7 +880,7 @@ function InfoItem({ icon, label, value }) {
                     {label}
                 </p>
 
-                <p className="mt-1 break-words text-sm font-medium text-slate-800 dark:text-slate-200">
+                <p className="mt-1 wrap-break-word text-sm font-medium text-slate-800 dark:text-slate-200">
                     {value}
                 </p>
             </div>

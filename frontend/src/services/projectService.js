@@ -280,7 +280,9 @@ function normalizeProject(project) {
 
         progress:
             project?.progress ??
+            project?.progressPercentage ??
             project?.Progress ??
+            project?.ProgressPercentage ??
             0,
 
         tasks:
@@ -397,9 +399,9 @@ function normalizeProjectSpecification(data) {
             "",
 
         nonFunctionalRequirements:
-    data?.nonFunctionalRequirements ??
-    data?.NonFunctionalRequirements ??
-    "",
+            data?.nonFunctionalRequirements ??
+            data?.NonFunctionalRequirements ??
+            "",
 
         deliverables:
             data?.deliverables ??
@@ -602,8 +604,10 @@ export async function createProject(
                 projectData.teamId ||
                 null,
 
-                teamLeaderId:
-    projectData.teamLeaderId || null,
+            teamLeaderId:
+                projectData.teamLeaderId ||
+                null,
+
             priorityId:
                 projectData.priorityId ??
                 null,
@@ -869,11 +873,6 @@ export async function approveProject(
 // POST /api/projects/{id}/reject
 // ============================================================
 
-
-
-
-
-
 export async function rejectProject(
     projectId
 ) {
@@ -929,12 +928,6 @@ export async function rejectProject(
 //     statusId: "UUID"
 // }
 // ============================================================
-
-
-
-
-
-
 
 export async function changeProjectStatus(
     projectId,
@@ -1028,6 +1021,42 @@ export async function getMyProjects() {
             getApiErrorMessage(
                 error,
                 "Unable to load your projects."
+            ),
+            {
+                cause: error,
+            }
+        );
+    }
+}
+
+// ============================================================
+// GET MY DEVELOPER PROJECTS
+//
+// GET /api/projects/my-developer-projects
+//
+// Intended for authenticated Developer.
+// ============================================================
+
+export async function getMyDeveloperProjects() {
+    try {
+        const response =
+            await api.get(
+                "/projects/my-developer-projects"
+            );
+
+        return normalizeProjectList(
+            response.data
+        );
+    } catch (error) {
+        console.error(
+            "GET MY DEVELOPER PROJECTS ERROR:",
+            error
+        );
+
+        throw new Error(
+            getApiErrorMessage(
+                error,
+                "Unable to load your assigned projects."
             ),
             {
                 cause: error,
@@ -1321,6 +1350,7 @@ export async function getProjectsByManager(
 // GET PROJECTS BY MANAGER USER
 //
 // Frontend helper.
+//
 // Accepts:
 //
 // {
@@ -1407,7 +1437,6 @@ export async function getProjectStatistics() {
 
 // ============================================================
 // PROJECT SPECIFICATION
-// ============================================================
 //
 // GET    /api/projects/{projectId}/specification
 // POST   /api/projects/{projectId}/specification
@@ -1690,8 +1719,6 @@ export async function updateProjectSpecification(
     }
 }
 
-
-
 // ============================================================
 // UPDATE PROJECT TIMELINE
 //
@@ -1756,6 +1783,7 @@ export async function updateProjectTimeline(
         };
     }
 }
+
 // ============================================================
 // DELETE PROJECT SPECIFICATION
 // ============================================================
@@ -1808,8 +1836,7 @@ export async function deleteProjectSpecification(
     }
 }
 
-
-   // ============================================================
+// ============================================================
 // UPDATE PROJECT DEADLINE
 //
 // PUT /api/projects/{projectId}/deadline
@@ -1873,9 +1900,11 @@ export async function updateProjectDeadline(
         };
     }
 }
+
 // ============================================================
 // DEFAULT EXPORT
 // ============================================================
+
 export default {
     // Projects
     getProjects,
@@ -1894,7 +1923,11 @@ export default {
     archiveProject,
     restoreProject,
 
+    // Manager / Current User
     getMyProjects,
+
+    // Developer
+    getMyDeveloperProjects,
 
     // Timeline / Deadline
     updateProjectTimeline,

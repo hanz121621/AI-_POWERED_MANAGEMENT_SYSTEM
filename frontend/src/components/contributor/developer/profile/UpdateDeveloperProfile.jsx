@@ -1,8 +1,11 @@
-import {  useState } from "react";
+import { useEffect, useState } from "react";
+
 import {
     UserRound,
     Mail,
     Phone,
+    Image as ImageIcon,
+    FileText,
     ShieldCheck,
     UsersRound,
     FolderKanban,
@@ -11,81 +14,21 @@ import {
     Clock3,
     CircleCheck,
     CircleAlert,
-    Pencil,
+    Save,
+    X,
     RefreshCw,
     BriefcaseBusiness,
+    Pencil,
 } from "lucide-react";
 
-// ============================================================
-// STORAGE
-// ============================================================
-
-const USER_KEYS = [
-    "user",
-    "aipms_user",
-    "currentUser",
-];
-
-const USERS_KEY = "users";
+import {
+    getMyProfile,
+    updateMyProfile,
+} from "@/services/userService";
 
 // ============================================================
 // HELPERS
 // ============================================================
-
-const readStoredUser = () => {
-    for (const key of USER_KEYS) {
-        try {
-            const value = localStorage.getItem(key);
-
-            if (value) {
-                const parsed = JSON.parse(value);
-
-                if (parsed) {
-                    return parsed;
-                }
-            }
-        } catch {
-            // Ignore invalid localStorage values
-        }
-    }
-
-    return null;
-};
-
-const readUsers = () => {
-    try {
-        const value = localStorage.getItem(USERS_KEY);
-
-        if (!value) {
-            return [];
-        }
-
-        const parsed = JSON.parse(value);
-
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
-};
-
-const getCurrentUser = () => {
-    const storedUser = readStoredUser();
-
-    if (storedUser) {
-        return storedUser;
-    }
-
-    const users = readUsers();
-
-    return users.find((user) => {
-        const role = String(user?.role || "").toLowerCase();
-
-        return (
-            role === "developer" ||
-            role === "contributor"
-        );
-    }) || null;
-};
 
 const formatDate = (value) => {
     if (!value) {
@@ -127,7 +70,21 @@ const formatDateTime = (value) => {
 
 const normalizeSkills = (skills) => {
     if (Array.isArray(skills)) {
-        return skills.filter(Boolean);
+        return skills
+            .map((skill) => {
+                if (typeof skill === "string") {
+                    return skill;
+                }
+
+                return (
+                    skill?.name ||
+                    skill?.skillName ||
+                    skill?.technicalSkillName ||
+                    skill?.specializationName ||
+                    ""
+                );
+            })
+            .filter(Boolean);
     }
 
     if (typeof skills === "string") {
@@ -142,7 +99,7 @@ const normalizeSkills = (skills) => {
 
 const getFullName = (user) => {
     if (!user) {
-        return "Developer";
+        return "";
     }
 
     if (user.fullName) {
@@ -156,9 +113,44 @@ const getFullName = (user) => {
     const firstName = user.firstName || "";
     const lastName = user.lastName || "";
 
-    const fullName = `${firstName} ${lastName}`.trim();
+    return `${firstName} ${lastName}`.trim();
+};
 
-    return fullName || "Developer";
+const normalizeRole = (user) => {
+    if (!user) {
+        return "Developer";
+    }
+
+    const role = user.role ?? user.rawRole;
+
+    if (
+        role === 1 ||
+        String(role).toLowerCase() === "1" ||
+        String(role).toLowerCase() === "admin" ||
+        String(role).toLowerCase() === "administrator"
+    ) {
+        return "Admin";
+    }
+
+    if (
+        role === 2 ||
+        String(role).toLowerCase() === "2" ||
+        String(role).toLowerCase() === "manager"
+    ) {
+        return "Manager";
+    }
+
+    if (
+        role === 3 ||
+        String(role).toLowerCase() === "3" ||
+        String(role).toLowerCase() === "developer" ||
+        String(role).toLowerCase() === "contributor" ||
+        String(role).toLowerCase() === "staff"
+    ) {
+        return "Developer";
+    }
+
+    return role || "Developer";
 };
 
 // ============================================================
@@ -170,6 +162,7 @@ const EMPTY_PROFILE = {
     fullName: "",
     email: "",
     phone: "",
+    bio: "",
     profilePicture: "",
     role: "Developer",
     team: "Not assigned",
@@ -181,119 +174,423 @@ const EMPTY_PROFILE = {
 };
 
 // ============================================================
+// NORMALIZE BACKEND PROFILE
+// ============================================================
+
+const normalizeProfile = (user) => {
+    if (!user) {
+        return EMPTY_PROFILE;
+    }
+
+    const projects =
+        user.assignedProjects ||
+        user.projects ||
+        user.projectAssignments ||
+        [];
+
+    const skills = normalizeSkills(
+        user.technicalSkills ||
+            user.skills ||
+            user.specializations
+    );
+
+    return {
+        id:
+            user.id ||
+            user.userId ||
+            user.userID ||
+            user.UserId ||
+            null,
+
+        fullName: getFullName(user),
+
+        email:
+            user.email ||
+            user.emailAddress ||
+            "",
+
+        phone:
+            user.phoneNumber ||
+            user.phone ||
+            "",
+
+        bio:
+            user.bio ||
+            user.biography ||
+            "",
+
+        profilePicture:
+            user.profileImage ||
+            user.profilePicture ||
+            user.avatar ||
+            user.image ||
+            "",
+
+        role: normalizeRole(user),
+
+        team:
+            user.teamName ||
+            user.team ||
+            user.teamLeaderName ||
+            "Not assigned",
+
+        assignedProjects:
+            Array.isArray(projects)
+                ? projects
+                : [],
+
+        technicalSkills: skills,
+
+        accountStatus:
+            user.accountStatus ||
+            user.status ||
+            (user.isActive === false
+                ? "Inactive"
+                : "Active"),
+
+        accountCreatedAt:
+            user.accountCreatedAt ||
+            user.createdAt ||
+            user.creationDate ||
+            user.createdDate ||
+            null,
+
+        lastLogin:
+            user.lastLogin ||
+            user.lastLoginAt ||
+            user.lastLoginDate ||
+            null,
+    };
+};
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
-export default function ViewDeveloperProfile({ onEdit }) {
-    const [profile, setProfile] = useState(EMPTY_PROFILE);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [lastLoaded, setLastLoaded] = useState(null);
+export default function UpdateDeveloperProfile({
+    onCancel,
+    onSuccess,
+}) {
+    const [profile, setProfile] =
+        useState(EMPTY_PROFILE);
+
+    const [formData, setFormData] = useState({
+        fullName: "",
+        email: "",
+        phoneNumber: "",
+        bio: "",
+        profileImage: "",
+        technicalSkills: "",
+    });
+
+    const [loading, setLoading] =
+        useState(true);
+
+    const [saving, setSaving] =
+        useState(false);
+
+    const [error, setError] =
+        useState("");
+
+    const [successMessage, setSuccessMessage] =
+        useState("");
 
     // ========================================================
-    // LOAD PROFILE
+    // LOAD CURRENT PROFILE
     // ========================================================
 
-    const loadProfile = () => {
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchProfile = async () => {
+            setLoading(true);
+            setError("");
+            setSuccessMessage("");
+
+            try {
+                const user = await getMyProfile();
+
+                if (!isMounted) {
+                    return;
+                }
+
+                if (!user) {
+                    setProfile(EMPTY_PROFILE);
+
+                    setFormData({
+                        fullName: "",
+                        email: "",
+                        phoneNumber: "",
+                        bio: "",
+                        profileImage: "",
+                        technicalSkills: "",
+                    });
+
+                    setError(
+                        "Profile information could not be found."
+                    );
+
+                    return;
+                }
+
+                const normalizedProfile =
+                    normalizeProfile(user);
+
+                setProfile(normalizedProfile);
+
+                setFormData({
+                    fullName:
+                        normalizedProfile.fullName || "",
+
+                    // IMPORTANT:
+                    // Email is loaded from the backend
+                    // but is NOT editable by the developer.
+                    email:
+                        normalizedProfile.email || "",
+
+                    phoneNumber:
+                        normalizedProfile.phone || "",
+
+                    bio:
+                        normalizedProfile.bio || "",
+
+                    profileImage:
+                        normalizedProfile.profilePicture || "",
+
+                    technicalSkills:
+                        normalizedProfile.technicalSkills.join(
+                            ", "
+                        ),
+                });
+            } catch (loadError) {
+                if (!isMounted) {
+                    return;
+                }
+
+                console.error(
+                    "UPDATE PROFILE LOAD ERROR:",
+                    loadError
+                );
+
+                setError(
+                    loadError?.message ||
+                        "Unable to load your profile. Please try again."
+                );
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        fetchProfile();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    // ========================================================
+    // REFRESH PROFILE
+    // ========================================================
+
+    const loadProfile = async () => {
         setLoading(true);
         setError("");
+        setSuccessMessage("");
 
         try {
-            const user = getCurrentUser();
+            const user = await getMyProfile();
 
             if (!user) {
                 setProfile(EMPTY_PROFILE);
-                setError("Profile not found.");
-                setLoading(false);
+
+                setFormData({
+                    fullName: "",
+                    email: "",
+                    phoneNumber: "",
+                    bio: "",
+                    profileImage: "",
+                    technicalSkills: "",
+                });
+
+                setError(
+                    "Profile information could not be found."
+                );
+
                 return;
             }
 
-            const projects =
-                user.assignedProjects ||
-                user.projects ||
-                user.projectAssignments ||
-                [];
-
-            const normalizedProjects = Array.isArray(projects)
-                ? projects
-                : [];
-
-            const skills = normalizeSkills(
-                user.technicalSkills ||
-                user.skills ||
-                user.specializations
-            );
-
-            const normalizedProfile = {
-                id:
-                    user.id ||
-                    user.userId ||
-                    user.userID ||
-                    user.UserId ||
-                    null,
-
-                fullName: getFullName(user),
-
-                email:
-                    user.email ||
-                    user.emailAddress ||
-                    "",
-
-                phone:
-                    user.phone ||
-                    user.phoneNumber ||
-                    "",
-
-                profilePicture:
-                    user.profilePicture ||
-                    user.profileImage ||
-                    user.avatar ||
-                    user.image ||
-                    "",
-
-                role: "Developer",
-
-                team:
-                    user.teamName ||
-                    user.team ||
-                    user.teamLeaderName ||
-                    "Not assigned",
-
-                assignedProjects: normalizedProjects,
-
-                technicalSkills: skills,
-
-                accountStatus:
-                    user.accountStatus ||
-                    user.status ||
-                    "Active",
-
-                accountCreatedAt:
-                    user.accountCreatedAt ||
-                    user.createdAt ||
-                    user.creationDate ||
-                    user.createdDate ||
-                    null,
-
-                lastLogin:
-                    user.lastLogin ||
-                    user.lastLoginAt ||
-                    user.lastLoginDate ||
-                    null,
-            };
+            const normalizedProfile =
+                normalizeProfile(user);
 
             setProfile(normalizedProfile);
-            setLastLoaded(new Date());
-        } catch {
+
+            setFormData({
+                fullName:
+                    normalizedProfile.fullName || "",
+
+                // Email remains read-only.
+                email:
+                    normalizedProfile.email || "",
+
+                phoneNumber:
+                    normalizedProfile.phone || "",
+
+                bio:
+                    normalizedProfile.bio || "",
+
+                profileImage:
+                    normalizedProfile.profilePicture || "",
+
+                technicalSkills:
+                    normalizedProfile.technicalSkills.join(
+                        ", "
+                    ),
+            });
+        } catch (loadError) {
+            console.error(
+                "UPDATE PROFILE REFRESH ERROR:",
+                loadError
+            );
+
             setError(
-                "Unable to load profile information. Please try again."
+                loadError?.message ||
+                    "Unable to refresh your profile. Please try again."
             );
         } finally {
             setLoading(false);
         }
     };
 
-   
+    // ========================================================
+    // HANDLE INPUT
+    // ========================================================
+
+    const handleChange = (event) => {
+        const {
+            name,
+            value,
+        } = event.target;
+
+        setFormData((current) => ({
+            ...current,
+            [name]: value,
+        }));
+
+        if (error) {
+            setError("");
+        }
+
+        if (successMessage) {
+            setSuccessMessage("");
+        }
+    };
+
+    // ========================================================
+    // SAVE PROFILE
+    // ========================================================
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        setError("");
+        setSuccessMessage("");
+
+        const fullName =
+            formData.fullName.trim();
+
+        if (!fullName) {
+            setError(
+                "Full name is required."
+            );
+
+            return;
+        }
+
+        /*
+         * Email comes from the backend profile.
+         *
+         * The developer cannot edit it because
+         * the email input is readOnly and has no
+         * onChange handler.
+         *
+         * However, the backend UpdateProfileDto
+         * requires Email, so we send the existing
+         * email unchanged.
+         */
+
+        const email =
+            formData.email.trim();
+
+        if (!email) {
+            setError(
+                "Your existing email address could not be loaded. Please refresh the profile and try again."
+            );
+
+            return;
+        }
+
+        setSaving(true);
+
+        try {
+            const result =
+                await updateMyProfile({
+                    fullName,
+
+                    // Existing email only.
+                    // Developer cannot change this value.
+                    email,
+
+                    phoneNumber:
+                        formData.phoneNumber.trim(),
+
+                    bio:
+                        formData.bio.trim(),
+
+                    profileImage:
+                        formData.profileImage.trim(),
+
+                    technicalSkills:
+                        formData.technicalSkills.trim(),
+                });
+
+            if (!result?.success) {
+                setError(
+                    result?.error ||
+                        "Unable to update your profile."
+                );
+
+                return;
+            }
+
+            setSuccessMessage(
+                result.message ||
+                    "Profile updated successfully."
+            );
+
+            window.setTimeout(() => {
+                if (
+                    typeof onSuccess ===
+                    "function"
+                ) {
+                    onSuccess();
+                }
+            }, 700);
+        } catch (saveError) {
+            console.error(
+                "UPDATE DEVELOPER PROFILE ERROR:",
+                saveError
+            );
+
+            setError(
+                saveError?.message ||
+                    "Unable to update your profile. Please try again."
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
 
     // ========================================================
     // LOADING
@@ -301,8 +598,8 @@ export default function ViewDeveloperProfile({ onEdit }) {
 
     if (loading) {
         return (
-            <div className="min-h-[400px] w-full rounded-2xl bg-white p-8 shadow-sm dark:bg-slate-900">
-                <div className="flex min-h-[300px] items-center justify-center">
+            <div className="w-full rounded-2xl bg-white p-8 shadow-sm dark:bg-slate-900">
+                <div className="flex min-h-100 items-center justify-center">
                     <div className="flex flex-col items-center gap-3">
                         <RefreshCw
                             size={28}
@@ -319,72 +616,36 @@ export default function ViewDeveloperProfile({ onEdit }) {
     }
 
     // ========================================================
-    // ERROR
-    // ========================================================
-
-    if (error) {
-        return (
-            <div className="min-h-[400px] w-full rounded-2xl bg-white p-8 shadow-sm dark:bg-slate-900">
-                <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
-                    <div className="mb-4 rounded-full bg-red-100 p-4 dark:bg-red-950/40">
-                        <CircleAlert
-                            size={34}
-                            className="text-red-600 dark:text-red-400"
-                        />
-                    </div>
-
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                        Profile not found
-                    </h2>
-
-                    <p className="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
-                        {error}
-                    </p>
-
-                    <button
-                        type="button"
-                        onClick={loadProfile}
-                        className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
-                    >
-                        <RefreshCw size={16} />
-                        Try Again
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    // ========================================================
-    // MAIN PROFILE
+    // MAIN
     // ========================================================
 
     return (
-        <div className="w-full space-y-6">
+        <form
+            onSubmit={handleSubmit}
+            className="w-full space-y-6"
+        >
             {/* ==================================================
                 HEADER
             ================================================== */}
 
             <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <div className="rounded-xl bg-blue-100 p-3 dark:bg-blue-950/50">
-                                <UserRound
-                                    size={25}
-                                    className="text-blue-600 dark:text-blue-400"
-                                />
-                            </div>
+                    <div className="flex items-center gap-3">
+                        <div className="rounded-xl bg-blue-100 p-3 dark:bg-blue-950/50">
+                            <UserRound
+                                size={25}
+                                className="text-blue-600 dark:text-blue-400"
+                            />
+                        </div>
 
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                                    My Profile
-                                </h1>
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                                Edit My Profile
+                            </h1>
 
-                                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                    View your personal and professional
-                                    information.
-                                </p>
-                            </div>
+                            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                Update your personal profile information.
+                            </p>
                         </div>
                     </div>
 
@@ -392,42 +653,96 @@ export default function ViewDeveloperProfile({ onEdit }) {
                         <button
                             type="button"
                             onClick={loadProfile}
-                            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                            disabled={loading || saving}
+                            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
-                            <RefreshCw size={16} />
+                            <RefreshCw
+                                size={16}
+                                className={
+                                    loading
+                                        ? "animate-spin"
+                                        : ""
+                                }
+                            />
                             Refresh
                         </button>
 
                         <button
                             type="button"
-                            onClick={() => {
-                                if (typeof onEdit === "function") {
-                                    onEdit(profile);
-                                }
-                            }}
-                            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
+                            onClick={onCancel}
+                            disabled={saving}
+                            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
-                            <Pencil size={16} />
-                            Edit Profile
+                            <X size={16} />
+                            Cancel
                         </button>
                     </div>
                 </div>
             </div>
 
             {/* ==================================================
+                ERROR
+            ================================================== */}
+
+            {error && (
+                <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4 dark:border-red-900/50 dark:bg-red-950/30">
+                    <CircleAlert
+                        size={20}
+                        className="mt-0.5 shrink-0 text-red-600 dark:text-red-400"
+                    />
+
+                    <div>
+                        <p className="font-medium text-red-800 dark:text-red-300">
+                            Unable to update profile
+                        </p>
+
+                        <p className="mt-1 text-sm text-red-700 dark:text-red-400">
+                            {error}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* ==================================================
+                SUCCESS
+            ================================================== */}
+
+            {successMessage && (
+                <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 dark:border-emerald-900/50 dark:bg-emerald-950/30">
+                    <CircleCheck
+                        size={20}
+                        className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400"
+                    />
+
+                    <div>
+                        <p className="font-medium text-emerald-800 dark:text-emerald-300">
+                            Profile updated
+                        </p>
+
+                        <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-400">
+                            {successMessage}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* ==================================================
                 PROFILE SUMMARY
             ================================================== */}
 
             <div className="overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-slate-900">
-                <div className="bg-gradient-to-r from-blue-700 to-indigo-700 px-6 py-8">
+                <div className="bg-linear-to-r from-blue-700 to-indigo-700 px-6 py-8">
                     <div className="flex flex-col items-center gap-5 sm:flex-row">
-                        {/* Profile picture */}
-
                         <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white/80 bg-white shadow-lg">
-                            {profile.profilePicture ? (
+                            {formData.profileImage ? (
                                 <img
-                                    src={profile.profilePicture}
-                                    alt={profile.fullName}
+                                    src={
+                                        formData.profileImage
+                                    }
+                                    alt={
+                                        formData.fullName ||
+                                        "Profile"
+                                    }
                                     className="h-full w-full object-cover"
                                     onError={(event) => {
                                         event.currentTarget.style.display =
@@ -436,7 +751,10 @@ export default function ViewDeveloperProfile({ onEdit }) {
                                 />
                             ) : (
                                 <span className="text-4xl font-bold text-blue-600">
-                                    {profile.fullName
+                                    {(
+                                        formData.fullName ||
+                                        "D"
+                                    )
                                         .charAt(0)
                                         .toUpperCase()}
                                 </span>
@@ -445,7 +763,8 @@ export default function ViewDeveloperProfile({ onEdit }) {
 
                         <div className="text-center sm:text-left">
                             <h2 className="text-2xl font-bold text-white">
-                                {profile.fullName}
+                                {formData.fullName ||
+                                    "Developer"}
                             </h2>
 
                             <p className="mt-1 text-blue-100">
@@ -454,77 +773,299 @@ export default function ViewDeveloperProfile({ onEdit }) {
 
                             <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white">
-                                    <CircleCheck size={14} />
-                                    {profile.accountStatus}
+                                    <CircleCheck
+                                        size={14}
+                                    />
+                                    {
+                                        profile.accountStatus
+                                    }
                                 </span>
 
                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white">
-                                    <UsersRound size={14} />
+                                    <UsersRound
+                                        size={14}
+                                    />
                                     {profile.team}
                                 </span>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* ==================================================
-                    BASIC INFORMATION
-                ================================================== */}
+            {/* ==================================================
+                EDITABLE INFORMATION
+            ================================================== */}
 
-                <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
+                <div className="mb-6 flex items-center gap-3">
+                    <div className="rounded-lg bg-blue-100 p-2.5 dark:bg-blue-950/40">
+                        <PencilIcon />
+                    </div>
+
+                    <div>
+                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                            Personal Information
+                        </h2>
+
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                            Update the information you are allowed to change.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+
+                    {/* Full Name */}
+
+                    <div>
+                        <label
+                            htmlFor="fullName"
+                            className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+                        >
+                            Full Name
+                        </label>
+
+                        <div className="relative">
+                            <UserRound
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            />
+
+                            <input
+                                id="fullName"
+                                name="fullName"
+                                type="text"
+                                value={
+                                    formData.fullName
+                                }
+                                onChange={handleChange}
+                                disabled={saving}
+                                required
+                                className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:disabled:bg-slate-800"
+                                placeholder="Enter your full name"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Email - READ ONLY */}
+
+                    <div>
+                        <label
+                            htmlFor="email"
+                            className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+                        >
+                            Email Address
+                        </label>
+
+                        <div className="relative">
+                            <Mail
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            />
+
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                value={
+                                    formData.email
+                                }
+                                readOnly
+                                aria-readonly="true"
+                                className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 py-2.5 pl-10 pr-4 text-sm text-slate-500 outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                            />
+                        </div>
+
+                        <p className="mt-1.5 text-xs text-slate-400">
+                            Email address cannot be changed from this page.
+                        </p>
+                    </div>
+
+                    {/* Phone */}
+
+                    <div>
+                        <label
+                            htmlFor="phoneNumber"
+                            className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+                        >
+                            Phone Number
+                        </label>
+
+                        <div className="relative">
+                            <Phone
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            />
+
+                            <input
+                                id="phoneNumber"
+                                name="phoneNumber"
+                                type="tel"
+                                value={
+                                    formData.phoneNumber
+                                }
+                                onChange={handleChange}
+                                disabled={saving}
+                                className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:disabled:bg-slate-800"
+                                placeholder="Enter your phone number"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Profile Image */}
+
+                    <div>
+                        <label
+                            htmlFor="profileImage"
+                            className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+                        >
+                            Profile Image URL
+                        </label>
+
+                        <div className="relative">
+                            <ImageIcon
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            />
+
+                            <input
+                                id="profileImage"
+                                name="profileImage"
+                                type="url"
+                                value={
+                                    formData.profileImage
+                                }
+                                onChange={handleChange}
+                                disabled={saving}
+                                className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:disabled:bg-slate-800"
+                                placeholder="https://example.com/profile.jpg"
+                            />
+                        </div>
+
+                        <p className="mt-1.5 text-xs text-slate-400">
+                            Enter a publicly accessible image URL.
+                        </p>
+                    </div>
+
+                    {/* Bio */}
+
+                    <div className="md:col-span-2">
+                        <label
+                            htmlFor="bio"
+                            className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300"
+                        >
+                            Bio
+                        </label>
+
+                        <div className="relative">
+                            <FileText
+                                size={18}
+                                className="absolute left-3 top-3 text-slate-400"
+                            />
+
+                            <textarea
+                                id="bio"
+                                name="bio"
+                                value={formData.bio}
+                                onChange={handleChange}
+                                disabled={saving}
+                                rows={5}
+                                className="w-full resize-none rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:disabled:bg-slate-800"
+                                placeholder="Tell us a little about yourself..."
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ==================================================
+                READ-ONLY PROFESSIONAL INFORMATION
+            ================================================== */}
+
+            <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
+                <div className="mb-6 flex items-center gap-3">
+                    <div className="rounded-lg bg-slate-100 p-2.5 dark:bg-slate-800">
+                        <ShieldCheck
+                            size={20}
+                            className="text-slate-600 dark:text-slate-300"
+                        />
+                    </div>
+
+                    <div>
+                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                            Account & Professional Information
+                        </h2>
+
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                            These values are managed by the system.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                     <InfoItem
-                        icon={<UserRound size={18} />}
-                        label="Full Name"
-                        value={profile.fullName}
-                    />
-
-                    <InfoItem
-                        icon={<Mail size={18} />}
-                        label="Email Address"
-                        value={profile.email || "Not available"}
-                    />
-
-                    <InfoItem
-                        icon={<Phone size={18} />}
-                        label="Phone Number"
-                        value={profile.phone || "Not available"}
-                    />
-
-                    <InfoItem
-                        icon={<BriefcaseBusiness size={18} />}
+                        icon={
+                            <BriefcaseBusiness
+                                size={18}
+                            />
+                        }
                         label="Role"
                         value={profile.role}
                     />
 
                     <InfoItem
-                        icon={<UsersRound size={18} />}
+                        icon={
+                            <UsersRound size={18} />
+                        }
                         label="Team"
                         value={profile.team}
                     />
 
                     <InfoItem
-                        icon={<ShieldCheck size={18} />}
+                        icon={
+                            <ShieldCheck
+                                size={18}
+                            />
+                        }
                         label="Account Status"
-                        value={profile.accountStatus}
+                        value={
+                            profile.accountStatus
+                        }
                     />
 
                     <InfoItem
-                        icon={<CalendarDays size={18} />}
+                        icon={
+                            <CalendarDays
+                                size={18}
+                            />
+                        }
                         label="Account Created"
-                        value={formatDate(profile.accountCreatedAt)}
+                        value={formatDate(
+                            profile.accountCreatedAt
+                        )}
                     />
 
                     <InfoItem
-                        icon={<Clock3 size={18} />}
+                        icon={
+                            <Clock3 size={18} />
+                        }
                         label="Last Login"
-                        value={formatDateTime(profile.lastLogin)}
+                        value={formatDateTime(
+                            profile.lastLogin
+                        )}
                     />
 
                     <InfoItem
-                        icon={<FolderKanban size={18} />}
+                        icon={
+                            <FolderKanban
+                                size={18}
+                            />
+                        }
                         label="Assigned Projects"
                         value={`${profile.assignedProjects.length} project${
-                            profile.assignedProjects.length === 1
+                            profile.assignedProjects.length ===
+                            1
                                 ? ""
                                 : "s"
                         }`}
@@ -551,22 +1092,24 @@ export default function ViewDeveloperProfile({ onEdit }) {
                         </h2>
 
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Your registered technical skills and
-                            specializations.
+                            Your registered technical skills and specializations.
                         </p>
                     </div>
                 </div>
 
-                {profile.technicalSkills.length > 0 ? (
+                {profile.technicalSkills.length >
+                0 ? (
                     <div className="flex flex-wrap gap-2">
-                        {profile.technicalSkills.map((skill, index) => (
-                            <span
-                                key={`${skill}-${index}`}
-                                className="rounded-full bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 dark:bg-purple-950/40 dark:text-purple-300"
-                            >
-                                {skill}
-                            </span>
-                        ))}
+                        {profile.technicalSkills.map(
+                            (skill, index) => (
+                                <span
+                                    key={`${skill}-${index}`}
+                                    className="rounded-full bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 dark:bg-purple-950/40 dark:text-purple-300"
+                                >
+                                    {skill}
+                                </span>
+                            )
+                        )}
                     </div>
                 ) : (
                     <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center dark:border-slate-700">
@@ -583,117 +1126,67 @@ export default function ViewDeveloperProfile({ onEdit }) {
             </div>
 
             {/* ==================================================
-                ASSIGNED PROJECTS
+                SAVE / CANCEL
             ================================================== */}
 
-            <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-slate-900">
-                <div className="mb-5 flex items-center gap-3">
-                    <div className="rounded-lg bg-emerald-100 p-2.5 dark:bg-emerald-950/40">
-                        <FolderKanban
-                            size={20}
-                            className="text-emerald-600 dark:text-emerald-400"
-                        />
-                    </div>
+            <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800/50 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Ready to save your changes?
+                    </p>
 
-                    <div>
-                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                            Assigned Projects
-                        </h2>
-
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Projects currently assigned to you.
-                        </p>
-                    </div>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Your changes will be saved to your account.
+                    </p>
                 </div>
 
-                {profile.assignedProjects.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        {profile.assignedProjects.map(
-                            (project, index) => {
-                                const projectName =
-                                    typeof project === "string"
-                                        ? project
-                                        : project?.name ||
-                                          project?.projectName ||
-                                          `Project ${index + 1}`;
+                <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        disabled={saving}
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                    >
+                        <X size={16} />
+                        Cancel
+                    </button>
 
-                                const projectStatus =
-                                    typeof project === "object"
-                                        ? project?.status ||
-                                          project?.projectStatus ||
-                                          "Assigned"
-                                        : "Assigned";
-
-                                return (
-                                    <div
-                                        key={
-                                            project?.id ||
-                                            project?.projectId ||
-                                            index
-                                        }
-                                        className="rounded-xl border border-slate-200 p-4 transition hover:border-blue-300 hover:shadow-sm dark:border-slate-700 dark:hover:border-blue-700"
-                                    >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                                <h3 className="font-semibold text-slate-900 dark:text-white">
-                                                    {projectName}
-                                                </h3>
-
-                                                {typeof project ===
-                                                    "object" &&
-                                                    project?.description && (
-                                                        <p className="mt-1 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
-                                                            {
-                                                                project.description
-                                                            }
-                                                        </p>
-                                                    )}
-                                            </div>
-
-                                            <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-                                                {projectStatus}
-                                            </span>
-                                        </div>
-                                    </div>
-                                );
-                            }
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {saving ? (
+                            <>
+                                <RefreshCw
+                                    size={16}
+                                    className="animate-spin"
+                                />
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                <Save size={16} />
+                                Save Changes
+                            </>
                         )}
-                    </div>
-                ) : (
-                    <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center dark:border-slate-700">
-                        <FolderKanban
-                            size={30}
-                            className="mx-auto text-slate-400"
-                        />
-
-                        <p className="mt-3 font-medium text-slate-700 dark:text-slate-300">
-                            No assigned projects available.
-                        </p>
-
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            Projects assigned to you will appear here.
-                        </p>
-                    </div>
-                )}
+                    </button>
+                </div>
             </div>
+        </form>
+    );
+}
 
-            {/* ==================================================
-                FOOTER
-            ================================================== */}
+// ============================================================
+// PENCIL ICON
+// ============================================================
 
-            <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm dark:border-slate-700 dark:bg-slate-800/50 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-slate-500 dark:text-slate-400">
-                    Profile information is read-only from this page.
-                </span>
-
-                {lastLoaded && (
-                    <span className="text-xs text-slate-400">
-                        Last refreshed:{" "}
-                        {formatDateTime(lastLoaded)}
-                    </span>
-                )}
-            </div>
-        </div>
+function PencilIcon() {
+    return (
+        <Pencil
+            size={20}
+            className="text-blue-600 dark:text-blue-400"
+        />
     );
 }
 
@@ -701,7 +1194,11 @@ export default function ViewDeveloperProfile({ onEdit }) {
 // INFO ITEM
 // ============================================================
 
-function InfoItem({ icon, label, value }) {
+function InfoItem({
+    icon,
+    label,
+    value,
+}) {
     return (
         <div className="flex items-start gap-3 rounded-xl border border-slate-100 p-4 dark:border-slate-800">
             <div className="mt-0.5 shrink-0 rounded-lg bg-slate-100 p-2 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
@@ -713,7 +1210,7 @@ function InfoItem({ icon, label, value }) {
                     {label}
                 </p>
 
-                <p className="mt-1 break-words text-sm font-medium text-slate-800 dark:text-slate-200">
+                <p className="mt-1 wrap-break-word text-sm font-medium text-slate-800 dark:text-slate-200">
                     {value}
                 </p>
             </div>

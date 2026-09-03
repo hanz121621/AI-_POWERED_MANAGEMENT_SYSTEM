@@ -26,6 +26,13 @@ frontend/lerna-debug.log*
 /appsettings.Local.json
 **/appsettings.Production.json
 
+# Private backend configuration
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/appsettings.Production.json
+
+
+
 **/bin/
 **/obj/
 

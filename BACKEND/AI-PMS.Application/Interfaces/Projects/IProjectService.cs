@@ -40,6 +40,13 @@ Task<ProjectUpdateResultDto> UpdateDeadlineAsync(
 
         Task<IEnumerable<ProjectDto>> GetAssignedProjectsAsync(
             Guid managerId);
+            // =========================================================
+// DEVELOPER
+// VIEW ASSIGNED PROJECTS
+// =========================================================
+
+Task<IEnumerable<ProjectDto>> GetDeveloperProjectsAsync(
+    Guid developerId);
 
 
         // =========================================================

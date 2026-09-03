@@ -62,17 +62,18 @@ public async Task<ActionResult<MessageResponseDto>>
                     message = ex.Message
                 });
             }
-            catch (KeyNotFoundException ex)
+                       catch (KeyNotFoundException ex)
             {
                 return NotFound(new
                 {
                     message = ex.Message
                 });
             }
-            catch (UnauthorizedAccessException )
+            catch (UnauthorizedAccessException)
             {
                 return Forbid();
             }
+
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     MessageSquare,
     Send,
@@ -6,44 +6,95 @@ import {
     AtSign,
 } from "lucide-react";
 
-const INITIAL_COMMENTS = [
-    {
-        id: 1,
-        author: "Team Leader",
-        content:
-            "Please make sure the authentication validation is completed before submission.",
-        createdAt: "2026-08-31 10:30",
-    },
-    {
-        id: 2,
-        author: "Developer",
-        content:
-            "The login functionality is completed. I am working on protected routes.",
-        createdAt: "2026-08-31 14:15",
-    },
-];
+import api from "@/services/api";
 
-export default function AddTaskComment({
-    task,
-}) {
-    const [comments, setComments] =
-        useState(INITIAL_COMMENTS);
+export default function AddTaskComment({ task }) {
+    const [comments, setComments] = useState([]);
 
     const [comment, setComment] = useState("");
     const [mention, setMention] = useState("");
-    const [attachment, setAttachment] =
-        useState(null);
+    const [attachment, setAttachment] = useState(null);
+
+    const [loading, setLoading] = useState(false);
+    const [posting, setPosting] = useState(false);
 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
-    const handleSubmit = (e) => {
+    // =========================================================
+    // LOAD TASK COMMENTS
+    // GET /api/tasks/{taskId}/comments
+    // =========================================================
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadComments = async () => {
+            if (!task?.id) {
+                setComments([]);
+                return;
+            }
+
+            setLoading(true);
+            setError("");
+            setSuccess("");
+
+            try {
+                const response = await api.get(
+                    `/tasks/${task.id}/comments`
+                );
+
+                if (cancelled) {
+                    return;
+                }
+
+                const data = Array.isArray(response.data)
+                    ? response.data
+                    : response.data?.data ||
+                      response.data?.comments ||
+                      [];
+
+                setComments(Array.isArray(data) ? data : []);
+            } catch (err) {
+                if (cancelled) {
+                    return;
+                }
+
+                console.error(
+                    "GET TASK COMMENTS ERROR:",
+                    err
+                );
+
+                const message =
+                    err?.response?.data?.message ||
+                    "Unable to load task comments.";
+
+                setError(message);
+                setComments([]);
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadComments();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [task?.id]);
+
+    // =========================================================
+    // POST COMMENT
+    // POST /api/tasks/{taskId}/comments
+    // =========================================================
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         setError("");
         setSuccess("");
 
-        if (!task) {
+        if (!task?.id) {
             setError("Task not found.");
             return;
         }
@@ -57,29 +108,121 @@ export default function AddTaskComment({
             ? `@${mention.trim()} ${comment.trim()}`
             : comment.trim();
 
-        const newComment = {
-            id: Date.now(),
-            author: "Developer",
-            content: finalComment,
-            createdAt: new Date().toLocaleString(),
-            attachment: attachment?.name || null,
-        };
+        setPosting(true);
 
-        setComments((current) => [
-            ...current,
-            newComment,
-        ]);
+        try {
+            const response = await api.post(
+                `/tasks/${task.id}/comments`,
+                {
+                    taskId: task.id,
+                    content: finalComment,
+                }
+            );
 
-        setComment("");
-        setMention("");
-        setAttachment(null);
+            const createdComment =
+                response.data?.comment ||
+                response.data?.data ||
+                response.data;
 
-        setSuccess("Comment added successfully.");
+            // Add the newly created comment immediately.
+            if (
+                createdComment &&
+                typeof createdComment === "object"
+            ) {
+                setComments((current) => [
+                    ...current,
+                    createdComment,
+                ]);
+            } else {
+                // If the API doesn't return the created
+                // comment, reload the task comments.
+                const commentsResponse = await api.get(
+                    `/tasks/${task.id}/comments`
+                );
+
+                const data = Array.isArray(
+                    commentsResponse.data
+                )
+                    ? commentsResponse.data
+                    : commentsResponse.data?.data ||
+                      commentsResponse.data?.comments ||
+                      [];
+
+                setComments(
+                    Array.isArray(data) ? data : []
+                );
+            }
+
+            setComment("");
+            setMention("");
+            setAttachment(null);
+
+            setSuccess(
+                response.data?.message ||
+                    "Comment added successfully."
+            );
+        } catch (err) {
+            console.error(
+                "POST TASK COMMENT ERROR:",
+                err
+            );
+
+            const message =
+                err?.response?.data?.message ||
+                "Unable to add comment.";
+
+            setError(message);
+        } finally {
+            setPosting(false);
+        }
+    };
+
+    // =========================================================
+    // COMMENT DISPLAY HELPERS
+    // =========================================================
+    const getCommentAuthor = (item) => {
+        return (
+            item.authorName ||
+            item.userName ||
+            item.author ||
+            item.createdByName ||
+            "Developer"
+        );
+    };
+
+    const getCommentContent = (item) => {
+        return (
+            item.content ||
+            item.comment ||
+            item.text ||
+            ""
+        );
+    };
+
+    const getCommentDate = (item) => {
+        const date =
+            item.createdAt ||
+            item.createdDate ||
+            item.createdOn;
+
+        if (!date) {
+            return "";
+        }
+
+        const parsedDate = new Date(date);
+
+        if (Number.isNaN(parsedDate.getTime())) {
+            return date;
+        }
+
+        return parsedDate.toLocaleString();
     };
 
     return (
         <div className="rounded-2xl border bg-white shadow-sm">
-
+            {/* =====================================================
+                HEADER
+            ====================================================== */}
             <div className="border-b p-5">
                 <div className="flex items-center gap-3">
                     <div className="rounded-lg bg-blue-100 p-2 text-blue-600">
@@ -98,36 +241,66 @@ export default function AddTaskComment({
                 </div>
             </div>
 
+            {/* =====================================================
+                COMMENTS
+            ====================================================== */}
             <div className="max-h-96 space-y-4 overflow-y-auto p-5">
-                {comments.map((item) => (
-                    <div
-                        key={item.id}
-                        className="rounded-xl bg-slate-50 p-4"
-                    >
-                        <div className="flex items-center justify-between">
-                            <p className="font-semibold text-slate-800">
-                                {item.author}
+                {loading && (
+                    <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+                        Loading comments...
+                    </div>
+                )}
+
+                {!loading &&
+                    comments.length === 0 && (
+                        <div className="rounded-xl bg-slate-50 p-4 text-center text-sm text-slate-500">
+                            No comments yet.
+                        </div>
+                    )}
+
+                {!loading &&
+                    comments.map((item, index) => (
+                        <div
+                            key={
+                                item.id ||
+                                item.commentId ||
+                                index
+                            }
+                            className="rounded-xl bg-slate-50 p-4"
+                        >
+                            <div className="flex items-center justify-between gap-3">
+                                <p className="font-semibold text-slate-800">
+                                    {getCommentAuthor(item)}
+                                </p>
+
+                                <span className="text-xs text-slate-400">
+                                    {getCommentDate(item)}
+                                </span>
+                            </div>
+
+                            <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">
+                                {getCommentContent(item)}
                             </p>
 
-                            <span className="text-xs text-slate-400">
-                                {item.createdAt}
-                            </span>
+                            {item.attachment && (
+                                <div className="mt-2 flex items-center gap-2 text-xs text-blue-600">
+                                    <Paperclip className="h-4 w-4" />
+
+                                    {typeof item.attachment ===
+                                    "string"
+                                        ? item.attachment
+                                        : item.attachment
+                                              .name ||
+                                          "Attachment"}
+                                </div>
+                            )}
                         </div>
-
-                        <p className="mt-2 text-sm text-slate-600">
-                            {item.content}
-                        </p>
-
-                        {item.attachment && (
-                            <div className="mt-2 flex items-center gap-2 text-xs text-blue-600">
-                                <Paperclip className="h-4 w-4" />
-                                {item.attachment}
-                            </div>
-                        )}
-                    </div>
-                ))}
+                    ))}
             </div>
 
+            {/* =====================================================
+                ADD COMMENT FORM
+            ====================================================== */}
             <form
                 onSubmit={handleSubmit}
                 className="border-t p-5"
@@ -155,10 +328,13 @@ export default function AddTaskComment({
                         <input
                             value={mention}
                             onChange={(e) =>
-                                setMention(e.target.value)
+                                setMention(
+                                    e.target.value
+                                )
                             }
                             placeholder="Team member username"
                             className="w-full rounded-lg border border-slate-300 py-2.5 pl-9 pr-4 outline-none focus:border-blue-500"
+                            disabled={posting}
                         />
                     </div>
                 </div>
@@ -171,11 +347,17 @@ export default function AddTaskComment({
                     rows={4}
                     placeholder="Write your comment..."
                     className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                    disabled={posting}
                 />
 
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
-                    <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                    <label
+                        className={`inline-flex items-center gap-2 text-sm text-slate-600 ${
+                            posting
+                                ? "cursor-not-allowed opacity-50"
+                                : "cursor-pointer"
+                        }`}
+                    >
                         <Paperclip className="h-4 w-4" />
 
                         Attach File
@@ -183,6 +365,7 @@ export default function AddTaskComment({
                         <input
                             type="file"
                             className="hidden"
+                            disabled={posting}
                             onChange={(e) =>
                                 setAttachment(
                                     e.target.files?.[0] ||
@@ -194,10 +377,14 @@ export default function AddTaskComment({
 
                     <button
                         type="submit"
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white hover:bg-blue-700"
+                        disabled={posting}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <Send className="h-4 w-4" />
-                        Post Comment
+
+                        {posting
+                            ? "Posting..."
+                            : "Post Comment"}
                     </button>
                 </div>
 

@@ -1,981 +1,990 @@
-
-// ============================================================
-// AIPMS COMMUNICATION SERVICE
-// ============================================================
-//
-// Manager Communication Use Cases
-//
-// COMM-001 — View Notifications
-// COMM-002 — Send Message to Team Leader
-// COMM-003 — Mention Team Leader
-// COMM-004 — View Activity Feed
-// COMM-005 — Send Project Announcement
-//
-// IMPORTANT
-// - No hard-coded project IDs
-// - No hard-coded team IDs
-// - No hard-coded user IDs
-// - Uses authenticated API requests
-// - Backend is responsible for authorization
-// - Data is retrieved dynamically
-// - Uses the shared AIPMS API client
-// ============================================================
-
 import api from "@/services/api";
 
-// ============================================================
-// ERROR HANDLER
-// ============================================================
+/**
+ * ============================================================
+ * AIPMS COMMUNICATION SERVICE
+ * ============================================================
+ *
+ * Shared communication service for:
+ * - Manager communication
+ * - Contributor communication
+ * - Notifications
+ * - Messages
+ * - Mentions
+ * - Activity feed
+ * - Project announcements
+ *
+ * Uses the shared API client so authentication and JWT handling
+ * remain centralized in api.js.
+ * ============================================================
+ */
 
-function handleApiError(error) {
-    console.error(
-        "Communication API error:",
-        error
-    );
+/* ============================================================
+   HELPERS
+   ============================================================ */
 
-    if (error?.response) {
-        const responseData =
-            error.response.data;
+/**
+ * Convert API errors into a consistent Error object.
+ */
+const handleApiError = (error, fallbackMessage = "Communication request failed.") => {
+    console.error("Communication API error:", error);
 
-        if (typeof responseData === "string") {
-            throw new Error(responseData);
-        }
+    const responseData = error?.response?.data;
 
-        throw new Error(
-            responseData?.message ||
-                responseData?.error ||
-                responseData?.title ||
-                `Request failed with status ${error.response.status}.`
-        );
+    let message = fallbackMessage;
+
+    if (typeof responseData === "string" && responseData.trim()) {
+        message = responseData;
+    } else if (responseData?.message) {
+        message = responseData.message;
+    } else if (responseData?.error) {
+        message = responseData.error;
+    } else if (error?.message) {
+        message = error.message;
     }
 
-    if (error?.request) {
-        throw new Error(
-            "Unable to connect to the server. Please check that the backend API is running."
-        );
-    }
+    const normalizedError = new Error(message);
 
-    throw new Error(
-        error?.message ||
-            "Communication request failed."
-    );
-}
+    normalizedError.status = error?.response?.status;
+    normalizedError.response = error?.response;
 
-// ============================================================
-// RESPONSE NORMALIZER
-// ============================================================
+    throw normalizedError;
+};
 
-function getResponseData(response) {
-    return (
-        response?.data?.data ??
-        response?.data ??
-        []
-    );
-}
+/**
+ * Safely return Axios response data.
+ */
+const getResponseData = (response) => {
+    return response?.data ?? null;
+};
 
-// ============================================================
-// ARRAY NORMALIZER
-// ============================================================
-
-function normalizeArray(
-    result,
-    propertyNames = []
-) {
-    if (Array.isArray(result)) {
-        return result;
+/**
+ * Normalize common API collection response formats.
+ */
+const normalizeArray = (value, propertyNames = []) => {
+    if (Array.isArray(value)) {
+        return value;
     }
 
     for (const property of propertyNames) {
-        if (
-            Array.isArray(
-                result?.[property]
-            )
-        ) {
-            return result[property];
+        if (Array.isArray(value?.[property])) {
+            return value[property];
         }
+    }
+
+    if (Array.isArray(value?.data)) {
+        return value.data;
+    }
+
+    if (Array.isArray(value?.items)) {
+        return value.items;
+    }
+
+    if (Array.isArray(value?.results)) {
+        return value.results;
     }
 
     return [];
-}
+};
 
-// ============================================================
-// COMM-001
-// VIEW MANAGER NOTIFICATIONS
-// ============================================================
-//
-// Backend:
-// GET /api/notifications
-//
-// Backend controller:
-// [Authorize(Roles = "Manager,Contributor")]
-// ============================================================
 
-export async function getManagerNotifications() {
+/* ============================================================
+   MANAGER NOTIFICATIONS
+   ============================================================ */
+
+/**
+ * Get manager notifications.
+ *
+ * GET /api/notifications
+ */
+export const getManagerNotifications = async () => {
     try {
-        const response =
-            await api.get(
-                "/notifications"
-            );
+        const response = await api.get("/notifications");
 
-        const data =
-            getResponseData(response);
-
-        return normalizeArray(data, [
-            "notifications",
-            "items",
-            "data",
-        ]);
+        return normalizeArray(
+            getResponseData(response),
+            ["notifications", "items", "data"]
+        );
     } catch (error) {
-        handleApiError(error);
-    }
-}
-
-// ============================================================
-// GET SINGLE NOTIFICATION
-// ============================================================
-//
-// Backend:
-// GET /api/notifications/{id}
-// ============================================================
-
-export async function getManagerNotificationById(
-    notificationId
-) {
-    if (!notificationId) {
-        throw new Error(
-            "Notification ID is required."
+        return handleApiError(
+            error,
+            "Failed to load manager notifications."
         );
     }
+};
+
+
+/**
+ * Get one manager notification.
+ *
+ * GET /api/notifications/{notificationId}
+ */
+export const getManagerNotificationById = async (notificationId) => {
+    if (!notificationId) {
+        throw new Error("Notification ID is required.");
+    }
 
     try {
-        const response =
-            await api.get(
-                `/notifications/${notificationId}`
-            );
+        const response = await api.get(
+            `/notifications/${notificationId}`
+        );
 
         return getResponseData(response);
     } catch (error) {
-        handleApiError(error);
+        return handleApiError(
+            error,
+            "Failed to load notification."
+        );
     }
-}
+};
 
-// ============================================================
-// MARK ONE NOTIFICATION AS READ
-// ============================================================
-//
-// Backend:
-// PATCH /api/notifications/{id}/read
-// ============================================================
 
-export async function markManagerNotificationAsRead(
+/**
+ * Mark one notification as read.
+ *
+ * PATCH /api/notifications/{notificationId}/read
+ */
+export const markManagerNotificationAsRead = async (
     notificationId
-) {
+) => {
     if (!notificationId) {
-        throw new Error(
-            "Notification ID is required."
+        throw new Error("Notification ID is required.");
+    }
+
+    try {
+        const response = await api.patch(
+            `/notifications/${notificationId}/read`
+        );
+
+        return getResponseData(response);
+    } catch (error) {
+        return handleApiError(
+            error,
+            "Failed to mark notification as read."
         );
     }
+};
 
+
+/**
+ * Get unread notification count.
+ *
+ * GET /api/notifications/unread-count
+ */
+export const getManagerUnreadNotificationCount = async () => {
     try {
-        const response =
-            await api.patch(
-                `/notifications/${notificationId}/read`
-            );
-
-        return response?.data ?? null;
-    } catch (error) {
-        handleApiError(error);
-    }
-}
-
-// ============================================================
-// GET UNREAD NOTIFICATION COUNT
-// ============================================================
-//
-// Backend:
-// GET /api/notifications/unread-count
-// ============================================================
-
-export async function getManagerUnreadNotificationCount() {
-    try {
-        const response =
-            await api.get(
-                "/notifications/unread-count"
-            );
-
-        return (
-            response?.data?.unreadCount ??
-            0
+        const response = await api.get(
+            "/notifications/unread-count"
         );
+
+        const data = getResponseData(response);
+
+        if (typeof data === "number") {
+            return data;
+        }
+
+        if (typeof data?.unreadCount === "number") {
+            return data.unreadCount;
+        }
+
+        if (typeof data?.count === "number") {
+            return data.count;
+        }
+
+        return 0;
     } catch (error) {
-        handleApiError(error);
+        return handleApiError(
+            error,
+            "Failed to load unread notification count."
+        );
     }
-}
+};
 
-// ============================================================
-// MARK ALL MANAGER NOTIFICATIONS AS READ
-// ============================================================
-//
-// IMPORTANT:
-// The backend DOES NOT provide:
-//
-// PATCH /api/notifications/manager/read-all
-//
-// Therefore we retrieve the user's notifications and
-// individually call:
-//
-// PATCH /api/notifications/{id}/read
-//
-// ============================================================
 
-export async function markAllManagerNotificationsAsRead() {
+/**
+ * Mark all manager notifications as read.
+ *
+ * The backend does not require a dedicated read-all endpoint.
+ * We retrieve unread notifications and mark each one individually.
+ */
+export const markAllManagerNotificationsAsRead = async () => {
     try {
-        const notifications =
-            await getManagerNotifications();
+        const notifications = await getManagerNotifications();
 
-        const unreadNotifications =
-            notifications.filter(
-                (notification) =>
-                    notification &&
-                    !notification.isRead &&
-                    notification.id
-            );
+        const unreadNotifications = notifications.filter(
+            (notification) =>
+                notification &&
+                !notification.isRead &&
+                notification.id
+        );
 
-        if (
-            unreadNotifications.length ===
-            0
-        ) {
+        if (unreadNotifications.length === 0) {
             return {
                 success: true,
                 count: 0,
-                message:
-                    "There are no unread notifications.",
+                message: "There are no unread notifications.",
             };
         }
 
-        const results =
-            await Promise.all(
-                unreadNotifications.map(
-                    (notification) =>
-                        markManagerNotificationAsRead(
-                            notification.id
-                        )
-                )
-            );
+        await Promise.all(
+            unreadNotifications.map((notification) =>
+                markManagerNotificationAsRead(notification.id)
+            )
+        );
 
         return {
             success: true,
-            count: results.length,
-            message:
-                "All notifications marked as read.",
+            count: unreadNotifications.length,
+            message: "All notifications marked as read.",
         };
     } catch (error) {
-        console.error(
-            "Failed to mark all manager notifications as read:",
-            error
+        return handleApiError(
+            error,
+            "Failed to mark all notifications as read."
+        );
+    }
+};
+
+
+/* ============================================================
+   MANAGER PROJECTS / TEAMS
+   ============================================================ */
+
+/**
+ * Get projects belonging to the current manager.
+ *
+ * GET /api/projects/manager
+ */
+export const getManagerProjects = async () => {
+    try {
+        const response = await api.get(
+            "/projects/manager"
         );
 
-        throw error;
-    }
-}
-
-// ============================================================
-// GET MANAGER PROJECTS
-// ============================================================
-//
-// Backend expected:
-// GET /api/projects/manager
-//
-// Uses shared api.js:
-// http://localhost:5043/api
-// ============================================================
-
-export async function getManagerProjects() {
-    try {
-        const response =
-            await api.get(
-                "/projects/manager"
-            );
-
-        const data =
-            getResponseData(response);
-
-        return normalizeArray(data, [
-            "projects",
-            "items",
-            "data",
-        ]);
+        return normalizeArray(
+            getResponseData(response),
+            ["projects", "items", "data"]
+        );
     } catch (error) {
-        handleApiError(error);
+        return handleApiError(
+            error,
+            "Failed to load manager projects."
+        );
     }
-}
+};
 
-// ============================================================
-// GET ALL TEAMS FOR A PROJECT
-// ============================================================
 
-export async function getProjectTeams(
-    projectId
-) {
+/**
+ * Get teams for a project.
+ *
+ * GET /api/projects/{projectId}/teams
+ */
+export const getProjectTeams = async (projectId) => {
     if (!projectId) {
-        throw new Error(
-            "Project ID is required."
-        );
+        throw new Error("Project ID is required.");
     }
 
     try {
-        const response =
-            await api.get(
-                `/projects/${projectId}/teams`
-            );
+        const response = await api.get(
+            `/projects/${projectId}/teams`
+        );
 
-        const data =
-            getResponseData(response);
-
-        return normalizeArray(data, [
-            "teams",
-            "items",
-            "data",
-        ]);
+        return normalizeArray(
+            getResponseData(response),
+            ["teams", "items", "data"]
+        );
     } catch (error) {
-        handleApiError(error);
+        return handleApiError(
+            error,
+            "Failed to load project teams."
+        );
     }
-}
+};
 
-// ============================================================
-// GET SINGLE PROJECT TEAM
-// ============================================================
 
-export async function getProjectTeam(
+/**
+ * Get one project team.
+ *
+ * GET /api/projects/{projectId}/teams/{teamId}
+ */
+export const getProjectTeam = async (
     projectId,
     teamId
-) {
+) => {
     if (!projectId) {
-        throw new Error(
-            "Project ID is required."
-        );
+        throw new Error("Project ID is required.");
     }
 
     if (!teamId) {
-        throw new Error(
-            "Team ID is required."
-        );
+        throw new Error("Team ID is required.");
     }
 
     try {
-        const response =
-            await api.get(
-                `/projects/${projectId}/teams/${teamId}`
-            );
+        const response = await api.get(
+            `/projects/${projectId}/teams/${teamId}`
+        );
 
         return getResponseData(response);
     } catch (error) {
-        handleApiError(error);
-    }
-}
-
-// ============================================================
-// GET TEAM LEADER
-// ============================================================
-
-export async function getTeamLeader(
-    teamId
-) {
-    if (!teamId) {
-        throw new Error(
-            "Team ID is required."
+        return handleApiError(
+            error,
+            "Failed to load project team."
         );
+    }
+};
+
+
+/**
+ * Get team leader.
+ *
+ * GET /api/teams/{teamId}/leader
+ */
+export const getTeamLeader = async (teamId) => {
+    if (!teamId) {
+        throw new Error("Team ID is required.");
     }
 
     try {
-        const response =
-            await api.get(
-                `/teams/${teamId}/leader`
-            );
+        const response = await api.get(
+            `/teams/${teamId}/leader`
+        );
 
         return getResponseData(response);
     } catch (error) {
-        handleApiError(error);
+        return handleApiError(
+            error,
+            "Failed to load team leader."
+        );
     }
-}
+};
 
-// ============================================================
-// GET TEAM MEMBERS
-// ============================================================
 
-export async function getTeamMembers(
-    teamId
-) {
+/**
+ * Get team members.
+ *
+ * GET /api/teams/{teamId}/members
+ */
+export const getTeamMembers = async (teamId) => {
     if (!teamId) {
-        throw new Error(
-            "Team ID is required."
-        );
+        throw new Error("Team ID is required.");
     }
 
     try {
-        const response =
-            await api.get(
-                `/teams/${teamId}/members`
-            );
+        const response = await api.get(
+            `/teams/${teamId}/members`
+        );
 
-        const data =
-            getResponseData(response);
-
-        return normalizeArray(data, [
-            "members",
-            "users",
-            "items",
-            "data",
-        ]);
+        return normalizeArray(
+            getResponseData(response),
+            ["members", "users", "items", "data"]
+        );
     } catch (error) {
-        handleApiError(error);
-    }
-}
-
-// ============================================================
-// GET PROJECT RECIPIENTS
-// ============================================================
-
-export async function getProjectRecipients(
-    projectId
-) {
-    if (!projectId) {
-        throw new Error(
-            "Project ID is required."
+        return handleApiError(
+            error,
+            "Failed to load team members."
         );
+    }
+};
+
+
+/**
+ * Get communication recipients for a project.
+ *
+ * GET /api/projects/{projectId}/communication-recipients
+ */
+export const getProjectRecipients = async (projectId) => {
+    if (!projectId) {
+        throw new Error("Project ID is required.");
     }
 
     try {
-        const response =
-            await api.get(
-                `/projects/${projectId}/communication-recipients`
-            );
+        const response = await api.get(
+            `/projects/${projectId}/communication-recipients`
+        );
 
-        const data =
-            getResponseData(response);
-
-        return normalizeArray(data, [
-            "recipients",
-            "members",
-            "users",
-            "items",
-            "data",
-        ]);
+        return normalizeArray(
+            getResponseData(response),
+            [
+                "recipients",
+                "members",
+                "users",
+                "items",
+                "data",
+            ]
+        );
     } catch (error) {
-        handleApiError(error);
-    }
-}
-
-// ============================================================
-// COMM-002
-// SEND MESSAGE TO TEAM LEADER
-// ============================================================
-
-export async function sendMessageToTeamLeader({
-    projectId,
-    teamId,
-    teamLeaderId,
-    message,
-}) {
-    if (!projectId) {
-        throw new Error(
-            "Project is required."
+        return handleApiError(
+            error,
+            "Failed to load communication recipients."
         );
     }
+};
 
-    if (!teamId) {
-        throw new Error(
-            "Team is required."
-        );
-    }
 
-    if (!teamLeaderId) {
-        throw new Error(
-            "Team Leader is required."
-        );
-    }
+/* ============================================================
+   MANAGER MESSAGES
+   ============================================================ */
 
-    if (
-        !message ||
-        !String(message).trim()
-    ) {
-        throw new Error(
-            "Message cannot be empty."
-        );
+/**
+ * Send a message to a team leader.
+ *
+ * POST /api/communications/messages
+ *
+ * payload may contain:
+ * {
+ *   projectId,
+ *   teamId,
+ *   teamLeaderId / recipientId,
+ *   message
+ * }
+ */
+export const sendMessageToTeamLeader = async (payload) => {
+    if (!payload) {
+        throw new Error("Message payload is required.");
     }
 
     try {
-        const response =
-            await api.post(
-                "/communications/messages",
-                {
-                    projectId,
-                    teamId,
-                    recipientId:
-                        teamLeaderId,
-                    message:
-                        String(
-                            message
-                        ).trim(),
-                }
-            );
+        const response = await api.post(
+            "/communications/messages",
+            payload
+        );
 
         return getResponseData(response);
     } catch (error) {
-        handleApiError(error);
-    }
-}
-
-// ============================================================
-// GET TEAM LEADER CONVERSATION
-// ============================================================
-
-export async function getTeamLeaderConversation({
-    projectId,
-    teamId,
-    teamLeaderId,
-} = {}) {
-    if (!projectId) {
-        throw new Error(
-            "Project ID is required."
+        return handleApiError(
+            error,
+            "Failed to send message to team leader."
         );
     }
+};
 
-    if (!teamId) {
-        throw new Error(
-            "Team ID is required."
-        );
-    }
 
+/**
+ * Get team leader conversation.
+ *
+ * GET /api/communications/messages
+ */
+export const getTeamLeaderConversation = async (
+    params = {}
+) => {
     try {
-        const params = {
-            projectId,
-            teamId,
-        };
+        const response = await api.get(
+            "/communications/messages",
+            {
+                params,
+            }
+        );
 
-        if (teamLeaderId) {
-            params.teamLeaderId =
-                teamLeaderId;
-        }
-
-        const response =
-            await api.get(
-                "/communications/messages",
-                {
-                    params,
-                }
-            );
-
-        const data =
-            getResponseData(response);
-
-        return normalizeArray(data, [
-            "messages",
-            "conversation",
-            "items",
-            "data",
-        ]);
+        return normalizeArray(
+            getResponseData(response),
+            [
+                "messages",
+                "conversation",
+                "items",
+                "data",
+            ]
+        );
     } catch (error) {
-        handleApiError(error);
+        return handleApiError(
+            error,
+            "Failed to load team leader conversation."
+        );
     }
-}
+};
 
-// ============================================================
-// COMM-002 COMPATIBILITY FUNCTION
-// ============================================================
 
-export async function getTeamLeaderMessages({
+/**
+ * Compatibility function.
+ */
+export const getTeamLeaderMessages = async ({
     projectId,
     teamId,
     teamLeaderId,
-} = {}) {
+} = {}) => {
     return getTeamLeaderConversation({
         projectId,
         teamId,
         teamLeaderId,
     });
-}
+};
 
-// ============================================================
-// ALIAS: GET CONVERSATION
-// ============================================================
 
-export async function getConversation({
+/**
+ * Get conversation alias.
+ */
+export const getConversation = async ({
     projectId,
     teamId,
     teamLeaderId,
-} = {}) {
+} = {}) => {
     return getTeamLeaderConversation({
         projectId,
         teamId,
         teamLeaderId,
     });
-}
+};
 
-// ============================================================
-// ALIAS: SEND MESSAGE
-// ============================================================
 
-export async function sendMessage({
+/**
+ * Send message alias.
+ */
+export const sendMessage = async ({
     projectId,
     teamId,
     teamLeaderId,
     message,
-}) {
+    recipientId,
+} = {}) => {
     return sendMessageToTeamLeader({
         projectId,
         teamId,
         teamLeaderId,
+        recipientId,
         message,
     });
-}
+};
 
-// ============================================================
-// COMM-003
-// MENTION TEAM LEADER
-// ============================================================
 
-export async function mentionTeamLeader({
-    projectId,
-    teamId,
-    teamLeaderId,
-    content,
-    activityId = null,
-}) {
-    if (!projectId) {
-        throw new Error(
-            "Project is required."
-        );
-    }
+/* ============================================================
+   MANAGER MENTIONS
+   ============================================================ */
 
-    if (!teamId) {
-        throw new Error(
-            "Team is required."
-        );
-    }
-
-    if (!teamLeaderId) {
-        throw new Error(
-            "Team Leader is required."
-        );
-    }
-
-    if (
-        !content ||
-        !String(content).trim()
-    ) {
-        throw new Error(
-            "Message or comment cannot be empty."
-        );
+/**
+ * Mention a team leader.
+ *
+ * POST /api/communications/mentions
+ */
+export const mentionTeamLeader = async (payload) => {
+    if (!payload) {
+        throw new Error("Mention payload is required.");
     }
 
     try {
-        const response =
-            await api.post(
-                "/communications/mentions",
-                {
-                    projectId,
-                    teamId,
-                    teamLeaderId,
-                    content:
-                        String(
-                            content
-                        ).trim(),
-                    activityId,
-                }
-            );
+        const response = await api.post(
+            "/communications/mentions",
+            payload
+        );
 
         return getResponseData(response);
     } catch (error) {
-        handleApiError(error);
+        return handleApiError(
+            error,
+            "Failed to mention team leader."
+        );
     }
-}
+};
 
-// ============================================================
-// ALIAS: CREATE MENTION
-// ============================================================
 
-export async function createTeamLeaderMention(
-    data
-) {
-    return mentionTeamLeader(data);
-}
+/**
+ * Alias.
+ */
+export const createTeamLeaderMention =
+    mentionTeamLeader;
 
-// ============================================================
-// COMM-004
-// VIEW MANAGER ACTIVITY FEED
-// ============================================================
 
-export async function getManagerActivityFeed(
+/* ============================================================
+   MANAGER ACTIVITY FEED
+   ============================================================ */
+
+/**
+ * Get manager activity feed.
+ *
+ * GET /api/activities/manager
+ */
+export const getManagerActivityFeed = async (
     filters = {}
-) {
+) => {
     try {
-        const response =
-            await api.get(
-                "/activities/manager",
-                {
-                    params: {
-                        projectId:
-                            filters.projectId ||
-                            undefined,
+        const params = {
+            projectId:
+                filters.projectId || undefined,
 
-                        teamId:
-                            filters.teamId ||
-                            undefined,
+            teamId:
+                filters.teamId || undefined,
 
-                        activityType:
-                            filters.activityType ||
-                            undefined,
+            activityType:
+                filters.activityType || undefined,
 
-                        startDate:
-                            filters.startDate ||
-                            undefined,
+            startDate:
+                filters.startDate || undefined,
 
-                        endDate:
-                            filters.endDate ||
-                            undefined,
+            endDate:
+                filters.endDate || undefined,
 
-                        search:
-                            filters.search ||
-                            undefined,
+            search:
+                filters.search || undefined,
 
-                        page:
-                            filters.page ||
-                            undefined,
+            page:
+                filters.page || undefined,
 
-                        pageSize:
-                            filters.pageSize ||
-                            undefined,
-                    },
-                }
-            );
+            pageSize:
+                filters.pageSize || undefined,
+        };
 
-        return getResponseData(
-            response
+        const response = await api.get(
+            "/activities/manager",
+            {
+                params,
+            }
+        );
+
+        const data = getResponseData(response);
+
+        return normalizeArray(
+            data,
+            ["activities", "items", "results", "data"]
         );
     } catch (error) {
-        handleApiError(error);
+        return handleApiError(
+            error,
+            "Failed to load manager activity."
+        );
     }
-}
+};
 
-// ============================================================
-// ALIAS: GET ACTIVITY FEED
-// ============================================================
 
-export async function getActivityFeed(
+/**
+ * Activity feed alias.
+ */
+export const getActivityFeed = async (
     filters = {}
-) {
-    return getManagerActivityFeed(
-        filters
-    );
-}
+) => {
+    return getManagerActivityFeed(filters);
+};
 
-// ============================================================
-// GET SINGLE ACTIVITY
-// ============================================================
 
-export async function getManagerActivityById(
+/**
+ * Get one activity.
+ *
+ * GET /api/activities/{activityId}
+ */
+export const getManagerActivityById = async (
     activityId
-) {
+) => {
     if (!activityId) {
-        throw new Error(
-            "Activity ID is required."
-        );
+        throw new Error("Activity ID is required.");
     }
 
     try {
-        const response =
-            await api.get(
-                `/activities/${activityId}`
-            );
-
-        return getResponseData(
-            response
+        const response = await api.get(
+            `/activities/${activityId}`
         );
+
+        return getResponseData(response);
     } catch (error) {
-        handleApiError(error);
+        return handleApiError(
+            error,
+            "Failed to load activity."
+        );
     }
-}
+};
 
-// ============================================================
-// ALIAS: GET ACTIVITY BY ID
-// ============================================================
 
-export async function getActivityById(
+/**
+ * Activity by ID alias.
+ */
+export const getActivityById = async (
     activityId
-) {
-    return getManagerActivityById(
-        activityId
-    );
-}
+) => {
+    return getManagerActivityById(activityId);
+};
 
-// ============================================================
-// COMM-005
-// SEND PROJECT ANNOUNCEMENT
-// ============================================================
 
-export async function sendProjectAnnouncement({
-    projectId,
-    teamId,
-    title,
-    message,
-    priority,
-    recipientIds = [],
-}) {
+/* ============================================================
+   PROJECT ANNOUNCEMENTS
+   ============================================================ */
+
+/**
+ * Send project announcement.
+ *
+ * POST /api/communications/announcements
+ */
+export const sendProjectAnnouncement = async (
+    payload
+) => {
+    if (!payload) {
+        throw new Error(
+            "Announcement payload is required."
+        );
+    }
+
+    try {
+        const response = await api.post(
+            "/communications/announcements",
+            payload
+        );
+
+        return getResponseData(response);
+    } catch (error) {
+        return handleApiError(
+            error,
+            "Failed to send project announcement."
+        );
+    }
+};
+
+
+/**
+ * Announcement alias.
+ */
+export const createProjectAnnouncement =
+    sendProjectAnnouncement;
+
+
+/**
+ * Get announcement priorities.
+ *
+ * GET /api/communications/announcement-priorities
+ */
+export const getAnnouncementPriorities = async () => {
+    try {
+        const response = await api.get(
+            "/communications/announcement-priorities"
+        );
+
+        return normalizeArray(
+            getResponseData(response)
+        );
+    } catch (error) {
+        return handleApiError(
+            error,
+            "Failed to load announcement priorities."
+        );
+    }
+};
+
+
+/* ============================================================
+   CONTRIBUTOR COMMUNICATION
+   ============================================================ */
+
+/**
+ * Get messages received by current contributor.
+ *
+ * GET /api/communication/messages/inbox
+ */
+export const getMyMessages = async () => {
+    try {
+        const response = await api.get(
+            "/communication/messages/inbox"
+        );
+
+        return normalizeArray(
+            getResponseData(response)
+        );
+    } catch (error) {
+        return handleApiError(
+            error,
+            "Failed to load messages."
+        );
+    }
+};
+
+
+/**
+ * Get one received message.
+ *
+ * GET /api/communication/messages/inbox/{messageId}
+ */
+export const getMyMessageById = async (
+    messageId
+) => {
+    if (!messageId) {
+        throw new Error("Message ID is required.");
+    }
+
+    try {
+        const response = await api.get(
+            `/communication/messages/inbox/${messageId}`
+        );
+
+        return getResponseData(response);
+    } catch (error) {
+        return handleApiError(
+            error,
+            "Failed to load message."
+        );
+    }
+};
+
+
+/**
+ * Mark contributor message as read.
+ *
+ * PATCH /api/communication/messages/inbox/{messageId}/read
+ */
+export const markMessageAsRead = async (
+    messageId
+) => {
+    if (!messageId) {
+        throw new Error("Message ID is required.");
+    }
+
+    try {
+        const response = await api.patch(
+            `/communication/messages/inbox/${messageId}/read`
+        );
+
+        return getResponseData(response);
+    } catch (error) {
+        return handleApiError(
+            error,
+            "Failed to mark message as read."
+        );
+    }
+};
+
+
+/**
+ * Get unread contributor message count.
+ *
+ * GET /api/communication/messages/unread-count
+ */
+export const getUnreadMessageCount = async () => {
+    try {
+        const response = await api.get(
+            "/communication/messages/unread-count"
+        );
+
+        const data = getResponseData(response);
+
+        if (typeof data === "number") {
+            return data;
+        }
+
+        if (typeof data?.count === "number") {
+            return data.count;
+        }
+
+        if (typeof data?.unreadCount === "number") {
+            return data.unreadCount;
+        }
+
+        return 0;
+    } catch (error) {
+        return handleApiError(
+            error,
+            "Failed to load unread message count."
+        );
+    }
+};
+
+
+/**
+ * Get conversation for a project.
+ *
+ * GET /api/communication/messages/project/{projectId}
+ */
+export const getProjectConversation = async (
+    projectId
+) => {
     if (!projectId) {
+        throw new Error("Project ID is required.");
+    }
+
+    try {
+        const response = await api.get(
+            `/communication/messages/project/${projectId}`
+        );
+
+        return normalizeArray(
+            getResponseData(response)
+        );
+    } catch (error) {
+        return handleApiError(
+            error,
+            "Failed to load project conversation."
+        );
+    }
+};
+
+
+/**
+ * Mention team members in a task comment.
+ *
+ * POST /api/communication/mentions/task-comment/{taskCommentId}
+ *
+ * Body:
+ * [
+ *   "user-guid-1",
+ *   "user-guid-2"
+ * ]
+ */
+export const mentionTaskComment = async (
+    taskCommentId,
+    mentionedUserIds
+) => {
+    if (!taskCommentId) {
         throw new Error(
-            "Project is required."
+            "Task comment ID is required."
         );
     }
 
-    if (
-        !title ||
-        !String(title).trim()
-    ) {
+    if (!Array.isArray(mentionedUserIds)) {
         throw new Error(
-            "Announcement title is required."
-        );
-    }
-
-    if (
-        !message ||
-        !String(message).trim()
-    ) {
-        throw new Error(
-            "Announcement message is required."
-        );
-    }
-
-    if (!priority) {
-        throw new Error(
-            "Announcement priority is required."
-        );
-    }
-
-    if (
-        !Array.isArray(
-            recipientIds
-        ) ||
-        recipientIds.length === 0
-    ) {
-        throw new Error(
-            "No valid recipients available."
+            "Mentioned user IDs must be an array."
         );
     }
 
     try {
-        const response =
-            await api.post(
-                "/communications/announcements",
-                {
-                    projectId,
+        const response = await api.post(
+            `/communication/mentions/task-comment/${taskCommentId}`,
+            mentionedUserIds
+        );
 
-                    teamId:
-                        teamId || null,
-
-                    title:
-                        String(
-                            title
-                        ).trim(),
-
-                    message:
-                        String(
-                            message
-                        ).trim(),
-
-                    priority,
-
-                    recipientIds,
-                }
-            );
-
-        return getResponseData(
-            response
+        return normalizeArray(
+            getResponseData(response)
         );
     } catch (error) {
-        handleApiError(error);
+        return handleApiError(
+            error,
+            "Failed to mention team members."
+        );
     }
-}
+};
 
-// ============================================================
-// ALIAS: CREATE PROJECT ANNOUNCEMENT
-// ============================================================
 
-export async function createProjectAnnouncement(
-    data
-) {
-    return sendProjectAnnouncement(
-        data
-    );
-}
+/* ============================================================
+   COMMUNICATION TYPES
+   ============================================================ */
 
-// ============================================================
-// GET ANNOUNCEMENT PRIORITIES
-// ============================================================
-
-export async function getAnnouncementPriorities() {
+/**
+ * Get communication types.
+ *
+ * GET /api/communications/types
+ */
+export const getCommunicationTypes = async () => {
     try {
-        const response =
-            await api.get(
-                "/communications/announcement-priorities"
-            );
+        const response = await api.get(
+            "/communications/types"
+        );
 
-        const data =
-            getResponseData(response);
-
-        return normalizeArray(data, [
-            "priorities",
-            "items",
-            "data",
-        ]);
+        return normalizeArray(
+            getResponseData(response),
+            ["types", "items", "data"]
+        );
     } catch (error) {
-        handleApiError(error);
+        return handleApiError(
+            error,
+            "Failed to load communication types."
+        );
     }
-}
+};
 
-// ============================================================
-// GET COMMUNICATION TYPES
-// ============================================================
 
-export async function getCommunicationTypes() {
-    try {
-        const response =
-            await api.get(
-                "/communications/types"
-            );
+/* ============================================================
+   DEFAULT EXPORT
+   ============================================================ */
 
-        const data =
-            getResponseData(response);
-
-        return normalizeArray(data, [
-            "types",
-            "items",
-            "data",
-        ]);
-    } catch (error) {
-        handleApiError(error);
-    }
-}
-
-// ============================================================
-// DEFAULT EXPORT
-// ============================================================
-
-const communicationService = {
-    // --------------------------------------------------------
-    // COMM-001
-    // --------------------------------------------------------
-
+export default {
+    /* Manager notifications */
     getManagerNotifications,
     getManagerNotificationById,
     markManagerNotificationAsRead,
     markAllManagerNotificationsAsRead,
     getManagerUnreadNotificationCount,
 
-    // --------------------------------------------------------
-    // PROJECTS / TEAMS
-    // --------------------------------------------------------
-
+    /* Manager projects / teams */
     getManagerProjects,
     getProjectTeams,
     getProjectTeam,
@@ -983,50 +992,36 @@ const communicationService = {
     getTeamMembers,
     getProjectRecipients,
 
-    // --------------------------------------------------------
-    // COMM-002
-    // --------------------------------------------------------
-
+    /* Manager messages */
     sendMessageToTeamLeader,
     getTeamLeaderConversation,
     getTeamLeaderMessages,
     getConversation,
     sendMessage,
 
-    // --------------------------------------------------------
-    // COMM-003
-    // --------------------------------------------------------
-
+    /* Manager mentions */
     mentionTeamLeader,
     createTeamLeaderMention,
 
-    // --------------------------------------------------------
-    // COMM-004
-    // --------------------------------------------------------
-
+    /* Manager activity */
     getManagerActivityFeed,
     getActivityFeed,
     getManagerActivityById,
     getActivityById,
 
-    // --------------------------------------------------------
-    // COMM-005
-    // --------------------------------------------------------
-
+    /* Announcements */
     sendProjectAnnouncement,
     createProjectAnnouncement,
     getAnnouncementPriorities,
 
-    // --------------------------------------------------------
-    // COMMUNICATION CONFIGURATION
-    // --------------------------------------------------------
+    /* Contributor */
+    getMyMessages,
+    getMyMessageById,
+    markMessageAsRead,
+    getUnreadMessageCount,
+    getProjectConversation,
+    mentionTaskComment,
 
+    /* Shared */
     getCommunicationTypes,
 };
-
-// ============================================================
-// EXPORT DEFAULT
-// ============================================================
-
-export default communicationService;
-

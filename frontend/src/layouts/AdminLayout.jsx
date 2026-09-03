@@ -5,18 +5,20 @@ import AdminNavbar from "@/components/admin/shared/AdminNavbar";
 
 function AdminLayout() {
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            {/* Admin Sidebar */}
+        <div className="flex min-h-screen w-full overflow-x-hidden bg-background text-foreground">
+            {/* Sidebar */}
             <AdminSidebar />
 
-            {/* Main Content Area */}
-            <div className="flex min-w-0 flex-1 flex-col bg-background text-foreground">
-                {/* Admin Navbar */}
+            {/* Main application area */}
+            <div className="flex min-w-0 flex-1 flex-col">
+                {/* Navbar */}
                 <AdminNavbar />
 
-                {/* Page Content */}
-                <main className="min-w-0 flex-1 p-4 sm:p-6">
-                    <Outlet />
+                {/* Page content */}
+                <main className="min-w-0 flex-1 overflow-x-hidden p-3 sm:p-4 md:p-6 lg:p-6">
+                    <div className="mx-auto w-full max-w-[1800px] min-w-0">
+                        <Outlet />
+                    </div>
                 </main>
             </div>
         </div>

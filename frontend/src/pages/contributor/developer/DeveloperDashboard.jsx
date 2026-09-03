@@ -1,1599 +1,2206 @@
-import { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
-    Code2,
-    ClipboardList,
+    Activity,
+    AlertCircle,
+    ArrowRight,
+    BrainCircuit,
+    CalendarDays,
     CheckCircle2,
+    ChevronDown,
     Clock3,
-    AlertTriangle,
-    Eye,
-    MessageSquare,
+    Code2,
+    FileText,
+    FolderKanban,
+    ListTodo,
+    Loader2,
+    RefreshCw,
+    Sparkles,
     Target,
     TrendingUp,
-    CalendarDays,
-    Send,
-    X,
-    Search,
-    Filter,
-    
-    Activity,
-    ShieldCheck,
-    GitBranch,
-    Bug,
-    Layers,
-    PlayCircle,
-    CircleDot,
+    UserRound,
+    XCircle,
+    Zap,
 } from "lucide-react";
 
-// ============================================================
-// SAMPLE DATA
-// Replace later with API data from the .NET backend.
-// ============================================================
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 
-const DEVELOPER_PROFILE = {
-    id: 1,
-    name: "Abebe Kebede",
-    email: "abebe@example.com",
-    role: "Developer",
-    specialization: "Backend Development",
-    project: "AI-PMS",
-    status: "Available",
-    avatar: "AK",
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+
+import {
+    getMyWork,
+    updateMyTaskStatus,
+} from "@/services/taskService";
+
+import {
+    getTaskSubtasks,
+    updateAISubtaskStatus,
+} from "@/services/subTaskService";
+
+
+// ---------------------------------------------------------
+// STATUS HELPERS
+// ---------------------------------------------------------
+
+const STATUS = {
+    TODO: 1,
+    IN_PROGRESS: 2,
+    IN_REVIEW: 3,
+    COMPLETED: 4,
+    BLOCKED: 5,
 };
 
-const DEVELOPER_TASKS = [
-    {
-        id: 1,
-        title: "Implement Authentication API",
-        description: "Develop login, registration, and authentication endpoints.",
-        project: "AI-PMS",
-        sprint: "Sprint 04",
-        priority: "High",
-        status: "In Progress",
-        progress: 75,
-        dueDate: "2026-08-28",
-        type: "Backend",
+const STATUS_META = {
+    1: {
+        label: "To Do",
+        className:
+            "bg-slate-100 text-slate-700 border-slate-200",
     },
-    {
-        id: 2,
-        title: "Database Integration",
-        description: "Connect the authentication module with the database.",
-        project: "AI-PMS",
-        sprint: "Sprint 04",
-        priority: "High",
-        status: "Completed",
-        progress: 100,
-        dueDate: "2026-08-25",
-        type: "Backend",
+    2: {
+        label: "In Progress",
+        className:
+            "bg-blue-50 text-blue-700 border-blue-200",
     },
-    {
-        id: 3,
-        title: "Implement User Management API",
-        description: "Create CRUD operations for system users.",
-        project: "AI-PMS",
-        sprint: "Sprint 04",
-        priority: "High",
-        status: "In Progress",
-        progress: 60,
-        dueDate: "2026-08-29",
-        type: "Backend",
+    3: {
+        label: "In Review",
+        className:
+            "bg-violet-50 text-violet-700 border-violet-200",
     },
-    {
-        id: 4,
-        title: "Fix Refresh Token Validation",
-        description: "Resolve refresh token validation and expiration issues.",
-        project: "AI-PMS",
-        sprint: "Sprint 04",
-        priority: "Medium",
-        status: "Review",
-        progress: 90,
-        dueDate: "2026-08-27",
-        type: "Security",
+    4: {
+        label: "Completed",
+        className:
+            "bg-emerald-50 text-emerald-700 border-emerald-200",
     },
-    {
-        id: 5,
-        title: "Write API Unit Tests",
-        description: "Create unit tests for authentication and user services.",
-        project: "AI-PMS",
-        sprint: "Sprint 04",
-        priority: "Medium",
-        status: "Not Started",
-        progress: 0,
-        dueDate: "2026-08-30",
-        type: "Testing",
+    5: {
+        label: "Blocked",
+        className:
+            "bg-red-50 text-red-700 border-red-200",
     },
-    {
-        id: 6,
-        title: "Resolve API Error Handling",
-        description: "Improve exception handling and API response consistency.",
-        project: "AI-PMS",
-        sprint: "Sprint 04",
-        priority: "Low",
-        status: "Blocked",
-        progress: 35,
-        dueDate: "2026-08-31",
-        type: "Backend",
+};
+
+const PRIORITY_META = {
+    1: {
+        label: "Low",
+        className: "text-slate-600",
     },
-];
-
-const RECENT_ACTIVITIES = [
-    {
-        id: 1,
-        title: "Completed Database Integration",
-        description: "Database connection and integration completed.",
-        time: "2 hours ago",
-        type: "success",
+    2: {
+        label: "Medium",
+        className: "text-blue-600",
     },
-    {
-        id: 2,
-        title: "Authentication API updated",
-        description: "Authentication endpoints were updated.",
-        time: "5 hours ago",
-        type: "info",
+    3: {
+        label: "High",
+        className: "text-orange-600",
     },
-    {
-        id: 3,
-        title: "Refresh Token moved to Review",
-        description: "Refresh token validation is ready for review.",
-        time: "Yesterday",
-        type: "review",
+    4: {
+        label: "Critical",
+        className: "text-red-600",
     },
-    {
-        id: 4,
-        title: "API Error Handling blocked",
-        description: "Waiting for required backend information.",
-        time: "Yesterday",
-        type: "warning",
-    },
-];
+};
 
-// ============================================================
-// SMALL COMPONENTS
-// ============================================================
 
-function StatCard({
-    title,
-    value,
-    description,
-    icon: Icon,
-    iconClass = "bg-blue-100 text-blue-600",
-}) {
-    return (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-blue-900/60 dark:bg-[#0b2038]">
-            <div className="flex items-start justify-between">
-                <div>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                        {title}
-                    </p>
+// ---------------------------------------------------------
+// NORMALIZERS
+// ---------------------------------------------------------
 
-                    <h3 className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">
-                        {value}
-                    </h3>
+const getId = (item) =>
+    item?.id ??
+    item?.taskId ??
+    item?.taskID ??
+    item?.Id ??
+    item?.TaskId;
 
-                    {description && (
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            {description}
-                        </p>
-                    )}
-                </div>
-
-                <div
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconClass}`}
-                >
-                    <Icon className="h-5 w-5" />
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function ProgressBar({ progress }) {
-    return (
-        <div className="mt-2">
-            <div className="mb-1 flex items-center justify-between">
-                <span className="text-xs text-slate-500 dark:text-slate-400">
-                    Progress
-                </span>
-
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                    {progress}%
-                </span>
-            </div>
-
-            <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-blue-950">
-                <div
-                    className="h-full rounded-full bg-blue-600 transition-all"
-                    style={{ width: `${progress}%` }}
-                />
-            </div>
-        </div>
-    );
-}
-
-function StatusBadge({ status }) {
-    const styles = {
-        Available:
-            "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400",
-
-        Busy:
-            "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
-
-        "In Progress":
-            "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
-
-        Completed:
-            "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400",
-
-        Blocked:
-            "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400",
-
-        Review:
-            "bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400",
-
-        "Not Started":
-            "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-    };
-
-    return (
-        <span
-            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                styles[status] ||
-                "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-            }`}
-        >
-            {status}
-        </span>
-    );
-}
-
-function PriorityBadge({ priority }) {
-    const styles = {
-        High: "text-red-600 dark:text-red-400",
-        Medium: "text-amber-600 dark:text-amber-400",
-        Low: "text-emerald-600 dark:text-emerald-400",
-    };
-
-    return (
-        <span
-            className={`text-xs font-semibold ${
-                styles[priority] || "text-slate-500"
-            }`}
-        >
-            {priority}
-        </span>
-    );
-}
-
-// ============================================================
-// TASK DETAILS MODAL
-// ============================================================
-
-function TaskDetailsModal({ task, onClose }) {
-    if (!task) {
-        return null;
+const normalizeStatus = (value) => {
+    if (typeof value === "number") {
+        return value;
     }
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-blue-900/60 dark:bg-[#0b2038]">
-                {/* Header */}
+    if (typeof value === "string") {
+        const normalized = value.toLowerCase().replace(/\s+/g, "");
 
-                <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-blue-900/60">
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                            Task Details
-                        </h2>
+        switch (normalized) {
+            case "todo":
+            case "tobedone":
+                return STATUS.TODO;
 
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            Developer task information
-                        </p>
-                    </div>
+            case "inprogress":
+                return STATUS.IN_PROGRESS;
 
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 dark:hover:bg-blue-950/50"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
-                </div>
+            case "inreview":
+            case "review":
+                return STATUS.IN_REVIEW;
 
-                {/* Content */}
+            case "completed":
+            case "complete":
+                return STATUS.COMPLETED;
 
-                <div className="space-y-5 p-5">
-                    <div>
-                        <div className="flex items-start justify-between gap-3">
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                                    {task.title}
-                                </h3>
+            case "blocked":
+                return STATUS.BLOCKED;
 
-                                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                    {task.description}
-                                </p>
-                            </div>
+            default:
+                return STATUS.TODO;
+        }
+    }
 
-                            <StatusBadge status={task.status} />
-                        </div>
-                    </div>
+    return STATUS.TODO;
+};
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-blue-950/30">
-                            <p className="text-xs text-slate-500">
-                                Project
-                            </p>
+const normalizePriority = (value) => {
+    if (typeof value === "number") {
+        return value;
+    }
 
-                            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                                {task.project}
-                            </p>
-                        </div>
+    if (typeof value === "string") {
+        const normalized = value.toLowerCase();
 
-                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-blue-950/30">
-                            <p className="text-xs text-slate-500">
-                                Sprint
-                            </p>
+        if (normalized === "low") return 1;
+        if (normalized === "medium") return 2;
+        if (normalized === "high") return 3;
+        if (normalized === "critical") return 4;
+    }
 
-                            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                                {task.sprint}
-                            </p>
-                        </div>
+    return 2;
+};
 
-                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-blue-950/30">
-                            <p className="text-xs text-slate-500">
-                                Task Type
-                            </p>
-
-                            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                                {task.type}
-                            </p>
-                        </div>
-
-                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-blue-950/30">
-                            <p className="text-xs text-slate-500">
-                                Priority
-                            </p>
-
-                            <div className="mt-1">
-                                <PriorityBadge priority={task.priority} />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className="flex justify-between">
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                                Task Progress
-                            </span>
-
-                            <span className="text-sm font-bold text-blue-600">
-                                {task.progress}%
-                            </span>
-                        </div>
-
-                        <ProgressBar progress={task.progress} />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="rounded-xl border border-slate-200 p-4 dark:border-blue-900/60">
-                            <p className="text-xs text-slate-500">
-                                Due Date
-                            </p>
-
-                            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                                {task.dueDate}
-                            </p>
-                        </div>
-
-                        <div className="rounded-xl border border-slate-200 p-4 dark:border-blue-900/60">
-                            <p className="text-xs text-slate-500">
-                                Status
-                            </p>
-
-                            <div className="mt-1">
-                                <StatusBadge status={task.status} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+const normalizeTask = (task) => {
+    const status = normalizeStatus(
+        task?.status ??
+        task?.Status ??
+        task?.taskStatus
     );
-}
 
-// ============================================================
-// COMMUNICATION MODAL
-// ============================================================
+    const priority = normalizePriority(
+        task?.priority ??
+        task?.Priority
+    );
 
-function CommunicationModal({ onClose }) {
-    const [message, setMessage] = useState("");
-    const [sent, setSent] = useState(false);
+    const progress = Number(
+        task?.progress ??
+        task?.progressPercentage ??
+        task?.Progress ??
+        0
+    );
 
-    const handleSend = () => {
-        if (!message.trim()) {
+    return {
+        ...task,
+
+        id: getId(task),
+
+        title:
+            task?.title ??
+            task?.name ??
+            task?.taskName ??
+            "Untitled Task",
+
+        description:
+            task?.description ??
+            task?.details ??
+            "",
+
+        status,
+
+        priority,
+
+        progress: Math.min(
+            100,
+            Math.max(0, progress)
+        ),
+
+        projectName:
+            task?.projectName ??
+            task?.project?.name ??
+            task?.project?.title ??
+            "Project",
+
+        sprintName:
+            task?.sprintName ??
+            task?.sprint?.name ??
+            task?.sprint?.title ??
+            null,
+
+        dueDate:
+            task?.dueDate ??
+            task?.deadline ??
+            task?.DueDate ??
+            null,
+
+        createdAt:
+            task?.createdAt ??
+            task?.CreatedAt ??
+            null,
+
+        updatedAt:
+            task?.updatedAt ??
+            task?.UpdatedAt ??
+            null,
+    };
+};
+
+const normalizeSubtask = (subtask) => {
+    const status = normalizeStatus(
+        subtask?.status ??
+        subtask?.Status
+    );
+
+    const progress = Number(
+        subtask?.progress ??
+        subtask?.progressPercentage ??
+        subtask?.Progress ??
+        0
+    );
+
+    return {
+        ...subtask,
+
+        id:
+            subtask?.id ??
+            subtask?.subTaskId ??
+            subtask?.subtaskId ??
+            subtask?.Id,
+
+        title:
+            subtask?.title ??
+            subtask?.name ??
+            "Untitled Subtask",
+
+        description:
+            subtask?.description ??
+            "",
+
+        status,
+
+        progress: Math.min(
+            100,
+            Math.max(0, progress)
+        ),
+
+        estimatedHours:
+            subtask?.estimatedHours ??
+            subtask?.EstimatedHours ??
+            null,
+
+        isAIGenerated:
+            subtask?.isAIGenerated ??
+            subtask?.IsAIGenerated ??
+            true,
+
+        aiRecommendation:
+            subtask?.aiRecommendation ??
+            subtask?.AIRecommendation ??
+            null,
+    };
+};
+
+
+// ---------------------------------------------------------
+// DATE HELPERS
+// ---------------------------------------------------------
+
+const formatDate = (date) => {
+    if (!date) return "No deadline";
+
+    const parsed = new Date(date);
+
+    if (Number.isNaN(parsed.getTime())) {
+        return "No deadline";
+    }
+
+    return parsed.toLocaleDateString(
+        undefined,
+        {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        }
+    );
+};
+
+const formatRelativeTime = (date) => {
+    if (!date) return "No recent activity";
+
+    const parsed = new Date(date);
+
+    if (Number.isNaN(parsed.getTime())) {
+        return "No recent activity";
+    }
+
+    const now = new Date();
+    const diff = now.getTime() - parsed.getTime();
+
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) {
+        return "Just now";
+    }
+
+    if (minutes < 60) {
+        return `${minutes}m ago`;
+    }
+
+    if (hours < 24) {
+        return `${hours}h ago`;
+    }
+
+    if (days < 7) {
+        return `${days}d ago`;
+    }
+
+    return formatDate(date);
+};
+
+const isOverdue = (task) => {
+    if (!task?.dueDate) return false;
+
+    if (task.status === STATUS.COMPLETED) {
+        return false;
+    }
+
+    const deadline = new Date(task.dueDate);
+
+    if (Number.isNaN(deadline.getTime())) {
+        return false;
+    }
+
+    return deadline.getTime() < Date.now();
+};
+
+
+// ---------------------------------------------------------
+// API RESPONSE NORMALIZATION
+// ---------------------------------------------------------
+
+const extractArray = (response) => {
+    if (Array.isArray(response)) {
+        return response;
+    }
+
+    if (Array.isArray(response?.data)) {
+        return response.data;
+    }
+
+    if (Array.isArray(response?.tasks)) {
+        return response.tasks;
+    }
+
+    if (Array.isArray(response?.items)) {
+        return response.items;
+    }
+
+    if (Array.isArray(response?.subtasks)) {
+        return response.subtasks;
+    }
+
+    if (Array.isArray(response?.subTasks)) {
+        return response.subTasks;
+    }
+
+    return [];
+};
+
+const getApiErrorMessage = (error) => {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data?.title ||
+        error?.message ||
+        "Unable to load dashboard data."
+    );
+};
+
+
+// ---------------------------------------------------------
+// COMPONENT
+// ---------------------------------------------------------
+
+export default function DeveloperDashboard() {
+    const navigate = useNavigate();
+
+    const [tasks, setTasks] = useState([]);
+    const [selectedTask, setSelectedTask] = useState(null);
+
+    const [subtasks, setSubtasks] = useState([]);
+
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const [error, setError] = useState("");
+
+    const [taskUpdatingId, setTaskUpdatingId] =
+        useState(null);
+
+    const [subtaskUpdatingId, setSubtaskUpdatingId] =
+        useState(null);
+
+    const [subtaskError, setSubtaskError] =
+        useState("");
+
+    const [loadingSubtasks, setLoadingSubtasks] =
+        useState(false);
+
+    const [showAllTasks, setShowAllTasks] =
+        useState(false);
+
+
+    // -------------------------------------------------------
+    // LOAD MY TASKS
+    // -------------------------------------------------------
+
+    const loadTasks = async ({
+        silent = false,
+    } = {}) => {
+        try {
+            if (!silent) {
+                setLoading(true);
+            } else {
+                setRefreshing(true);
+            }
+
+            setError("");
+
+            const response = await getMyWork();
+
+            const data = extractArray(response)
+                .map(normalizeTask)
+                .filter((task) => task.id);
+
+            setTasks(data);
+
+            if (
+                selectedTask &&
+                !data.some(
+                    (task) => task.id === selectedTask.id
+                )
+            ) {
+                setSelectedTask(null);
+                setSubtasks([]);
+            }
+        } catch (err) {
+            console.error(
+                "Developer dashboard task loading error:",
+                err
+            );
+
+            setError(
+                getApiErrorMessage(err)
+            );
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+
+    // -------------------------------------------------------
+    // INITIAL LOAD
+    // -------------------------------------------------------
+
+    useEffect(() => {
+        loadTasks();
+    }, []);
+
+
+    // -------------------------------------------------------
+    // LOAD AI SUBTASKS
+    // -------------------------------------------------------
+
+    const loadSubtasks = async (task) => {
+        if (!task?.id) {
+            setSubtasks([]);
             return;
         }
 
-        setSent(true);
+        try {
+            setLoadingSubtasks(true);
+            setSubtaskError("");
 
-        setTimeout(() => {
-            onClose();
-        }, 1000);
+            const response =
+                await getTaskSubtasks(task.id);
+
+            const data = extractArray(response)
+                .map(normalizeSubtask)
+                .filter(
+                    (subtask) =>
+                        subtask.isAIGenerated !== false
+                );
+
+            setSubtasks(data);
+        } catch (err) {
+            console.error(
+                "AI subtask loading error:",
+                err
+            );
+
+            setSubtaskError(
+                getApiErrorMessage(err)
+            );
+
+            setSubtasks([]);
+        } finally {
+            setLoadingSubtasks(false);
+        }
     };
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-[#0b2038]">
-                <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-blue-900/60">
-                    <div>
-                        <h2 className="font-bold text-slate-900 dark:text-white">
-                            Contact Team Leader / Manager
-                        </h2>
 
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            Send progress updates, blockers, or technical
-                            issues.
-                        </p>
-                    </div>
+    // -------------------------------------------------------
+    // SELECT TASK
+    // -------------------------------------------------------
 
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-blue-950/50"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
-                </div>
+    const handleSelectTask = async (task) => {
+        setSelectedTask(task);
 
-                <div className="p-5">
-                    {sent ? (
-                        <div className="py-8 text-center">
-                            <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
+        await loadSubtasks(task);
+    };
 
-                            <h3 className="mt-3 font-bold text-slate-900 dark:text-white">
-                                Message Sent
-                            </h3>
 
-                            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                Your message has been sent successfully.
-                            </p>
-                        </div>
-                    ) : (
-                        <>
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                                Message
-                            </label>
+    // -------------------------------------------------------
+    // TASK STATUS UPDATE
+    // -------------------------------------------------------
 
-                            <textarea
-                                value={message}
-                                onChange={(event) =>
-                                    setMessage(event.target.value)
-                                }
-                                rows={6}
-                                placeholder="Write your progress, technical issue, blocker, dependency, or important update..."
-                                className="mt-2 w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-blue-900/60 dark:bg-[#071a2d] dark:text-white"
-                            />
+    const handleTaskStatusChange = async (
+        task,
+        nextStatus
+    ) => {
+        if (!task?.id) return;
 
-                            <button
-                                type="button"
-                                disabled={!message.trim()}
-                                onClick={handleSend}
-                                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <Send className="h-4 w-4" />
-                                Send Message
-                            </button>
-                        </>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-}
+        if (
+            task.status === STATUS.COMPLETED &&
+            Number(nextStatus) !== STATUS.COMPLETED
+        ) {
+            return;
+        }
 
-// ============================================================
-// MAIN DEVELOPER DASHBOARD
-// ============================================================
+        try {
+            setTaskUpdatingId(task.id);
+            setError("");
 
-function DeveloperDashboard() {
-    const [selectedTask, setSelectedTask] = useState(null);
-    const [communicationOpen, setCommunicationOpen] = useState(false);
+            const response =
+                await updateMyTaskStatus(
+                    task.id,
+                    Number(nextStatus)
+                );
 
-    const [statusFilter, setStatusFilter] = useState("All");
-    const [priorityFilter, setPriorityFilter] = useState("All");
-    const [searchTerm, setSearchTerm] = useState("");
+            const returnedTask =
+                response?.task ??
+                response?.Task ??
+                response;
 
-    // ========================================================
+            setTasks((currentTasks) =>
+                currentTasks.map((item) => {
+                    if (item.id !== task.id) {
+                        return item;
+                    }
+
+                    return normalizeTask({
+                        ...item,
+                        ...(returnedTask || {}),
+                        status: Number(nextStatus),
+                    });
+                })
+            );
+
+            setSelectedTask((current) => {
+                if (!current || current.id !== task.id) {
+                    return current;
+                }
+
+                return normalizeTask({
+                    ...current,
+                    ...(returnedTask || {}),
+                    status: Number(nextStatus),
+                });
+            });
+
+        } catch (err) {
+            console.error(
+                "Task status update error:",
+                err
+            );
+
+            setError(
+                getApiErrorMessage(err)
+            );
+        } finally {
+            setTaskUpdatingId(null);
+        }
+    };
+
+
+    // -------------------------------------------------------
+    // AI SUBTASK UPDATE
+    // -------------------------------------------------------
+
+    const handleSubtaskUpdate = async (
+        subtask,
+        nextStatus,
+        nextProgress
+    ) => {
+        if (!subtask?.id) return;
+
+        if (
+            subtask.status === STATUS.COMPLETED
+        ) {
+            return;
+        }
+
+        const progress = Math.min(
+            100,
+            Math.max(
+                0,
+                Number(nextProgress)
+            )
+        );
+
+        try {
+            setSubtaskUpdatingId(subtask.id);
+            setSubtaskError("");
+
+            const response =
+                await updateAISubtaskStatus(
+                    subtask.id,
+                    Number(nextStatus),
+                    progress
+                );
+
+            const returnedSubtask =
+                response?.subtask ??
+                response?.SubTask ??
+                response;
+
+            setSubtasks((current) =>
+                current.map((item) => {
+                    if (
+                        item.id !== subtask.id
+                    ) {
+                        return item;
+                    }
+
+                    return normalizeSubtask({
+                        ...item,
+                        ...(returnedSubtask || {}),
+                        status: Number(nextStatus),
+                        progress,
+                    });
+                })
+            );
+
+        } catch (err) {
+            console.error(
+                "AI subtask update error:",
+                err
+            );
+
+            setSubtaskError(
+                getApiErrorMessage(err)
+            );
+        } finally {
+            setSubtaskUpdatingId(null);
+        }
+    };
+
+
+    // -------------------------------------------------------
     // STATISTICS
-    // ========================================================
+    // -------------------------------------------------------
 
     const statistics = useMemo(() => {
-        const totalTasks = DEVELOPER_TASKS.length;
+        const total = tasks.length;
 
-        const completedTasks = DEVELOPER_TASKS.filter(
-            (task) => task.status === "Completed"
+        const todo = tasks.filter(
+            (task) =>
+                task.status === STATUS.TODO
         ).length;
 
-        const inProgressTasks = DEVELOPER_TASKS.filter(
-            (task) => task.status === "In Progress"
+        const inProgress = tasks.filter(
+            (task) =>
+                task.status === STATUS.IN_PROGRESS
         ).length;
 
-        const blockedTasks = DEVELOPER_TASKS.filter(
-            (task) => task.status === "Blocked"
+        const review = tasks.filter(
+            (task) =>
+                task.status === STATUS.IN_REVIEW
         ).length;
 
-        const reviewTasks = DEVELOPER_TASKS.filter(
-            (task) => task.status === "Review"
+        const completed = tasks.filter(
+            (task) =>
+                task.status === STATUS.COMPLETED
         ).length;
 
-        const notStartedTasks = DEVELOPER_TASKS.filter(
-            (task) => task.status === "Not Started"
+        const blocked = tasks.filter(
+            (task) =>
+                task.status === STATUS.BLOCKED
         ).length;
 
-        const overdueTasks = 1;
+        const overdue = tasks.filter(
+            isOverdue
+        ).length;
 
-        const averageProgress =
-            totalTasks > 0
+        const progress =
+            total > 0
                 ? Math.round(
-                      DEVELOPER_TASKS.reduce(
-                          (total, task) => total + task.progress,
-                          0
-                      ) / totalTasks
-                  )
-                : 0;
-
-        const completionRate =
-            totalTasks > 0
-                ? Math.round((completedTasks / totalTasks) * 100)
+                    tasks.reduce(
+                        (sum, task) =>
+                            sum +
+                            Number(
+                                task.progress || 0
+                            ),
+                        0
+                    ) / total
+                )
                 : 0;
 
         return {
-            totalTasks,
-            completedTasks,
-            inProgressTasks,
-            blockedTasks,
-            reviewTasks,
-            notStartedTasks,
-            overdueTasks,
-            averageProgress,
-            completionRate,
+            total,
+            todo,
+            inProgress,
+            review,
+            completed,
+            blocked,
+            overdue,
+            progress,
         };
-    }, []);
+    }, [tasks]);
 
-    // ========================================================
-    // FILTER TASKS
-    // ========================================================
 
-    const filteredTasks = useMemo(() => {
-        return DEVELOPER_TASKS.filter((task) => {
-            const search = searchTerm.toLowerCase();
+    // -------------------------------------------------------
+    // TASK LIST
+    // -------------------------------------------------------
 
-            const matchesSearch =
-                task.title.toLowerCase().includes(search) ||
-                task.description.toLowerCase().includes(search) ||
-                task.project.toLowerCase().includes(search) ||
-                task.type.toLowerCase().includes(search);
+    const visibleTasks = useMemo(() => {
+        if (showAllTasks) {
+            return tasks;
+        }
 
-            const matchesStatus =
-                statusFilter === "All" ||
-                task.status === statusFilter;
+        return tasks.slice(0, 6);
+    }, [tasks, showAllTasks]);
 
-            const matchesPriority =
-                priorityFilter === "All" ||
-                task.priority === priorityFilter;
 
-            return (
-                matchesSearch &&
-                matchesStatus &&
-                matchesPriority
-            );
-        });
-    }, [searchTerm, statusFilter, priorityFilter]);
+    // -------------------------------------------------------
+    // RECENT ACTIVITY
+    // -------------------------------------------------------
+
+    const recentActivity = useMemo(() => {
+        return [...tasks]
+            .sort((a, b) => {
+                const aDate =
+                    new Date(
+                        a.updatedAt ||
+                        a.createdAt ||
+                        0
+                    ).getTime();
+
+                const bDate =
+                    new Date(
+                        b.updatedAt ||
+                        b.createdAt ||
+                        0
+                    ).getTime();
+
+                return bDate - aDate;
+            })
+            .slice(0, 5)
+            .map((task) => ({
+                id: task.id,
+                title: task.title,
+                status: task.status,
+                time:
+                    task.updatedAt ||
+                    task.createdAt,
+            }));
+    }, [tasks]);
+
+
+    // -------------------------------------------------------
+    // SELECTED TASK AI SUBTASK STATS
+    // -------------------------------------------------------
+
+    const subtaskStats = useMemo(() => {
+        const total = subtasks.length;
+
+        const completed = subtasks.filter(
+            (subtask) =>
+                subtask.status === STATUS.COMPLETED
+        ).length;
+
+        const inProgress = subtasks.filter(
+            (subtask) =>
+                subtask.status === STATUS.IN_PROGRESS
+        ).length;
+
+        const blocked = subtasks.filter(
+            (subtask) =>
+                subtask.status === STATUS.BLOCKED
+        ).length;
+
+        const progress =
+            total > 0
+                ? Math.round(
+                    subtasks.reduce(
+                        (sum, subtask) =>
+                            sum +
+                            Number(
+                                subtask.progress || 0
+                            ),
+                        0
+                    ) / total
+                )
+                : 0;
+
+        return {
+            total,
+            completed,
+            inProgress,
+            blocked,
+            progress,
+        };
+    }, [subtasks]);
+
+
+    // -------------------------------------------------------
+    // RENDER
+    // -------------------------------------------------------
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 dark:bg-[#071a2d]">
-            <div className="mx-auto max-w-7xl space-y-6">
+        <div className="relative min-h-screen bg-background text-foreground overflow-hidden">
 
-                {/* ==================================================
-                    HEADER
-                ================================================== */}
+            {/* Background decorations */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute -top-32 -right-32 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
+                <div className="absolute top-1/3 -left-32 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl" />
+            </div>
 
-                <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+
+            <div className="relative z-10 space-y-6 p-4 md:p-6 lg:p-8">
+
+                {/* ------------------------------------------------ */}
+                {/* HEADER */}
+                {/* ------------------------------------------------ */}
+
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
                     <div>
-                        <div className="flex items-center gap-2">
-                            <Code2 className="h-5 w-5 text-blue-600" />
-
-                            <span className="text-xs font-bold uppercase tracking-wider text-blue-600">
-                                Contributor • Developer
-                            </span>
+                        <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
+                            <Code2 className="h-4 w-4" />
+                            <span>Developer Workspace</span>
                         </div>
 
-                        <h1 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">
-                            Developer Dashboard
+                        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+                            My Dashboard
                         </h1>
 
-                        <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-                            Manage your assigned development tasks, monitor
-                            progress, track technical issues, and communicate
-                            important updates to your Team Leader or Manager.
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            View your assigned work, track progress,
+                            and manage your AI-generated subtasks.
                         </p>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={() => setCommunicationOpen(true)}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
-                    >
-                        <MessageSquare className="h-4 w-4" />
-                        Contact Team Leader
-                    </button>
-                </div>
+                    <div className="flex items-center gap-2">
 
-                {/* ==================================================
-                    AUTHORITY NOTICE
-                ================================================== */}
+                        <Button
+                            variant="outline"
+                            className="rounded-xl"
+                            onClick={() =>
+                                loadTasks({
+                                    silent: true,
+                                })
+                            }
+                            disabled={
+                                loading ||
+                                refreshing
+                            }
+                        >
+                            {refreshing ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                            )}
 
-                <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/60 dark:bg-blue-950/30">
-                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                            Refresh
+                        </Button>
 
-                    <div>
-                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">
-                            Developer Access
-                        </p>
-
-                        <p className="mt-1 text-xs leading-5 text-blue-800 dark:text-blue-400">
-                            You can manage and update your assigned development
-                            work, monitor task progress, report technical
-                            blockers, and communicate with authorized team
-                            leaders or managers. Project creation, team
-                            assignment, role changes, and final project
-                            approval remain restricted to authorized users.
-                        </p>
                     </div>
                 </div>
 
-                {/* ==================================================
-                    DEVELOPER PROFILE
-                ================================================== */}
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-blue-900/60 dark:bg-[#0b2038]">
-                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 font-bold text-white shadow-lg shadow-blue-600/20">
-                                {DEVELOPER_PROFILE.avatar}
-                            </div>
+                {/* ------------------------------------------------ */}
+                {/* ERROR */}
+                {/* ------------------------------------------------ */}
 
-                            <div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                                        {DEVELOPER_PROFILE.name}
-                                    </h2>
+                {error && (
+                    <Card className="rounded-xl border-red-200 bg-red-50/60">
+                        <CardContent className="flex items-center gap-3 p-4">
 
-                                    <StatusBadge
-                                        status={DEVELOPER_PROFILE.status}
-                                    />
-                                </div>
+                            <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
 
-                                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                    {DEVELOPER_PROFILE.email}
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-red-700">
+                                    {error}
                                 </p>
 
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                    <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400">
-                                        {DEVELOPER_PROFILE.role}
-                                    </span>
-
-                                    <span className="rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700 dark:bg-purple-950/40 dark:text-purple-400">
-                                        {DEVELOPER_PROFILE.specialization}
-                                    </span>
-
-                                    <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-blue-950/40 dark:text-slate-300">
-                                        {DEVELOPER_PROFILE.project}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 sm:w-72">
-                            <div className="rounded-xl bg-slate-50 p-3 dark:bg-blue-950/30">
-                                <p className="text-xs text-slate-500">
-                                    Current Sprint
-                                </p>
-
-                                <p className="mt-1 text-sm font-bold text-slate-900 dark:text-white">
-                                    Sprint 04
+                                <p className="mt-1 text-xs text-red-600">
+                                    Make sure your account is authenticated
+                                    as a Contributor and the backend is running.
                                 </p>
                             </div>
 
-                            <div className="rounded-xl bg-slate-50 p-3 dark:bg-blue-950/30">
-                                <p className="text-xs text-slate-500">
-                                    Workload
-                                </p>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-red-200"
+                                onClick={() =>
+                                    loadTasks()
+                                }
+                            >
+                                Retry
+                            </Button>
 
-                                <p className="mt-1 text-sm font-bold text-blue-600">
-                                    {statistics.inProgressTasks} Active
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                        </CardContent>
+                    </Card>
+                )}
 
-                {/* ==================================================
-                    STATISTICS
-                ================================================== */}
+
+                {/* ------------------------------------------------ */}
+                {/* STATISTICS */}
+                {/* ------------------------------------------------ */}
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <StatCard
-                        title="Assigned Tasks"
-                        value={statistics.totalTasks}
-                        description="Your current workload"
-                        icon={ClipboardList}
-                        iconClass="bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
-                    />
 
-                    <StatCard
-                        title="In Progress"
-                        value={statistics.inProgressTasks}
-                        description="Currently being developed"
-                        icon={PlayCircle}
-                        iconClass="bg-purple-100 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400"
-                    />
+                    <Card className="rounded-xl border-border/70 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                        <CardContent className="p-5">
 
-                    <StatCard
-                        title="Completed"
-                        value={statistics.completedTasks}
-                        description="Tasks completed"
-                        icon={CheckCircle2}
-                        iconClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
-                    />
+                            <div className="flex items-center justify-between">
 
-                    <StatCard
-                        title="Blocked"
-                        value={statistics.blockedTasks}
-                        description="Need attention"
-                        icon={AlertTriangle}
-                        iconClass="bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400"
-                    />
+                                <div>
+                                    <p className="text-sm text-muted-foreground">
+                                        Assigned Tasks
+                                    </p>
+
+                                    <p className="mt-2 text-3xl font-bold">
+                                        {loading
+                                            ? "—"
+                                            : statistics.total}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
+                                    <ListTodo className="h-6 w-6" />
+                                </div>
+
+                            </div>
+
+                            <p className="mt-3 text-xs text-muted-foreground">
+                                Tasks currently assigned to you
+                            </p>
+
+                        </CardContent>
+                    </Card>
+
+
+                    <Card className="rounded-xl border-border/70 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                        <CardContent className="p-5">
+
+                            <div className="flex items-center justify-between">
+
+                                <div>
+                                    <p className="text-sm text-muted-foreground">
+                                        In Progress
+                                    </p>
+
+                                    <p className="mt-2 text-3xl font-bold">
+                                        {loading
+                                            ? "—"
+                                            : statistics.inProgress}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-xl bg-cyan-50 p-3 text-cyan-600">
+                                    <Activity className="h-6 w-6" />
+                                </div>
+
+                            </div>
+
+                            <p className="mt-3 text-xs text-muted-foreground">
+                                Work currently being executed
+                            </p>
+
+                        </CardContent>
+                    </Card>
+
+
+                    <Card className="rounded-xl border-border/70 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                        <CardContent className="p-5">
+
+                            <div className="flex items-center justify-between">
+
+                                <div>
+                                    <p className="text-sm text-muted-foreground">
+                                        Completed
+                                    </p>
+
+                                    <p className="mt-2 text-3xl font-bold">
+                                        {loading
+                                            ? "—"
+                                            : statistics.completed}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
+                                    <CheckCircle2 className="h-6 w-6" />
+                                </div>
+
+                            </div>
+
+                            <p className="mt-3 text-xs text-muted-foreground">
+                                Tasks completed
+                            </p>
+
+                        </CardContent>
+                    </Card>
+
+
+                    <Card className="rounded-xl border-border/70 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                        <CardContent className="p-5">
+
+                            <div className="flex items-center justify-between">
+
+                                <div>
+                                    <p className="text-sm text-muted-foreground">
+                                        Overall Progress
+                                    </p>
+
+                                    <p className="mt-2 text-3xl font-bold">
+                                        {loading
+                                            ? "—"
+                                            : `${statistics.progress}%`}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-xl bg-violet-50 p-3 text-violet-600">
+                                    <TrendingUp className="h-6 w-6" />
+                                </div>
+
+                            </div>
+
+                            <Progress
+                                value={
+                                    statistics.progress
+                                }
+                                className="mt-4 h-2"
+                            />
+
+                        </CardContent>
+                    </Card>
+
                 </div>
 
-                {/* ==================================================
-                    PROGRESS + SPRINT
-                ================================================== */}
+
+                {/* ------------------------------------------------ */}
+                {/* MAIN GRID */}
+                {/* ------------------------------------------------ */}
 
                 <div className="grid gap-6 lg:grid-cols-3">
 
-                    {/* Development Progress */}
+                    {/* -------------------------------------------- */}
+                    {/* TASKS */}
+                    {/* -------------------------------------------- */}
 
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2 dark:border-blue-900/60 dark:bg-[#0b2038]">
-                        <div className="flex items-center justify-between">
+                    <Card className="rounded-xl border-border/70 shadow-sm lg:col-span-2">
+
+                        <CardHeader className="flex flex-row items-center justify-between">
+
                             <div>
-                                <h2 className="font-bold text-slate-900 dark:text-white">
-                                    Development Progress
-                                </h2>
+                                <CardTitle className="flex items-center gap-2">
+                                    <FolderKanban className="h-5 w-5 text-blue-600" />
+                                    My Assigned Tasks
+                                </CardTitle>
 
-                                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                    Current progress across your assigned
-                                    development work
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Tasks assigned to your Contributor account.
                                 </p>
                             </div>
 
-                            <div className="rounded-xl bg-blue-50 p-3 dark:bg-blue-950/30">
-                                <TrendingUp className="h-5 w-5 text-blue-600" />
-                            </div>
-                        </div>
-
-                        <div className="mt-6 flex items-end gap-3">
-                            <span className="text-4xl font-bold text-slate-900 dark:text-white">
-                                {statistics.averageProgress}%
-                            </span>
-
-                            <span className="mb-1 text-sm text-slate-500 dark:text-slate-400">
-                                overall development progress
-                            </span>
-                        </div>
-
-                        <ProgressBar
-                            progress={statistics.averageProgress}
-                        />
-
-                        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                            <div className="rounded-xl bg-slate-50 p-3 dark:bg-blue-950/30">
-                                <p className="text-xs text-slate-500">
-                                    Completed
-                                </p>
-
-                                <p className="mt-1 text-lg font-bold text-emerald-600">
-                                    {statistics.completedTasks}
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-50 p-3 dark:bg-blue-950/30">
-                                <p className="text-xs text-slate-500">
-                                    In Progress
-                                </p>
-
-                                <p className="mt-1 text-lg font-bold text-blue-600">
-                                    {statistics.inProgressTasks}
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-50 p-3 dark:bg-blue-950/30">
-                                <p className="text-xs text-slate-500">
-                                    Review
-                                </p>
-
-                                <p className="mt-1 text-lg font-bold text-purple-600">
-                                    {statistics.reviewTasks}
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-50 p-3 dark:bg-blue-950/30">
-                                <p className="text-xs text-slate-500">
-                                    Blocked
-                                </p>
-
-                                <p className="mt-1 text-lg font-bold text-red-600">
-                                    {statistics.blockedTasks}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Active Sprint */}
-
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-blue-900/60 dark:bg-[#0b2038]">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h2 className="font-bold text-slate-900 dark:text-white">
-                                    Active Sprint
-                                </h2>
-
-                                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                    Current development sprint
-                                </p>
-                            </div>
-
-                            <Target className="h-5 w-5 text-blue-600" />
-                        </div>
-
-                        <div className="mt-5">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                                Sprint 04
-                            </h3>
-
-                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                AI-PMS Development Sprint
-                            </p>
-                        </div>
-
-                        <div className="mt-5 space-y-3">
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-slate-500">
-                                    Status
-                                </span>
-
-                                <StatusBadge status="In Progress" />
-                            </div>
-
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-slate-500">
-                                    Start Date
-                                </span>
-
-                                <span className="font-medium text-slate-900 dark:text-white">
-                                    Aug 18, 2026
-                                </span>
-                            </div>
-
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-slate-500">
-                                    End Date
-                                </span>
-
-                                <span className="font-medium text-slate-900 dark:text-white">
-                                    Aug 30, 2026
-                                </span>
-                            </div>
-
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-slate-500">
-                                    Remaining
-                                </span>
-
-                                <span className="font-semibold text-amber-600">
-                                    5 days
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="mt-5 rounded-xl bg-amber-50 p-3 dark:bg-amber-950/20">
-                            <div className="flex gap-2">
-                                <Clock3 className="h-4 w-4 text-amber-600" />
-
-                                <p className="text-xs leading-5 text-amber-700 dark:text-amber-400">
-                                    Prioritize approaching deadlines and
-                                    report blockers as early as possible.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* ==================================================
-                    MY DEVELOPMENT TASKS
-                ================================================== */}
-
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-blue-900/60 dark:bg-[#0b2038]">
-                    <div className="border-b border-slate-200 p-5 dark:border-blue-900/60">
-                        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <Code2 className="h-5 w-5 text-blue-600" />
-
-                                    <h2 className="font-bold text-slate-900 dark:text-white">
-                                        My Development Tasks
-                                    </h2>
-                                </div>
-
-                                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                    View and monitor your assigned development
-                                    tasks.
-                                </p>
-                            </div>
-
-                            <div className="flex flex-col gap-2 sm:flex-row">
-
-                                {/* Search */}
-
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
-                                    <input
-                                        type="text"
-                                        value={searchTerm}
-                                        onChange={(event) =>
-                                            setSearchTerm(
-                                                event.target.value
-                                            )
-                                        }
-                                        placeholder="Search tasks..."
-                                        className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500 sm:w-56 dark:border-blue-900/60 dark:bg-[#071a2d] dark:text-white"
-                                    />
-                                </div>
-
-                                {/* Status */}
-
-                                <select
-                                    value={statusFilter}
-                                    onChange={(event) =>
-                                        setStatusFilter(
-                                            event.target.value
+                            {tasks.length > 6 && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                        setShowAllTasks(
+                                            (value) => !value
                                         )
                                     }
-                                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-blue-900/60 dark:bg-[#071a2d] dark:text-white"
                                 >
-                                    <option value="All">
-                                        All Status
-                                    </option>
+                                    {showAllTasks
+                                        ? "Show Less"
+                                        : "View All"}
 
-                                    <option value="Not Started">
-                                        Not Started
-                                    </option>
+                                    <ArrowRight className="ml-1 h-4 w-4" />
+                                </Button>
+                            )}
 
-                                    <option value="In Progress">
-                                        In Progress
-                                    </option>
+                        </CardHeader>
 
-                                    <option value="Review">
-                                        Review
-                                    </option>
 
-                                    <option value="Completed">
-                                        Completed
-                                    </option>
+                        <CardContent>
 
-                                    <option value="Blocked">
-                                        Blocked
-                                    </option>
-                                </select>
+                            {loading ? (
+                                <div className="flex min-h-[280px] items-center justify-center">
 
-                                {/* Priority */}
+                                    <div className="text-center">
 
-                                <select
-                                    value={priorityFilter}
-                                    onChange={(event) =>
-                                        setPriorityFilter(
-                                            event.target.value
-                                        )
-                                    }
-                                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-blue-900/60 dark:bg-[#071a2d] dark:text-white"
-                                >
-                                    <option value="All">
-                                        All Priority
-                                    </option>
+                                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
 
-                                    <option value="High">
-                                        High
-                                    </option>
+                                        <p className="mt-3 text-sm text-muted-foreground">
+                                            Loading your tasks...
+                                        </p>
 
-                                    <option value="Medium">
-                                        Medium
-                                    </option>
+                                    </div>
 
-                                    <option value="Low">
-                                        Low
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+                                </div>
+                            ) : visibleTasks.length === 0 ? (
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[1100px]">
-                            <thead>
-                                <tr className="border-b border-slate-200 bg-slate-50 text-left dark:border-blue-900/60 dark:bg-blue-950/20">
-                                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        Task
-                                    </th>
+                                <div className="flex min-h-[280px] flex-col items-center justify-center text-center">
 
-                                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        Type
-                                    </th>
+                                    <div className="rounded-2xl bg-muted p-4">
+                                        <CheckCircle2 className="h-8 w-8 text-muted-foreground" />
+                                    </div>
 
-                                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        Sprint
-                                    </th>
+                                    <h3 className="mt-4 font-semibold">
+                                        No assigned tasks
+                                    </h3>
 
-                                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        Priority
-                                    </th>
+                                    <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                                        You currently don't have any tasks
+                                        assigned to your account.
+                                    </p>
 
-                                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        Status
-                                    </th>
+                                </div>
 
-                                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        Progress
-                                    </th>
+                            ) : (
 
-                                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        Due Date
-                                    </th>
+                                <div className="space-y-3">
 
-                                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        Action
-                                    </th>
-                                </tr>
-                            </thead>
+                                    {visibleTasks.map((task) => {
 
-                            <tbody>
-                                {filteredTasks.length === 0 ? (
-                                    <tr>
-                                        <td
-                                            colSpan="8"
-                                            className="px-5 py-12 text-center"
-                                        >
-                                            <Filter className="mx-auto h-8 w-8 text-slate-300" />
+                                        const status =
+                                            STATUS_META[
+                                                task.status
+                                            ] ||
+                                            STATUS_META[
+                                                STATUS.TODO
+                                            ];
 
-                                            <p className="mt-3 text-sm font-medium text-slate-500">
-                                                No tasks match your filters.
-                                            </p>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredTasks.map((task) => (
-                                        <tr
-                                            key={task.id}
-                                            className="border-b border-slate-100 last:border-0 dark:border-blue-900/40"
-                                        >
-                                            <td className="px-5 py-4">
-                                                <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                                                    {task.title}
-                                                </p>
+                                        const priority =
+                                            PRIORITY_META[
+                                                task.priority
+                                            ] ||
+                                            PRIORITY_META[2];
 
-                                                <p className="mt-1 max-w-xs truncate text-xs text-slate-500">
-                                                    {task.description}
-                                                </p>
-                                            </td>
+                                        const selected =
+                                            selectedTask?.id ===
+                                            task.id;
 
-                                            <td className="px-5 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    {task.type === "Backend" ? (
-                                                        <Code2 className="h-4 w-4 text-blue-600" />
-                                                    ) : task.type ===
-                                                      "Testing" ? (
-                                                        <Bug className="h-4 w-4 text-purple-600" />
-                                                    ) : (
-                                                        <Layers className="h-4 w-4 text-slate-500" />
-                                                    )}
+                                        const updating =
+                                            taskUpdatingId ===
+                                            task.id;
 
-                                                    <span className="text-sm text-slate-600 dark:text-slate-300">
-                                                        {task.type}
-                                                    </span>
+                                        return (
+                                            <div
+                                                key={task.id}
+                                                className={[
+                                                    "group rounded-xl border p-4 transition",
+                                                    selected
+                                                        ? "border-blue-300 bg-blue-50/40 shadow-sm"
+                                                        : "border-border/70 hover:border-blue-200 hover:bg-muted/30",
+                                                ].join(" ")}
+                                            >
+
+                                                <div className="flex flex-col gap-4">
+
+                                                    <div className="flex items-start justify-between gap-4">
+
+                                                        <button
+                                                            type="button"
+                                                            className="min-w-0 flex-1 text-left"
+                                                            onClick={() =>
+                                                                handleSelectTask(
+                                                                    task
+                                                                )
+                                                            }
+                                                        >
+                                                            <div className="flex flex-wrap items-center gap-2">
+
+                                                                <h3 className="font-semibold group-hover:text-blue-600">
+                                                                    {task.title}
+                                                                </h3>
+
+                                                                <span
+                                                                    className={[
+                                                                        "rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                                                                        status.className,
+                                                                    ].join(" ")}
+                                                                >
+                                                                    {status.label}
+                                                                </span>
+
+                                                            </div>
+
+                                                            {task.description && (
+                                                                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                                                                    {task.description}
+                                                                </p>
+                                                            )}
+
+                                                        </button>
+
+
+                                                        <span
+                                                            className={`text-xs font-semibold ${priority.className}`}
+                                                        >
+                                                            {priority.label}
+                                                        </span>
+
+                                                    </div>
+
+
+                                                    <div className="grid gap-3 sm:grid-cols-3">
+
+                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                            <FolderKanban className="h-4 w-4" />
+
+                                                            <span className="truncate">
+                                                                {task.projectName}
+                                                            </span>
+                                                        </div>
+
+
+                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                            <CalendarDays className="h-4 w-4" />
+
+                                                            <span>
+                                                                {formatDate(
+                                                                    task.dueDate
+                                                                )}
+                                                            </span>
+
+                                                            {isOverdue(
+                                                                task
+                                                            ) && (
+                                                                <span className="font-medium text-red-600">
+                                                                    Overdue
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+
+                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                            <Target className="h-4 w-4" />
+
+                                                            <span>
+                                                                {task.progress}%
+                                                            </span>
+                                                        </div>
+
+                                                    </div>
+
+
+                                                    <div>
+
+                                                        <div className="mb-1 flex items-center justify-between">
+
+                                                            <span className="text-xs text-muted-foreground">
+                                                                Progress
+                                                            </span>
+
+                                                            <span className="text-xs font-medium">
+                                                                {task.progress}%
+                                                            </span>
+
+                                                        </div>
+
+                                                        <Progress
+                                                            value={
+                                                                task.progress
+                                                            }
+                                                            className="h-1.5"
+                                                        />
+
+                                                    </div>
+
+
+                                                    <div className="flex flex-wrap items-center justify-between gap-3">
+
+                                                        <Button
+                                                            size="sm"
+                                                            variant={
+                                                                selected
+                                                                    ? "default"
+                                                                    : "outline"
+                                                            }
+                                                            className="rounded-lg"
+                                                            onClick={() =>
+                                                                handleSelectTask(
+                                                                    task
+                                                                )
+                                                            }
+                                                        >
+                                                            <BrainCircuit className="mr-2 h-4 w-4" />
+                                                            AI Subtasks
+                                                        </Button>
+
+
+                                                        <div className="flex items-center gap-2">
+
+                                                            <select
+                                                                value={
+                                                                    task.status
+                                                                }
+                                                                disabled={
+                                                                    updating ||
+                                                                    task.status ===
+                                                                    STATUS.COMPLETED
+                                                                }
+                                                                onChange={(event) =>
+                                                                    handleTaskStatusChange(
+                                                                        task,
+                                                                        event
+                                                                            .target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                                className="h-9 rounded-lg border border-border bg-background px-3 text-xs outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                            >
+
+                                                                <option value={STATUS.TODO}>
+                                                                    To Do
+                                                                </option>
+
+                                                                <option value={STATUS.IN_PROGRESS}>
+                                                                    In Progress
+                                                                </option>
+
+                                                                <option value={STATUS.IN_REVIEW}>
+                                                                    In Review
+                                                                </option>
+
+                                                                <option value={STATUS.COMPLETED}>
+                                                                    Completed
+                                                                </option>
+
+                                                                <option value={STATUS.BLOCKED}>
+                                                                    Blocked
+                                                                </option>
+
+                                                            </select>
+
+                                                            {updating && (
+                                                                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                                                            )}
+
+                                                        </div>
+
+                                                    </div>
+
                                                 </div>
-                                            </td>
 
-                                            <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
-                                                {task.sprint}
-                                            </td>
+                                            </div>
+                                        );
+                                    })}
 
-                                            <td className="px-5 py-4">
-                                                <PriorityBadge
-                                                    priority={task.priority}
-                                                />
-                                            </td>
+                                </div>
+                            )}
 
-                                            <td className="px-5 py-4">
-                                                <StatusBadge
-                                                    status={task.status}
-                                                />
-                                            </td>
+                        </CardContent>
 
-                                            <td className="w-40 px-5 py-4">
-                                                <ProgressBar
-                                                    progress={
-                                                        task.progress
-                                                    }
-                                                />
-                                            </td>
+                    </Card>
 
-                                            <td className="px-5 py-4">
-                                                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                                    <CalendarDays className="h-4 w-4 text-slate-400" />
 
-                                                    {task.dueDate}
-                                                </div>
-                                            </td>
+                    {/* -------------------------------------------- */}
+                    {/* PROFILE / WORK SUMMARY */}
+                    {/* -------------------------------------------- */}
 
-                                            <td className="px-5 py-4 text-right">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setSelectedTask(
-                                                            task
-                                                        )
-                                                    }
-                                                    className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
-                                                >
-                                                    <Eye className="h-4 w-4" />
+                    <Card className="rounded-xl border-border/70 shadow-sm">
 
-                                                    View
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <UserRound className="h-5 w-5 text-blue-600" />
+                                My Work Summary
+                            </CardTitle>
+                        </CardHeader>
 
-                {/* ==================================================
-                    DEVELOPMENT METRICS + TECHNICAL STATUS
-                ================================================== */}
+                        <CardContent className="space-y-5">
 
-                <div className="grid gap-6 lg:grid-cols-2">
+                            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 p-5">
 
-                    {/* Development Metrics */}
+                                <div className="flex items-center gap-3">
 
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-blue-900/60 dark:bg-[#0b2038]">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
-                                <Activity className="h-5 w-5" />
-                            </div>
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
+                                        <Code2 className="h-6 w-6" />
+                                    </div>
 
-                            <div>
-                                <h2 className="font-bold text-slate-900 dark:text-white">
-                                    Development Metrics
-                                </h2>
+                                    <div>
+                                        <p className="font-semibold">
+                                            Contributor Workspace
+                                        </p>
 
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    Current development performance
+                                        <p className="text-xs text-muted-foreground">
+                                            Developer / Staff
+                                        </p>
+                                    </div>
+
+                                </div>
+
+                                <p className="mt-4 text-sm text-muted-foreground">
+                                    Your dashboard is connected to the
+                                    authenticated Contributor account.
+                                    Tasks displayed here come from your
+                                    actual backend assignments.
                                 </p>
-                            </div>
-                        </div>
 
-                        <div className="mt-6 space-y-5">
-
-                            {/* Completion Rate */}
-
-                            <div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-500">
-                                        Completion Rate
-                                    </span>
-
-                                    <span className="font-bold text-slate-900 dark:text-white">
-                                        {statistics.completionRate}%
-                                    </span>
-                                </div>
-
-                                <ProgressBar
-                                    progress={
-                                        statistics.completionRate
-                                    }
-                                />
                             </div>
 
-                            {/* Development Progress */}
 
-                            <div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-500">
-                                        Development Progress
-                                    </span>
+                            <div className="space-y-3">
 
-                                    <span className="font-bold text-slate-900 dark:text-white">
-                                        {statistics.averageProgress}%
-                                    </span>
-                                </div>
-
-                                <ProgressBar
-                                    progress={
-                                        statistics.averageProgress
-                                    }
-                                />
-                            </div>
-
-                            {/* Metrics */}
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="rounded-xl border border-slate-200 p-4 dark:border-blue-900/60">
-                                    <p className="text-xs text-slate-500">
-                                        Awaiting Review
-                                    </p>
-
-                                    <p className="mt-1 text-2xl font-bold text-purple-600">
-                                        {statistics.reviewTasks}
-                                    </p>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-200 p-4 dark:border-blue-900/60">
-                                    <p className="text-xs text-slate-500">
-                                        Overdue
-                                    </p>
-
-                                    <p className="mt-1 text-2xl font-bold text-red-600">
-                                        {statistics.overdueTasks}
-                                    </p>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-200 p-4 dark:border-blue-900/60">
-                                    <p className="text-xs text-slate-500">
-                                        Not Started
-                                    </p>
-
-                                    <p className="mt-1 text-2xl font-bold text-slate-600 dark:text-slate-300">
-                                        {statistics.notStartedTasks}
-                                    </p>
-                                </div>
-
-                                <div className="rounded-xl border border-slate-200 p-4 dark:border-blue-900/60">
-                                    <p className="text-xs text-slate-500">
-                                        Active Tasks
-                                    </p>
-
-                                    <p className="mt-1 text-2xl font-bold text-blue-600">
-                                        {statistics.inProgressTasks}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Technical Status */}
-
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-blue-900/60 dark:bg-[#0b2038]">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
-                                <GitBranch className="h-5 w-5" />
-                            </div>
-
-                            <div>
-                                <h2 className="font-bold text-slate-900 dark:text-white">
-                                    Technical Status
-                                </h2>
-
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    Development environment and work status
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mt-5 space-y-3">
-
-                            {/* Current Branch */}
-
-                            <div className="rounded-xl border border-slate-200 p-4 dark:border-blue-900/60">
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between rounded-lg border p-3">
                                     <div className="flex items-center gap-2">
-                                        <GitBranch className="h-4 w-4 text-blue-600" />
-
-                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                                            Current Branch
+                                        <ListTodo className="h-4 w-4 text-blue-600" />
+                                        <span className="text-sm">
+                                            To Do
                                         </span>
                                     </div>
 
-                                    <span className="rounded-lg bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-400">
-                                        feature/auth-api
+                                    <span className="font-semibold">
+                                        {statistics.todo}
                                     </span>
                                 </div>
+
+
+                                <div className="flex items-center justify-between rounded-lg border p-3">
+                                    <div className="flex items-center gap-2">
+                                        <Clock3 className="h-4 w-4 text-blue-600" />
+                                        <span className="text-sm">
+                                            In Progress
+                                        </span>
+                                    </div>
+
+                                    <span className="font-semibold">
+                                        {statistics.inProgress}
+                                    </span>
+                                </div>
+
+
+                                <div className="flex items-center justify-between rounded-lg border p-3">
+                                    <div className="flex items-center gap-2">
+                                        <FileText className="h-4 w-4 text-violet-600" />
+                                        <span className="text-sm">
+                                            In Review
+                                        </span>
+                                    </div>
+
+                                    <span className="font-semibold">
+                                        {statistics.review}
+                                    </span>
+                                </div>
+
+
+                                <div className="flex items-center justify-between rounded-lg border p-3">
+                                    <div className="flex items-center gap-2">
+                                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                        <span className="text-sm">
+                                            Completed
+                                        </span>
+                                    </div>
+
+                                    <span className="font-semibold">
+                                        {statistics.completed}
+                                    </span>
+                                </div>
+
+
+                                <div className="flex items-center justify-between rounded-lg border p-3">
+                                    <div className="flex items-center gap-2">
+                                        <XCircle className="h-4 w-4 text-red-600" />
+                                        <span className="text-sm">
+                                            Blocked
+                                        </span>
+                                    </div>
+
+                                    <span className="font-semibold">
+                                        {statistics.blocked}
+                                    </span>
+                                </div>
+
                             </div>
 
-                            {/* Code Status */}
 
-                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20">
-                                <div className="flex gap-3">
-                                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+                            {statistics.overdue > 0 && (
+                                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+
+                                    <div className="flex items-center gap-2 text-red-700">
+
+                                        <AlertCircle className="h-5 w-5" />
+
+                                        <span className="font-semibold">
+                                            {statistics.overdue} overdue{" "}
+                                            {statistics.overdue === 1
+                                                ? "task"
+                                                : "tasks"}
+                                        </span>
+
+                                    </div>
+
+                                    <p className="mt-1 text-xs text-red-600">
+                                        Review your assigned tasks and
+                                        update their status.
+                                    </p>
+
+                                </div>
+                            )}
+
+                        </CardContent>
+
+                    </Card>
+
+                </div>
+
+
+                {/* ------------------------------------------------ */}
+                {/* AI SUBTASK PANEL */}
+                {/* ------------------------------------------------ */}
+
+                {selectedTask && (
+                    <Card className="rounded-xl border-blue-200/70 shadow-sm">
+
+                        <CardHeader>
+
+                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+                                <div>
+
+                                    <div className="flex flex-wrap items-center gap-2">
+
+                                        <CardTitle className="flex items-center gap-2">
+
+                                            <Sparkles className="h-5 w-5 text-blue-600" />
+
+                                            AI-Generated Subtasks
+
+                                        </CardTitle>
+
+                                        <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
+                                            AI Generated
+                                        </span>
+
+                                    </div>
+
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {selectedTask.title}
+                                    </p>
+
+                                </div>
+
+
+                                <div className="flex flex-wrap gap-2">
+
+                                    <div className="rounded-lg bg-muted px-3 py-2 text-xs">
+                                        <span className="text-muted-foreground">
+                                            Subtasks:
+                                        </span>{" "}
+                                        <span className="font-semibold">
+                                            {subtaskStats.total}
+                                        </span>
+                                    </div>
+
+                                    <div className="rounded-lg bg-muted px-3 py-2 text-xs">
+                                        <span className="text-muted-foreground">
+                                            Progress:
+                                        </span>{" "}
+                                        <span className="font-semibold">
+                                            {subtaskStats.progress}%
+                                        </span>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </CardHeader>
+
+
+                        <CardContent>
+
+                            {subtaskError && (
+                                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4">
+
+                                    <div className="flex items-center gap-2 text-red-700">
+
+                                        <AlertCircle className="h-4 w-4" />
+
+                                        <span className="text-sm font-medium">
+                                            {subtaskError}
+                                        </span>
+
+                                    </div>
+
+                                </div>
+                            )}
+
+
+                            {loadingSubtasks ? (
+
+                                <div className="flex min-h-[180px] items-center justify-center">
+
+                                    <div className="text-center">
+
+                                        <Loader2 className="mx-auto h-7 w-7 animate-spin text-blue-600" />
+
+                                        <p className="mt-3 text-sm text-muted-foreground">
+                                            Loading AI subtasks...
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            ) : subtasks.length === 0 ? (
+
+                                <div className="flex min-h-[180px] flex-col items-center justify-center text-center">
+
+                                    <div className="rounded-2xl bg-blue-50 p-4 text-blue-600">
+                                        <BrainCircuit className="h-8 w-8" />
+                                    </div>
+
+                                    <h3 className="mt-4 font-semibold">
+                                        No AI subtasks found
+                                    </h3>
+
+                                    <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                                        This task does not currently have
+                                        AI-generated subtasks available.
+                                    </p>
+
+                                </div>
+
+                            ) : (
+
+                                <div className="space-y-4">
+
+                                    {subtasks.map((subtask, index) => {
+
+                                        const status =
+                                            STATUS_META[
+                                                subtask.status
+                                            ] ||
+                                            STATUS_META[
+                                                STATUS.TODO
+                                            ];
+
+                                        const updating =
+                                            subtaskUpdatingId ===
+                                            subtask.id;
+
+                                        const completed =
+                                            subtask.status ===
+                                            STATUS.COMPLETED;
+
+                                        return (
+                                            <div
+                                                key={
+                                                    subtask.id ||
+                                                    index
+                                                }
+                                                className="rounded-xl border border-border/70 bg-background p-4"
+                                            >
+
+                                                <div className="flex flex-col gap-4">
+
+                                                    <div className="flex items-start gap-3">
+
+                                                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                                            <Zap className="h-4 w-4" />
+                                                        </div>
+
+                                                        <div className="min-w-0 flex-1">
+
+                                                            <div className="flex flex-wrap items-center gap-2">
+
+                                                                <h3 className="font-semibold">
+                                                                    {subtask.title}
+                                                                </h3>
+
+                                                                <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                                                                    AI
+                                                                </span>
+
+                                                                <span
+                                                                    className={[
+                                                                        "rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                                                                        status.className,
+                                                                    ].join(" ")}
+                                                                >
+                                                                    {status.label}
+                                                                </span>
+
+                                                            </div>
+
+                                                            {subtask.description && (
+                                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                                    {subtask.description}
+                                                                </p>
+                                                            )}
+
+                                                        </div>
+
+                                                    </div>
+
+
+                                                    <div>
+
+                                                        <div className="mb-1 flex items-center justify-between">
+
+                                                            <span className="text-xs text-muted-foreground">
+                                                                Subtask Progress
+                                                            </span>
+
+                                                            <span className="text-xs font-semibold">
+                                                                {subtask.progress}%
+                                                            </span>
+
+                                                        </div>
+
+                                                        <Progress
+                                                            value={
+                                                                subtask.progress
+                                                            }
+                                                            className="h-2"
+                                                        />
+
+                                                    </div>
+
+
+                                                    <div className="grid gap-4 md:grid-cols-2">
+
+                                                        <div>
+
+                                                            <label className="mb-2 block text-xs font-medium text-muted-foreground">
+                                                                Status
+                                                            </label>
+
+                                                            <div className="flex items-center gap-2">
+
+                                                                <select
+                                                                    value={
+                                                                        subtask.status
+                                                                    }
+                                                                    disabled={
+                                                                        completed ||
+                                                                        updating
+                                                                    }
+                                                                    onChange={(
+                                                                        event
+                                                                    ) =>
+                                                                        handleSubtaskUpdate(
+                                                                            subtask,
+                                                                            event
+                                                                                .target
+                                                                                .value,
+                                                                            subtask.progress
+                                                                        )
+                                                                    }
+                                                                    className="h-9 w-full rounded-lg border border-border bg-background px-3 text-xs outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                                >
+
+                                                                    <option value={STATUS.TODO}>
+                                                                        To Do
+                                                                    </option>
+
+                                                                    <option value={STATUS.IN_PROGRESS}>
+                                                                        In Progress
+                                                                    </option>
+
+                                                                    <option value={STATUS.IN_REVIEW}>
+                                                                        In Review
+                                                                    </option>
+
+                                                                    <option value={STATUS.COMPLETED}>
+                                                                        Completed
+                                                                    </option>
+
+                                                                    <option value={STATUS.BLOCKED}>
+                                                                        Blocked
+                                                                    </option>
+
+                                                                </select>
+
+                                                                {updating && (
+                                                                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-blue-600" />
+                                                                )}
+
+                                                            </div>
+
+                                                        </div>
+
+
+                                                        <div>
+
+                                                            <label className="mb-2 block text-xs font-medium text-muted-foreground">
+                                                                Progress
+                                                            </label>
+
+                                                            <div className="flex items-center gap-3">
+
+                                                                <input
+                                                                    type="range"
+                                                                    min="0"
+                                                                    max="100"
+                                                                    step="5"
+                                                                    value={
+                                                                        subtask.progress
+                                                                    }
+                                                                    disabled={
+                                                                        completed ||
+                                                                        updating
+                                                                    }
+                                                                    onChange={(
+                                                                        event
+                                                                    ) =>
+                                                                        setSubtasks(
+                                                                            (
+                                                                                current
+                                                                            ) =>
+                                                                                current.map(
+                                                                                    (
+                                                                                        item
+                                                                                    ) =>
+                                                                                        item.id ===
+                                                                                        subtask.id
+                                                                                            ? {
+                                                                                                ...item,
+                                                                                                progress:
+                                                                                                    Number(
+                                                                                                        event
+                                                                                                            .target
+                                                                                                            .value
+                                                                                                    ),
+                                                                                            }
+                                                                                            : item
+                                                                                )
+                                                                        )
+                                                                    }
+                                                                    onMouseUp={(
+                                                                        event
+                                                                    ) =>
+                                                                        handleSubtaskUpdate(
+                                                                            subtask,
+                                                                            subtask.status,
+                                                                            Number(
+                                                                                event
+                                                                                    .target
+                                                                                    .value
+                                                                            )
+                                                                        )
+                                                                    }
+                                                                    onTouchEnd={(
+                                                                        event
+                                                                    ) =>
+                                                                        handleSubtaskUpdate(
+                                                                            subtask,
+                                                                            subtask.status,
+                                                                            Number(
+                                                                                event
+                                                                                    .target
+                                                                                    .value
+                                                                            )
+                                                                        )
+                                                                    }
+                                                                    className="w-full"
+                                                                />
+
+                                                                <span className="w-12 rounded-lg border px-2 py-1 text-center text-xs font-medium">
+                                                                    {
+                                                                        subtask.progress
+                                                                    }%
+                                                                </span>
+
+                                                            </div>
+
+                                                        </div>
+
+                                                    </div>
+
+
+                                                    {subtask.aiRecommendation && (
+                                                        <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3">
+
+                                                            <div className="flex items-start gap-2">
+
+                                                                <BrainCircuit className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+
+                                                                <div>
+
+                                                                    <p className="text-xs font-semibold text-blue-700">
+                                                                        AI Recommendation
+                                                                    </p>
+
+                                                                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                                                        {
+                                                                            subtask.aiRecommendation
+                                                                        }
+                                                                    </p>
+
+                                                                </div>
+
+                                                            </div>
+
+                                                        </div>
+                                                    )}
+
+
+                                                    {completed && (
+                                                        <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+
+                                                            <CheckCircle2 className="h-4 w-4" />
+
+                                                            Completed subtasks
+                                                            are read-only.
+
+                                                        </div>
+                                                    )}
+
+                                                </div>
+
+                                            </div>
+                                        );
+                                    })}
+
+                                </div>
+                            )}
+
+                        </CardContent>
+
+                    </Card>
+                )}
+
+
+                {/* ------------------------------------------------ */}
+                {/* BOTTOM GRID */}
+                {/* ------------------------------------------------ */}
+
+                <div className="grid gap-6 lg:grid-cols-2">
+
+                    {/* Recent Activity */}
+
+                    <Card className="rounded-xl border-border/70 shadow-sm">
+
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Activity className="h-5 w-5 text-blue-600" />
+                                Recent Activity
+                            </CardTitle>
+                        </CardHeader>
+
+                        <CardContent>
+
+                            {recentActivity.length === 0 ? (
+
+                                <div className="py-8 text-center text-sm text-muted-foreground">
+                                    No recent task activity.
+                                </div>
+
+                            ) : (
+
+                                <div className="space-y-4">
+
+                                    {recentActivity.map(
+                                        (activity) => {
+
+                                            const status =
+                                                STATUS_META[
+                                                    activity.status
+                                                ] ||
+                                                STATUS_META[
+                                                    STATUS.TODO
+                                                ];
+
+                                            return (
+                                                <div
+                                                    key={
+                                                        activity.id
+                                                    }
+                                                    className="flex items-start gap-3"
+                                                >
+
+                                                    <div className="mt-0.5 rounded-lg bg-blue-50 p-2 text-blue-600">
+                                                        <Activity className="h-4 w-4" />
+                                                    </div>
+
+                                                    <div className="min-w-0 flex-1">
+
+                                                        <p className="text-sm font-medium">
+                                                            {activity.title}
+                                                        </p>
+
+                                                        <div className="mt-1 flex flex-wrap items-center gap-2">
+
+                                                            <span
+                                                                className={[
+                                                                    "rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                                                                    status.className,
+                                                                ].join(" ")}
+                                                            >
+                                                                {
+                                                                    status.label
+                                                                }
+                                                            </span>
+
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {formatRelativeTime(
+                                                                    activity.time
+                                                                )}
+                                                            </span>
+
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+                                            );
+                                        }
+                                    )}
+
+                                </div>
+                            )}
+
+                        </CardContent>
+
+                    </Card>
+
+
+                    {/* Work Health */}
+
+                    <Card className="rounded-xl border-border/70 shadow-sm">
+
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <TrendingUp className="h-5 w-5 text-blue-600" />
+                                Work Health
+                            </CardTitle>
+                        </CardHeader>
+
+                        <CardContent className="space-y-5">
+
+                            <div>
+
+                                <div className="mb-2 flex items-center justify-between">
+
+                                    <span className="text-sm text-muted-foreground">
+                                        Overall task progress
+                                    </span>
+
+                                    <span className="text-sm font-semibold">
+                                        {statistics.progress}%
+                                    </span>
+
+                                </div>
+
+                                <Progress
+                                    value={
+                                        statistics.progress
+                                    }
+                                    className="h-2.5"
+                                />
+
+                            </div>
+
+
+                            <div className="grid grid-cols-2 gap-3">
+
+                                <div className="rounded-xl border p-4">
+
+                                    <div className="flex items-center gap-2 text-emerald-600">
+
+                                        <CheckCircle2 className="h-4 w-4" />
+
+                                        <span className="text-xs font-medium">
+                                            Completed
+                                        </span>
+
+                                    </div>
+
+                                    <p className="mt-2 text-2xl font-bold">
+                                        {
+                                            statistics.completed
+                                        }
+                                    </p>
+
+                                </div>
+
+
+                                <div className="rounded-xl border p-4">
+
+                                    <div className="flex items-center gap-2 text-red-600">
+
+                                        <AlertCircle className="h-4 w-4" />
+
+                                        <span className="text-xs font-medium">
+                                            Blocked
+                                        </span>
+
+                                    </div>
+
+                                    <p className="mt-2 text-2xl font-bold">
+                                        {
+                                            statistics.blocked
+                                        }
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+
+                            <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+
+                                <div className="flex items-start gap-3">
+
+                                    <div className="rounded-lg bg-white p-2 text-blue-600 shadow-sm">
+                                        <Sparkles className="h-4 w-4" />
+                                    </div>
 
                                     <div>
-                                        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                                            Code Integration Healthy
+
+                                        <p className="text-sm font-semibold text-blue-700">
+                                            AI-assisted execution
                                         </p>
 
-                                        <p className="mt-1 text-xs leading-5 text-emerald-600 dark:text-emerald-400">
-                                            Latest development changes are
-                                            ready for review.
+                                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                            AI-generated subtasks are available
+                                            directly from your assigned tasks.
+                                            You can update their status and
+                                            progress, while their definition
+                                            remains controlled by the Team Leader.
                                         </p>
+
                                     </div>
+
                                 </div>
+
                             </div>
 
-                            {/* Review */}
+                        </CardContent>
 
-                            <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 dark:border-purple-900/40 dark:bg-purple-950/20">
-                                <div className="flex gap-3">
-                                    <CircleDot className="h-5 w-5 shrink-0 text-purple-600" />
+                    </Card>
 
-                                    <div>
-                                        <p className="text-sm font-semibold text-purple-700 dark:text-purple-400">
-                                            Review Required
-                                        </p>
-
-                                        <p className="mt-1 text-xs leading-5 text-purple-600 dark:text-purple-400">
-                                            Refresh token validation is
-                                            waiting for review.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Bug */}
-
-                            <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/40 dark:bg-red-950/20">
-                                <div className="flex gap-3">
-                                    <Bug className="h-5 w-5 shrink-0 text-red-600" />
-
-                                    <div>
-                                        <p className="text-sm font-semibold text-red-700 dark:text-red-400">
-                                            Technical Blocker
-                                        </p>
-
-                                        <p className="mt-1 text-xs leading-5 text-red-600 dark:text-red-400">
-                                            API error handling is blocked by
-                                            a missing dependency.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setCommunicationOpen(true)
-                                }
-                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-                            >
-                                <Send className="h-4 w-4" />
-
-                                Report Technical Update
-                            </button>
-                        </div>
-                    </div>
                 </div>
 
-                {/* ==================================================
-                    RECENT ACTIVITY
-                ================================================== */}
-
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-blue-900/60 dark:bg-[#0b2038]">
-                    <div className="border-b border-slate-200 p-5 dark:border-blue-900/60">
-                        <div className="flex items-center gap-2">
-                            <Activity className="h-5 w-5 text-blue-600" />
-
-                            <h2 className="font-bold text-slate-900 dark:text-white">
-                                Recent Development Activity
-                            </h2>
-                        </div>
-
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            Recent updates related to your development work.
-                        </p>
-                    </div>
-
-                    <div className="divide-y divide-slate-100 dark:divide-blue-900/40">
-                        {RECENT_ACTIVITIES.map((activity) => {
-                            const activityStyles = {
-                                success: {
-                                    icon: CheckCircle2,
-                                    wrapper:
-                                        "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400",
-                                },
-
-                                info: {
-                                    icon: Code2,
-                                    wrapper:
-                                        "bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400",
-                                },
-
-                                review: {
-                                    icon: CircleDot,
-                                    wrapper:
-                                        "bg-purple-100 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400",
-                                },
-
-                                warning: {
-                                    icon: AlertTriangle,
-                                    wrapper:
-                                        "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400",
-                                },
-                            };
-
-                            const config =
-                                activityStyles[activity.type] ||
-                                activityStyles.info;
-
-                            const ActivityIcon = config.icon;
-
-                            return (
-                                <div
-                                    key={activity.id}
-                                    className="flex items-start gap-4 p-5"
-                                >
-                                    <div
-                                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${config.wrapper}`}
-                                    >
-                                        <ActivityIcon className="h-5 w-5" />
-                                    </div>
-
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex flex-col justify-between gap-1 sm:flex-row">
-                                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                                                {activity.title}
-                                            </p>
-
-                                            <span className="text-xs text-slate-400">
-                                                {activity.time}
-                                            </span>
-                                        </div>
-
-                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                            {activity.description}
-                                        </p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* ==================================================
-                    QUICK ACTIONS
-                ================================================== */}
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-blue-900/60 dark:bg-[#0b2038]">
-                    <div className="mb-5">
-                        <h2 className="font-bold text-slate-900 dark:text-white">
-                            Developer Actions
-                        </h2>
-
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            Actions available within your Developer authority.
-                        </p>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-
-                        {/* My Tasks */}
-
-                        <button
-                            type="button"
-                            className="group rounded-xl border border-slate-200 p-4 text-left transition hover:border-blue-300 hover:bg-blue-50 dark:border-blue-900/60 dark:hover:bg-blue-950/30"
-                        >
-                            <ClipboardList className="h-5 w-5 text-blue-600" />
-
-                            <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">
-                                My Tasks
-                            </p>
-
-                            <p className="mt-1 text-xs text-slate-500">
-                                View and monitor assigned tasks.
-                            </p>
-                        </button>
-
-                        {/* Development Work */}
-
-                        <button
-                            type="button"
-                            className="group rounded-xl border border-slate-200 p-4 text-left transition hover:border-blue-300 hover:bg-blue-50 dark:border-blue-900/60 dark:hover:bg-blue-950/30"
-                        >
-                            <Code2 className="h-5 w-5 text-purple-600" />
-
-                            <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">
-                                Development Work
-                            </p>
-
-                            <p className="mt-1 text-xs text-slate-500">
-                                Review your current development workload.
-                            </p>
-                        </button>
-
-                        {/* Contact Team Leader */}
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setCommunicationOpen(true)
-                            }
-                            className="group rounded-xl border border-slate-200 p-4 text-left transition hover:border-blue-300 hover:bg-blue-50 dark:border-blue-900/60 dark:hover:bg-blue-950/30"
-                        >
-                            <MessageSquare className="h-5 w-5 text-emerald-600" />
-
-                            <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">
-                                Contact Team Leader
-                            </p>
-
-                            <p className="mt-1 text-xs text-slate-500">
-                                Report progress, blockers, or issues.
-                            </p>
-                        </button>
-
-                        {/* Technical Status */}
-
-                        <button
-                            type="button"
-                            className="group rounded-xl border border-slate-200 p-4 text-left transition hover:border-blue-300 hover:bg-blue-50 dark:border-blue-900/60 dark:hover:bg-blue-950/30"
-                        >
-                            <GitBranch className="h-5 w-5 text-orange-600" />
-
-                            <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">
-                                Technical Status
-                            </p>
-
-                            <p className="mt-1 text-xs text-slate-500">
-                                Review development and technical status.
-                            </p>
-                        </button>
-                    </div>
-                </div>
-
-                {/* ==================================================
-                    FOOTER AUTHORITY
-                ================================================== */}
-
-                <div className="flex items-center justify-center gap-2 pb-4 text-xs text-slate-400">
-                    <ShieldCheck className="h-4 w-4" />
-
-                    Developer manages assigned development work.
-                    Team Leader and Manager retain higher-level authority.
-                </div>
             </div>
 
-            {/* ======================================================
-                MODALS
-            ====================================================== */}
-
-            <TaskDetailsModal
-                task={selectedTask}
-                onClose={() => setSelectedTask(null)}
-            />
-
-            {communicationOpen && (
-                <CommunicationModal
-                    onClose={() => setCommunicationOpen(false)}
-                />
-            )}
         </div>
     );
 }
-
-export default DeveloperDashboard;

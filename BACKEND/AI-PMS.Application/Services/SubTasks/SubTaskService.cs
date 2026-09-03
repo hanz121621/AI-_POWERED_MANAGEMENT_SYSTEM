@@ -3,21 +3,26 @@ using AI_PMS.Application.Interfaces.Repositories.SubTasks;
 using AI_PMS.Application.Interfaces.Repositories.Tasks;
 using AI_PMS.Application.Interfaces.SubTasks;
 using AI_PMS.Domain.Entities.SubTasks;
+using AI_PMS.Domain.Enums;
+using AI_PMS.Application.Interfaces.Repositories.Users;
 
 namespace AI_PMS.Application.Services
 {
     public class SubTaskService : ISubTaskService
     {
-        private readonly ISubTaskRepository _subTaskRepository;
-        private readonly ITaskRepository _taskRepository;
+  private readonly ISubTaskRepository _subTaskRepository;
+private readonly ITaskRepository _taskRepository;
+private readonly IUserRepository _userRepository;
 
         public SubTaskService(
-            ISubTaskRepository subTaskRepository,
-            ITaskRepository taskRepository)
-        {
-            _subTaskRepository = subTaskRepository;
-            _taskRepository = taskRepository;
-        }
+    ISubTaskRepository subTaskRepository,
+    ITaskRepository taskRepository,
+    IUserRepository userRepository)
+{
+    _subTaskRepository = subTaskRepository;
+    _taskRepository = taskRepository;
+    _userRepository = userRepository;
+}
 
         // =========================================================
         // CREATE SUBTASK
@@ -83,6 +88,14 @@ namespace AI_PMS.Application.Services
                 };
             }
 
+
+
+
+
+
+
+
+
             var subTask = new SubTask
             {
                 Id = Guid.NewGuid(),
@@ -100,6 +113,9 @@ namespace AI_PMS.Application.Services
 
                 IsAIGenerated =
                     dto.IsAIGenerated,
+                    Status = ProjectTaskStatus.Todo,
+
+                Progress = 0,
 
                 IsApproved = false,
 
@@ -311,39 +327,412 @@ namespace AI_PMS.Application.Services
                 "Subtask deleted successfully."
             );
         }
+                             // =========================================================
+// CHECK CONTRIBUTOR ACCESS TO SUBTASK
+// =========================================================
 
+public async Task<bool> CanContributorAccessSubTaskAsync(
+    Guid userId,
+    Guid subTaskId)
+{
+    if (userId == Guid.Empty || subTaskId == Guid.Empty)
+        return false;
+
+    var contributor =
+        await _userRepository.GetByIdAsync(userId);
+
+    if (contributor == null ||
+        contributor.Role != Role.Contributor ||
+        !contributor.IsActive)
+    {
+        return false;
+    }
+
+    var subTask =
+        await _subTaskRepository.GetByIdAsync(subTaskId);
+
+    if (subTask == null ||
+        subTask.IsDeleted)
+    {
+        return false;
+    }
+
+    var task =
+        await _taskRepository.GetByIdAsync(subTask.TaskId);
+
+    if (task == null ||
+        task.IsDeleted)
+    {
+        return false;
+    }
+
+    return task.AssignedContributorSDId == userId;
+}
+
+
+// =========================================================
+// GET MY TASK SUBTASKS
+// Contributor only
+// =========================================================
+
+public async Task<(
+    IEnumerable<SubTaskDto> SubTasks,
+    bool Success,
+    string Message
+)> GetMyTaskSubTasksAsync(
+    Guid userId,
+    Guid taskId)
+{
+    if (userId == Guid.Empty)
+    {
+        return (
+            Enumerable.Empty<SubTaskDto>(),
+            false,
+            "Invalid contributor."
+        );
+    }
+
+    if (taskId == Guid.Empty)
+    {
+        return (
+            Enumerable.Empty<SubTaskDto>(),
+            false,
+            "Task not found."
+        );
+    }
+
+    var contributor =
+        await _userRepository.GetByIdAsync(userId);
+
+    if (contributor == null)
+    {
+        return (
+            Enumerable.Empty<SubTaskDto>(),
+            false,
+            "Contributor not found."
+        );
+    }
+
+    if (contributor.Role != Role.Contributor)
+    {
+        return (
+            Enumerable.Empty<SubTaskDto>(),
+            false,
+            "Only Contributors can access their subtasks."
+        );
+    }
+
+    if (!contributor.IsActive)
+    {
+        return (
+            Enumerable.Empty<SubTaskDto>(),
+            false,
+            "Contributor account is inactive."
+        );
+    }
+
+    var task =
+        await _taskRepository.GetByIdAsync(taskId);
+
+    if (task == null ||
+        task.IsDeleted)
+    {
+        return (
+            Enumerable.Empty<SubTaskDto>(),
+            false,
+            "Task not found."
+        );
+    }
+
+    if (task.AssignedContributorSDId != userId)
+    {
+        return (
+            Enumerable.Empty<SubTaskDto>(),
+            false,
+            "You cannot access this task."
+        );
+    }
+
+    var subtasks =
+        await _subTaskRepository.GetByTaskIdAsync(taskId);
+
+    var result =
+        subtasks
+            .Where(x => !x.IsDeleted)
+            .Select(MapToDto)
+            .ToList();
+
+    return (
+        result,
+        true,
+        "Subtasks retrieved successfully."
+    );
+}
+
+
+// =========================================================
+// UPDATE MY AI SUBTASK STATUS / PROGRESS
+// Contributor only
+// =========================================================
+
+public async Task<(SubTaskDto? SubTask, string Message)>
+    UpdateMyAISubTaskStatusAsync(
+        Guid userId,
+        Guid subTaskId,
+        UpdateAISubTaskStatusDto dto)
+{
+    // ---------------------------------------------------------
+    // Validate contributor
+    // ---------------------------------------------------------
+
+    var contributor =
+        await _userRepository.GetByIdAsync(userId);
+
+    if (contributor == null)
+    {
+        return (
+            null,
+            "Contributor not found."
+        );
+    }
+
+    if (contributor.Role != Role.Contributor)
+    {
+        return (
+            null,
+            "Only Contributors can update AI subtasks."
+        );
+    }
+
+    if (!contributor.IsActive)
+    {
+        return (
+            null,
+            "Contributor account is inactive."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // Validate subtask
+    // ---------------------------------------------------------
+
+    var subTask =
+        await _subTaskRepository.GetByIdAsync(subTaskId);
+
+    if (subTask == null ||
+        subTask.IsDeleted)
+    {
+        return (
+            null,
+            "Subtask not found."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // Validate parent task
+    // ---------------------------------------------------------
+
+    var task =
+        await _taskRepository.GetByIdAsync(subTask.TaskId);
+
+    if (task == null ||
+        task.IsDeleted)
+    {
+        return (
+            null,
+            "Task not found."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // SECURITY:
+    // Contributor must own the parent task
+    // ---------------------------------------------------------
+
+    if (task.AssignedContributorSDId != userId)
+    {
+        return (
+            null,
+            "You cannot update this subtask."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // AI-only protection
+    // ---------------------------------------------------------
+
+    if (!subTask.IsAIGenerated)
+    {
+        return (
+            null,
+            "This subtask is not an AI-generated subtask."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // Completed protection
+    // ---------------------------------------------------------
+
+    if (subTask.Status == ProjectTaskStatus.Completed)
+    {
+        return (
+            null,
+            "This subtask cannot be modified."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // Validate status
+    // ---------------------------------------------------------
+
+    if (!Enum.IsDefined(
+        typeof(ProjectTaskStatus),
+        dto.Status))
+    {
+        return (
+            null,
+            "Invalid subtask status."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // Validate progress
+    // ---------------------------------------------------------
+
+    if (dto.Progress < 0 ||
+        dto.Progress > 100)
+    {
+        return (
+            null,
+            "Progress must be between 0 and 100."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // No changes
+    // ---------------------------------------------------------
+
+    if (subTask.Status == dto.Status &&
+        subTask.Progress == dto.Progress)
+    {
+        return (
+            MapToDto(subTask),
+            "The subtask already has these values."
+        );
+    }
+
+    // ---------------------------------------------------------
+    // Validate status transition
+    // ---------------------------------------------------------
+
+    if (subTask.Status != dto.Status)
+    {
+        bool validTransition =
+            IsValidStatusTransition(
+                subTask.Status,
+                dto.Status);
+
+        if (!validTransition)
+        {
+            return (
+                null,
+                "This status change is not allowed."
+            );
+        }
+    }
+
+    // ---------------------------------------------------------
+    // Update only status/progress
+    // ---------------------------------------------------------
+
+    subTask.Status = dto.Status;
+
+    subTask.Progress = dto.Progress;
+
+    subTask.UpdatedAt =
+        DateTime.UtcNow;
+
+    await _subTaskRepository.UpdateAsync(subTask);
+
+    return (
+        MapToDto(subTask),
+        "AI subtask status updated successfully."
+    );
+}
+
+
+// =========================================================
+// STATUS TRANSITION VALIDATION
+// =========================================================
+
+private static bool IsValidStatusTransition(
+    ProjectTaskStatus currentStatus,
+    ProjectTaskStatus newStatus)
+{
+    return currentStatus switch
+    {
+        ProjectTaskStatus.Todo =>
+            newStatus == ProjectTaskStatus.InProgress ||
+            newStatus == ProjectTaskStatus.Blocked,
+
+        ProjectTaskStatus.InProgress =>
+            newStatus == ProjectTaskStatus.InReview ||
+            newStatus == ProjectTaskStatus.Blocked ||
+            newStatus == ProjectTaskStatus.Todo,
+
+        ProjectTaskStatus.InReview =>
+            newStatus == ProjectTaskStatus.Completed ||
+            newStatus == ProjectTaskStatus.InProgress ||
+            newStatus == ProjectTaskStatus.Blocked,
+
+        ProjectTaskStatus.Blocked =>
+            newStatus == ProjectTaskStatus.InProgress ||
+            newStatus == ProjectTaskStatus.Todo,
+
+        ProjectTaskStatus.Completed =>
+            false,
+
+        _ => false
+    };
+}
         // =========================================================
         // MAPPING
         // =========================================================
 
-        private static SubTaskDto MapToDto(
-            SubTask subTask)
-        {
-            return new SubTaskDto
-            {
-                Id = subTask.Id,
+      private static SubTaskDto MapToDto(
+    SubTask subTask)
+{
+    return new SubTaskDto
+    {
+        Id = subTask.Id,
 
-                TaskId = subTask.TaskId,
+        TaskId = subTask.TaskId,
 
-                Title = subTask.Title,
+        Title = subTask.Title,
 
-                Description = subTask.Description,
+        Description = subTask.Description,
 
-                EstimatedHours =
-                    subTask.EstimatedHours,
+        EstimatedHours =
+            subTask.EstimatedHours,
 
-                IsAIGenerated =
-                    subTask.IsAIGenerated,
+        IsAIGenerated =
+            subTask.IsAIGenerated,
 
-                IsApproved =
-                    subTask.IsApproved,
+        IsApproved =
+            subTask.IsApproved,
 
-                CreatedAt =
-                    subTask.CreatedAt,
+        Status =
+            subTask.Status,
 
-                UpdatedAt =
-                    subTask.UpdatedAt
-            };
-        }
+        Progress =
+            subTask.Progress,
+
+        CreatedAt =
+            subTask.CreatedAt,
+
+        UpdatedAt =
+            subTask.UpdatedAt
+    };
+}
     }
 }

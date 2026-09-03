@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
     AlertCircle,
@@ -11,6 +11,8 @@ import {
     Search,
     X,
 } from "lucide-react";
+
+import api from "@/services/api";
 
 /* ============================================================
    STAFF — CONT-STAFF-001
@@ -26,86 +28,199 @@ const STATUS_OPTIONS = [
     "Done",
 ];
 
+const STATUS_MAP = {
+    1: "Backlog",
+    2: "In Progress",
+    3: "Review",
+    4: "Done",
+    5: "Blocked",
+};
+
+const PRIORITY_MAP = {
+    1: "Low",
+    2: "Medium",
+    3: "High",
+};
+
+function normalizeStatus(status) {
+    if (typeof status === "number") {
+        return STATUS_MAP[status] || "Backlog";
+    }
+
+    if (typeof status === "string") {
+        const normalized = status.trim().toLowerCase();
+
+        if (normalized === "todo") return "Backlog";
+        if (normalized === "inprogress") return "In Progress";
+        if (normalized === "in review") return "Review";
+        if (normalized === "inreview") return "Review";
+        if (normalized === "blocked") return "Blocked";
+        if (normalized === "completed") return "Done";
+
+        return status;
+    }
+
+    return "Backlog";
+}
+
+function normalizePriority(priority) {
+    if (typeof priority === "number") {
+        return PRIORITY_MAP[priority] || "Medium";
+    }
+
+    if (typeof priority === "string") {
+        const normalized = priority.trim().toLowerCase();
+
+        if (normalized === "low") return "Low";
+        if (normalized === "medium") return "Medium";
+        if (normalized === "high") return "High";
+
+        return priority;
+    }
+
+    return "Medium";
+}
+
+function normalizeTask(task) {
+    if (!task) {
+        return null;
+    }
+
+    return {
+        id: task.id,
+        title: task.title || "Untitled Task",
+        description: task.description || "No description provided.",
+        project: task.project || "—",
+        sprint: task.sprint || (
+            task.sprintId
+                ? `Sprint ${String(task.sprintId).slice(0, 8)}`
+                : "—"
+        ),
+        priority: normalizePriority(task.priority),
+        status: normalizeStatus(task.status),
+        dueDate: task.dueDate
+            ? new Date(task.dueDate).toLocaleDateString()
+            : "—",
+        progress:
+            typeof task.progress === "number"
+                ? task.progress
+                : task.status === 4 || task.status === "Completed"
+                    ? 100
+                    : task.status === 2 || task.status === "InProgress"
+                        ? 50
+                        : 0,
+        files:
+            typeof task.files === "number"
+                ? task.files
+                : 0,
+        comments:
+            typeof task.comments === "number"
+                ? task.comments
+                : 0,
+    };
+}
+
+function getApiErrorMessage(error, fallback) {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        fallback
+    );
+}
+
 function ViewMyWork() {
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [selectedTask, setSelectedTask] = useState(null);
 
-    /*
-     * Temporary frontend data.
-     *
-     * Later this will come from the .NET backend:
-     * GET /Tasks/my
-     *
-     * The component structure is already prepared for
-     * backend integration.
-     */
-    const [tasks] = useState([
-        {
-            id: 1,
-            title: "Design Login Interface",
-            description:
-                "Create the login interface according to the approved UI requirements.",
-            project: "AI-PMS",
-            sprint: "Sprint 1",
-            priority: "High",
-            status: "In Progress",
-            dueDate: "2026-08-30",
-            progress: 65,
-            files: 2,
-            comments: 4,
-        },
-        {
-            id: 2,
-            title: "Implement User Profile",
-            description:
-                "Implement profile information and profile editing functionality.",
-            project: "AI-PMS",
-            sprint: "Sprint 2",
-            priority: "Medium",
-            status: "Backlog",
-            dueDate: "2026-09-05",
-            progress: 0,
-            files: 0,
-            comments: 1,
-        },
-    ]);
+    /* ========================================================
+       LOAD ASSIGNED WORK FROM BACKEND
+       ======================================================== */
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadMyWork = async () => {
+            try {
+                setLoading(true);
+                setError("");
+
+                const response = await api.get("/tasks/my-work");
+
+                if (cancelled) {
+                    return;
+                }
+
+                const responseData = response.data;
+
+                const data = Array.isArray(responseData)
+                    ? responseData
+                    : Array.isArray(responseData?.data)
+                        ? responseData.data
+                        : [];
+
+                const normalizedTasks = data
+                    .map(normalizeTask)
+                    .filter(Boolean);
+
+                setTasks(normalizedTasks);
+            } catch (requestError) {
+                if (cancelled) {
+                    return;
+                }
+
+                console.error(
+                    "VIEW MY WORK - LOAD ERROR:",
+                    requestError
+                );
+
+                setTasks([]);
+                setError(
+                    getApiErrorMessage(
+                        requestError,
+                        "Unable to load your assigned work."
+                    )
+                );
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadMyWork();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     /* ========================================================
        FILTER TASKS
        ======================================================== */
 
     const filteredTasks = useMemo(() => {
-        const term =
-            searchTerm.trim().toLowerCase();
+        const term = searchTerm.trim().toLowerCase();
 
         return tasks.filter((task) => {
             const matchesSearch =
                 !term ||
-                task.title
-                    .toLowerCase()
-                    .includes(term) ||
-                task.description
-                    .toLowerCase()
-                    .includes(term) ||
-                task.project
-                    .toLowerCase()
-                    .includes(term);
+                task.title.toLowerCase().includes(term) ||
+                task.description.toLowerCase().includes(term) ||
+                task.project.toLowerCase().includes(term);
 
             const matchesStatus =
                 statusFilter === "All" ||
                 task.status === statusFilter;
 
-            return (
-                matchesSearch &&
-                matchesStatus
-            );
+            return matchesSearch && matchesStatus;
         });
-    }, [
-        tasks,
-        searchTerm,
-        statusFilter,
-    ]);
+    }, [tasks, searchTerm, statusFilter]);
 
     /* ========================================================
        STATUS STYLE
@@ -148,6 +263,85 @@ function ViewMyWork() {
             default:
                 return "text-slate-600 dark:text-slate-400";
         }
+    }
+
+    /* ========================================================
+       LOADING
+       ======================================================== */
+
+    if (loading) {
+        return (
+            <div className="space-y-6">
+
+                <div>
+                    <div className="flex items-center gap-3">
+
+                        <div
+                            className="
+                                flex
+                                h-11
+                                w-11
+                                items-center
+                                justify-center
+                                rounded-xl
+                                bg-blue-100
+                                text-blue-600
+                                dark:bg-blue-950/50
+                                dark:text-blue-400
+                            "
+                        >
+                            <ClipboardList className="h-6 w-6" />
+                        </div>
+
+                        <div>
+                            <h2
+                                className="
+                                    text-2xl
+                                    font-bold
+                                    text-slate-900
+                                    dark:text-white
+                                "
+                            >
+                                My Work
+                            </h2>
+
+                            <p
+                                className="
+                                    mt-1
+                                    text-sm
+                                    text-slate-500
+                                    dark:text-slate-400
+                                "
+                            >
+                                View and manage work assigned
+                                to you based on your team,
+                                projects, and specialization.
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div
+                    className="
+                        rounded-2xl
+                        border
+                        border-slate-200
+                        bg-white
+                        p-10
+                        text-center
+                        shadow-sm
+                        dark:border-slate-700
+                        dark:bg-[#0d2745]
+                    "
+                >
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Loading your assigned work...
+                    </p>
+                </div>
+
+            </div>
+        );
     }
 
     return (
@@ -225,8 +419,6 @@ function ViewMyWork() {
 
                 <div className="flex flex-col gap-4 lg:flex-row">
 
-                    {/* SEARCH */}
-
                     <div className="relative flex-1">
 
                         <Search
@@ -245,9 +437,7 @@ function ViewMyWork() {
                             type="text"
                             value={searchTerm}
                             onChange={(event) =>
-                                setSearchTerm(
-                                    event.target.value
-                                )
+                                setSearchTerm(event.target.value)
                             }
                             placeholder="Search your work..."
                             className="
@@ -272,14 +462,10 @@ function ViewMyWork() {
 
                     </div>
 
-                    {/* STATUS */}
-
                     <select
                         value={statusFilter}
                         onChange={(event) =>
-                            setStatusFilter(
-                                event.target.value
-                            )
+                            setStatusFilter(event.target.value)
                         }
                         className="
                             rounded-xl
@@ -296,18 +482,16 @@ function ViewMyWork() {
                             dark:text-white
                         "
                     >
-                        {STATUS_OPTIONS.map(
-                            (status) => (
-                                <option
-                                    key={status}
-                                    value={status}
-                                >
-                                    {status === "All"
-                                        ? "All Statuses"
-                                        : status}
-                                </option>
-                            )
-                        )}
+                        {STATUS_OPTIONS.map((status) => (
+                            <option
+                                key={status}
+                                value={status}
+                            >
+                                {status === "All"
+                                    ? "All Statuses"
+                                    : status}
+                            </option>
+                        ))}
                     </select>
 
                 </div>
@@ -315,10 +499,53 @@ function ViewMyWork() {
             </div>
 
             {/* ==================================================
+                ERROR
+            ================================================== */}
+
+            {error && (
+
+                <div
+                    className="
+                        flex
+                        items-start
+                        gap-3
+                        rounded-2xl
+                        border
+                        border-red-200
+                        bg-red-50
+                        p-4
+                        dark:border-red-900/50
+                        dark:bg-red-950/20
+                    "
+                >
+                    <AlertCircle
+                        className="
+                            mt-0.5
+                            h-5
+                            w-5
+                            shrink-0
+                            text-red-600
+                            dark:text-red-400
+                        "
+                    />
+
+                    <p
+                        className="
+                            text-sm
+                            text-red-700
+                            dark:text-red-400
+                        "
+                    >
+                        {error}
+                    </p>
+                </div>
+            )}
+
+            {/* ==================================================
                 NO WORK
             ================================================== */}
 
-            {filteredTasks.length === 0 && (
+            {!error && filteredTasks.length === 0 && (
 
                 <div
                     className="
@@ -393,8 +620,6 @@ function ViewMyWork() {
                             "
                         >
 
-                            {/* TASK HEADER */}
-
                             <div
                                 className="
                                     flex
@@ -435,9 +660,7 @@ function ViewMyWork() {
                                                 py-1
                                                 text-xs
                                                 font-medium
-                                                ${getStatusClass(
-                                                    task.status
-                                                )}
+                                                ${getStatusClass(task.status)}
                                             `}
                                         >
                                             {task.status}
@@ -458,14 +681,10 @@ function ViewMyWork() {
 
                                 </div>
 
-                                {/* VIEW */}
-
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        setSelectedTask(
-                                            task
-                                        )
+                                        setSelectedTask(task)
                                     }
                                     className="
                                         inline-flex
@@ -488,8 +707,6 @@ function ViewMyWork() {
                                 </button>
 
                             </div>
-
-                            {/* TASK INFORMATION */}
 
                             <div
                                 className="
@@ -577,9 +794,7 @@ function ViewMyWork() {
                                         className={`
                                             text-sm
                                             font-semibold
-                                            ${getPriorityClass(
-                                                task.priority
-                                            )}
+                                            ${getPriorityClass(task.priority)}
                                         `}
                                     >
                                         {task.priority}
@@ -588,8 +803,6 @@ function ViewMyWork() {
                                 </div>
 
                             </div>
-
-                            {/* PROGRESS */}
 
                             <div className="mt-5">
 
@@ -627,8 +840,6 @@ function ViewMyWork() {
                                 </div>
 
                             </div>
-
-                            {/* FILES / COMMENTS */}
 
                             <div
                                 className="
@@ -677,9 +888,7 @@ function ViewMyWork() {
                         bg-black/50
                         p-4
                     "
-                    onClick={() =>
-                        setSelectedTask(null)
-                    }
+                    onClick={() => setSelectedTask(null)}
                 >
 
                     <div
@@ -698,8 +907,6 @@ function ViewMyWork() {
                             event.stopPropagation()
                         }
                     >
-
-                        {/* MODAL HEADER */}
 
                         <div
                             className="
@@ -762,8 +969,6 @@ function ViewMyWork() {
 
                         </div>
 
-                        {/* DESCRIPTION */}
-
                         <div className="mt-6">
 
                             <h4
@@ -791,8 +996,6 @@ function ViewMyWork() {
 
                         </div>
 
-                        {/* DETAILS */}
-
                         <div
                             className="
                                 mt-6
@@ -806,6 +1009,7 @@ function ViewMyWork() {
                                 <p className="text-xs text-slate-400">
                                     Project
                                 </p>
+
                                 <p className="mt-1 text-sm font-medium text-slate-900 dark:text-white">
                                     {selectedTask.project}
                                 </p>
@@ -815,6 +1019,7 @@ function ViewMyWork() {
                                 <p className="text-xs text-slate-400">
                                     Sprint
                                 </p>
+
                                 <p className="mt-1 text-sm font-medium text-slate-900 dark:text-white">
                                     {selectedTask.sprint}
                                 </p>
@@ -824,6 +1029,7 @@ function ViewMyWork() {
                                 <p className="text-xs text-slate-400">
                                     Priority
                                 </p>
+
                                 <p
                                     className={`
                                         mt-1
@@ -842,14 +1048,13 @@ function ViewMyWork() {
                                 <p className="text-xs text-slate-400">
                                     Due Date
                                 </p>
+
                                 <p className="mt-1 text-sm font-medium text-slate-900 dark:text-white">
                                     {selectedTask.dueDate}
                                 </p>
                             </div>
 
                         </div>
-
-                        {/* PROGRESS */}
 
                         <div className="mt-6">
 
@@ -887,8 +1092,6 @@ function ViewMyWork() {
                             </div>
 
                         </div>
-
-                        {/* FOOTER */}
 
                         <div
                             className="
