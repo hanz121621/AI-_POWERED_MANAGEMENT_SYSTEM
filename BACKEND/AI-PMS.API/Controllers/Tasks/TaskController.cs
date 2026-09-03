@@ -1,9 +1,7 @@
 using AI_PMS.Application.DTOs.Tasks;
 using AI_PMS.Application.Interfaces.Tasks;
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
 using System.Security.Claims;
 
 namespace AI_PMS.API.Controllers.Tasks
@@ -17,12 +15,8 @@ namespace AI_PMS.API.Controllers.Tasks
         private readonly ITeamLeaderTaskService _teamLeaderTaskService;
 
         public TaskController(
-<<<<<<< HEAD
-            ITaskService taskService)
-=======
             ITaskService taskService,
             ITeamLeaderTaskService teamLeaderTaskService)
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
         {
             _taskService = taskService;
             _teamLeaderTaskService = teamLeaderTaskService;
@@ -30,60 +24,6 @@ namespace AI_PMS.API.Controllers.Tasks
 
 
         // =====================================================
-<<<<<<< HEAD
-        // AI-001
-        // GET TASK AI SUGGESTION
-        // =====================================================
-
-        // GET: api/tasks/{id}/ai-suggestion
-        [HttpGet("{id:guid}/ai-suggestion")]
-        public async Task<IActionResult> GetTaskAiSuggestion(
-            Guid id)
-        {
-            try
-            {
-                var task =
-                    await _taskService.GetTaskByIdAsync(id);
-
-                if (task == null)
-                {
-                    return NotFound(new
-                    {
-                        message = "Task not found."
-                    });
-                }
-
-                var suggestion =
-                    await _taskService
-                        .GenerateTaskSuggestionAsync(id);
-
-                if (string.IsNullOrWhiteSpace(suggestion))
-                {
-                    return StatusCode(
-                        StatusCodes.Status503ServiceUnavailable,
-                        new
-                        {
-                            message =
-                                "AI suggestion service is currently unavailable."
-                        });
-                }
-
-                return Ok(new
-                {
-                    taskId = id,
-                    suggestion = suggestion
-                });
-            }
-            catch
-            {
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new
-                    {
-                        message =
-                            "Unable to generate AI task suggestion."
-                    });
-=======
         // CREATE TASK
         // Manager only
         // =====================================================
@@ -134,81 +74,11 @@ namespace AI_PMS.API.Controllers.Tasks
                 {
                     message = ex.Message
                 });
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
             }
         }
 
 
         // =====================================================
-<<<<<<< HEAD
-        // CREATE TASK
-        // Team Leader only
-        // =====================================================
-
-        // POST: api/tasks
-        [HttpPost]
-        [Authorize(Roles = "Contributor")]
-        public async Task<IActionResult> CreateTask(
-            [FromBody] CreateTaskDto dto)
-        {
-            var userIdClaim =
-                User.FindFirst(
-                    ClaimTypes.NameIdentifier);
-
-            if (userIdClaim == null)
-            {
-                return Unauthorized(new
-                {
-                    message = "Invalid user."
-                });
-            }
-
-            if (!Guid.TryParse(
-                userIdClaim.Value,
-                out var teamLeaderId))
-            {
-                return Unauthorized(new
-                {
-                    message = "Invalid user identity."
-                });
-            }
-
-            try
-            {
-                var success =
-                    await _taskService.CreateTaskAsync(
-                        teamLeaderId,
-                        dto);
-
-                if (!success)
-                {
-                    return BadRequest(new
-                    {
-                        message =
-                            "Sprint not found."
-                    });
-                }
-
-                return Ok(new
-                {
-                    message =
-                        "Task created successfully."
-                });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new
-                {
-                    message =
-                        ex.Message
-                });
-            }
-        }
-
-
-        // =====================================================
-=======
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
         // GET ALL TASKS
         // =====================================================
 
@@ -217,21 +87,13 @@ namespace AI_PMS.API.Controllers.Tasks
         public async Task<IActionResult> GetAllTasks()
         {
             var tasks =
-                await _taskService
-                    .GetAllTasksAsync();
+                await _taskService.GetAllTasksAsync();
 
             return Ok(tasks);
         }
 
 
         // =====================================================
-<<<<<<< HEAD
-        // GET TASK BY ID
-        // =====================================================
-
-        // GET: api/tasks/{id}
-        [HttpGet("{id:guid}")]
-=======
         // MY WORK
         // Developer / Staff Contributor
         // =====================================================
@@ -342,9 +204,9 @@ namespace AI_PMS.API.Controllers.Tasks
         // PUT: api/tasks/{id}/status
         [HttpPut("{id}/status")]
         [Authorize(Roles = "Contributor")]
-        public async Task<IActionResult> UpdateMyTaskStatus(
-            Guid id,
-            [FromBody] UpdateTaskStatusDto dto)
+       public async Task<IActionResult> UpdateMyTaskStatus(
+    Guid id,
+    [FromBody] UpdateTaskStatusDto dto)
         {
             var userIdClaim =
                 User.FindFirst(ClaimTypes.NameIdentifier);
@@ -465,32 +327,87 @@ namespace AI_PMS.API.Controllers.Tasks
                 });
             }
         }
+                     // =====================================================
+// AI-001
+// GET TASK AI SUGGESTION
+// =====================================================
 
+// GET: api/tasks/{id}/ai-suggestion
+[HttpGet("{id:guid}/ai-suggestion")]
+public async Task<IActionResult> GetTaskAiSuggestion(Guid id)
+{
+    try
+    {
+        var task = await _taskService.GetTaskByIdAsync(id);
+
+        if (task == null)
+        {
+            return NotFound(new
+            {
+                message = "Task not found."
+            });
+        }
+
+        var suggestion =
+            await _taskService.GenerateTaskSuggestionAsync(id);
+
+        if (string.IsNullOrWhiteSpace(suggestion))
+        {
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new
+                {
+                    message =
+                        "AI suggestion service is currently unavailable."
+                });
+        }
+
+        return Ok(new
+        {
+            taskId = id,
+            suggestion = suggestion
+        });
+    }
+    catch
+    {
+        return StatusCode(
+            StatusCodes.Status500InternalServerError,
+            new
+            {
+                message =
+                    "Unable to generate AI task suggestion."
+            });
+    }
+}            // =====================================================
+// GET SPRINT TASKS
+// =====================================================
+
+// GET: api/tasks/sprint/{sprintId}
+[HttpGet("sprint/{sprintId:guid}")]
+public async Task<IActionResult> GetSprintTasks(Guid sprintId)
+{
+    var tasks =
+        await _taskService.GetSprintTasksAsync(sprintId);
+
+    return Ok(tasks);
+}
 
         // =====================================================
         // VIEW TASK BY ID
         // =====================================================
 
         // GET: api/tasks/{id}
-        [HttpGet("{id}")]
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
+        [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetTaskById(
             Guid id)
         {
             var task =
-                await _taskService
-                    .GetTaskByIdAsync(id);
+                await _taskService.GetTaskByIdAsync(id);
 
             if (task == null)
             {
                 return NotFound(new
                 {
-<<<<<<< HEAD
-                    message =
-                        "Task not found."
-                });
-            }
-=======
                     message = "Task not found."
                 });
             }
@@ -517,57 +434,23 @@ namespace AI_PMS.API.Controllers.Tasks
                     return Forbid();
                 }
             }
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
 
             return Ok(task);
         }
 
-<<<<<<< HEAD
-
-        // =====================================================
-        // GET TASKS BY SPRINT
-        // =====================================================
-
-        // GET: api/tasks/sprint/{sprintId}
-        [HttpGet("sprint/{sprintId:guid}")]
-        public async Task<IActionResult> GetSprintTasks(
-            Guid sprintId)
-        {
-            var tasks =
-                await _taskService
-                    .GetSprintTasksAsync(
-                        sprintId);
-=======
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
 
         // =====================================================
         // GET CONTRIBUTOR TASKS
         // =====================================================
 
-
-        // =====================================================
-        // GET TASKS BY DEVELOPER
-        // =====================================================
-
         // GET: api/tasks/developer/{developerId}
-<<<<<<< HEAD
         [HttpGet("developer/{developerId:guid}")]
-        public async Task<IActionResult> GetDeveloperTasks(
-            Guid developerId)
-        {
-            var tasks =
-                await _taskService
-                    .GetDeveloperTasksAsync(
-                        developerId);
-=======
-        [HttpGet("developer/{developerId}")]
         public async Task<IActionResult> GetContributorTasks(
             Guid developerId)
         {
             var tasks =
                 await _taskService.GetContributorSDTasksAsync(
                     developerId);
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
 
             return Ok(tasks);
         }
@@ -575,40 +458,17 @@ namespace AI_PMS.API.Controllers.Tasks
 
         // =====================================================
         // UPDATE TASK
-<<<<<<< HEAD
-        // Team Leader/Manager authorization can be adjusted later
-        // =====================================================
-
-        // PUT: api/tasks/{id}
-        [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Manager,Contributor")]
-=======
         // Manager only
         // =====================================================
 
         // PUT: api/tasks/{id}
         [HttpPut("{id}")]
         [Authorize(Roles = "Manager")]
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
         public async Task<IActionResult> UpdateTask(
             Guid id,
             [FromBody] UpdateTaskDto dto)
         {
             var result =
-<<<<<<< HEAD
-                await _taskService
-                    .UpdateTaskAsync(
-                        id,
-                        dto);
-
-            if (result.Message ==
-                "Task not found.")
-            {
-                return NotFound(new
-                {
-                    message =
-                        result.Message
-=======
                 await _taskService.UpdateTaskAsync(
                     id,
                     dto);
@@ -618,7 +478,6 @@ namespace AI_PMS.API.Controllers.Tasks
                 return NotFound(new
                 {
                     message = result.Message
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
                 });
             }
 
@@ -626,12 +485,6 @@ namespace AI_PMS.API.Controllers.Tasks
             {
                 return Conflict(new
                 {
-<<<<<<< HEAD
-                    message =
-                        result.Message
-                });
-            }
-=======
                     message = result.Message
                 });
             }
@@ -662,46 +515,6 @@ namespace AI_PMS.API.Controllers.Tasks
             {
                 return NotFound("Task not found.");
             }
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
-
-            return Ok(new
-            {
-                message =
-<<<<<<< HEAD
-                    result.Message,
-
-                task =
-                    result.Task
-=======
-                    "Task deleted successfully."
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
-            });
-        }
-
-
-        // =====================================================
-<<<<<<< HEAD
-        // DELETE TASK
-        // =====================================================
-
-        // DELETE: api/tasks/{id}
-        [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Contributor,Manager")]
-        public async Task<IActionResult> DeleteTask(
-            Guid id)
-        {
-            var success =
-                await _taskService
-                    .DeleteTaskAsync(id);
-
-            if (!success)
-            {
-                return NotFound(new
-                {
-                    message =
-                        "Task not found."
-                });
-            }
 
             return Ok(new
             {
@@ -712,20 +525,6 @@ namespace AI_PMS.API.Controllers.Tasks
 
 
         // =====================================================
-        // GET ASSIGNABLE USERS
-        // =====================================================
-
-        // GET: api/tasks/assignable-users
-        [HttpGet("assignable-users")]
-        [Authorize(Roles = "Contributor")]
-        public async Task<IActionResult> GetAssignableUsers()
-        {
-            var users =
-                await _taskService
-                    .GetAssignableUsersAsync();
-
-            return Ok(users);
-=======
         // GET ASSIGNABLE CONTRIBUTORS
         // Manager only
         // =====================================================
@@ -832,6 +631,7 @@ namespace AI_PMS.API.Controllers.Tasks
 
 // PUT: api/team-leader/tasks/{taskId}/priority
 [HttpPut("{taskId:guid}/priority")]
+[Authorize(Roles = "TeamLeader")]
 public async Task<IActionResult> SetTaskPriority(
     Guid taskId,
     [FromBody] SetTaskPriorityDto dto)
@@ -1461,7 +1261,6 @@ public async Task<IActionResult> UpdateTaskStatus(
                         "Unable to assign task. Please try again."
                 });
             }
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
         }
     }
 }

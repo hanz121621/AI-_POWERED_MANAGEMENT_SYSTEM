@@ -175,6 +175,11 @@ builder.Services.AddScoped<
     ITeamLeaderProjectService,
     TeamLeaderProjectService>();
 
+
+builder.Services.AddScoped<
+    IProjectParticipationService,
+    ProjectParticipationService>();
+
     builder.Services.AddScoped<ISprintService, SprintService>();
 
     // =========================================================
@@ -188,6 +193,14 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     ITeamLeaderSprintService,
     TeamLeaderSprintService>();
+
+    builder.Services.AddScoped<
+    ITeamLeaderTaskService,
+    TeamLeaderTaskService>();
+
+    builder.Services.AddScoped<
+    IProjectParticipationRepository,
+    ProjectParticipationRepository>();
 
 // =========================================================
 // AUTH REPOSITORIES

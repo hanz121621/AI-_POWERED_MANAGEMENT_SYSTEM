@@ -397,9 +397,9 @@ function normalizeProjectSpecification(data) {
             "",
 
         nonFunctionalRequirements:
-    data?.nonFunctionalRequirements ??
-    data?.NonFunctionalRequirements ??
-    "",
+            data?.nonFunctionalRequirements ??
+            data?.NonFunctionalRequirements ??
+            "",
 
         deliverables:
             data?.deliverables ??
@@ -602,8 +602,10 @@ export async function createProject(
                 projectData.teamId ||
                 null,
 
-                teamLeaderId:
-    projectData.teamLeaderId || null,
+            teamLeaderId:
+                projectData.teamLeaderId ||
+                null,
+
             priorityId:
                 projectData.priorityId ??
                 null,
@@ -869,11 +871,6 @@ export async function approveProject(
 // POST /api/projects/{id}/reject
 // ============================================================
 
-
-
-
-
-
 export async function rejectProject(
     projectId
 ) {
@@ -926,15 +923,10 @@ export async function rejectProject(
 //
 // Body:
 // {
-//     statusId: "UUID"
+//     statusId: "UUID",
+//     notes: "optional"
 // }
 // ============================================================
-
-
-
-
-
-
 
 export async function changeProjectStatus(
     projectId,
@@ -1028,6 +1020,56 @@ export async function getMyProjects() {
             getApiErrorMessage(
                 error,
                 "Unable to load your projects."
+            ),
+            {
+                cause: error,
+            }
+        );
+    }
+}
+
+// ============================================================
+// GET PROJECTS ASSIGNED TO CURRENT DEVELOPER / STAFF
+//
+// GET /api/project-participation/my-projects
+//
+// Used by:
+// - Developer
+// - Staff Contributor
+//
+// IMPORTANT:
+// This is intentionally different from:
+//
+// GET /api/projects/my-projects
+//
+// because /projects/my-projects is restricted to Manager.
+// ============================================================
+
+export async function getMyDeveloperProjects() {
+    try {
+        const response =
+            await api.get(
+                "/project-participation/my-projects"
+            );
+
+        console.log(
+            "DEVELOPER ASSIGNED PROJECTS RESPONSE:",
+            response.data
+        );
+
+        return normalizeProjectList(
+            response.data
+        );
+    } catch (error) {
+        console.error(
+            "GET DEVELOPER ASSIGNED PROJECTS ERROR:",
+            error
+        );
+
+        throw new Error(
+            getApiErrorMessage(
+                error,
+                "Failed to load your assigned projects."
             ),
             {
                 cause: error,
@@ -1321,19 +1363,6 @@ export async function getProjectsByManager(
 // GET PROJECTS BY MANAGER USER
 //
 // Frontend helper.
-// Accepts:
-//
-// {
-//     id: "...",
-//     fullName: "..."
-// }
-//
-// OR
-//
-// {
-//     userId: "...",
-//     fullName: "..."
-// }
 // ============================================================
 
 export async function getProjectsByManagerUser(
@@ -1407,13 +1436,11 @@ export async function getProjectStatistics() {
 
 // ============================================================
 // PROJECT SPECIFICATION
-// ============================================================
 //
 // GET    /api/projects/{projectId}/specification
 // POST   /api/projects/{projectId}/specification
 // PUT    /api/projects/{projectId}/specification
 // DELETE /api/projects/{projectId}/specification
-//
 // ============================================================
 
 // ============================================================
@@ -1690,8 +1717,6 @@ export async function updateProjectSpecification(
     }
 }
 
-
-
 // ============================================================
 // UPDATE PROJECT TIMELINE
 //
@@ -1756,6 +1781,7 @@ export async function updateProjectTimeline(
         };
     }
 }
+
 // ============================================================
 // DELETE PROJECT SPECIFICATION
 // ============================================================
@@ -1808,8 +1834,7 @@ export async function deleteProjectSpecification(
     }
 }
 
-
-   // ============================================================
+// ============================================================
 // UPDATE PROJECT DEADLINE
 //
 // PUT /api/projects/{projectId}/deadline
@@ -1873,9 +1898,11 @@ export async function updateProjectDeadline(
         };
     }
 }
+
 // ============================================================
 // DEFAULT EXPORT
 // ============================================================
+
 export default {
     // Projects
     getProjects,
@@ -1894,13 +1921,17 @@ export default {
     archiveProject,
     restoreProject,
 
+    // Manager
     getMyProjects,
+
+    // Developer / Staff Contributor
+    getMyDeveloperProjects,
 
     // Timeline / Deadline
     updateProjectTimeline,
     updateProjectDeadline,
 
-    // Manager
+    // Manager Assignment
     assignProjectManager,
     updateProjectManager,
     getProjectManager,

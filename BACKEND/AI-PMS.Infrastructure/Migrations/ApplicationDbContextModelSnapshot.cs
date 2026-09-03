@@ -33,12 +33,8 @@ namespace AI_PMS.Infrastructure.Migrations
 
                     b.Property<string>("AINotificationPriority")
                         .IsRequired()
-<<<<<<< HEAD
-                        .HasColumnType("text");
-=======
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
->>>>>>> 606d42dc31509d908ee4323883fe5d4a3860427b
 
                     b.Property<bool>("AllowAIDataUsage")
                         .HasColumnType("boolean");

@@ -1,3 +1,4 @@
+import { useState } from "react";
 
 import {
     ListChecks,
@@ -6,6 +7,8 @@ import {
     MessageSquare,
     Upload,
     CheckCircle2,
+    Bot,
+    Sparkles,
 } from "lucide-react";
 
 import ViewAssignedTasks from "@/components/contributor/developer/task-management/ViewAssignedTasks";
@@ -13,8 +16,16 @@ import UpdateTaskStatus from "@/components/contributor/developer/task-management
 import AddTaskComment from "@/components/contributor/developer/task-management/AddTaskComment";
 import UploadTaskFiles from "@/components/contributor/developer/task-management/UploadTaskFiles";
 import SubmitCompletedWork from "@/components/contributor/developer/task-management/SubmitCompletedWork";
+import ViewAISubtasks from "@/components/contributor/developer/task-management/ViewAISubtasks";
 
 export default function Tasks() {
+    // =========================================================
+    // SELECTED TASK
+    // =========================================================
+    // The selected task is owned by this parent so that all
+    // task-management components can work with the same task.
+    const [selectedTask, setSelectedTask] = useState(null);
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-[#071a33]">
             <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -22,7 +33,6 @@ export default function Tasks() {
                 {/* =====================================================
                     PAGE HEADER
                 ===================================================== */}
-
                 <header className="mb-8">
 
                     <div
@@ -127,7 +137,6 @@ export default function Tasks() {
                 {/* =====================================================
                     INFORMATION BANNER
                 ===================================================== */}
-
                 <section
                     className="
                         mb-8
@@ -203,7 +212,6 @@ export default function Tasks() {
                 {/* =====================================================
                     ASSIGNED TASKS
                 ===================================================== */}
-
                 <section className="mb-8">
 
                     {/* SECTION HEADER */}
@@ -342,7 +350,10 @@ export default function Tasks() {
                         </div>
 
                         <div className="p-5">
-                            <ViewAssignedTasks />
+                            <ViewAssignedTasks
+                                selectedTask={selectedTask}
+                                onSelectTask={setSelectedTask}
+                            />
                         </div>
 
                     </div>
@@ -350,10 +361,56 @@ export default function Tasks() {
                 </section>
 
 
+
+
+<section className="mb-8">
+    <div className="mb-5">
+        <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-950/50">
+                <Bot className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            </div>
+
+            <div>
+                <h2 className="text-lg font-bold text-slate-900 sm:text-xl dark:text-white">
+                    AI-Generated Subtasks
+                </h2>
+
+                <p className="mt-1 text-xs text-slate-500 sm:text-sm dark:text-slate-400">
+                    View AI-generated subtasks for your selected parent task.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-blue-900/60 dark:bg-[#0b2344]">
+        <div className="border-b border-slate-200 px-5 py-4 dark:border-blue-900/60">
+            <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-purple-100 p-2 dark:bg-purple-950/50">
+                    <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+
+                <div>
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                        AI Task Breakdown
+                    </h3>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                        AI-generated subtasks associated with the selected task.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div className="p-5">
+            <ViewAISubtasks task={selectedTask} />
+        </div>
+    </div>
+</section>
+
+
                 {/* =====================================================
                     TASK PROGRESS & COMMUNICATION
                 ===================================================== */}
-
                 <section className="mb-8">
 
                     {/* SECTION HEADER */}
@@ -504,7 +561,9 @@ export default function Tasks() {
                             </div>
 
                             <div className="p-5">
-                                <UpdateTaskStatus />
+                                <UpdateTaskStatus
+                                    task={selectedTask}
+                                />
                             </div>
 
                         </section>
@@ -585,7 +644,9 @@ export default function Tasks() {
                             </div>
 
                             <div className="p-5">
-                                <AddTaskComment />
+                                <AddTaskComment
+                                    task={selectedTask}
+                                />
                             </div>
 
                         </section>
@@ -598,7 +659,6 @@ export default function Tasks() {
                 {/* =====================================================
                     FILES & COMPLETION
                 ===================================================== */}
-
                 <section className="mb-8">
 
                     {/* SECTION HEADER */}
@@ -749,7 +809,9 @@ export default function Tasks() {
                             </div>
 
                             <div className="p-5">
-                                <UploadTaskFiles />
+                                <UploadTaskFiles
+                                    task={selectedTask}
+                                />
                             </div>
 
                         </section>
@@ -830,7 +892,9 @@ export default function Tasks() {
                             </div>
 
                             <div className="p-5">
-                                <SubmitCompletedWork />
+                                <SubmitCompletedWork
+                                    task={selectedTask}
+                                />
                             </div>
 
                         </section>
@@ -843,7 +907,6 @@ export default function Tasks() {
                 {/* =====================================================
                     FOOTER INFORMATION
                 ===================================================== */}
-
                 <div
                     className="
                         mt-8
@@ -891,7 +954,6 @@ export default function Tasks() {
                 {/* =====================================================
                     FOOTER
                 ===================================================== */}
-
                 <footer
                     className="
                         mt-8

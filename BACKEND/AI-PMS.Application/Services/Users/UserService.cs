@@ -68,44 +68,50 @@ namespace AI_PMS.Application.Services.Users
                     "Full name cannot exceed 100 characters.");
             }
 
-            // -----------------------------------------------------
-            // EMAIL VALIDATION
-            // -----------------------------------------------------
 
-            if (string.IsNullOrWhiteSpace(dto.Email))
-            {
-                throw new InvalidOperationException(
-                    "Email address is required.");
-            }
 
-            var normalizedEmail =
-                dto.Email.Trim().ToLowerInvariant();
+// =====================================================
+// EMAIL VALIDATION
+// =====================================================
 
-            if (!new EmailAddressAttribute()
-                .IsValid(normalizedEmail))
-            {
-                throw new InvalidOperationException(
-                    "Please enter a valid email address.");
-            }
+if (string.IsNullOrWhiteSpace(dto.Email))
+{
+    throw new InvalidOperationException(
+        "Email address is required.");
+}
 
-            if (normalizedEmail.Length > 150)
-            {
-                throw new InvalidOperationException(
-                    "Email address cannot exceed 150 characters.");
-            }
+var normalizedEmail =
+    dto.Email.Trim().ToLowerInvariant();
 
-            // -----------------------------------------------------
-            // EMAIL DUPLICATE CHECK
-            // -----------------------------------------------------
+if (!new EmailAddressAttribute()
+    .IsValid(normalizedEmail))
+{
+    throw new InvalidOperationException(
+        "Please enter a valid email address.");
+}
 
-            var existingUser =
-                await _userRepository.GetByEmailAsync(
-                    normalizedEmail);
+if (normalizedEmail.Length > 150)
+{
+    throw new InvalidOperationException(
+        "Email address cannot exceed 150 characters.");
+}
 
-            if (existingUser != null)
-            {
-                return null;
-            }
+// =====================================================
+// EMAIL DUPLICATE CHECK
+// =====================================================
+
+var existingUser =
+    await _userRepository.GetByEmailAsync(
+        normalizedEmail);
+
+if (existingUser != null &&
+    existingUser.Id != userId)
+{
+    throw new InvalidOperationException(
+        "A user with this email already exists.");
+}
+
+
 
             // -----------------------------------------------------
             // PHONE NORMALIZATION
@@ -637,48 +643,57 @@ namespace AI_PMS.Application.Services.Users
             // NO CHANGE CHECK
             // =====================================================
 
-            var noChanges =
-                string.Equals(
-                    user.FullName?.Trim(),
-                    normalizedName,
-                    StringComparison.OrdinalIgnoreCase)
 
-                &&
 
-                string.Equals(
-                    user.Email?.Trim(),
-                    normalizedEmail,
-                    StringComparison.OrdinalIgnoreCase)
 
-                &&
 
-                string.Equals(
-                    user.TechnicalSkills?.Trim(),
-                    normalizedTechnicalSkills,
-                    StringComparison.OrdinalIgnoreCase)
 
-                &&
 
-                string.Equals(
-                    user.PhoneNumber?.Trim(),
-                    normalizedPhone,
-                    StringComparison.OrdinalIgnoreCase)
 
-                &&
 
-                string.Equals(
-                    user.Bio?.Trim(),
-                    normalizedBio,
-                    StringComparison.OrdinalIgnoreCase)
 
-                &&
 
-                string.Equals(
-                    user.ProfileImage?.Trim(),
-                    normalizedProfileImage,
-                    StringComparison.Ordinal)
 
-                &&
+
+
+
+
+
+var noChanges =
+    string.Equals(
+        user.FullName?.Trim(),
+        normalizedName,
+        StringComparison.OrdinalIgnoreCase)
+
+    &&
+
+    string.Equals(
+        user.PhoneNumber?.Trim(),
+        normalizedPhone,
+        StringComparison.OrdinalIgnoreCase)
+
+    &&
+
+    string.Equals(
+        user.Bio?.Trim(),
+        normalizedBio,
+        StringComparison.OrdinalIgnoreCase)
+
+    &&
+
+    string.Equals(
+        user.TechnicalSkills?.Trim(),
+        normalizedTechnicalSkills,
+        StringComparison.OrdinalIgnoreCase)
+
+    &&
+
+    string.Equals(
+        user.ProfileImage?.Trim(),
+        normalizedProfileImage,
+        StringComparison.Ordinal);
+
+                
 
                 user.Role == dto.Role
 
@@ -709,8 +724,7 @@ namespace AI_PMS.Application.Services.Users
             user.FullName =
                 normalizedName;
 
-            user.Email =
-                normalizedEmail;
+
 
             user.TechnicalSkills =
                 normalizedTechnicalSkills;

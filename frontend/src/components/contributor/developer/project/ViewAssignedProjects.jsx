@@ -1,931 +1,295 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-    Bell,
-    
-    CheckCheck,
-    Clock,
-    Mail,
-    MailOpen,
-    MessageSquare,
-    RefreshCw,
-    Search,
+    FolderKanban,
+    CalendarDays,
     UserRound,
-    X,
+    RefreshCw,
+    AlertCircle,
+    ArrowUpRight,
 } from "lucide-react";
 
-// ============================================================
-// STORAGE
-// ============================================================
+import { getMyDeveloperProjects } from "@/services/projectService";
 
-const USER_STORAGE_KEYS = [
-    "user",
-    "currentUser",
-    "aipms_user",
-];
-
-const MESSAGE_STORAGE_KEYS = [
-    "aipms_messages",
-    "messages",
-];
-
-// ============================================================
-// HELPERS
-// ============================================================
-
-function getStoredUser() {
-    for (const key of USER_STORAGE_KEYS) {
-        try {
-            const value = localStorage.getItem(key);
-
-            if (value) {
-                const parsed = JSON.parse(value);
-
-                if (parsed) {
-                    return parsed;
-                }
-            }
-        } catch {
-            // Ignore invalid localStorage values
-        }
-    }
-
-    return null;
-}
-
-function getStoredMessages() {
-    for (const key of MESSAGE_STORAGE_KEYS) {
-        try {
-            const value = localStorage.getItem(key);
-
-            if (value) {
-                const parsed = JSON.parse(value);
-
-                if (Array.isArray(parsed)) {
-                    return parsed;
-                }
-            }
-        } catch {
-            // Ignore invalid localStorage values
-        }
-    }
-
-    return [];
-}
-
-function saveMessages(messages) {
-    localStorage.setItem(
-        "aipms_messages",
-        JSON.stringify(messages)
-    );
-}
-
-function getUserId(user) {
-    return (
-        user?.userId ??
-        user?.id ??
-        user?.UserId ??
-        user?.Id ??
-        user?.email ??
-        user?.Email ??
-        null
-    );
-}
-
-function getUserEmail(user) {
-    return (
-        user?.email ??
-        user?.Email ??
-        ""
-    )
-        .toString()
-        .toLowerCase();
-}
-
-function getUserName(user) {
-    return (
-        user?.fullName ??
-        user?.name ??
-        user?.username ??
-        user?.UserName ??
-        user?.FullName ??
-        "Developer"
-    );
-}
-
-function isMessageForUser(message, user) {
-    if (!user || !message) {
-        return false;
-    }
-
-    const currentUserId = getUserId(user);
-    const currentUserEmail = getUserEmail(user);
-
-    const recipientId =
-        message.recipientId ??
-        message.receiverId ??
-        message.toUserId ??
-        message.userId ??
-        message.recipient?.id ??
-        message.receiver?.id;
-
-    const recipientEmail = (
-        message.recipientEmail ??
-        message.receiverEmail ??
-        message.toEmail ??
-        message.recipient?.email ??
-        message.receiver?.email ??
-        ""
-    )
-        .toString()
-        .toLowerCase();
-
-    if (
-        currentUserId &&
-        recipientId &&
-        String(currentUserId) === String(recipientId)
-    ) {
-        return true;
-    }
-
-    if (
-        currentUserEmail &&
-        recipientEmail &&
-        currentUserEmail === recipientEmail
-    ) {
-        return true;
-    }
-
-    return false;
-}
-
-function normalizeMessage(message, index) {
-    return {
-        id:
-            message?.id ??
-            message?.messageId ??
-            message?.MessageId ??
-            `message-${index}`,
-
-        senderName:
-            message?.senderName ??
-            message?.sender?.name ??
-            message?.sender?.fullName ??
-            message?.fromName ??
-            message?.FromName ??
-            "Unknown Sender",
-
-        senderEmail:
-            message?.senderEmail ??
-            message?.sender?.email ??
-            message?.fromEmail ??
-            "",
-
-        title:
-            message?.title ??
-            message?.subject ??
-            message?.Subject ??
-            "Message",
-
-        content:
-            message?.content ??
-            message?.message ??
-            message?.body ??
-            message?.Message ??
-            "",
-
-        project:
-            message?.projectName ??
-            message?.project ??
-            message?.ProjectName ??
-            "General",
-
-        task:
-            message?.taskName ??
-            message?.task ??
-            "",
-
-        createdAt:
-            message?.createdAt ??
-            message?.sentAt ??
-            message?.date ??
-            message?.Date ??
-            new Date().toISOString(),
-
-        read:
-            Boolean(
-                message?.read ??
-                message?.isRead ??
-                message?.IsRead ??
-                false
-            ),
-    };
-}
-
-function formatDate(dateValue) {
-    if (!dateValue) {
-        return "Unknown date";
-    }
-
-    const date = new Date(dateValue);
-
-    if (Number.isNaN(date.getTime())) {
-        return "Unknown date";
-    }
-
-    return date.toLocaleString();
-}
-
-// ============================================================
-// COMPONENT
-// ============================================================
-
-export default function ReceiveMessages() {
-    const [user, setUser] = useState(null);
-    const [messages, setMessages] = useState([]);
-
+export default function ViewAssignedProjects({ onSelectProject }) {
+    const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedMessage, setSelectedMessage] = useState(null);
-    const [showUnreadOnly, setShowUnreadOnly] = useState(false);
-
-    // ========================================================
-    // LOAD USER + MESSAGES
-    // ========================================================
 
     useEffect(() => {
         let cancelled = false;
 
-        const loadMessages = async () => {
+        const fetchProjects = async () => {
             try {
-                setLoading(true);
+                const data = await getMyDeveloperProjects();
+
+                if (cancelled) return;
+
+                setProjects(Array.isArray(data) ? data : []);
                 setError("");
+            } catch (err) {
+                if (cancelled) return;
 
-                // Allow React to complete the current render before
-                // updating state. This avoids the synchronous
-                // setState-in-effect ESLint warning.
-                await Promise.resolve();
-
-                if (cancelled) {
-                    return;
-                }
-
-                const currentUser = getStoredUser();
-
-                if (!currentUser) {
-                    setUser(null);
-                    setMessages([]);
-                    setError("Profile not found.");
-                    setLoading(false);
-                    return;
-                }
-
-                const storedMessages = getStoredMessages();
-
-                const normalizedMessages = storedMessages
-                    .map(normalizeMessage)
-                    .filter((message) =>
-                        isMessageForUser(message, currentUser)
-                    )
-                    .sort(
-                        (a, b) =>
-                            new Date(b.createdAt) -
-                            new Date(a.createdAt)
-                    );
-
-                if (cancelled) {
-                    return;
-                }
-
-                setUser(currentUser);
-                setMessages(normalizedMessages);
-                setLoading(false);
-            } catch {
+                setProjects([]);
+                setError(
+                    err?.message ||
+                    "Unable to load your assigned projects."
+                );
+            } finally {
                 if (!cancelled) {
-                    setMessages([]);
-                    setError(
-                        "Unable to load messages. Please try again."
-                    );
                     setLoading(false);
                 }
             }
         };
 
-        loadMessages();
+        fetchProjects();
 
         return () => {
             cancelled = true;
         };
     }, []);
 
-    // ========================================================
-    // FILTER MESSAGES
-    // ========================================================
+    const loadProjects = async () => {
+        setLoading(true);
+        setError("");
 
-    const filteredMessages = useMemo(() => {
-        const search = searchTerm.trim().toLowerCase();
+        try {
+            const data = await getMyDeveloperProjects();
 
-        return messages.filter((message) => {
-            const matchesSearch =
-                !search ||
-                message.senderName
-                    .toLowerCase()
-                    .includes(search) ||
-                message.title
-                    .toLowerCase()
-                    .includes(search) ||
-                message.content
-                    .toLowerCase()
-                    .includes(search) ||
-                message.project
-                    .toLowerCase()
-                    .includes(search);
+            setProjects(Array.isArray(data) ? data : []);
+        } catch (err) {
+            setProjects([]);
+            setError(
+                err?.message ||
+                "Unable to load your assigned projects."
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            const matchesUnread =
-                !showUnreadOnly || !message.read;
+    const formatDate = (date) => {
+        if (!date) return "Not set";
 
-            return matchesSearch && matchesUnread;
-        });
-    }, [messages, searchTerm, showUnreadOnly]);
+        const parsedDate = new Date(date);
 
-    // ========================================================
-    // COUNTS
-    // ========================================================
+        if (Number.isNaN(parsedDate.getTime())) {
+            return "Not set";
+        }
 
-    const unreadCount = messages.filter(
-        (message) => !message.read
-    ).length;
+        return parsedDate.toLocaleDateString();
+    };
 
-    // ========================================================
-    // OPEN MESSAGE
-    // ========================================================
-
-    const handleOpenMessage = (message) => {
-        const updatedMessages = messages.map((item) =>
-            item.id === message.id
-                ? {
-                      ...item,
-                      read: true,
-                  }
-                : item
+    const getProgress = (project) => {
+        const value = Number(
+            project?.progressPercentage ??
+            project?.progress ??
+            0
         );
 
-        setMessages(updatedMessages);
-        saveMessages(updatedMessages);
-
-        setSelectedMessage({
-            ...message,
-            read: true,
-        });
+        return Math.min(
+            100,
+            Math.max(0, value)
+        );
     };
 
-    // ========================================================
-    // MARK ALL READ
-    // ========================================================
-
-    const handleMarkAllRead = () => {
-        const updatedMessages = messages.map((message) => ({
-            ...message,
-            read: true,
-        }));
-
-        setMessages(updatedMessages);
-        saveMessages(updatedMessages);
-
-        if (selectedMessage) {
-            setSelectedMessage({
-                ...selectedMessage,
-                read: true,
-            });
-        }
+    const getStatus = (project) => {
+        return (
+            project?.statusName ||
+            project?.status ||
+            "Unknown"
+        );
     };
-
-    // ========================================================
-    // REFRESH
-    // ========================================================
-
-    const handleRefresh = () => {
-        const currentUser = getStoredUser();
-        const storedMessages = getStoredMessages();
-
-        if (!currentUser) {
-            setUser(null);
-            setMessages([]);
-            setError("Profile not found.");
-            return;
-        }
-
-        const normalizedMessages = storedMessages
-            .map(normalizeMessage)
-            .filter((message) =>
-                isMessageForUser(message, currentUser)
-            )
-            .sort(
-                (a, b) =>
-                    new Date(b.createdAt) -
-                    new Date(a.createdAt)
-            );
-
-        setUser(currentUser);
-        setMessages(normalizedMessages);
-        setError("");
-    };
-
-    // ========================================================
-    // LOADING
-    // ========================================================
 
     if (loading) {
         return (
-            <div className="flex min-h-[400px] items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                    <RefreshCw
-                        size={32}
-                        className="animate-spin text-blue-600"
-                    />
-
-                    <p className="text-sm text-gray-500">
-                        Loading messages...
-                    </p>
+            <section className="rounded-xl border border-border/70 bg-card p-6 shadow-sm">
+                <div className="flex min-h-[300px] items-center justify-center">
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                        <RefreshCw className="h-6 w-6 animate-spin" />
+                        <p>Loading your assigned projects...</p>
+                    </div>
                 </div>
-            </div>
+            </section>
         );
     }
-
-    // ========================================================
-    // PROFILE NOT FOUND
-    // ========================================================
-
-    if (!user) {
-        return (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
-                <UserRound
-                    size={42}
-                    className="mx-auto mb-4 text-red-500"
-                />
-
-                <h2 className="text-lg font-semibold text-red-700">
-                    Profile not found.
-                </h2>
-
-                <p className="mt-2 text-sm text-red-600">
-                    Unable to identify the currently logged-in
-                    Developer.
-                </p>
-            </div>
-        );
-    }
-
-    // ========================================================
-    // MAIN UI
-    // ========================================================
 
     return (
-        <div className="space-y-6">
-            {/* ==================================================
-                HEADER
-            ================================================== */}
-
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <section className="rounded-xl border border-border/70 bg-card p-6 shadow-sm">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <div className="flex items-center gap-3">
-                        <div className="rounded-xl bg-blue-100 p-3 text-blue-600">
-                            <MessageSquare size={24} />
-                        </div>
-
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">
-                                Receive Messages
-                            </h1>
-
-                            <p className="text-sm text-gray-500">
-                                View messages from authorized project
-                                team members.
-                            </p>
-                        </div>
+                    <div className="flex items-center gap-2">
+                        <FolderKanban className="h-5 w-5 text-primary" />
+                        <h2 className="text-lg font-semibold">
+                            Assigned Projects
+                        </h2>
                     </div>
+
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Projects assigned to your teams.
+                    </p>
                 </div>
 
                 <button
                     type="button"
-                    onClick={handleRefresh}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+                    onClick={loadProjects}
+                    disabled={loading}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    <RefreshCw size={17} />
+                    <RefreshCw
+                        className={`h-4 w-4 ${
+                            loading ? "animate-spin" : ""
+                        }`}
+                    />
                     Refresh
                 </button>
             </div>
 
-            {/* ==================================================
-                ERROR
-            ================================================== */}
-
             {error && (
-                <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
-                    <X
-                        size={20}
-                        className="mt-0.5 text-red-500"
-                    />
+                <div className="mb-6 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
 
                     <div>
-                        <p className="font-medium text-red-700">
+                        <p className="font-medium text-destructive">
+                            Unable to load projects
+                        </p>
+
+                        <p className="mt-1 text-muted-foreground">
                             {error}
                         </p>
-
-                        <p className="mt-1 text-sm text-red-600">
-                            Please try refreshing the page.
-                        </p>
                     </div>
                 </div>
             )}
 
-            {/* ==================================================
-                STATISTICS
-            ================================================== */}
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">
-                                Total Messages
-                            </p>
-
-                            <p className="mt-1 text-2xl font-bold text-gray-900">
-                                {messages.length}
-                            </p>
-                        </div>
-
-                        <Mail className="text-blue-600" size={26} />
+            {!error && projects.length === 0 && (
+                <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-6 text-center">
+                    <div className="mb-4 rounded-full bg-primary/10 p-3">
+                        <FolderKanban className="h-6 w-6 text-primary" />
                     </div>
+
+                    <h3 className="text-base font-semibold">
+                        No assigned projects
+                    </h3>
+
+                    <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                        You are not currently assigned to any active team
+                        with projects.
+                    </p>
                 </div>
+            )}
 
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">
-                                Unread
-                            </p>
+            {projects.length > 0 && (
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                    {projects.map((project, index) => {
+                        const projectId = project?.id;
+                        const projectName =
+                            project?.name ||
+                            "Unnamed Project";
 
-                            <p className="mt-1 text-2xl font-bold text-gray-900">
-                                {unreadCount}
-                            </p>
-                        </div>
+                        const progress =
+                            getProgress(project);
 
-                        <Bell className="text-orange-500" size={26} />
-                    </div>
-                </div>
-
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">
-                                Read
-                            </p>
-
-                            <p className="mt-1 text-2xl font-bold text-gray-900">
-                                {messages.length - unreadCount}
-                            </p>
-                        </div>
-
-                        <CheckCheck
-                            className="text-green-600"
-                            size={26}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* ==================================================
-                TOOLBAR
-            ================================================== */}
-
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="relative flex-1">
-                        <Search
-                            size={18}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                        />
-
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(event) =>
-                                setSearchTerm(event.target.value)
-                            }
-                            placeholder="Search messages..."
-                            className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        />
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setShowUnreadOnly(false)
-                            }
-                            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                                !showUnreadOnly
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`}
-                        >
-                            All
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setShowUnreadOnly(true)
-                            }
-                            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                                showUnreadOnly
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`}
-                        >
-                            Unread ({unreadCount})
-                        </button>
-
-                        {unreadCount > 0 && (
-                            <button
-                                type="button"
-                                onClick={handleMarkAllRead}
-                                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                            >
-                                <CheckCheck size={16} />
-                                Mark all read
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* ==================================================
-                MESSAGE LIST
-            ================================================== */}
-
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                <div className="border-b border-gray-200 px-5 py-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="font-semibold text-gray-900">
-                                Message Inbox
-                            </h2>
-
-                            <p className="mt-1 text-xs text-gray-500">
-                                Messages for {getUserName(user)}
-                            </p>
-                        </div>
-
-                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                            {filteredMessages.length} message
-                            {filteredMessages.length !== 1
-                                ? "s"
-                                : ""}
-                        </span>
-                    </div>
-                </div>
-
-                {filteredMessages.length === 0 ? (
-                    <div className="px-6 py-16 text-center">
-                        <MailOpen
-                            size={46}
-                            className="mx-auto mb-4 text-gray-300"
-                        />
-
-                        <h3 className="text-lg font-semibold text-gray-700">
-                            No messages available.
-                        </h3>
-
-                        <p className="mt-2 text-sm text-gray-500">
-                            You currently have no messages matching
-                            your search.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="divide-y divide-gray-100">
-                        {filteredMessages.map((message) => (
-                            <button
-                                key={message.id}
-                                type="button"
-                                onClick={() =>
-                                    handleOpenMessage(message)
+                        return (
+                            <article
+                                key={
+                                    projectId ??
+                                    `${projectName}-${index}`
                                 }
-                                className={`w-full px-5 py-4 text-left transition hover:bg-gray-50 ${
-                                    !message.read
-                                        ? "bg-blue-50/40"
-                                        : "bg-white"
-                                }`}
+                                className="group rounded-xl border border-border/70 bg-background p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
                             >
-                                <div className="flex gap-4">
-                                    <div
-                                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-                                            message.read
-                                                ? "bg-gray-100 text-gray-500"
-                                                : "bg-blue-100 text-blue-600"
-                                        }`}
-                                    >
-                                        <UserRound size={20} />
-                                    </div>
-
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <h3
-                                                    className={`truncate text-sm ${
-                                                        message.read
-                                                            ? "font-medium text-gray-800"
-                                                            : "font-bold text-gray-900"
-                                                    }`}
-                                                >
-                                                    {
-                                                        message.senderName
-                                                    }
-                                                </h3>
-
-                                                {!message.read && (
-                                                    <span className="h-2 w-2 rounded-full bg-blue-600" />
-                                                )}
-                                            </div>
-
-                                            <span className="flex shrink-0 items-center gap-1 text-xs text-gray-400">
-                                                <Clock size={13} />
-
-                                                {formatDate(
-                                                    message.createdAt
-                                                )}
-                                            </span>
+                                <div className="mb-4 flex items-start justify-between gap-3">
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                            <FolderKanban className="h-5 w-5 text-primary" />
                                         </div>
 
-                                        <p className="mt-1 text-sm font-semibold text-gray-800">
-                                            {message.title}
-                                        </p>
+                                        <div className="min-w-0">
+                                            <h3 className="truncate font-semibold">
+                                                {projectName}
+                                            </h3>
 
-                                        <p className="mt-1 line-clamp-2 text-sm text-gray-500">
-                                            {message.content}
-                                        </p>
-
-                                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                                            {message.project && (
-                                                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
-                                                    Project:{" "}
-                                                    {
-                                                        message.project
-                                                    }
-                                                </span>
-                                            )}
-
-                                            {message.task && (
-                                                <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs text-purple-600">
-                                                    Task:{" "}
-                                                    {message.task}
-                                                </span>
-                                            )}
-
-                                            <span
-                                                className={`rounded-full px-2.5 py-1 text-xs ${
-                                                    message.read
-                                                        ? "bg-green-50 text-green-600"
-                                                        : "bg-blue-50 text-blue-600"
-                                                }`}
-                                            >
-                                                {message.read
-                                                    ? "Read"
-                                                    : "Unread"}
-                                            </span>
+                                            <p className="mt-0.5 text-xs text-muted-foreground">
+                                                {getStatus(project)}
+                                            </p>
                                         </div>
                                     </div>
+
+                                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                                        {getStatus(project)}
+                                    </span>
                                 </div>
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
 
-            {/* ==================================================
-                MESSAGE DETAILS MODAL
-            ================================================== */}
-
-            {selectedMessage && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-                            <div>
-                                <h2 className="text-lg font-bold text-gray-900">
-                                    Message Details
-                                </h2>
-
-                                <p className="mt-1 text-xs text-gray-500">
-                                    Received message
+                                <p className="mb-5 line-clamp-3 text-sm text-muted-foreground">
+                                    {project?.description ||
+                                        "No project description available."}
                                 </p>
-                            </div>
 
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setSelectedMessage(null)
-                                }
-                                className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
+                                <div className="mb-5">
+                                    <div className="mb-2 flex items-center justify-between text-xs">
+                                        <span className="text-muted-foreground">
+                                            Progress
+                                        </span>
 
-                        {/* Modal Body */}
-                        <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
-                            <div className="flex items-start gap-4">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                                    <UserRound size={22} />
+                                        <span className="font-medium">
+                                            {progress}%
+                                        </span>
+                                    </div>
+
+                                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                                        <div
+                                            className="h-full rounded-full bg-primary transition-all"
+                                            style={{
+                                                width: `${progress}%`,
+                                            }}
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="flex-1">
-                                    <h3 className="font-semibold text-gray-900">
-                                        {
-                                            selectedMessage.senderName
-                                        }
-                                    </h3>
+                                <div className="space-y-3 border-t border-border/70 pt-4">
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <UserRound className="h-4 w-4 text-muted-foreground" />
 
-                                    {selectedMessage.senderEmail && (
-                                        <p className="text-sm text-gray-500">
-                                            {
-                                                selectedMessage.senderEmail
-                                            }
-                                        </p>
-                                    )}
+                                        <span className="text-muted-foreground">
+                                            Manager:
+                                        </span>
 
-                                    <p className="mt-1 text-xs text-gray-400">
-                                        {
-                                            formatDate(
-                                                selectedMessage.createdAt
-                                            )
-                                        }
-                                    </p>
+                                        <span className="truncate font-medium">
+                                            {project?.managerName ||
+                                                "Not assigned"}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
+
+                                        <span className="text-muted-foreground">
+                                            Start:
+                                        </span>
+
+                                        <span className="font-medium">
+                                            {formatDate(
+                                                project?.startDate
+                                            )}
+                                        </span>
+                                    </div>
                                 </div>
 
-                                <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-600">
-                                    Read
-                                </span>
-                            </div>
-
-                            <div className="mt-6">
-                                <h3 className="text-xl font-bold text-gray-900">
-                                    {selectedMessage.title}
-                                </h3>
-
-                                <div className="mt-4 rounded-xl bg-gray-50 p-5">
-                                    <p className="whitespace-pre-wrap text-sm leading-7 text-gray-700">
-                                        {
-                                            selectedMessage.content
-                                        }
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                <div className="rounded-lg border border-gray-200 p-4">
-                                    <p className="text-xs text-gray-400">
-                                        Related Project
-                                    </p>
-
-                                    <p className="mt-1 text-sm font-medium text-gray-800">
-                                        {
-                                            selectedMessage.project
-                                        }
-                                    </p>
-                                </div>
-
-                                <div className="rounded-lg border border-gray-200 p-4">
-                                    <p className="text-xs text-gray-400">
-                                        Related Task
-                                    </p>
-
-                                    <p className="mt-1 text-sm font-medium text-gray-800">
-                                        {selectedMessage.task ||
-                                            "Not specified"}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div className="flex justify-end border-t border-gray-200 px-6 py-4">
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setSelectedMessage(null)
-                                }
-                                className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        onSelectProject?.(
+                                            project
+                                        )
+                                    }
+                                    className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+                                >
+                                    View Project Details
+                                    <ArrowUpRight className="h-4 w-4" />
+                                </button>
+                            </article>
+                        );
+                    })}
                 </div>
             )}
-        </div>
+        </section>
     );
 }
