@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AI_PMS.API.Controllers;
 
 [ApiController]
+[ApiExplorerSettings(GroupName = "AI")]
 [Route("api/[controller]")]
 public class RecommendationController : ControllerBase
 {
@@ -26,3 +27,4 @@ public class RecommendationController : ControllerBase
         return Ok(result);
     }
 }
+

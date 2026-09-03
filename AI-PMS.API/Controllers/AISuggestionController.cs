@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AI_PMS.API.Controllers;
 
 [ApiController]
+[ApiExplorerSettings(GroupName = "AI")]
 [Route("api/[controller]")]
 public class AISuggestionController : ControllerBase
 {
@@ -97,3 +98,4 @@ public class AISuggestionController : ControllerBase
         });
     }
 }
+

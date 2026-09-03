@@ -1,3 +1,4 @@
+
 using System.Net.Http.Json;
 using AI_PMS.Application.DTOs;
 using AI_PMS.Application.Interfaces;
@@ -29,6 +30,26 @@ public class OllamaService : IAIService
     {
         try
         {
+            if (request == null)
+            {
+                return new AIResponse
+                {
+                    Content = string.Empty,
+                    Success = false,
+                    ErrorMessage = "AI request is required."
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Prompt))
+            {
+                return new AIResponse
+                {
+                    Content = string.Empty,
+                    Success = false,
+                    ErrorMessage = "AI prompt is required."
+                };
+            }
+
             var payload = new
             {
                 model = _options.Model,
@@ -36,14 +57,33 @@ public class OllamaService : IAIService
                 stream = false
             };
 
+            Console.WriteLine("========================================");
+            Console.WriteLine("OLLAMA REQUEST");
+            Console.WriteLine($"URL: {_options.OllamaUrl}");
+            Console.WriteLine($"MODEL: {_options.Model}");
+            Console.WriteLine("========================================");
+
             using var response = await _httpClient.PostAsJsonAsync(
                 "/api/generate",
                 payload);
 
-            response.EnsureSuccessStatusCode();
+            var responseContent =
+                await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new AIResponse
+                {
+                    Content = string.Empty,
+                    Success = false,
+                    ErrorMessage =
+                        $"Ollama returned HTTP {(int)response.StatusCode}: {responseContent}"
+                };
+            }
 
             var result =
-                await response.Content.ReadFromJsonAsync<OllamaResponse>();
+                System.Text.Json.JsonSerializer.Deserialize<OllamaResponse>(
+                    responseContent);
 
             if (result == null ||
                 string.IsNullOrWhiteSpace(result.Response))
@@ -55,6 +95,11 @@ public class OllamaService : IAIService
                     ErrorMessage = "Ollama returned an empty response."
                 };
             }
+
+            Console.WriteLine("========================================");
+            Console.WriteLine("OLLAMA RESPONSE");
+            Console.WriteLine(result.Response);
+            Console.WriteLine("========================================");
 
             return new AIResponse
             {
@@ -89,13 +134,16 @@ public class OllamaService : IAIService
             {
                 Content = string.Empty,
                 Success = false,
-                ErrorMessage = ex.Message
+                ErrorMessage =
+                    "Ollama service error: " + ex.Message
             };
         }
     }
 
     private class OllamaResponse
     {
+        [System.Text.Json.Serialization.JsonPropertyName("response")]
         public string Response { get; set; } = string.Empty;
     }
 }
+

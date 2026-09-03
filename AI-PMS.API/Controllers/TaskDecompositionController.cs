@@ -1,11 +1,15 @@
 using AI_PMS.Application.DTOs;
 using AI_PMS.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AI_PMS.API.Controllers;
 
 [ApiController]
+[ApiExplorerSettings(GroupName = "AI")]
 [Route("api/[controller]")]
+[AllowAnonymous]
+
 public class TaskDecompositionController : ControllerBase
 {
     private readonly ITaskDecompositionService _taskDecompositionService;
@@ -28,19 +32,14 @@ public class TaskDecompositionController : ControllerBase
             return BadRequest("Task request is required.");
         }
 
-        /*
-         * STEP 1:
-         * Detect the size of the task.
-         */
+        // STEP 1:
+        // Detect the size of the task.
         var taskSizeResponse =
             await _taskSizeDetectionService
                 .DetectTaskSizeAsync(request);
 
-        /*
-         * STEP 2:
-         * Use the detected size to determine
-         * how the task should be decomposed.
-         */
+        // STEP 2:
+        // Decompose the task using the detected size.
         var result =
             await _taskDecompositionService
                 .DecomposeTaskAsync(
@@ -50,3 +49,4 @@ public class TaskDecompositionController : ControllerBase
         return Ok(result);
     }
 }
+

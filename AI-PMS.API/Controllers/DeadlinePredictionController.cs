@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AI_PMS.API.Controllers;
 
 [ApiController]
+[ApiExplorerSettings(GroupName = "AI")]
 [Route("api/[controller]")]
 public class DeadlinePredictionController : ControllerBase
 {
@@ -74,3 +75,4 @@ public class DeadlinePredictionController : ControllerBase
         }
     }
 }
+
