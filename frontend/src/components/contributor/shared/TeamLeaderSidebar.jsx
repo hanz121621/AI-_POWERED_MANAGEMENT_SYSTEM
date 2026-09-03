@@ -1,69 +1,101 @@
-
-import { useState } from "react";
+﻿
 import { NavLink } from "react-router-dom";
 
 import {
     BarChart3,
-    ChevronDown,
+    CalendarRange,
     ClipboardList,
-    Gauge,
     LayoutDashboard,
     MessageSquare,
-    UsersRound,
-    Workflow,
-    X,
+    Settings,
+    UserRound,
+    BriefcaseBusiness,
 } from "lucide-react";
 
 // ============================================================
 // TEAM LEADER SIDEBAR
+// ============================================================
+//
+// Main navigation:
+//
+// 1. Dashboard
+// 2. Task Management
+// 3. Profile Management
+// 4. Project Participation
+// 5. Sprint Participation
+// 6. Communication
+// 7. Reports
+// 8. Settings & Preferences
+//
+// IMPORTANT:
+// - No dropdown menus
+// - No nested navigation
+// - Each item is a direct parent module
+// - Keep paths synchronized with AppRoutes.jsx
+//
 // ============================================================
 
 function TeamLeaderSidebar({
     isOpen = true,
     onClose,
 }) {
-    const [teamLeaderOpen, setTeamLeaderOpen] =
-        useState(true);
-
     // ========================================================
-    // TEAM LEADER MENU
+    // MAIN NAVIGATION
     // ========================================================
 
-    const teamLeaderItems = [
+    const navigation = [
         {
-            label: "View Assigned Projects",
-            path: "/team-leader/assigned-team",
-            icon: UsersRound,
+            label: "Dashboard",
+            path: "/team-leader/dashboard",
+            icon: LayoutDashboard,
+            end: true,
         },
+
         {
-            label: "View Team Tasks",
-            path: "/team-leader/team-tasks",
+            label: "Task Management",
+            path: "/team-leader/task-management",
             icon: ClipboardList,
         },
+
         {
-            label: "Monitor Team Progress",
-            path: "/team-leader/team-progress",
-            icon: Gauge,
+            label: "Profile Management",
+            path: "/team-leader/profile-management",
+            icon: UserRound,
         },
+
         {
-            label: "Coordinate Team Work",
-            path: "/team-leader/create-team-task",
-            icon: Workflow,
+            label: "Project Participation",
+            path: "/team-leader/project-participation",
+            icon: BriefcaseBusiness,
         },
+
         {
-            label: "Communicate with Manager",
-            path: "/team-leader/communication/messages",
+            label: "Sprint Participation",
+            path: "/team-leader/sprint-participation",
+            icon: CalendarRange,
+        },
+
+        {
+            label: "Communication",
+            path: "/team-leader/communication",
             icon: MessageSquare,
         },
+
         {
-            label: "View Team Performance",
-            path: "/team-leader/team-performance",
+            label: "Reports",
+            path: "/team-leader/reports",
             icon: BarChart3,
+        },
+
+        {
+            label: "Settings & Preferences",
+            path: "/team-leader/settings",
+            icon: Settings,
         },
     ];
 
     // ========================================================
-    // MAIN NAV ITEM CLASS
+    // NAVIGATION ITEM CLASS
     // ========================================================
 
     const navItemClass = ({ isActive }) =>
@@ -73,9 +105,9 @@ function TeamLeaderSidebar({
         w-full
         items-center
         gap-3
-        rounded-lg
+        rounded-xl
         px-3
-        py-2.5
+        py-3
         text-sm
         font-medium
         transition-all
@@ -91,39 +123,6 @@ function TeamLeaderSidebar({
                 : `
                     text-slate-300
                     hover:bg-blue-950/70
-                    hover:text-white
-                  `
-        }
-        `;
-
-    // ========================================================
-    // SUB ITEM CLASS
-    // ========================================================
-
-    const subItemClass = ({ isActive }) =>
-        `
-        group
-        flex
-        w-full
-        items-center
-        gap-3
-        rounded-lg
-        px-3
-        py-2.5
-        text-sm
-        transition-all
-        duration-200
-
-        ${
-            isActive
-                ? `
-                    bg-blue-600/90
-                    text-white
-                    shadow-sm
-                  `
-                : `
-                    text-slate-400
-                    hover:bg-blue-950/60
                     hover:text-white
                   `
         }
@@ -160,7 +159,9 @@ function TeamLeaderSidebar({
 
             <aside
                 className={`
-                    relative
+                    fixed
+                    inset-y-0
+                    left-0
                     z-50
                     flex
                     min-h-screen
@@ -175,9 +176,7 @@ function TeamLeaderSidebar({
                     transition-transform
                     duration-300
 
-                    lg:static
-                    lg:z-auto
-                    lg:translate-x-0
+                    lg:z-50 lg:translate-x-0
 
                     ${
                         isOpen
@@ -187,7 +186,7 @@ function TeamLeaderSidebar({
                 `}
             >
                 {/* ==================================================
-                    SIDEBAR HEADER
+                    HEADER
                 ================================================== */}
 
                 <div
@@ -211,20 +210,21 @@ function TeamLeaderSidebar({
                                 flex
                                 h-9
                                 w-9
+                                shrink-0
                                 items-center
                                 justify-center
-                                rounded-lg
+                                rounded-xl
                                 bg-blue-600
                                 text-white
                                 shadow-sm
                             "
                         >
-                            <UsersRound className="h-5 w-5" />
+                            <UserRound className="h-5 w-5" />
                         </div>
 
                         {/* TITLE */}
 
-                        <div>
+                        <div className="min-w-0">
                             <p
                                 className="
                                     text-sm
@@ -238,6 +238,7 @@ function TeamLeaderSidebar({
 
                             <p
                                 className="
+                                    mt-0.5
                                     text-[10px]
                                     font-medium
                                     text-slate-400
@@ -258,12 +259,30 @@ function TeamLeaderSidebar({
                             rounded-lg
                             p-2
                             text-slate-400
+                            transition
                             hover:bg-blue-950/70
                             hover:text-white
                             lg:hidden
                         "
                     >
-                        <X className="h-5 w-5" />
+                        <span className="sr-only">
+                            Close sidebar
+                        </span>
+
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className="h-5 w-5"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
+                        </svg>
                     </button>
                 </div>
 
@@ -273,52 +292,22 @@ function TeamLeaderSidebar({
 
                 <nav
                     className="
+                        min-h-0
                         flex-1
+                        overflow-y-auto
                         px-3
                         py-5
                     "
                 >
-                    {/* ==================================================
-                        DASHBOARD
-                    ================================================== */}
+                    {/* SECTION TITLE */}
 
-                    <div className="mb-2">
-                        <NavLink
-                            to="/team-leader/dashboard"
-                            onClick={onClose}
-                            className={navItemClass}
-                        >
-                            <LayoutDashboard
-                                className="
-                                    h-5
-                                    w-5
-                                    shrink-0
-                                "
-                            />
-
-                            <span>
-                                Dashboard
-                            </span>
-                        </NavLink>
-                    </div>
-
-                    {/* ==================================================
-                        SECTION LABEL
-                    ================================================== */}
-
-                    <div
-                        className="
-                            mb-2
-                            mt-6
-                            px-3
-                        "
-                    >
+                    <div className="mb-4 px-3">
                         <p
                             className="
                                 text-[10px]
                                 font-bold
                                 uppercase
-                                tracking-[0.14em]
+                                tracking-[0.16em]
                                 text-slate-500
                             "
                         >
@@ -326,134 +315,39 @@ function TeamLeaderSidebar({
                         </p>
                     </div>
 
-                    {/* ==================================================
-                        TEAM LEADER DROPDOWN
-                    ================================================== */}
+                    {/* MAIN NAVIGATION */}
 
-                    <div>
+                    <div className="space-y-2">
+                        {navigation.map((item) => {
+                            const Icon = item.icon;
 
-                        {/* DROPDOWN BUTTON */}
+                            return (
+                                <NavLink
+                                    key={item.path}
+                                    to={item.path}
+                                    end={item.end}
+                                    onClick={onClose}
+                                    className={navItemClass}
+                                >
+                                    <Icon
+                                        className="
+                                            h-5
+                                            w-5
+                                            shrink-0
+                                        "
+                                    />
 
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setTeamLeaderOpen(
-                                    (current) =>
-                                        !current
-                                )
-                            }
-                            className="
-                                flex
-                                w-full
-                                items-center
-                                justify-between
-                                rounded-lg
-                                px-3
-                                py-2.5
-                                text-sm
-                                font-semibold
-                                text-slate-200
-                                transition
-                                hover:bg-blue-950/70
-                                hover:text-white
-                            "
-                            aria-expanded={
-                                teamLeaderOpen
-                            }
-                        >
-                            <span className="flex items-center gap-3">
-
-                                <UsersRound
-                                    className="
-                                        h-5
-                                        w-5
-                                        shrink-0
-                                        text-blue-400
-                                    "
-                                />
-
-                                <span>
-                                    Team Leader
-                                </span>
-
-                            </span>
-
-                            <ChevronDown
-                                className={`
-                                    h-4
-                                    w-4
-                                    text-slate-400
-                                    transition-transform
-                                    duration-200
-
-                                    ${
-                                        teamLeaderOpen
-                                            ? "rotate-180"
-                                            : ""
-                                    }
-                                `}
-                            />
-                        </button>
-
-                        {/* ==================================================
-                            DROPDOWN CONTENT
-                        ================================================== */}
-
-                        {teamLeaderOpen && (
-                            <div
-                                className="
-                                    mt-1
-                                    ml-5
-                                    space-y-1
-                                    border-l
-                                    border-blue-900
-                                    pl-2
-                                "
-                            >
-                                {teamLeaderItems.map(
-                                    (item) => {
-                                        const Icon =
-                                            item.icon;
-
-                                        return (
-                                            <NavLink
-                                                key={
-                                                    item.path
-                                                }
-                                                to={
-                                                    item.path
-                                                }
-                                                onClick={
-                                                    onClose
-                                                }
-                                                className={
-                                                    subItemClass
-                                                }
-                                            >
-                                                <Icon
-                                                    className="
-                                                        h-4
-                                                        w-4
-                                                        shrink-0
-                                                    "
-                                                />
-
-                                                <span>
-                                                    {
-                                                        item.label
-                                                    }
-                                                </span>
-                                            </NavLink>
-                                        );
-                                    }
-                                )}
-                            </div>
-                        )}
+                                    <span className="truncate">
+                                        {item.label}
+                                    </span>
+                                </NavLink>
+                            );
+                        })}
                     </div>
                 </nav>
 
                 {/* ==================================================
-                    SIDEBAR FOOTER
+                    FOOTER
                 ================================================== */}
 
                 <div
@@ -467,19 +361,16 @@ function TeamLeaderSidebar({
                 >
                     <div
                         className="
-                            rounded-lg
-                            bg-blue-950/50
+                            rounded-xl
+                            border
+                            border-blue-900/60
+                            bg-blue-950/40
                             px-3
                             py-3
                         "
                     >
-                        <div
-                            className="
-                                flex
-                                items-center
-                                gap-3
-                            "
-                        >
+                        <div className="flex items-center gap-3">
+
                             {/* AVATAR */}
 
                             <div
@@ -487,15 +378,15 @@ function TeamLeaderSidebar({
                                     flex
                                     h-9
                                     w-9
+                                    shrink-0
                                     items-center
                                     justify-center
                                     rounded-full
                                     bg-blue-600
+                                    text-white
                                 "
                             >
-                                <UsersRound
-                                    className="h-4 w-4"
-                                />
+                                <UserRound className="h-4 w-4" />
                             </div>
 
                             {/* USER INFO */}
@@ -514,12 +405,13 @@ function TeamLeaderSidebar({
 
                                 <p
                                     className="
+                                        mt-0.5
                                         truncate
                                         text-[10px]
                                         text-slate-400
                                     "
                                 >
-                                    Team Management
+                                    Team Leader Workspace
                                 </p>
                             </div>
                         </div>
@@ -531,3 +423,4 @@ function TeamLeaderSidebar({
 }
 
 export default TeamLeaderSidebar;
+

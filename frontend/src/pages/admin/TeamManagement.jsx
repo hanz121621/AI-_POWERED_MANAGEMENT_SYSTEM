@@ -2337,36 +2337,40 @@ console.log(
         "
     >
 
-        <option value="">
-            Select contributor type
-        </option>
+       <option value="">
+    Select contributor type
+</option>
 
-       {createTeamContributorTypes.map((type) => {
-    const typeId =
-        type?.id ??
-        type?.contributorTypeId ??
-        type?.Id ??
-        type?.ContributorTypeId;
+{/* Filter out "Team Leader" specifically for this dropdown */}
+{contributorTypes
+    .filter((type) => {
+        const typeName = (type.name || type.displayName || "").toLowerCase();
+        return typeName !== "team leader"; // This hides Team Leader
+    })
+    .map((type) => {
+        const typeId =
+            type?.id ??
+            type?.contributorTypeId ??
+            type?.Id ??
+            type?.ContributorTypeId;
 
-    return (
-        <option
-            key={typeId}
-            value={typeId}
-        >
-            {type.name ||
-                type.displayName ||
-                "Unnamed Type"}
-        </option>
-    );
-})}
+        return (
+            <option
+                key={typeId}
+                value={typeId}
+            >
+                {type.name || type.displayName || "Unnamed Type"}
+            </option>
+        );
+    })}
 
-    </select>
+</select>
 
-    {contributorTypes.length === 0 && (
-        <p className="mt-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            Contributor types are not loaded from the backend yet.
-        </p>
-    )}
+{contributorTypes.length === 0 && (
+    <p className="mt-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+        Contributor types are not loaded from the backend yet.
+    </p>
+)}
 
 </div>
 

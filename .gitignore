@@ -21,6 +21,10 @@ frontend/lerna-debug.log*
 # =========================================================
 # .NET / BACKEND
 # =========================================================
+# Private backend configuration
+/appsettings.Development.json
+/appsettings.Local.json
+**/appsettings.Production.json
 
 # Private backend configuration
 **/appsettings.Development.json
