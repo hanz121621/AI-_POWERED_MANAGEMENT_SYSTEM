@@ -1,4 +1,4 @@
-
+﻿
 using AI_PMS.Application.DTOs.Users;
 using AI_PMS.Application.Interfaces.Activities;
 using AI_PMS.Application.Interfaces.Users;
@@ -104,8 +104,7 @@ var existingUser =
     await _userRepository.GetByEmailAsync(
         normalizedEmail);
 
-if (existingUser != null &&
-    existingUser.Id != userId)
+if (existingUser != null)
 {
     throw new InvalidOperationException(
         "A user with this email already exists.");
@@ -258,7 +257,7 @@ if (existingUser != null &&
                     }
 
                     // ---------------------------------------------
-                    // VALIDATE TYPE ↔ SUBTYPE RELATIONSHIP
+                    // VALIDATE TYPE â†” SUBTYPE RELATIONSHIP
                     // ---------------------------------------------
 
                     var classificationExists =
@@ -608,7 +607,7 @@ if (existingUser != null &&
                     }
 
                     // ---------------------------------------------
-                    // VALIDATE TYPE ↔ SUBTYPE RELATIONSHIP
+                    // VALIDATE TYPE â†” SUBTYPE RELATIONSHIP
                     // ---------------------------------------------
 
                     var classificationExists =
@@ -665,10 +664,10 @@ var noChanges =
         normalizedName,
         StringComparison.OrdinalIgnoreCase)
 
-    &&
+                &&
 
-    string.Equals(
-        user.PhoneNumber?.Trim(),
+                string.Equals(
+                    user.PhoneNumber?.Trim(),
         normalizedPhone,
         StringComparison.OrdinalIgnoreCase)
 
@@ -691,9 +690,9 @@ var noChanges =
     string.Equals(
         user.ProfileImage?.Trim(),
         normalizedProfileImage,
-        StringComparison.Ordinal);
+        StringComparison.Ordinal)
 
-                
+                &&
 
                 user.Role == dto.Role
 
@@ -1035,47 +1034,6 @@ var noChanges =
             }
 
             // =====================================================
-            // EMAIL VALIDATION
-            // =====================================================
-
-            if (string.IsNullOrWhiteSpace(dto.Email))
-            {
-                throw new InvalidOperationException(
-                    "Email address is required.");
-            }
-
-            var normalizedEmail =
-                dto.Email.Trim().ToLowerInvariant();
-
-            if (!new EmailAddressAttribute()
-                .IsValid(normalizedEmail))
-            {
-                throw new InvalidOperationException(
-                    "Please enter a valid email address.");
-            }
-
-            if (normalizedEmail.Length > 150)
-            {
-                throw new InvalidOperationException(
-                    "Email address cannot exceed 150 characters.");
-            }
-
-            // =====================================================
-            // EMAIL DUPLICATE CHECK
-            // =====================================================
-
-            var existingUser =
-                await _userRepository.GetByEmailAsync(
-                    normalizedEmail);
-
-            if (existingUser != null &&
-                existingUser.Id != userId)
-            {
-                throw new InvalidOperationException(
-                    "A user with this email already exists.");
-            }
-
-            // =====================================================
             // PHONE NORMALIZATION
             // =====================================================
 
@@ -1164,14 +1122,6 @@ var noChanges =
                     StringComparison.OrdinalIgnoreCase)
 
                 &&
-
-                string.Equals(
-                    user.Email?.Trim(),
-                    normalizedEmail,
-                    StringComparison.OrdinalIgnoreCase)
-
-                &&
-
                 string.Equals(
                     user.PhoneNumber?.Trim(),
                     normalizedPhone,
@@ -1210,9 +1160,6 @@ var noChanges =
 
             user.FullName =
                 normalizedName;
-
-            user.Email =
-                normalizedEmail;
 
             user.PhoneNumber =
                 normalizedPhone;
@@ -1266,7 +1213,7 @@ var noChanges =
         }
 
         // =========================================================
-        // ENTITY → DTO
+        // ENTITY â†’ DTO
         // =========================================================
 
         private static UserDto MapToDto(
@@ -1353,3 +1300,11 @@ var noChanges =
         }
     }
 }
+
+
+
+
+
+
+
+

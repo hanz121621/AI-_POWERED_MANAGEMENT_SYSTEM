@@ -73,6 +73,7 @@ public async Task<ActionResult<MessageResponseDto>>
             {
                 return Forbid();
             }
+
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new

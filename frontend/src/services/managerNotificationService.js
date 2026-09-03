@@ -1,180 +1,71 @@
+import api from "@/services/api";
 
 // ============================================================
 // MANAGER NOTIFICATION SERVICE
-// AIPMS
-//
-// COMM-001 — View Notifications
-//
-// Uses the existing AIPMS authentication system.
-// NO notification localStorage.
-// NO fake notification records.
-//
-// Authentication:
-// - Uses getCurrentUser() from authService
-// - Uses the existing api service
-// - api.js handles the Bearer token/interceptor
-// ============================================================
-
-import api from "@/services/api";
-
-import {
-    getCurrentUser,
-    normalizeUserRole,
-} from "@/services/authService";
-
-// ============================================================
-// ENDPOINTS
-// ============================================================
-//
-// IMPORTANT:
-// api.js already has "/api" in its base configuration.
-//
-// Therefore DO NOT write:
-//     /api/notifications/manager
-//
-// Use:
-//     /notifications/manager
-//
-// Final request:
-//     http://localhost:5043/api/notifications/manager
-// ============================================================
-
-const MANAGER_NOTIFICATIONS_ENDPOINT =
-    "/notifications/manager";
-
-const MARK_ALL_READ_ENDPOINT =
-    "/notifications/manager/read-all";
-
-const MARK_READ_ENDPOINT = (notificationId) =>
-    `/notifications/${encodeURIComponent(
-        notificationId
-    )}/read`;
-
-// ============================================================
-// VALIDATE MANAGER
-// ============================================================
-
-function validateManager() {
-    const currentUser = getCurrentUser();
-
-    if (!currentUser) {
-        throw new Error(
-            "AUTHENTICATION_REQUIRED"
-        );
-    }
-
-    const role = normalizeUserRole(
-        currentUser.role ??
-        currentUser.Role ??
-        currentUser.roleId ??
-        currentUser.RoleId
-    );
-
-    if (role !== "Manager") {
-        throw new Error(
-            "ACCESS_DENIED"
-        );
-    }
-
-    return currentUser;
-}
-
-// ============================================================
-// GET MANAGER NOTIFICATIONS
-// ============================================================
-//
 // Backend:
-// GET /api/notifications/manager
-//
-// api.js automatically provides:
-// /api
-//
-// Therefore this service calls:
-// /notifications/manager
+// GET   /api/notifications
+// GET   /api/notifications/{id}
+// PATCH /api/notifications/{id}/read
+// GET   /api/notifications/unread-count
+// ============================================================
+
+// ============================================================
+// GET MY NOTIFICATIONS
 // ============================================================
 
 export async function getManagerNotifications() {
-    validateManager();
-
     try {
-        const response = await api.get(
-            MANAGER_NOTIFICATIONS_ENDPOINT
-        );
+        const response = await api.get("/notifications");
 
-        const data = response.data;
+        // Backend response:
+        // {
+        //   success: true,
+        //   message: "...",
+        //   data: [...]
+        // }
 
-        // ----------------------------------------------------
-        // Support common backend response formats
-        // ----------------------------------------------------
-
-        if (Array.isArray(data)) {
-            return data;
-        }
-
-        if (
-            Array.isArray(
-                data?.notifications
-            )
-        ) {
-            return data.notifications;
-        }
-
-        if (
-            Array.isArray(data?.items)
-        ) {
-            return data.items;
-        }
-
-        if (
-            Array.isArray(data?.data)
-        ) {
-            return data.data;
-        }
-
-        return [];
+        return response?.data?.data ?? [];
     } catch (error) {
         console.error(
-            "GET MANAGER NOTIFICATIONS ERROR:",
+            "Failed to load manager notifications:",
             error
         );
-
-        // ----------------------------------------------------
-        // Authentication
-        // ----------------------------------------------------
-
-        if (
-            error?.response?.status === 401
-        ) {
-            throw new Error(
-                "AUTHENTICATION_REQUIRED"
-            );
-        }
-
-        // ----------------------------------------------------
-        // Authorization
-        // ----------------------------------------------------
-
-        if (
-            error?.response?.status === 403
-        ) {
-            throw new Error(
-                "ACCESS_DENIED"
-            );
-        }
 
         throw error;
     }
 }
 
 // ============================================================
-// MARK NOTIFICATION AS READ
+// GET ONE NOTIFICATION
 // ============================================================
-//
-// Backend:
-// PATCH /api/notifications/{id}/read
-//
-// Actual service path:
-// PATCH /notifications/{id}/read
+
+export async function getManagerNotificationById(
+    notificationId
+) {
+    if (!notificationId) {
+        throw new Error(
+            "Notification ID is required."
+        );
+    }
+
+    try {
+        const response = await api.get(
+            `/notifications/${notificationId}`
+        );
+
+        return response?.data?.data ?? null;
+    } catch (error) {
+        console.error(
+            "Failed to load notification:",
+            error
+        );
+
+        throw error;
+    }
+}
+
+// ============================================================
+// MARK ONE NOTIFICATION AS READ
 // ============================================================
 
 export async function markManagerNotificationAsRead(
@@ -182,107 +73,107 @@ export async function markManagerNotificationAsRead(
 ) {
     if (!notificationId) {
         throw new Error(
-            "NOTIFICATION_ID_REQUIRED"
+            "Notification ID is required."
         );
     }
 
-    validateManager();
-
     try {
         const response = await api.patch(
-            MARK_READ_ENDPOINT(
-                notificationId
-            )
+            `/notifications/${notificationId}/read`
         );
 
-        return (
-            response.data ?? {
-                success: true,
-            }
-        );
+        return response?.data ?? null;
     } catch (error) {
         console.error(
-            "MARK MANAGER NOTIFICATION READ ERROR:",
+            "Failed to mark notification as read:",
             error
         );
-
-        if (
-            error?.response?.status === 401
-        ) {
-            throw new Error(
-                "AUTHENTICATION_REQUIRED"
-            );
-        }
-
-        if (
-            error?.response?.status === 403
-        ) {
-            throw new Error(
-                "ACCESS_DENIED"
-            );
-        }
 
         throw error;
     }
 }
 
 // ============================================================
-// MARK ALL MANAGER NOTIFICATIONS AS READ
+// GET UNREAD NOTIFICATION COUNT
 // ============================================================
+
+export async function getManagerUnreadNotificationCount() {
+    try {
+        const response = await api.get(
+            "/notifications/unread-count"
+        );
+
+        return response?.data?.unreadCount ?? 0;
+    } catch (error) {
+        console.error(
+            "Failed to load unread notification count:",
+            error
+        );
+
+        throw error;
+    }
+}
+
+// ============================================================
+// MARK ALL NOTIFICATIONS AS READ
 //
-// Backend:
-// PATCH /api/notifications/manager/read-all
+// The backend currently does NOT expose a mark-all endpoint.
+// Therefore we intentionally do NOT invent an API route.
 //
-// Actual service path:
-// PATCH /notifications/manager/read-all
+// This function uses the existing GET + PATCH endpoints:
+// 1. Get the user's notifications.
+// 2. Find unread notifications.
+// 3. Mark each unread notification as read.
+//
+// This keeps the frontend compatible with the backend
+// that currently exists.
 // ============================================================
 
 export async function markAllManagerNotificationsAsRead() {
-    validateManager();
-
     try {
-        const response = await api.patch(
-            MARK_ALL_READ_ENDPOINT
+        const notifications =
+            await getManagerNotifications();
+
+        const unreadNotifications =
+            notifications.filter(
+                (notification) =>
+                    !notification?.isRead
+            );
+
+        if (unreadNotifications.length === 0) {
+            return {
+                success: true,
+                count: 0,
+                message:
+                    "There are no unread notifications.",
+            };
+        }
+
+        const results = await Promise.all(
+            unreadNotifications
+                .filter(
+                    (notification) =>
+                        notification?.id
+                )
+                .map((notification) =>
+                    markManagerNotificationAsRead(
+                        notification.id
+                    )
+                )
         );
 
-        return (
-            response.data ?? {
-                success: true,
-            }
-        );
+        return {
+            success: true,
+            count: results.length,
+            message:
+                "All notifications marked as read.",
+        };
     } catch (error) {
         console.error(
-            "MARK ALL MANAGER NOTIFICATIONS READ ERROR:",
+            "Failed to mark all manager notifications as read:",
             error
         );
-
-        if (
-            error?.response?.status === 401
-        ) {
-            throw new Error(
-                "AUTHENTICATION_REQUIRED"
-            );
-        }
-
-        if (
-            error?.response?.status === 403
-        ) {
-            throw new Error(
-                "ACCESS_DENIED"
-            );
-        }
 
         throw error;
     }
 }
-
-// ============================================================
-// DEFAULT EXPORT
-// ============================================================
-
-export default {
-    getManagerNotifications,
-    markManagerNotificationAsRead,
-    markAllManagerNotificationsAsRead,
-};
-

@@ -1,13 +1,3 @@
-
-import React, { useEffect, useState } from "react";
-import {
-    Languages,
-    Save,
-    CheckCircle2,
-    AlertTriangle,
-    Info,
-} from "lucide-react";
-
 // ============================================================
 // AIPMS — MANAGER LANGUAGE PREFERENCES
 //
@@ -19,17 +9,25 @@ import {
 //
 // IMPORTANT:
 // - Applies only to the authenticated Manager.
-// - Available languages are centralized in one configuration.
-// - Unsupported languages cannot be selected.
-// - Language preference does not modify project/user data.
-// - Preference persists between sessions.
+// - Does not use localStorage.
+// - Language is controlled by LanguageContext.
+// - Persistence is handled by Manager Settings backend.
 // ============================================================
+
+import React, { useEffect, useState } from "react";
+
+import {
+    Languages,
+    Save,
+    CheckCircle2,
+    AlertTriangle,
+    Info,
+} from "lucide-react";
+
+import { useLanguage } from "@/contexts/LanguageContext.jsx";
 
 // ============================================================
 // CONFIGURED LANGUAGES
-//
-// In the backend version, these should come from the system's
-// configured language options rather than individual pages.
 // ============================================================
 
 const AVAILABLE_LANGUAGES = [
@@ -37,14 +35,16 @@ const AVAILABLE_LANGUAGES = [
         id: "en",
         name: "English",
         nativeName: "English",
-        description: "Use AIPMS in English.",
+        description:
+            "Use AIPMS in English.",
         supported: true,
     },
     {
         id: "am",
         name: "Amharic",
         nativeName: "አማርኛ",
-        description: "Use AIPMS in Amharic.",
+        description:
+            "Use AIPMS in Amharic.",
         supported: true,
     },
 ];
@@ -56,82 +56,72 @@ const AVAILABLE_LANGUAGES = [
 const DEFAULT_LANGUAGE = "en";
 
 // ============================================================
-// STORAGE KEY
-//
-// Temporary frontend persistence.
-// Backend implementation should store this preference in the
-// authenticated Manager's database profile/preferences.
-// ============================================================
-
-const STORAGE_KEY = "aipms_manager_language_preference";
-
-// ============================================================
 // COMPONENT
 // ============================================================
 
 function LanguagePreferences() {
-    const [selectedLanguage, setSelectedLanguage] =
-        useState(DEFAULT_LANGUAGE);
 
-    const [saving, setSaving] = useState(false);
+    const {
+        language,
+        setLanguage,
+    } = useLanguage();
 
-    const [successMessage, setSuccessMessage] =
-        useState("");
+    const [
+        selectedLanguage,
+        setSelectedLanguage,
+    ] = useState(
+        language || DEFAULT_LANGUAGE
+    );
 
-    const [errorMessage, setErrorMessage] =
-        useState("");
+    const [
+        savedLanguage,
+        setSavedLanguage,
+    ] = useState(
+        language || DEFAULT_LANGUAGE
+    );
+
+    const [saving, setSaving] =
+        useState(false);
+
+    const [
+        successMessage,
+        setSuccessMessage,
+    ] = useState("");
+
+    const [
+        errorMessage,
+        setErrorMessage,
+    ] = useState("");
 
     // ========================================================
-    // LOAD CURRENT LANGUAGE
-    //
-    // SET-002:
-    // System retrieves the Manager's current preference.
+    // SYNCHRONIZE WITH LANGUAGE CONTEXT
     // ========================================================
 
     useEffect(() => {
-        const loadLanguagePreference = () => {
-            try {
-                const storedLanguage =
-                    localStorage.getItem(STORAGE_KEY);
 
-                if (!storedLanguage) {
-                    setSelectedLanguage(
-                        DEFAULT_LANGUAGE
-                    );
-                    return;
-                }
+        const currentLanguage =
+            language || DEFAULT_LANGUAGE;
 
-                const languageExists =
-                    AVAILABLE_LANGUAGES.some(
-                        (language) =>
-                            language.id === storedLanguage &&
-                            language.supported
-                    );
+        const exists =
+            AVAILABLE_LANGUAGES.some(
+                (item) =>
+                    item.id ===
+                        currentLanguage &&
+                    item.supported
+            );
 
-                if (!languageExists) {
-                    setSelectedLanguage(
-                        DEFAULT_LANGUAGE
-                    );
-                    return;
-                }
+        if (exists) {
 
-                setSelectedLanguage(
-                    storedLanguage
-                );
-            } catch (error) {
-                console.error(
-                    "Failed to load language preference:",
-                    error
-                );
+            setSelectedLanguage(
+                currentLanguage
+            );
 
-                setErrorMessage(
-                    "Unable to load your language preference."
-                );
-            }
-        };
+            setSavedLanguage(
+                currentLanguage
+            );
+        }
 
-        loadLanguagePreference();
-    }, []);
+    }, [language]);
 
     // ========================================================
     // CLEAR MESSAGES
@@ -143,108 +133,108 @@ function LanguagePreferences() {
     };
 
     // ========================================================
-    // HANDLE LANGUAGE SELECTION
+    // SELECT LANGUAGE
     // ========================================================
 
-    const handleLanguageChange = (languageId) => {
+    const handleLanguageChange = (
+        languageId
+    ) => {
+
         clearMessages();
 
-        const language =
+        const selected =
             AVAILABLE_LANGUAGES.find(
                 (item) =>
-                    item.id === languageId
+                    item.id ===
+                    languageId
             );
 
-        // ----------------------------------------------------
-        // Unsupported language cannot be selected.
-        // ----------------------------------------------------
+        if (
+            !selected ||
+            !selected.supported
+        ) {
 
-        if (!language || !language.supported) {
             setErrorMessage(
                 "The selected language is not supported."
             );
+
             return;
         }
 
-        setSelectedLanguage(languageId);
+        setSelectedLanguage(
+            languageId
+        );
+
+        // IMPORTANT:
+        // Immediately update the entire
+        // application's language context.
+        setLanguage(languageId);
     };
 
     // ========================================================
     // SAVE LANGUAGE
     //
-    // SET-002:
-    // 1. Validate selected language
-    // 2. Store preference
-    // 3. Update interface preference
-    // 4. Display confirmation
+    // Backend persistence is handled by
+    // ManagerSettings.jsx.
     // ========================================================
 
     const handleSave = async () => {
+
         clearMessages();
 
-        const language =
+        const selected =
             AVAILABLE_LANGUAGES.find(
                 (item) =>
-                    item.id === selectedLanguage
+                    item.id ===
+                    selectedLanguage
             );
 
-        // ----------------------------------------------------
-        // Validate language
-        // ----------------------------------------------------
+        if (
+            !selected ||
+            !selected.supported
+        ) {
 
-        if (!language || !language.supported) {
             setErrorMessage(
                 "Please select a supported language."
             );
+
             return;
         }
 
         setSaving(true);
 
         try {
-            // ------------------------------------------------
-            // Temporary frontend persistence.
-            //
-            // Replace with backend API later.
-            // ------------------------------------------------
 
-            localStorage.setItem(
-                STORAGE_KEY,
+            // Apply globally.
+            setLanguage(
                 selectedLanguage
             );
 
-            // ------------------------------------------------
-            // Optional global event.
-            //
-            // Other application components can listen for this
-            // event and reload translated interface labels.
-            // ------------------------------------------------
+            // No localStorage.
+            // Backend persistence should be
+            // performed by ManagerSettings.jsx.
 
-            window.dispatchEvent(
-                new CustomEvent(
-                    "aipms-language-changed",
-                    {
-                        detail: {
-                            language:
-                                selectedLanguage,
-                        },
-                    }
-                )
+            setSavedLanguage(
+                selectedLanguage
             );
 
             setSuccessMessage(
-                `Language preference changed to ${language.name}.`
+                `Language preference changed to ${selected.name}.`
             );
+
         } catch (error) {
+
             console.error(
-                "Failed to save language preference:",
+                "Failed to apply language preference:",
                 error
             );
 
             setErrorMessage(
-                "Unable to save your language preference. Please try again."
+                "Unable to apply your language preference. Please try again."
             );
+
         } finally {
+
             setSaving(false);
         }
     };
@@ -255,8 +245,9 @@ function LanguagePreferences() {
 
     const currentLanguage =
         AVAILABLE_LANGUAGES.find(
-            (language) =>
-                language.id === selectedLanguage
+            (item) =>
+                item.id ===
+                selectedLanguage
         );
 
     // ========================================================
@@ -266,15 +257,13 @@ function LanguagePreferences() {
     return (
         <div className="space-y-6">
 
-            {/* ==================================================
-                HEADER
-            ================================================== */}
+            {/* HEADER */}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
                 <div className="flex items-start gap-4">
 
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-950">
 
                         <Languages
                             size={23}
@@ -289,13 +278,12 @@ function LanguagePreferences() {
                             SET-002
                         </p>
 
-                        <h2 className="mt-1 text-xl font-bold text-slate-900">
+                        <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
                             Change Language Preferences
                         </h2>
 
-                        <p className="mt-1 max-w-2xl text-sm text-slate-500">
-                            Select the language used for your
-                            AIPMS interface.
+                        <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+                            Select the language used for your AIPMS interface.
                         </p>
 
                     </div>
@@ -304,11 +292,10 @@ function LanguagePreferences() {
 
             </div>
 
-            {/* ==================================================
-                SUCCESS
-            ================================================== */}
+            {/* SUCCESS */}
 
             {successMessage && (
+
                 <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
 
                     <CheckCircle2
@@ -321,13 +308,13 @@ function LanguagePreferences() {
                     </p>
 
                 </div>
+
             )}
 
-            {/* ==================================================
-                ERROR
-            ================================================== */}
+            {/* ERROR */}
 
             {errorMessage && (
+
                 <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
 
                     <AlertTriangle
@@ -340,21 +327,20 @@ function LanguagePreferences() {
                     </p>
 
                 </div>
+
             )}
 
-            {/* ==================================================
-                LANGUAGE OPTIONS
-            ================================================== */}
+            {/* LANGUAGE OPTIONS */}
 
-            <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <section className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
-                <div className="border-b border-slate-200 px-6 py-5">
+                <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
 
-                    <h3 className="font-bold text-slate-900">
+                    <h3 className="font-bold text-slate-900 dark:text-white">
                         Available Languages
                     </h3>
 
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                         Choose your preferred language.
                     </p>
 
@@ -363,31 +349,30 @@ function LanguagePreferences() {
                 <div className="grid gap-4 p-6 md:grid-cols-2">
 
                     {AVAILABLE_LANGUAGES.map(
-                        (language) => {
+                        (item) => {
+
                             const selected =
                                 selectedLanguage ===
-                                language.id;
+                                item.id;
 
                             return (
+
                                 <button
                                     type="button"
-                                    key={language.id}
+                                    key={item.id}
                                     disabled={
-                                        !language.supported
+                                        !item.supported ||
+                                        saving
                                     }
                                     onClick={() =>
                                         handleLanguageChange(
-                                            language.id
+                                            item.id
                                         )
                                     }
                                     className={`relative rounded-2xl border p-5 text-left transition ${
                                         selected
-                                            ? "border-blue-400 bg-blue-50 ring-2 ring-blue-100"
-                                            : "border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50"
-                                    } ${
-                                        !language.supported
-                                            ? "cursor-not-allowed opacity-50"
-                                            : "cursor-pointer"
+                                            ? "border-blue-400 bg-blue-50 ring-2 ring-blue-100 dark:border-blue-500 dark:bg-blue-950"
+                                            : "border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
                                     }`}
                                 >
 
@@ -395,15 +380,15 @@ function LanguagePreferences() {
 
                                         <div>
 
-                                            <p className="text-lg font-bold text-slate-900">
+                                            <p className="text-lg font-bold text-slate-900 dark:text-white">
                                                 {
-                                                    language.nativeName
+                                                    item.nativeName
                                                 }
                                             </p>
 
-                                            <p className="mt-1 text-sm font-medium text-slate-500">
+                                            <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
                                                 {
-                                                    language.name
+                                                    item.name
                                                 }
                                             </p>
 
@@ -413,35 +398,31 @@ function LanguagePreferences() {
                                             className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${
                                                 selected
                                                     ? "border-blue-600 bg-blue-600"
-                                                    : "border-slate-300 bg-white"
+                                                    : "border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-800"
                                             }`}
                                         >
 
                                             {selected && (
+
                                                 <span className="h-2.5 w-2.5 rounded-full bg-white" />
+
                                             )}
 
                                         </span>
 
                                     </div>
 
-                                    <p className="mt-4 text-sm text-slate-500">
+                                    <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
                                         {
-                                            language.description
+                                            item.description
                                         }
                                     </p>
 
                                     <div className="mt-4">
 
-                                        {language.supported ? (
-                                            <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-                                                Supported
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500">
-                                                Unsupported
-                                            </span>
-                                        )}
+                                        <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                                            Supported
+                                        </span>
 
                                     </div>
 
@@ -454,17 +435,15 @@ function LanguagePreferences() {
 
             </section>
 
-            {/* ==================================================
-                CURRENT SELECTION
-            ================================================== */}
+            {/* CURRENT SELECTION */}
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
-                <h3 className="font-bold text-slate-900">
+                <h3 className="font-bold text-slate-900 dark:text-white">
                     Current Selection
                 </h3>
 
-                <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                <div className="mt-4 rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
 
                     <div className="flex items-center justify-between gap-4">
 
@@ -474,15 +453,18 @@ function LanguagePreferences() {
                                 Interface Language
                             </p>
 
-                            <p className="mt-1 text-lg font-bold text-slate-900">
-                                {currentLanguage
-                                    ?.nativeName ||
-                                    "English"}
+                            <p className="mt-1 text-lg font-bold text-slate-900 dark:text-white">
+                                {
+                                    currentLanguage?.nativeName ||
+                                    "English"
+                                }
                             </p>
 
-                            <p className="mt-1 text-sm text-slate-500">
-                                {currentLanguage?.name ||
-                                    "English"}
+                            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                {
+                                    currentLanguage?.name ||
+                                    "English"
+                                }
                             </p>
 
                         </div>
@@ -498,18 +480,16 @@ function LanguagePreferences() {
 
             </section>
 
-            {/* ==================================================
-                INFORMATION
-            ================================================== */}
+            {/* INFORMATION */}
 
-            <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4">
+            <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-900 dark:bg-blue-950">
 
                 <Info
                     size={18}
                     className="mt-0.5 shrink-0 text-blue-600"
                 />
 
-                <p className="text-sm text-blue-700">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
                     Changing the interface language affects only
                     your authenticated Manager experience. It does
                     not translate or modify project data, team
@@ -518,16 +498,18 @@ function LanguagePreferences() {
 
             </div>
 
-            {/* ==================================================
-                SAVE
-            ================================================== */}
+            {/* SAVE */}
 
-            <div className="flex justify-end rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex justify-end rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
                 <button
                     type="button"
                     onClick={handleSave}
-                    disabled={saving}
+                    disabled={
+                        selectedLanguage ===
+                            savedLanguage ||
+                        saving
+                    }
                     className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
 
@@ -535,7 +517,7 @@ function LanguagePreferences() {
 
                     {saving
                         ? "Saving..."
-                        : "Save Language Preference"}
+                        : "Apply Language"}
 
                 </button>
 
@@ -546,4 +528,3 @@ function LanguagePreferences() {
 }
 
 export default LanguagePreferences;
-

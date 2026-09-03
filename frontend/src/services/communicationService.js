@@ -1,30 +1,32 @@
-import api from "./api";
+import api from "@/services/api";
 
 /**
  * ============================================================
- * Communication Service
+ * AIPMS COMMUNICATION SERVICE
  * ============================================================
  *
- * Uses the shared API client from ./api.js.
+ * Shared communication service for:
+ * - Manager communication
+ * - Contributor communication
+ * - Notifications
+ * - Messages
+ * - Mentions
+ * - Activity feed
+ * - Project announcements
  *
- * This ensures:
- * - Same backend URL
- * - Same JWT token handling
- * - Same Axios interceptors
- * - Same authentication configuration
- *
- * Backend:
- * http://localhost:5043/api
+ * Uses the shared API client so authentication and JWT handling
+ * remain centralized in api.js.
+ * ============================================================
  */
 
 /* ============================================================
-   Helpers
+   HELPERS
    ============================================================ */
 
 /**
- * Convert Axios errors into a consistent Error object.
+ * Convert API errors into a consistent Error object.
  */
-const handleApiError = (error, fallbackMessage) => {
+const handleApiError = (error, fallbackMessage = "Communication request failed.") => {
     console.error("Communication API error:", error);
 
     const responseData = error?.response?.data;
@@ -50,25 +52,24 @@ const handleApiError = (error, fallbackMessage) => {
 };
 
 /**
- * Safely get response data.
+ * Safely return Axios response data.
  */
 const getResponseData = (response) => {
     return response?.data ?? null;
 };
 
 /**
- * Normalize API array responses.
- *
- * Supports:
- * - []
- * - { data: [] }
- * - { items: [] }
- * - { results: [] }
- * - null
+ * Normalize common API collection response formats.
  */
-const normalizeArray = (value) => {
+const normalizeArray = (value, propertyNames = []) => {
     if (Array.isArray(value)) {
         return value;
+    }
+
+    for (const property of propertyNames) {
+        if (Array.isArray(value?.[property])) {
+            return value[property];
+        }
     }
 
     if (Array.isArray(value?.data)) {
@@ -88,19 +89,22 @@ const normalizeArray = (value) => {
 
 
 /* ============================================================
-   MANAGER COMMUNICATION
+   MANAGER NOTIFICATIONS
    ============================================================ */
 
 /**
  * Get manager notifications.
  *
- * GET /api/notifications/manager
+ * GET /api/notifications
  */
 export const getManagerNotifications = async () => {
     try {
-        const response = await api.get("/notifications/manager");
+        const response = await api.get("/notifications");
 
-        return normalizeArray(getResponseData(response));
+        return normalizeArray(
+            getResponseData(response),
+            ["notifications", "items", "data"]
+        );
     } catch (error) {
         return handleApiError(
             error,
@@ -111,7 +115,32 @@ export const getManagerNotifications = async () => {
 
 
 /**
- * Mark one manager notification as read.
+ * Get one manager notification.
+ *
+ * GET /api/notifications/{notificationId}
+ */
+export const getManagerNotificationById = async (notificationId) => {
+    if (!notificationId) {
+        throw new Error("Notification ID is required.");
+    }
+
+    try {
+        const response = await api.get(
+            `/notifications/${notificationId}`
+        );
+
+        return getResponseData(response);
+    } catch (error) {
+        return handleApiError(
+            error,
+            "Failed to load notification."
+        );
+    }
+};
+
+
+/**
+ * Mark one notification as read.
  *
  * PATCH /api/notifications/{notificationId}/read
  */
@@ -138,17 +167,76 @@ export const markManagerNotificationAsRead = async (
 
 
 /**
+ * Get unread notification count.
+ *
+ * GET /api/notifications/unread-count
+ */
+export const getManagerUnreadNotificationCount = async () => {
+    try {
+        const response = await api.get(
+            "/notifications/unread-count"
+        );
+
+        const data = getResponseData(response);
+
+        if (typeof data === "number") {
+            return data;
+        }
+
+        if (typeof data?.unreadCount === "number") {
+            return data.unreadCount;
+        }
+
+        if (typeof data?.count === "number") {
+            return data.count;
+        }
+
+        return 0;
+    } catch (error) {
+        return handleApiError(
+            error,
+            "Failed to load unread notification count."
+        );
+    }
+};
+
+
+/**
  * Mark all manager notifications as read.
  *
- * PATCH /api/notifications/manager/read-all
+ * The backend does not require a dedicated read-all endpoint.
+ * We retrieve unread notifications and mark each one individually.
  */
 export const markAllManagerNotificationsAsRead = async () => {
     try {
-        const response = await api.patch(
-            "/notifications/manager/read-all"
+        const notifications = await getManagerNotifications();
+
+        const unreadNotifications = notifications.filter(
+            (notification) =>
+                notification &&
+                !notification.isRead &&
+                notification.id
         );
 
-        return getResponseData(response);
+        if (unreadNotifications.length === 0) {
+            return {
+                success: true,
+                count: 0,
+                message: "There are no unread notifications.",
+            };
+        }
+
+        await Promise.all(
+            unreadNotifications.map((notification) =>
+                markManagerNotificationAsRead(notification.id)
+            )
+        );
+
+        return {
+            success: true,
+            count: unreadNotifications.length,
+            message: "All notifications marked as read.",
+        };
     } catch (error) {
         return handleApiError(
             error,
@@ -158,6 +246,10 @@ export const markAllManagerNotificationsAsRead = async () => {
 };
 
 
+/* ============================================================
+   MANAGER PROJECTS / TEAMS
+   ============================================================ */
+
 /**
  * Get projects belonging to the current manager.
  *
@@ -165,9 +257,14 @@ export const markAllManagerNotificationsAsRead = async () => {
  */
 export const getManagerProjects = async () => {
     try {
-        const response = await api.get("/projects/manager");
+        const response = await api.get(
+            "/projects/manager"
+        );
 
-        return normalizeArray(getResponseData(response));
+        return normalizeArray(
+            getResponseData(response),
+            ["projects", "items", "data"]
+        );
     } catch (error) {
         return handleApiError(
             error,
@@ -192,7 +289,10 @@ export const getProjectTeams = async (projectId) => {
             `/projects/${projectId}/teams`
         );
 
-        return normalizeArray(getResponseData(response));
+        return normalizeArray(
+            getResponseData(response),
+            ["teams", "items", "data"]
+        );
     } catch (error) {
         return handleApiError(
             error,
@@ -274,7 +374,10 @@ export const getTeamMembers = async (teamId) => {
             `/teams/${teamId}/members`
         );
 
-        return normalizeArray(getResponseData(response));
+        return normalizeArray(
+            getResponseData(response),
+            ["members", "users", "items", "data"]
+        );
     } catch (error) {
         return handleApiError(
             error,
@@ -299,7 +402,16 @@ export const getProjectRecipients = async (projectId) => {
             `/projects/${projectId}/communication-recipients`
         );
 
-        return normalizeArray(getResponseData(response));
+        return normalizeArray(
+            getResponseData(response),
+            [
+                "recipients",
+                "members",
+                "users",
+                "items",
+                "data",
+            ]
+        );
     } catch (error) {
         return handleApiError(
             error,
@@ -309,10 +421,22 @@ export const getProjectRecipients = async (projectId) => {
 };
 
 
+/* ============================================================
+   MANAGER MESSAGES
+   ============================================================ */
+
 /**
  * Send a message to a team leader.
  *
  * POST /api/communications/messages
+ *
+ * payload may contain:
+ * {
+ *   projectId,
+ *   teamId,
+ *   teamLeaderId / recipientId,
+ *   message
+ * }
  */
 export const sendMessageToTeamLeader = async (payload) => {
     if (!payload) {
@@ -340,7 +464,9 @@ export const sendMessageToTeamLeader = async (payload) => {
  *
  * GET /api/communications/messages
  */
-export const getTeamLeaderConversation = async (params = {}) => {
+export const getTeamLeaderConversation = async (
+    params = {}
+) => {
     try {
         const response = await api.get(
             "/communications/messages",
@@ -349,7 +475,15 @@ export const getTeamLeaderConversation = async (params = {}) => {
             }
         );
 
-        return normalizeArray(getResponseData(response));
+        return normalizeArray(
+            getResponseData(response),
+            [
+                "messages",
+                "conversation",
+                "items",
+                "data",
+            ]
+        );
     } catch (error) {
         return handleApiError(
             error,
@@ -360,25 +494,60 @@ export const getTeamLeaderConversation = async (params = {}) => {
 
 
 /**
- * Alias.
+ * Compatibility function.
  */
-export const getTeamLeaderMessages =
-    getTeamLeaderConversation;
+export const getTeamLeaderMessages = async ({
+    projectId,
+    teamId,
+    teamLeaderId,
+} = {}) => {
+    return getTeamLeaderConversation({
+        projectId,
+        teamId,
+        teamLeaderId,
+    });
+};
 
 
 /**
- * Alias.
+ * Get conversation alias.
  */
-export const getConversation =
-    getTeamLeaderConversation;
+export const getConversation = async ({
+    projectId,
+    teamId,
+    teamLeaderId,
+} = {}) => {
+    return getTeamLeaderConversation({
+        projectId,
+        teamId,
+        teamLeaderId,
+    });
+};
 
 
 /**
- * Alias.
+ * Send message alias.
  */
-export const sendMessage =
-    sendMessageToTeamLeader;
+export const sendMessage = async ({
+    projectId,
+    teamId,
+    teamLeaderId,
+    message,
+    recipientId,
+} = {}) => {
+    return sendMessageToTeamLeader({
+        projectId,
+        teamId,
+        teamLeaderId,
+        recipientId,
+        message,
+    });
+};
 
+
+/* ============================================================
+   MANAGER MENTIONS
+   ============================================================ */
 
 /**
  * Mention a team leader.
@@ -413,18 +582,58 @@ export const createTeamLeaderMention =
     mentionTeamLeader;
 
 
+/* ============================================================
+   MANAGER ACTIVITY FEED
+   ============================================================ */
+
 /**
  * Get manager activity feed.
  *
  * GET /api/activities/manager
  */
-export const getManagerActivityFeed = async () => {
+export const getManagerActivityFeed = async (
+    filters = {}
+) => {
     try {
+        const params = {
+            projectId:
+                filters.projectId || undefined,
+
+            teamId:
+                filters.teamId || undefined,
+
+            activityType:
+                filters.activityType || undefined,
+
+            startDate:
+                filters.startDate || undefined,
+
+            endDate:
+                filters.endDate || undefined,
+
+            search:
+                filters.search || undefined,
+
+            page:
+                filters.page || undefined,
+
+            pageSize:
+                filters.pageSize || undefined,
+        };
+
         const response = await api.get(
-            "/activities/manager"
+            "/activities/manager",
+            {
+                params,
+            }
         );
 
-        return normalizeArray(getResponseData(response));
+        const data = getResponseData(response);
+
+        return normalizeArray(
+            data,
+            ["activities", "items", "results", "data"]
+        );
     } catch (error) {
         return handleApiError(
             error,
@@ -435,34 +644,68 @@ export const getManagerActivityFeed = async () => {
 
 
 /**
- * Alias.
+ * Activity feed alias.
  */
-export const getActivityFeed =
-    getManagerActivityFeed;
+export const getActivityFeed = async (
+    filters = {}
+) => {
+    return getManagerActivityFeed(filters);
+};
 
 
 /**
- * Alias.
+ * Get one activity.
+ *
+ * GET /api/activities/{activityId}
  */
-export const getManagerActivityById =
-    getManagerActivityFeed;
+export const getManagerActivityById = async (
+    activityId
+) => {
+    if (!activityId) {
+        throw new Error("Activity ID is required.");
+    }
+
+    try {
+        const response = await api.get(
+            `/activities/${activityId}`
+        );
+
+        return getResponseData(response);
+    } catch (error) {
+        return handleApiError(
+            error,
+            "Failed to load activity."
+        );
+    }
+};
 
 
 /**
- * Alias.
+ * Activity by ID alias.
  */
-export const getActivityById =
-    getManagerActivityFeed;
+export const getActivityById = async (
+    activityId
+) => {
+    return getManagerActivityById(activityId);
+};
 
+
+/* ============================================================
+   PROJECT ANNOUNCEMENTS
+   ============================================================ */
 
 /**
  * Send project announcement.
  *
  * POST /api/communications/announcements
  */
-export const sendProjectAnnouncement = async (payload) => {
+export const sendProjectAnnouncement = async (
+    payload
+) => {
     if (!payload) {
-        throw new Error("Announcement payload is required.");
+        throw new Error(
+            "Announcement payload is required."
+        );
     }
 
     try {
@@ -482,7 +725,7 @@ export const sendProjectAnnouncement = async (payload) => {
 
 
 /**
- * Alias.
+ * Announcement alias.
  */
 export const createProjectAnnouncement =
     sendProjectAnnouncement;
@@ -499,7 +742,9 @@ export const getAnnouncementPriorities = async () => {
             "/communications/announcement-priorities"
         );
 
-        return normalizeArray(getResponseData(response));
+        return normalizeArray(
+            getResponseData(response)
+        );
     } catch (error) {
         return handleApiError(
             error,
@@ -514,9 +759,8 @@ export const getAnnouncementPriorities = async () => {
    ============================================================ */
 
 /**
- * Get messages received by the current contributor.
+ * Get messages received by current contributor.
  *
- * BACKEND:
  * GET /api/communication/messages/inbox
  */
 export const getMyMessages = async () => {
@@ -525,7 +769,9 @@ export const getMyMessages = async () => {
             "/communication/messages/inbox"
         );
 
-        return normalizeArray(getResponseData(response));
+        return normalizeArray(
+            getResponseData(response)
+        );
     } catch (error) {
         return handleApiError(
             error,
@@ -538,10 +784,11 @@ export const getMyMessages = async () => {
 /**
  * Get one received message.
  *
- * BACKEND:
  * GET /api/communication/messages/inbox/{messageId}
  */
-export const getMyMessageById = async (messageId) => {
+export const getMyMessageById = async (
+    messageId
+) => {
     if (!messageId) {
         throw new Error("Message ID is required.");
     }
@@ -564,10 +811,11 @@ export const getMyMessageById = async (messageId) => {
 /**
  * Mark contributor message as read.
  *
- * BACKEND:
  * PATCH /api/communication/messages/inbox/{messageId}/read
  */
-export const markMessageAsRead = async (messageId) => {
+export const markMessageAsRead = async (
+    messageId
+) => {
     if (!messageId) {
         throw new Error("Message ID is required.");
     }
@@ -588,9 +836,8 @@ export const markMessageAsRead = async (messageId) => {
 
 
 /**
- * Get unread message count.
+ * Get unread contributor message count.
  *
- * BACKEND:
  * GET /api/communication/messages/unread-count
  */
 export const getUnreadMessageCount = async () => {
@@ -626,10 +873,11 @@ export const getUnreadMessageCount = async () => {
 /**
  * Get conversation for a project.
  *
- * BACKEND:
  * GET /api/communication/messages/project/{projectId}
  */
-export const getProjectConversation = async (projectId) => {
+export const getProjectConversation = async (
+    projectId
+) => {
     if (!projectId) {
         throw new Error("Project ID is required.");
     }
@@ -639,7 +887,9 @@ export const getProjectConversation = async (projectId) => {
             `/communication/messages/project/${projectId}`
         );
 
-        return normalizeArray(getResponseData(response));
+        return normalizeArray(
+            getResponseData(response)
+        );
     } catch (error) {
         return handleApiError(
             error,
@@ -652,7 +902,6 @@ export const getProjectConversation = async (projectId) => {
 /**
  * Mention team members in a task comment.
  *
- * BACKEND:
  * POST /api/communication/mentions/task-comment/{taskCommentId}
  *
  * Body:
@@ -666,7 +915,9 @@ export const mentionTaskComment = async (
     mentionedUserIds
 ) => {
     if (!taskCommentId) {
-        throw new Error("Task comment ID is required.");
+        throw new Error(
+            "Task comment ID is required."
+        );
     }
 
     if (!Array.isArray(mentionedUserIds)) {
@@ -681,7 +932,9 @@ export const mentionTaskComment = async (
             mentionedUserIds
         );
 
-        return normalizeArray(getResponseData(response));
+        return normalizeArray(
+            getResponseData(response)
+        );
     } catch (error) {
         return handleApiError(
             error,
@@ -706,7 +959,10 @@ export const getCommunicationTypes = async () => {
             "/communications/types"
         );
 
-        return normalizeArray(getResponseData(response));
+        return normalizeArray(
+            getResponseData(response),
+            ["types", "items", "data"]
+        );
     } catch (error) {
         return handleApiError(
             error,
@@ -721,11 +977,14 @@ export const getCommunicationTypes = async () => {
    ============================================================ */
 
 export default {
-    /* Manager */
+    /* Manager notifications */
     getManagerNotifications,
+    getManagerNotificationById,
     markManagerNotificationAsRead,
     markAllManagerNotificationsAsRead,
+    getManagerUnreadNotificationCount,
 
+    /* Manager projects / teams */
     getManagerProjects,
     getProjectTeams,
     getProjectTeam,
@@ -733,20 +992,24 @@ export default {
     getTeamMembers,
     getProjectRecipients,
 
+    /* Manager messages */
     sendMessageToTeamLeader,
     getTeamLeaderConversation,
     getTeamLeaderMessages,
     getConversation,
     sendMessage,
 
+    /* Manager mentions */
     mentionTeamLeader,
     createTeamLeaderMention,
 
+    /* Manager activity */
     getManagerActivityFeed,
     getActivityFeed,
     getManagerActivityById,
     getActivityById,
 
+    /* Announcements */
     sendProjectAnnouncement,
     createProjectAnnouncement,
     getAnnouncementPriorities,

@@ -151,6 +151,34 @@ public async Task<List<Project>> GetByManagerAsync(
         .OrderBy(p => p.Name)
         .ToListAsync();
 }
+// =========================================================
+// GET PROJECTS BY TEAM IDS
+// DEVELOPER PROJECT ACCESS
+// =========================================================
+
+public async Task<List<Project>> GetByTeamIdsAsync(
+    IEnumerable<Guid> teamIds)
+{
+    var ids = teamIds
+        .Where(id => id != Guid.Empty)
+        .Distinct()
+        .ToList();
+
+    if (ids.Count == 0)
+    {
+        return new List<Project>();
+    }
+
+    return await _context.Projects
+        .AsNoTracking()
+        .Include(p => p.Status)
+        .Where(p =>
+            !p.IsDeleted &&
+            p.TeamId.HasValue &&
+            ids.Contains(p.TeamId.Value))
+        .OrderBy(p => p.Name)
+        .ToListAsync();
+}
 
         // =========================================================
         // GET STATUS

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using AI_PMS.Domain.Enums;
 
 namespace AI_PMS.Domain.Entities.SubTasks
 {
@@ -26,6 +27,9 @@ namespace AI_PMS.Domain.Entities.SubTasks
         public bool IsApproved { get; set; } = false;
 
         public bool IsDeleted { get; set; } = false;
+        public ProjectTaskStatus Status { get; set; } = ProjectTaskStatus.Todo;
+
+        public int Progress { get; set; } = 0;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

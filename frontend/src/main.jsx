@@ -10,18 +10,16 @@ import { LanguageProvider } from "./contexts/LanguageContext.jsx";
 
 import "./index.css";
 
-// ============================================================
-// APPLICATION
-// ============================================================
-
-createRoot(document.getElementById("root")).render(
+createRoot(
+    document.getElementById("root")
+).render(
     <StrictMode>
         <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem={false}
-            disableTransitionOnChange
-        >
+    attribute="class"
+    defaultTheme="system"
+    enableSystem={true}
+    disableTransitionOnChange
+>
             <BrowserRouter>
                 <AuthProvider>
                     <LanguageProvider>

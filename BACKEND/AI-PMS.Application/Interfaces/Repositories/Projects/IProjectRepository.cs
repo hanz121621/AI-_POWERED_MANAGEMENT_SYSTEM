@@ -22,6 +22,8 @@ namespace AI_PMS.Application.Interfaces.Repositories.Projects
 
         Task<List<Project>> GetByManagerAsync(
             Guid managerId);
+            Task<List<Project>> GetByTeamIdsAsync(
+    IEnumerable<Guid> teamIds);
 
         Task<List<Project>> GetArchivedAsync();
 

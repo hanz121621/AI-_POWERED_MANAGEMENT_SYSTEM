@@ -1,19 +1,4 @@
 
-// ============================================================
-// APP ROUTES
-// AIPMS
-//
-// Application Routing
-//
-// Roles:
-// - Public
-// - Admin
-// - Manager
-// - Contributor -> Team Leader
-// - Contributor -> Staff
-// - Contributor -> Developer
-// ============================================================
-
 import {
     Routes,
     Route,
@@ -72,10 +57,17 @@ import SecuritySettings
 // MANAGER
 // ============================================================
 
-import ManagerLayout from "../layouts/ManagerLayout";
-import ManagerDashboard from "../pages/manager/ManagerDashboard";
-import ProjectManagement from "../pages/manager/ProjectManagement";
-import SprintManagement from "../pages/manager/SprintManagement";
+import ManagerLayout
+    from "../layouts/ManagerLayout";
+
+import ManagerDashboard
+    from "../pages/manager/ManagerDashboard";
+
+import ProjectManagement
+    from "../pages/manager/ProjectManagement";
+
+import SprintManagement
+    from "../pages/manager/SprintManagement";
 
 import ManagerTeamManagement
     from "../pages/manager/TeamManagement";
@@ -158,23 +150,28 @@ import StaffLayout
 import StaffDashboard
     from "../pages/contributor/staff/StaffDashboard";
 
-import AddTaskComment
-    from "../components/contributor/staff/AddTaskComment";
 
-import PerformSpecializedWork
-    from "../components/contributor/staff/PerformSpecializedWork";
 
-import SubmitCompletedWork
-    from "../components/contributor/staff/SubmitCompletedWork";
+import StaffProfileManagement
+    from "../pages/contributor/staff/ProfileManagement";
 
-import UpdateTaskStatus
-    from "../components/contributor/staff/UpdateTaskStatus";
+import StaffProjectParticipation
+    from "../pages/contributor/staff/ProjectParticipation";
 
-import UploadWorkFiles
-    from "../components/contributor/staff/UploadWorkFiles";
+import StaffTaskManagement
+    from "../pages/contributor/staff/TaskManagement";
 
-import ViewMyWork
-    from "../components/contributor/staff/ViewMyWork";
+import StaffSprintParticipation
+    from "../pages/contributor/staff/SprintParticipation";
+
+import StaffCommunication
+    from "../pages/contributor/staff/Communication";
+
+import StaffReports
+    from "../pages/contributor/staff/Reports";
+
+import StaffSettings
+    from "../pages/contributor/staff/Settings";
 
 // ============================================================
 // DEVELOPER
@@ -223,6 +220,10 @@ import TeamLeaderDashboard
 import TeamLeader
     from "../pages/contributor/team-leader/TeamLeader";
 
+// ============================================================
+// TEAM LEADER - TEAM MANAGEMENT
+// ============================================================
+
 import ViewAssignedTeam
     from "../components/contributor/teamleader/team-management/ViewAssignedTeam";
 
@@ -238,6 +239,10 @@ import CoordinateTeamWork
 import ViewTeamPerformance
     from "../components/contributor/teamleader/team-management/ViewTeamPerformance";
 
+// ============================================================
+// TEAM LEADER - COMMUNICATION
+// ============================================================
+
 import CommunicateWithManager
     from "../components/contributor/teamleader/communication/CommunicateWithManager";
 
@@ -246,6 +251,7 @@ import CommunicateWithManager
 // ============================================================
 
 function normalizeRole(role) {
+
     if (
         role === 1 ||
         role === "1" ||
@@ -281,20 +287,10 @@ function normalizeRole(role) {
 
 // ============================================================
 // CONTRIBUTOR TYPE HELPERS
-//
-// IMPORTANT:
-//
-// Team Leader, Staff and Developer are all Contributors
-// at the backend Role level.
-//
-// Their contributor type/subtype determines which dashboard
-// they are allowed to enter.
-//
-// We check both type and subtype because the exact database
-// classification can come through either field.
 // ============================================================
 
 function normalizeClassification(value) {
+
     return String(value ?? "")
         .trim()
         .toLowerCase()
@@ -303,13 +299,17 @@ function normalizeClassification(value) {
 }
 
 function getContributorClassifications(user) {
+
     return [
         user?.contributorTypeName,
         user?.ContributorTypeName,
+
         user?.contributorSubTypeName,
         user?.ContributorSubTypeName,
+
         user?.contributorType,
         user?.ContributorType,
+
         user?.contributorSubType,
         user?.ContributorSubType,
     ]
@@ -322,15 +322,19 @@ function getContributorClassifications(user) {
 // ============================================================
 
 function RoleRoute({ allowedRoles }) {
+
     const user = getCurrentUser();
 
     const userRole = normalizeRole(
-        user?.role ?? user?.Role ?? user?.roleId
+        user?.role ??
+        user?.Role ??
+        user?.roleId
     );
 
     const allowed = allowedRoles.includes(userRole);
 
     if (!allowed) {
+
         return (
             <Navigate
                 to="/login"
@@ -347,6 +351,7 @@ function RoleRoute({ allowedRoles }) {
 // ============================================================
 
 function ContributorTypeRoute({ allowedTypes }) {
+
     const user = getCurrentUser();
 
     const userRole = normalizeRole(
@@ -355,8 +360,12 @@ function ContributorTypeRoute({ allowedTypes }) {
         user?.roleId
     );
 
-    // Must first be a Contributor.
+    // --------------------------------------------------------
+    // User must be a Contributor
+    // --------------------------------------------------------
+
     if (userRole !== "Contributor") {
+
         return (
             <Navigate
                 to="/login"
@@ -365,8 +374,16 @@ function ContributorTypeRoute({ allowedTypes }) {
         );
     }
 
+    // --------------------------------------------------------
+    // Get contributor classifications
+    // --------------------------------------------------------
+
     const classifications =
         getContributorClassifications(user);
+
+    // --------------------------------------------------------
+    // Check allowed contributor type
+    // --------------------------------------------------------
 
     const allowed =
         classifications.some(
@@ -377,6 +394,7 @@ function ContributorTypeRoute({ allowedTypes }) {
         );
 
     if (!allowed) {
+
         console.warn(
             "Contributor dashboard access denied.",
             {
@@ -402,6 +420,7 @@ function ContributorTypeRoute({ allowedTypes }) {
 // ============================================================
 
 function AppRoutes() {
+
     return (
         <Routes>
 
@@ -439,7 +458,13 @@ function AppRoutes() {
                     ADMIN
                 ================================================== */}
 
-                <Route element={<RoleRoute allowedRoles={["Admin"]} />}>
+                <Route
+                    element={
+                        <RoleRoute
+                            allowedRoles={["Admin"]}
+                        />
+                    }
+                >
 
                     <Route
                         path="/admin"
@@ -524,7 +549,13 @@ function AppRoutes() {
                     MANAGER
                 ================================================== */}
 
-                <Route element={<RoleRoute allowedRoles={["Manager"]} />}>
+                <Route
+                    element={
+                        <RoleRoute
+                            allowedRoles={["Manager"]}
+                        />
+                    }
+                >
 
                     <Route
                         path="/manager"
@@ -541,20 +572,36 @@ function AppRoutes() {
                             }
                         />
 
+                        {/* ==============================
+                            DASHBOARD
+                        ============================== */}
+
                         <Route
                             path="dashboard"
                             element={<ManagerDashboard />}
                         />
+
+                        {/* ==============================
+                            PROJECTS
+                        ============================== */}
 
                         <Route
                             path="projects"
                             element={<ProjectManagement />}
                         />
 
+                        {/* ==============================
+                            SPRINTS
+                        ============================== */}
+
                         <Route
                             path="sprints"
                             element={<SprintManagement />}
                         />
+
+                        {/* ==============================
+                            TEAM
+                        ============================== */}
 
                         <Route
                             path="team"
@@ -601,7 +648,9 @@ function AppRoutes() {
 
                         <Route
                             path="ai-recommendations"
-                            element={<AIGenerateRecommendations />}
+                            element={
+                                <AIGenerateRecommendations />
+                            }
                         />
 
                         <Route
@@ -626,7 +675,9 @@ function AppRoutes() {
 
                         <Route
                             path="ai-project-summary"
-                            element={<AIAutomatedProjectSummary />}
+                            element={
+                                <AIAutomatedProjectSummary />
+                            }
                         />
 
                         <Route
@@ -706,6 +757,10 @@ function AppRoutes() {
                         element={<StaffLayout />}
                     >
 
+                        {/* ==============================
+                            DEFAULT
+                        ============================== */}
+
                         <Route
                             index
                             element={
@@ -716,39 +771,96 @@ function AppRoutes() {
                             }
                         />
 
+                        {/* ==============================
+                            DASHBOARD
+                        ============================== */}
+
                         <Route
                             path="dashboard"
                             element={<StaffDashboard />}
                         />
 
-                        <Route
-                            path="my-work"
-                            element={<ViewMyWork />}
-                        />
+                        {/* ==============================
+                            STAFF WORK
+                        ============================== */}
+
+                       
+
+                        {/* ==============================
+                            PROFILE MANAGEMENT
+                        ============================== */}
 
                         <Route
-                            path="task-comments"
-                            element={<AddTaskComment />}
+                            path="profile"
+                            element={
+                                <StaffProfileManagement />
+                            }
                         />
 
-                        <Route
-                            path="specialized-work"
-                            element={<PerformSpecializedWork />}
-                        />
+                        {/* ==============================
+                            PROJECT PARTICIPATION
+                        ============================== */}
 
                         <Route
-                            path="submit-work"
-                            element={<SubmitCompletedWork />}
+                            path="projects"
+                            element={
+                                <StaffProjectParticipation />
+                            }
                         />
 
-                        <Route
-                            path="update-task-status"
-                            element={<UpdateTaskStatus />}
-                        />
+                        {/* ==============================
+                            TASK MANAGEMENT
+                        ============================== */}
 
                         <Route
-                            path="upload-files"
-                            element={<UploadWorkFiles />}
+                            path="tasks"
+                            element={
+                                <StaffTaskManagement />
+                            }
+                        />
+
+                        {/* ==============================
+                            SPRINT PARTICIPATION
+                        ============================== */}
+
+                        <Route
+                            path="sprint-participation"
+                            element={
+                                <StaffSprintParticipation />
+                            }
+                        />
+
+                        {/* ==============================
+                            COMMUNICATION
+                        ============================== */}
+
+                        <Route
+                            path="communication"
+                            element={
+                                <StaffCommunication />
+                            }
+                        />
+
+                        {/* ==============================
+                            REPORTS
+                        ============================== */}
+
+                        <Route
+                            path="reports"
+                            element={
+                                <StaffReports />
+                            }
+                        />
+
+                        {/* ==============================
+                            SETTINGS
+                        ============================== */}
+
+                        <Route
+                            path="settings"
+                            element={
+                                <StaffSettings />
+                            }
                         />
 
                     </Route>
@@ -808,7 +920,9 @@ function AppRoutes() {
 
                         <Route
                             path="communication"
-                            element={<DeveloperCommunication />}
+                            element={
+                                <DeveloperCommunication />
+                            }
                         />
 
                         {/* ==============================
@@ -900,6 +1014,10 @@ function AppRoutes() {
                             }
                         />
 
+                        {/* ==============================
+                            DASHBOARD
+                        ============================== */}
+
                         <Route
                             path="dashboard"
                             element={
@@ -907,10 +1025,18 @@ function AppRoutes() {
                             }
                         />
 
+                        {/* ==============================
+                            MAIN WORK
+                        ============================== */}
+
                         <Route
                             path="work"
                             element={<TeamLeader />}
                         />
+
+                        {/* ==============================
+                            TEAM MANAGEMENT
+                        ============================== */}
 
                         <Route
                             path="assigned-team"
@@ -924,18 +1050,15 @@ function AppRoutes() {
 
                         <Route
                             path="team-progress"
-                            element={<MonitorTeamProgress />}
+                            element={
+                                <MonitorTeamProgress />
+                            }
                         />
 
                         <Route
                             path="coordinate-work"
-                            element={<CoordinateTeamWork />}
-                        />
-
-                        <Route
-                            path="manager-communication"
                             element={
-                                <CommunicateWithManager />
+                                <CoordinateTeamWork />
                             }
                         />
 
@@ -943,6 +1066,17 @@ function AppRoutes() {
                             path="team-performance"
                             element={
                                 <ViewTeamPerformance />
+                            }
+                        />
+
+                        {/* ==============================
+                            COMMUNICATION
+                        ============================== */}
+
+                        <Route
+                            path="manager-communication"
+                            element={
+                                <CommunicateWithManager />
                             }
                         />
 

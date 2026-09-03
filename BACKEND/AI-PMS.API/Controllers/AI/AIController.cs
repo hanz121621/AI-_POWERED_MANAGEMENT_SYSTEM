@@ -1,79 +1,43 @@
-using AI_PMS.Application.DTOs.AI;
 using AI_PMS.Application.Interfaces.AI;
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AI_PMS.API.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-[Authorize]
-public class AIController : ControllerBase
+namespace AI_PMS.API.Controllers.AI
 {
-    private readonly IAIService _aiService;
-
-    public AIController(IAIService aiService)
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize(Roles = "Admin")]
+    public class AIController : ControllerBase
     {
-        _aiService = aiService;
-    }
+        private readonly IAiSuggestionService _aiSuggestionService;
 
-    [HttpPost("generate")]
-    public async Task<ActionResult<AIResponse>> Generate(
-        [FromBody] AIRequest request)
-    {
-        if (request == null ||
-            string.IsNullOrWhiteSpace(request.Prompt))
+        public AIController(IAiSuggestionService aiSuggestionService)
         {
-            return BadRequest(new AIResponse
+            _aiSuggestionService = aiSuggestionService;
+        }
+
+        [HttpPost("test")]
+        public async Task<IActionResult> TestConnection([FromBody] TestAiRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request?.Prompt))
             {
-                Success = false,
-                ErrorMessage = "Prompt is required."
-            });
+                return BadRequest(new { message = "Prompt is required." });
+            }
+
+            try
+            {
+                var response = await _aiSuggestionService.TestAiConnectionAsync(request.Prompt);
+                return Ok(new { success = true, response = response });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
         }
-
-        var response =
-            await _aiService.GenerateResponseAsync(request);
-
-        if (!response.Success)
-        {
-            return StatusCode(
-                StatusCodes.Status502BadGateway,
-                response);
-        }
-
-        return Ok(response);
     }
-    [HttpPost("suggestions")]
-public async Task<ActionResult<List<AISuggestion>>> GenerateSuggestions(
-    [FromBody] AISuggestionRequest request)
-{
-    if (request == null)
+
+    public class TestAiRequest
     {
-        return BadRequest(new
-        {
-            success = false,
-            errorMessage = "AI suggestion request is required."
-        });
+        public string Prompt { get; set; } = string.Empty;
     }
-
-    if (string.IsNullOrWhiteSpace(request.Context))
-    {
-        return BadRequest(new
-        {
-            success = false,
-            errorMessage = "Context is required."
-        });
-    }
-
-    var suggestions =
-        await _aiService.GenerateSuggestionsAsync(request);
-
-    if (suggestions == null || suggestions.Count == 0)
-    {
-        return Ok(new List<AISuggestion>());
-    }
-
-    return Ok(suggestions);
-}
 }

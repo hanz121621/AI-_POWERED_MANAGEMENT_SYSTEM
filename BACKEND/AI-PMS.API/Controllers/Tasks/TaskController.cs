@@ -22,13 +22,11 @@ namespace AI_PMS.API.Controllers.Tasks
             _teamLeaderTaskService = teamLeaderTaskService;
         }
 
-
         // =====================================================
         // CREATE TASK
         // Manager only
         // =====================================================
 
-        // POST: api/tasks
         [HttpPost]
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> CreateTask(
@@ -37,16 +35,14 @@ namespace AI_PMS.API.Controllers.Tasks
             var userIdClaim =
                 User.FindFirst(ClaimTypes.NameIdentifier);
 
-            if (userIdClaim == null)
+            if (userIdClaim == null ||
+                !Guid.TryParse(userIdClaim.Value, out var managerId))
             {
                 return Unauthorized(new
                 {
                     message = "Invalid user."
                 });
             }
-
-            var managerId =
-                Guid.Parse(userIdClaim.Value);
 
             try
             {
@@ -77,12 +73,10 @@ namespace AI_PMS.API.Controllers.Tasks
             }
         }
 
-
         // =====================================================
         // GET ALL TASKS
         // =====================================================
 
-        // GET: api/tasks
         [HttpGet]
         public async Task<IActionResult> GetAllTasks()
         {
@@ -92,13 +86,11 @@ namespace AI_PMS.API.Controllers.Tasks
             return Ok(tasks);
         }
 
-
         // =====================================================
         // MY WORK
-        // Developer / Staff Contributor
+        // Contributor
         // =====================================================
 
-        // GET: api/tasks/my-work
         [HttpGet("my-work")]
         [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> GetMyWork()
@@ -134,14 +126,12 @@ namespace AI_PMS.API.Controllers.Tasks
             }
         }
 
-
         // =====================================================
         // VIEW MY SPRINT TASKS
-        // Developer / Staff
+        // Contributor
         // =====================================================
 
-        // GET: api/tasks/my-sprint/{sprintId}
-        [HttpGet("my-sprint/{sprintId}")]
+        [HttpGet("my-sprint/{sprintId:guid}")]
         [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> GetMySprintTasks(
             Guid sprintId)
@@ -149,15 +139,8 @@ namespace AI_PMS.API.Controllers.Tasks
             var userIdClaim =
                 User.FindFirst(ClaimTypes.NameIdentifier);
 
-            if (userIdClaim == null)
-            {
-                return Unauthorized(new
-                {
-                    message = "Invalid user."
-                });
-            }
-
-            if (!Guid.TryParse(
+            if (userIdClaim == null ||
+                !Guid.TryParse(
                     userIdClaim.Value,
                     out var userId))
             {
@@ -195,18 +178,16 @@ namespace AI_PMS.API.Controllers.Tasks
             }
         }
 
-
         // =====================================================
         // UPDATE MY TASK STATUS
-        // Developer / Staff Contributor
+        // Contributor
         // =====================================================
 
-        // PUT: api/tasks/{id}/status
-        [HttpPut("{id}/status")]
+        [HttpPut("{id:guid}/status")]
         [Authorize(Roles = "Contributor")]
-       public async Task<IActionResult> UpdateMyTaskStatus(
-    Guid id,
-    [FromBody] UpdateTaskStatusDto dto)
+        public async Task<IActionResult> UpdateMyTaskStatus(
+            Guid id,
+            [FromBody] UpdateTaskStatusDto dto)
         {
             var userIdClaim =
                 User.FindFirst(ClaimTypes.NameIdentifier);
@@ -240,85 +221,67 @@ namespace AI_PMS.API.Controllers.Tasks
                         dto);
 
                 if (result.Message == "Task not found.")
-                {
                     return NotFound(new
                     {
                         message = result.Message
                     });
-                }
 
                 if (result.Message == "Contributor not found.")
-                {
                     return Unauthorized(new
                     {
                         message = result.Message
                     });
-                }
 
                 if (result.Message ==
                     "Contributor account is inactive.")
-                {
                     return Forbid();
-                }
 
                 if (result.Message ==
                     "You cannot update this task.")
-                {
                     return Forbid();
-                }
 
                 if (result.Message ==
                     "This task cannot be modified.")
-                {
                     return Conflict(new
                     {
                         message = result.Message
                     });
-                }
 
                 if (result.Message ==
                     "Invalid task status.")
-                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
-                }
 
                 if (result.Message ==
                     "This status change is not allowed.")
-                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
-                }
 
                 if (result.Message ==
                     "The task already has this status.")
-                {
                     return Ok(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
-                }
 
                 if (result.Task != null)
-                {
                     return Ok(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
-                }
 
                 return BadRequest(new
                 {
                     message = result.Message
                 });
             }
-            catch (Exception)
+            catch
             {
                 return StatusCode(500, new
                 {
@@ -327,79 +290,80 @@ namespace AI_PMS.API.Controllers.Tasks
                 });
             }
         }
-                     // =====================================================
-// AI-001
-// GET TASK AI SUGGESTION
-// =====================================================
 
-// GET: api/tasks/{id}/ai-suggestion
-[HttpGet("{id:guid}/ai-suggestion")]
-public async Task<IActionResult> GetTaskAiSuggestion(Guid id)
-{
-    try
-    {
-        var task = await _taskService.GetTaskByIdAsync(id);
+        // =====================================================
+        // AI-001
+        // GET TASK AI SUGGESTION
+        // =====================================================
 
-        if (task == null)
+        [HttpGet("{id:guid}/ai-suggestion")]
+        public async Task<IActionResult> GetTaskAiSuggestion(Guid id)
         {
-            return NotFound(new
+            try
             {
-                message = "Task not found."
-            });
-        }
+                var task =
+                    await _taskService.GetTaskByIdAsync(id);
 
-        var suggestion =
-            await _taskService.GenerateTaskSuggestionAsync(id);
-
-        if (string.IsNullOrWhiteSpace(suggestion))
-        {
-            return StatusCode(
-                StatusCodes.Status503ServiceUnavailable,
-                new
+                if (task == null)
                 {
-                    message =
-                        "AI suggestion service is currently unavailable."
+                    return NotFound(new
+                    {
+                        message = "Task not found."
+                    });
+                }
+
+                var suggestion =
+                    await _taskService.GenerateTaskSuggestionAsync(id);
+
+                if (string.IsNullOrWhiteSpace(suggestion))
+                {
+                    return StatusCode(
+                        StatusCodes.Status503ServiceUnavailable,
+                        new
+                        {
+                            message =
+                                "AI suggestion service is currently unavailable."
+                        });
+                }
+
+                return Ok(new
+                {
+                    taskId = id,
+                    suggestion
                 });
+            }
+            catch
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message =
+                            "Unable to generate AI task suggestion."
+                    });
+            }
         }
 
-        return Ok(new
+        // =====================================================
+        // GET SPRINT TASKS
+        // =====================================================
+
+        [HttpGet("sprint/{sprintId:guid}")]
+        public async Task<IActionResult> GetSprintTasks(
+            Guid sprintId)
         {
-            taskId = id,
-            suggestion = suggestion
-        });
-    }
-    catch
-    {
-        return StatusCode(
-            StatusCodes.Status500InternalServerError,
-            new
-            {
-                message =
-                    "Unable to generate AI task suggestion."
-            });
-    }
-}            // =====================================================
-// GET SPRINT TASKS
-// =====================================================
+            var tasks =
+                await _taskService.GetSprintTasksAsync(sprintId);
 
-// GET: api/tasks/sprint/{sprintId}
-[HttpGet("sprint/{sprintId:guid}")]
-public async Task<IActionResult> GetSprintTasks(Guid sprintId)
-{
-    var tasks =
-        await _taskService.GetSprintTasksAsync(sprintId);
-
-    return Ok(tasks);
-}
+            return Ok(tasks);
+        }
 
         // =====================================================
         // VIEW TASK BY ID
         // =====================================================
 
-        // GET: api/tasks/{id}
         [HttpGet("{id:guid}")]
-        public async Task<IActionResult> GetTaskById(
-            Guid id)
+        public async Task<IActionResult> GetTaskById(Guid id)
         {
             var task =
                 await _taskService.GetTaskByIdAsync(id);
@@ -438,31 +402,29 @@ public async Task<IActionResult> GetSprintTasks(Guid sprintId)
             return Ok(task);
         }
 
-
         // =====================================================
         // GET CONTRIBUTOR TASKS
+        // Supports both contributor and developer routes
         // =====================================================
 
-        // GET: api/tasks/developer/{developerId}
-        [HttpGet("developer/{developerId:guid}")]
+        [HttpGet("contributor/{contributorId:guid}")]
+        [HttpGet("developer/{contributorId:guid}")]
         public async Task<IActionResult> GetContributorTasks(
-            Guid developerId)
+            Guid contributorId)
         {
             var tasks =
                 await _taskService.GetContributorSDTasksAsync(
-                    developerId);
+                    contributorId);
 
             return Ok(tasks);
         }
-
 
         // =====================================================
         // UPDATE TASK
         // Manager only
         // =====================================================
 
-        // PUT: api/tasks/{id}
-        [HttpPut("{id}")]
+        [HttpPut("{id:guid}")]
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> UpdateTask(
             Guid id,
@@ -496,42 +458,38 @@ public async Task<IActionResult> GetSprintTasks(Guid sprintId)
             });
         }
 
-
         // =====================================================
         // DELETE TASK
         // Manager only
         // =====================================================
 
-        // DELETE: api/tasks/{id}
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Manager")]
-        public async Task<IActionResult> DeleteTask(
-            Guid id)
+        public async Task<IActionResult> DeleteTask(Guid id)
         {
             var success =
                 await _taskService.DeleteTaskAsync(id);
 
             if (!success)
             {
-                return NotFound("Task not found.");
+                return NotFound(new
+                {
+                    message = "Task not found."
+                });
             }
 
             return Ok(new
             {
-                message =
-                    "Task deleted successfully."
+                message = "Task deleted successfully."
             });
         }
 
-
         // =====================================================
-        // GET ASSIGNABLE CONTRIBUTORS
-        // Manager only
+        // GET ASSIGNABLE USERS
         // =====================================================
 
-        // GET: api/tasks/assignable-users
         [HttpGet("assignable-users")]
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Manager,Contributor")]
         public async Task<IActionResult> GetAssignableUsers()
         {
             var users =
@@ -540,15 +498,12 @@ public async Task<IActionResult> GetSprintTasks(Guid sprintId)
             return Ok(users);
         }
 
-
-        // =========================================================
+        // =====================================================
         // TASK-003
         // DELETE TASK
         // TEAM LEADER
-        // =========================================================
+        // =====================================================
 
-        // DELETE:
-        // api/tasks/team-leader/{taskId}
         [HttpDelete("team-leader/{taskId:guid}")]
         [Authorize(Roles = "TeamLeader")]
         public async Task<IActionResult> TeamLeaderDeleteTask(
@@ -578,42 +533,34 @@ public async Task<IActionResult> GetSprintTasks(Guid sprintId)
                             taskId);
 
                 if (result.Message == "Task not found.")
-                {
                     return NotFound(new
                     {
                         message = result.Message
                     });
-                }
 
                 if (result.Message ==
                     "Completed tasks cannot be deleted. Archive the task instead.")
-                {
                     return Conflict(new
                     {
                         message = result.Message
                     });
-                }
 
                 if (result.Message ==
                     "You are not authorised to delete this task.")
-                {
                     return Forbid();
-                }
 
                 if (result.Success)
-                {
                     return Ok(new
                     {
                         message = result.Message
                     });
-                }
 
                 return BadRequest(new
                 {
                     message = result.Message
                 });
             }
-            catch (Exception)
+            catch
             {
                 return StatusCode(500, new
                 {
@@ -622,531 +569,357 @@ public async Task<IActionResult> GetSprintTasks(Guid sprintId)
                 });
             }
         }
-                          
-                  // =========================================================
-// TASK-005
-// SET TASK PRIORITY
-// TEAM LEADER
-// =========================================================
 
-// PUT: api/team-leader/tasks/{taskId}/priority
-[HttpPut("{taskId:guid}/priority")]
-[Authorize(Roles = "TeamLeader")]
-public async Task<IActionResult> SetTaskPriority(
-    Guid taskId,
-    [FromBody] SetTaskPriorityDto dto)
-{
-    // -----------------------------------------------------
-    // 1. Get logged-in Team Leader
-    // -----------------------------------------------------
+        // =====================================================
+        // TASK-005
+        // SET TASK PRIORITY
+        // TEAM LEADER
+        // =====================================================
 
-    var userIdClaim =
-        User.FindFirst(ClaimTypes.NameIdentifier);
-
-    if (userIdClaim == null ||
-        !Guid.TryParse(
-            userIdClaim.Value,
-            out var teamLeaderId))
-    {
-        return Unauthorized(new
+        [HttpPut("{taskId:guid}/priority")]
+        [Authorize(Roles = "TeamLeader")]
+        public async Task<IActionResult> SetTaskPriority(
+            Guid taskId,
+            [FromBody] SetTaskPriorityDto dto)
         {
-            message = "Invalid user."
-        });
-    }
+            var userIdClaim =
+                User.FindFirst(ClaimTypes.NameIdentifier);
 
-    // -----------------------------------------------------
-    // 2. Validate request
-    // -----------------------------------------------------
-
-    if (dto == null)
-    {
-        return BadRequest(new
-        {
-            message = "Invalid priority value."
-        });
-    }
-
-    try
-    {
-        // -------------------------------------------------
-        // 3. Set task priority
-        // -------------------------------------------------
-
-        var result =
-            await _teamLeaderTaskService
-                .SetTaskPriorityAsync(
-                    teamLeaderId,
-                    taskId,
-                    dto);
-
-        // -------------------------------------------------
-        // Task not found
-        // -------------------------------------------------
-
-        if (result.Message == "Task not found.")
-        {
-            return NotFound(new
+            if (userIdClaim == null ||
+                !Guid.TryParse(
+                    userIdClaim.Value,
+                    out var teamLeaderId))
             {
-                message = result.Message
-            });
-        }
+                return Unauthorized(new
+                {
+                    message = "Invalid user."
+                });
+            }
 
-        // -------------------------------------------------
-        // Invalid priority
-        // -------------------------------------------------
-
-        if (result.Message == "Invalid priority value.")
-        {
-            return BadRequest(new
+            if (dto == null)
             {
-                message = result.Message
-            });
-        }
+                return BadRequest(new
+                {
+                    message = "Invalid priority value."
+                });
+            }
 
-        // -------------------------------------------------
-        // Unauthorized
-        // -------------------------------------------------
-
-        if (result.Message ==
-            "You are not authorised to change this task priority.")
-        {
-            return Forbid();
-        }
-
-        // -------------------------------------------------
-        // Same priority
-        // -------------------------------------------------
-
-        if (result.Message ==
-            "The task already has this priority.")
-        {
-            return Ok(new
+            try
             {
-                message = result.Message,
-                task = result.Task
-            });
-        }
+                var result =
+                    await _teamLeaderTaskService
+                        .SetTaskPriorityAsync(
+                            teamLeaderId,
+                            taskId,
+                            dto);
 
-        // -------------------------------------------------
-        // Success
-        // -------------------------------------------------
+                if (result.Message == "Task not found.")
+                    return NotFound(new
+                    {
+                        message = result.Message
+                    });
 
-        if (result.Success &&
-            result.Task != null)
-        {
-            return Ok(new
+                if (result.Message == "Invalid priority value.")
+                    return BadRequest(new
+                    {
+                        message = result.Message
+                    });
+
+                if (result.Message ==
+                    "You are not authorised to change this task priority.")
+                    return Forbid();
+
+                if (result.Message ==
+                    "The task already has this priority.")
+                    return Ok(new
+                    {
+                        message = result.Message,
+                        task = result.Task
+                    });
+
+                if (result.Success &&
+                    result.Task != null)
+                    return Ok(new
+                    {
+                        message = result.Message,
+                        task = result.Task
+                    });
+
+                return BadRequest(new
+                {
+                    message = result.Message
+                });
+            }
+            catch
             {
-                message = result.Message,
-                task = result.Task
-            });
+                return StatusCode(500, new
+                {
+                    message =
+                        "Unable to update task priority. Please try again."
+                });
+            }
         }
 
-        // -------------------------------------------------
-        // Unexpected business response
-        // -------------------------------------------------
+        // =====================================================
+        // TASK-006
+        // SET TASK DEADLINE
+        // TEAM LEADER
+        // =====================================================
 
-        return BadRequest(new
+        [HttpPut("team-leader/{taskId:guid}/deadline")]
+        [Authorize(Roles = "TeamLeader")]
+        public async Task<IActionResult> SetTaskDeadline(
+            Guid taskId,
+            [FromBody] SetTaskDeadlineDto dto)
         {
-            message = result.Message
-        });
-    }
-    catch (Exception)
-    {
-        return StatusCode(500, new
-        {
-            message =
-                "Unable to update task priority. Please try again."
-        });
-    }
-}        
-              // =========================================================
-// TASK-006
-// SET TASK DEADLINE
-// TEAM LEADER
-// =========================================================
+            var userIdClaim =
+                User.FindFirst(ClaimTypes.NameIdentifier);
 
-// PUT: api/tasks/team-leader/{taskId}/deadline
-[HttpPut("team-leader/{taskId:guid}/deadline")]
-[Authorize(Roles = "TeamLeader")]
-public async Task<IActionResult> SetTaskDeadline(
-    Guid taskId,
-    [FromBody] SetTaskDeadlineDto dto)
-{
-    // -----------------------------------------------------
-    // 1. Get logged-in Team Leader
-    // -----------------------------------------------------
-
-    var userIdClaim =
-        User.FindFirst(ClaimTypes.NameIdentifier);
-
-    if (userIdClaim == null ||
-        !Guid.TryParse(
-            userIdClaim.Value,
-            out var teamLeaderId))
-    {
-        return Unauthorized(new
-        {
-            message = "Invalid user."
-        });
-    }
-
-    // -----------------------------------------------------
-    // 2. Validate request
-    // -----------------------------------------------------
-
-    if (dto == null)
-    {
-        return BadRequest(new
-        {
-            message = "Invalid deadline date."
-        });
-    }
-
-    try
-    {
-        // -------------------------------------------------
-        // 3. Set task deadline
-        // -------------------------------------------------
-
-        var result =
-            await _teamLeaderTaskService
-                .SetTaskDeadlineAsync(
-                    teamLeaderId,
-                    taskId,
-                    dto);
-
-        // -------------------------------------------------
-        // Task not found
-        // -------------------------------------------------
-
-        if (result.Message == "Task not found.")
-        {
-            return NotFound(new
+            if (userIdClaim == null ||
+                !Guid.TryParse(
+                    userIdClaim.Value,
+                    out var teamLeaderId))
             {
-                message = result.Message
-            });
-        }
+                return Unauthorized(new
+                {
+                    message = "Invalid user."
+                });
+            }
 
-        // -------------------------------------------------
-        // Invalid deadline
-        // -------------------------------------------------
-
-        if (result.Message == "Invalid deadline date.")
-        {
-            return BadRequest(new
+            if (dto == null)
             {
-                message = result.Message
-            });
-        }
+                return BadRequest(new
+                {
+                    message = "Invalid deadline date."
+                });
+            }
 
-        // -------------------------------------------------
-        // Sprint schedule conflict
-        // -------------------------------------------------
-
-        if (result.Message ==
-            "Task deadline conflicts with sprint schedule.")
-        {
-            return BadRequest(new
+            try
             {
-                message = result.Message
-            });
-        }
+                var result =
+                    await _teamLeaderTaskService
+                        .SetTaskDeadlineAsync(
+                            teamLeaderId,
+                            taskId,
+                            dto);
 
-        // -------------------------------------------------
-        // Unauthorized
-        // -------------------------------------------------
+                if (result.Message == "Task not found.")
+                    return NotFound(new
+                    {
+                        message = result.Message
+                    });
 
-        if (result.Message ==
-            "You are not authorised to update this task deadline.")
-        {
-            return Forbid();
-        }
+                if (result.Message == "Invalid deadline date.")
+                    return BadRequest(new
+                    {
+                        message = result.Message
+                    });
 
-        // -------------------------------------------------
-        // Same deadline
-        // -------------------------------------------------
+                if (result.Message ==
+                    "Task deadline conflicts with sprint schedule.")
+                    return BadRequest(new
+                    {
+                        message = result.Message
+                    });
 
-        if (result.Message ==
-            "The task already has this deadline.")
-        {
-            return Ok(new
+                if (result.Message ==
+                    "You are not authorised to update this task deadline.")
+                    return Forbid();
+
+                if (result.Message ==
+                    "The task already has this deadline.")
+                    return Ok(new
+                    {
+                        message = result.Message,
+                        task = result.Task
+                    });
+
+                if (result.Success &&
+                    result.Task != null)
+                    return Ok(new
+                    {
+                        message = result.Message,
+                        task = result.Task
+                    });
+
+                return BadRequest(new
+                {
+                    message = result.Message
+                });
+            }
+            catch
             {
-                message = result.Message,
-                task = result.Task
-            });
+                return StatusCode(500, new
+                {
+                    message =
+                        "Unable to update task deadline. Please try again."
+                });
+            }
         }
 
-        // -------------------------------------------------
-        // Success
-        // -------------------------------------------------
+        // =====================================================
+        // TASK-007
+        // VIEW TASKS
+        // TEAM LEADER
+        // =====================================================
 
-        if (result.Success &&
-            result.Task != null)
+        [HttpGet("team-leader/sprint/{sprintId:guid}")]
+        [Authorize(Roles = "TeamLeader")]
+        public async Task<IActionResult> GetTeamLeaderTasks(
+            Guid sprintId)
         {
-            return Ok(new
+            var userIdClaim =
+                User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null ||
+                !Guid.TryParse(
+                    userIdClaim.Value,
+                    out var teamLeaderId))
             {
-                message = result.Message,
-                task = result.Task
-            });
-        }
+                return Unauthorized(new
+                {
+                    message = "Invalid user."
+                });
+            }
 
-        // -------------------------------------------------
-        // Unexpected business response
-        // -------------------------------------------------
-
-        return BadRequest(new
-        {
-            message = result.Message
-        });
-    }
-    catch (Exception)
-    {
-        return StatusCode(500, new
-        {
-            message =
-                "Unable to update task deadline. Please try again."
-        });
-    }
-}                             
-// =========================================================
-// TASK-007
-// VIEW TASKS
-// TEAM LEADER
-// =========================================================
-
-// GET: api/tasks/team-leader/sprint/{sprintId}
-[HttpGet("team-leader/sprint/{sprintId:guid}")]
-[Authorize(Roles = "TeamLeader")]
-public async Task<IActionResult> GetTeamLeaderTasks(
-    Guid sprintId)
-{
-    // ---------------------------------------------------------
-    // 1. Get logged-in Team Leader
-    // ---------------------------------------------------------
-
-    var userIdClaim =
-        User.FindFirst(ClaimTypes.NameIdentifier);
-
-    if (userIdClaim == null ||
-        !Guid.TryParse(
-            userIdClaim.Value,
-            out var teamLeaderId))
-    {
-        return Unauthorized(new
-        {
-            message = "Invalid user."
-        });
-    }
-
-    try
-    {
-        // -----------------------------------------------------
-        // 2. Get Team Leader tasks
-        // -----------------------------------------------------
-
-        var result =
-            await _teamLeaderTaskService
-                .GetTeamLeaderTasksAsync(
-                    teamLeaderId,
-                    sprintId);
-
-        // -----------------------------------------------------
-        // 3. Access denied
-        // -----------------------------------------------------
-
-        if (result.Message == "Access denied.")
-        {
-            return Forbid();
-        }
-
-        // -----------------------------------------------------
-        // 4. No tasks
-        // -----------------------------------------------------
-
-        if (result.Message == "No tasks found.")
-        {
-            return Ok(new
+            try
             {
-                message = result.Message,
-                tasks = result.Tasks
-            });
-        }
+                var result =
+                    await _teamLeaderTaskService
+                        .GetTeamLeaderTasksAsync(
+                            teamLeaderId,
+                            sprintId);
 
-        // -----------------------------------------------------
-        // 5. Success
-        // -----------------------------------------------------
+                if (result.Message == "Access denied.")
+                    return Forbid();
 
-        if (result.Success)
-        {
-            return Ok(new
+                if (result.Message == "No tasks found.")
+                    return Ok(new
+                    {
+                        message = result.Message,
+                        tasks = result.Tasks
+                    });
+
+                if (result.Success)
+                    return Ok(new
+                    {
+                        message = result.Message,
+                        tasks = result.Tasks
+                    });
+
+                return BadRequest(new
+                {
+                    message = result.Message
+                });
+            }
+            catch
             {
-                message = result.Message,
-                tasks = result.Tasks
-            });
+                return StatusCode(500, new
+                {
+                    message =
+                        "Unable to load tasks. Please try again."
+                });
+            }
         }
 
-        return BadRequest(new
+        // =====================================================
+        // TASK-008
+        // UPDATE TASK STATUS
+        // TEAM LEADER
+        // =====================================================
+
+        [HttpPut("team-leader/{taskId:guid}/status")]
+        [Authorize(Roles = "TeamLeader")]
+        public async Task<IActionResult> UpdateTaskStatus(
+            Guid taskId,
+            [FromBody] UpdateTaskStatusDto dto)
         {
-            message = result.Message
-        });
-    }
-    catch (Exception)
-    {
-        return StatusCode(500, new
-        {
-            message =
-                "Unable to load tasks. Please try again."
-        });
-    }
-}
+            var userIdClaim =
+                User.FindFirst(ClaimTypes.NameIdentifier);
 
-// =========================================================
-// TASK-008
-// UPDATE TASK STATUS
-// TEAM LEADER
-// =========================================================
-
-// PUT: api/tasks/team-leader/{taskId}/status
-[HttpPut("team-leader/{taskId:guid}/status")]
-[Authorize(Roles = "TeamLeader")]
-public async Task<IActionResult> UpdateTaskStatus(
-    Guid taskId,
-    [FromBody] UpdateTaskStatusDto dto)
-{
-    // ---------------------------------------------------------
-    // 1. Get logged-in Team Leader
-    // ---------------------------------------------------------
-
-    var userIdClaim =
-        User.FindFirst(ClaimTypes.NameIdentifier);
-
-    if (userIdClaim == null ||
-        !Guid.TryParse(
-            userIdClaim.Value,
-            out var teamLeaderId))
-    {
-        return Unauthorized(new
-        {
-            message = "Invalid user."
-        });
-    }
-
-    // ---------------------------------------------------------
-    // 2. Validate request
-    // ---------------------------------------------------------
-
-    if (dto == null)
-    {
-        return BadRequest(new
-        {
-            message =
-                "This status change is not allowed."
-        });
-    }
-
-    try
-    {
-        // -----------------------------------------------------
-        // 3. Update task status
-        // -----------------------------------------------------
-
-        var result =
-            await _teamLeaderTaskService
-                .UpdateTaskStatusAsync(
-                    teamLeaderId,
-                    taskId,
-                    dto);
-
-        // -----------------------------------------------------
-        // 4. Task not found
-        // -----------------------------------------------------
-
-        if (result.Message == "Task not found.")
-        {
-            return NotFound(new
+            if (userIdClaim == null ||
+                !Guid.TryParse(
+                    userIdClaim.Value,
+                    out var teamLeaderId))
             {
-                message = result.Message
-            });
-        }
+                return Unauthorized(new
+                {
+                    message = "Invalid user."
+                });
+            }
 
-        // -----------------------------------------------------
-        // 5. Invalid transition
-        // -----------------------------------------------------
-
-        if (result.Message ==
-            "This status change is not allowed.")
-        {
-            return BadRequest(new
+            if (dto == null)
             {
-                message = result.Message
-            });
-        }
+                return BadRequest(new
+                {
+                    message =
+                        "This status change is not allowed."
+                });
+            }
 
-        // -----------------------------------------------------
-        // 6. Unauthorized
-        // -----------------------------------------------------
-
-        if (result.Message ==
-            "You are not authorised to update this task status.")
-        {
-            return Forbid();
-        }
-
-        // -----------------------------------------------------
-        // 7. Same status
-        // -----------------------------------------------------
-
-        if (result.Message ==
-            "The task already has this status.")
-        {
-            return Ok(new
+            try
             {
-                message = result.Message,
-                task = result.Task
-            });
-        }
+                var result =
+                    await _teamLeaderTaskService
+                        .UpdateTaskStatusAsync(
+                            teamLeaderId,
+                            taskId,
+                            dto);
 
-        // -----------------------------------------------------
-        // 8. Success
-        // -----------------------------------------------------
+                if (result.Message == "Task not found.")
+                    return NotFound(new
+                    {
+                        message = result.Message
+                    });
 
-        if (result.Success &&
-            result.Task != null)
-        {
-            return Ok(new
+                if (result.Message ==
+                    "This status change is not allowed.")
+                    return BadRequest(new
+                    {
+                        message = result.Message
+                    });
+
+                if (result.Message ==
+                    "You are not authorised to update this task status.")
+                    return Forbid();
+
+                if (result.Message ==
+                    "The task already has this status.")
+                    return Ok(new
+                    {
+                        message = result.Message,
+                        task = result.Task
+                    });
+
+                if (result.Success &&
+                    result.Task != null)
+                    return Ok(new
+                    {
+                        message = result.Message,
+                        task = result.Task
+                    });
+
+                return BadRequest(new
+                {
+                    message = result.Message
+                });
+            }
+            catch
             {
-                message = result.Message,
-                task = result.Task
-            });
+                return StatusCode(500, new
+                {
+                    message =
+                        "Unable to update task status. Please try again."
+                });
+            }
         }
 
-        // -----------------------------------------------------
-        // 9. Unexpected business response
-        // -----------------------------------------------------
-
-        return BadRequest(new
-        {
-            message = result.Message
-        });
-    }
-    catch (Exception)
-    {
-        return StatusCode(500, new
-        {
-            message =
-                "Unable to update task status. Please try again."
-        });
-    }
-}
-
-        // =========================================================
+        // =====================================================
         // TASK-004
         // ASSIGN TASK TO CONTRIBUTOR
         // TEAM LEADER
-        // =========================================================
+        // =====================================================
 
-        // PUT:
-        // api/tasks/team-leader/{taskId}/assign/{contributorId}
         [HttpPut(
             "team-leader/{taskId:guid}/assign/{contributorId:guid}")]
         [Authorize(Roles = "TeamLeader")]
@@ -1179,81 +952,64 @@ public async Task<IActionResult> UpdateTaskStatus(
                             contributorId);
 
                 if (result.Message == "Task not found.")
-                {
                     return NotFound(new
                     {
                         message = result.Message
                     });
-                }
 
-                if (result.Message ==
-                    "Team member not found.")
-                {
+                if (result.Message == "Team member not found.")
                     return NotFound(new
                     {
                         message = result.Message
                     });
-                }
 
                 if (result.Message ==
                     "The selected team member is inactive.")
-                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
-                }
 
                 if (result.Message ==
                     "The selected user must be a contributor.")
-                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
-                }
 
                 if (result.Message ==
                     "Contributor is not assigned to your team.")
-                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
-                }
 
                 if (result.Message ==
                     "You are not authorised to assign this task.")
-                {
                     return Forbid();
-                }
 
                 if (result.Message ==
                     "This task is already assigned to this contributor.")
-                {
                     return Conflict(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
-                }
 
                 if (result.Success &&
                     result.Task != null)
-                {
                     return Ok(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
-                }
 
                 return BadRequest(new
                 {
                     message = result.Message
                 });
             }
-            catch (Exception)
+            catch
             {
                 return StatusCode(500, new
                 {

@@ -3,7 +3,9 @@ using AI_PMS.Application.Interfaces.Projects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using AI_PMS.Application.DTOs.AI;
 using AI_PMS.Application.Interfaces.AI;
+
 namespace AI_PMS.API.Controllers.Projects
 {
     [ApiController]
@@ -15,69 +17,83 @@ namespace AI_PMS.API.Controllers.Projects
         private readonly IProjectAssignmentService _assignmentService;
         private readonly IAiSuggestionService _aiSuggestionService;
 
+
         public ProjectsController(
-    IProjectService projectService,
-    IProjectAssignmentService assignmentService,
-    IAiSuggestionService aiSuggestionService)
-{
-    _projectService = projectService;
-    _assignmentService = assignmentService;
-    _aiSuggestionService = aiSuggestionService;
-}
-
-// =====================================================
-// AI-001
-// GET AI PROJECT SUGGESTION
-// =====================================================
-
-// GET: api/projects/{id}/ai-suggestion
-[HttpGet("{id:guid}/ai-suggestion")]
-public async Task<IActionResult> GetAiSuggestion(Guid id)
-{
-    try
-    {
-        var project =
-            await _projectService.GetByIdAsync(id);
-
-        if (project == null)
+            IProjectService projectService,
+            IProjectAssignmentService assignmentService,
+            IAiSuggestionService aiSuggestionService)
         {
-            return NotFound(new
-            {
-                message = "Project not found."
-            });
+            _projectService = projectService;
+            _assignmentService = assignmentService;
+            _aiSuggestionService = aiSuggestionService;
         }
 
-        var suggestion =
-            await _aiSuggestionService
-                .AnalyzeProjectAsync(project);
+        // =====================================================
+        // AI-001
+        // GET AI PROJECT SUGGESTION
+        // =====================================================
 
-        if (string.IsNullOrWhiteSpace(suggestion))
+        // GET: api/projects/{id}/ai-suggestion
+        [HttpGet("{id:guid}/ai-suggestion")]
+        public async Task<IActionResult> GetAiSuggestion(Guid id)
         {
-            return StatusCode(503, new
+            try
             {
-                message =
-                    "AI suggestion service is currently unavailable."
-            });
-        }
+                var project = await _projectService.GetByIdAsync(id);
 
-        return Ok(new
-        {
-            projectId = project.Id,
-            suggestion = suggestion
-        });
-    }
-    catch (Exception)
-    {
-        return StatusCode(500, new
-        {
-            message =
-                "Unable to generate AI project suggestion."
-        });
-    }
-}
+                if (project == null)
+                {
+                    return NotFound(new
+                    {
+                        message = "Project not found."
+                    });
+                }
+
+                // Map the project to the DTO expected by the AI service
+                var request = new GenerateAiSuggestionRequestDto
+                {
+                    ProjectId = project.Id,
+                    ProjectName = project.Name,
+                    ProjectDescription = project.Description,
+                    CurrentStatus = project.StatusName ?? "Unknown",
+                    ActiveTasks = 0,
+                    Deadline = project.Deadline.ToString("yyyy-MM-dd")
+                };
+
+                var suggestion =
+                    await _aiSuggestionService.GenerateSuggestionForProjectAsync(request);
+
+                if (suggestion == null)
+                {
+                    return StatusCode(
+                        StatusCodes.Status503ServiceUnavailable,
+                        new
+                        {
+                            message = "AI suggestion service is currently unavailable."
+                        });
+                }
+
+                return Ok(new
+                {
+                    projectId = project.Id,
+                    suggestion = suggestion
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = "Unable to generate AI project suggestion.",
+                        error = ex.Message
+                    });
+            }
+        }
         // =========================================================
         // PM-004
         // VIEW ASSIGNED PROJECTS
+        // MANAGER
         // =========================================================
 
         [HttpGet("my-projects")]
@@ -104,14 +120,16 @@ public async Task<IActionResult> GetAiSuggestion(Guid id)
                 {
                     return Ok(new
                     {
-                        message = "No projects are currently assigned to you.",
+                        message =
+                            "No projects are currently assigned to you.",
                         data = projects
                     });
                 }
 
                 return Ok(new
                 {
-                    message = "Assigned projects retrieved successfully.",
+                    message =
+                        "Assigned projects retrieved successfully.",
                     data = projects
                 });
             }
@@ -129,6 +147,117 @@ public async Task<IActionResult> GetAiSuggestion(Guid id)
                     message =
                         "An error occurred while retrieving assigned projects."
                 });
+            }
+        }
+
+        // =========================================================
+        // DEVELOPER
+        // VIEW ASSIGNED PROJECTS
+        // =========================================================
+
+        [HttpGet("my-developer-projects")]
+        [Authorize(Roles = "Contributor")]
+        public async Task<IActionResult> GetMyDeveloperProjects()
+        {
+            try
+            {
+                var developerId = GetCurrentUserId();
+
+                // =====================================================
+                // DEBUG AUTHENTICATION
+                // =====================================================
+
+                Console.WriteLine("========================================");
+                Console.WriteLine("GET MY DEVELOPER PROJECTS");
+                Console.WriteLine(
+                    $"IsAuthenticated: {User.Identity?.IsAuthenticated}");
+                Console.WriteLine(
+                    $"Name: {User.Identity?.Name}");
+                Console.WriteLine(
+                    $"NameIdentifier: {User.FindFirstValue(ClaimTypes.NameIdentifier)}");
+                Console.WriteLine(
+                    $"Role: {User.FindFirstValue(ClaimTypes.Role)}");
+                Console.WriteLine(
+                    $"DeveloperId: {developerId}");
+                Console.WriteLine("========================================");
+
+                // =====================================================
+                // VALIDATE AUTHENTICATED USER
+                // =====================================================
+
+                if (!developerId.HasValue)
+                {
+                    Console.WriteLine(
+                        "DEVELOPER PROJECTS: Invalid developer identity.");
+
+                    return Unauthorized(new
+                    {
+                        message = "Invalid developer identity."
+                    });
+                }
+
+                // =====================================================
+                // GET PROJECTS
+                // =====================================================
+
+                var projects =
+                    await _projectService.GetDeveloperProjectsAsync(
+                        developerId.Value);
+
+                // =====================================================
+                // SUCCESS
+                // =====================================================
+
+                return Ok(new
+                {
+                    message = projects.Any()
+                        ? "Developer projects retrieved successfully."
+                        : "No projects are assigned to your teams.",
+                    data = projects
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine(
+                    "========================================");
+                Console.WriteLine(
+                    "GET MY DEVELOPER PROJECTS - UNAUTHORIZED");
+                Console.WriteLine(
+                    $"Message: {ex.Message}");
+                Console.WriteLine(
+                    $"StackTrace: {ex.StackTrace}");
+                Console.WriteLine(
+                    "========================================");
+
+                return Unauthorized(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    "========================================");
+                Console.WriteLine(
+                    "GET MY DEVELOPER PROJECTS - ERROR");
+                Console.WriteLine(
+                    $"Message: {ex.Message}");
+                Console.WriteLine(
+                    $"InnerException: {ex.InnerException?.Message}");
+                Console.WriteLine(
+                    $"StackTrace: {ex.StackTrace}");
+                Console.WriteLine(
+                    "========================================");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message =
+                            "An error occurred while retrieving developer projects.",
+                        error = ex.Message,
+                        innerError = ex.InnerException?.Message
+                    });
             }
         }
 
@@ -199,10 +328,12 @@ public async Task<IActionResult> GetAiSuggestion(Guid id)
             }
             catch (UnauthorizedAccessException ex)
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new
-                {
-                    message = ex.Message
-                });
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    new
+                    {
+                        message = ex.Message
+                    });
             }
             catch (InvalidOperationException ex)
             {
@@ -298,10 +429,12 @@ public async Task<IActionResult> GetAiSuggestion(Guid id)
             }
             catch (UnauthorizedAccessException ex)
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new
-                {
-                    message = ex.Message
-                });
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    new
+                    {
+                        message = ex.Message
+                    });
             }
             catch (InvalidOperationException ex)
             {
@@ -325,35 +458,37 @@ public async Task<IActionResult> GetAiSuggestion(Guid id)
         // PROJ-001
         // =========================================================
 
-       [HttpGet]
-public async Task<IActionResult> GetAll()
-{
-    try
-    {
-        var projects =
-            await _projectService.GetAllAsync();
-
-        return Ok(projects);
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine("======================================");
-        Console.WriteLine("GET /api/projects FAILED");
-        Console.WriteLine($"Message: {ex.Message}");
-        Console.WriteLine($"InnerException: {ex.InnerException?.Message}");
-        Console.WriteLine($"StackTrace: {ex.StackTrace}");
-        Console.WriteLine("======================================");
-
-        return StatusCode(
-            StatusCodes.Status500InternalServerError,
-            new
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            try
             {
-                message = "Unable to load projects.",
-                error = ex.Message,
-                innerError = ex.InnerException?.Message
-            });
-    }
-}
+                var projects =
+                    await _projectService.GetAllAsync();
+
+                return Ok(projects);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("======================================");
+                Console.WriteLine("GET /api/projects FAILED");
+                Console.WriteLine($"Message: {ex.Message}");
+                Console.WriteLine(
+                    $"InnerException: {ex.InnerException?.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+                Console.WriteLine("======================================");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = "Unable to load projects.",
+                        error = ex.Message,
+                        innerError = ex.InnerException?.Message
+                    });
+            }
+        }
+
         // =========================================================
         // GET ACTIVE PROJECTS
         // =========================================================
@@ -516,22 +651,21 @@ public async Task<IActionResult> GetAll()
 
             try
             {
+                var updatedBy = GetCurrentUserId();
 
-var updatedBy = GetCurrentUserId();
+                if (!updatedBy.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Unable to identify current user."
+                    });
+                }
 
-if (!updatedBy.HasValue)
-{
-    return Unauthorized(new
-    {
-        message = "Unable to identify current user."
-    });
-}
-
-var result =
-    await _projectService.UpdateAsync(
-        id,
-        dto,
-        updatedBy.Value);
+                var result =
+                    await _projectService.UpdateAsync(
+                        id,
+                        dto,
+                        updatedBy.Value);
 
                 if (!result.Success)
                 {
@@ -564,77 +698,77 @@ var result =
             }
         }
 
-                  // =========================================================
-// DELETE PROJECT
-// COMM-004
-// SOFT DELETE + ACTIVITY LOG
-// =========================================================
+        // =========================================================
+        // DELETE PROJECT
+        // COMM-004
+        // SOFT DELETE + ACTIVITY LOG
+        // =========================================================
 
-[HttpDelete("{id:guid}")]
-public async Task<IActionResult> Delete(Guid id)
-{
-    try
-    {
-        // =====================================================
-        // GET AUTHENTICATED USER
-        // =====================================================
-
-        var deletedBy = GetCurrentUserId();
-
-        if (!deletedBy.HasValue)
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> Delete(Guid id)
         {
-            return Unauthorized(new
+            try
             {
-                message = "Unable to identify current user."
-            });
+                // =====================================================
+                // GET AUTHENTICATED USER
+                // =====================================================
+
+                var deletedBy = GetCurrentUserId();
+
+                if (!deletedBy.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Unable to identify current user."
+                    });
+                }
+
+                // =====================================================
+                // SOFT DELETE PROJECT
+                // =====================================================
+
+                var deleted =
+                    await _projectService.DeleteAsync(
+                        id,
+                        deletedBy.Value);
+
+                if (!deleted)
+                {
+                    return NotFound(new
+                    {
+                        message =
+                            "Project not found or has already been deleted."
+                    });
+                }
+
+                // =====================================================
+                // SUCCESS
+                // =====================================================
+
+                return Ok(new
+                {
+                    message =
+                        "Project deleted successfully."
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message =
+                            "Unable to delete project. Please try again."
+                    });
+            }
         }
-
-        // =====================================================
-        // SOFT DELETE PROJECT
-        // =====================================================
-
-        var deleted =
-            await _projectService.DeleteAsync(
-                id,
-                deletedBy.Value);
-
-        if (!deleted)
-        {
-            return NotFound(new
-            {
-                message =
-                    "Project not found or has already been deleted."
-            });
-        }
-
-        // =====================================================
-        // SUCCESS
-        // =====================================================
-
-        return Ok(new
-        {
-            message =
-                "Project deleted successfully."
-        });
-    }
-    catch (UnauthorizedAccessException ex)
-    {
-        return Unauthorized(new
-        {
-            message = ex.Message
-        });
-    }
-    catch (Exception)
-    {
-        return StatusCode(
-            StatusCodes.Status500InternalServerError,
-            new
-            {
-                message =
-                    "Unable to delete project. Please try again."
-            });
-    }
-}
 
         // =========================================================
         // APPROVE PROJECT
@@ -647,18 +781,18 @@ public async Task<IActionResult> Delete(Guid id)
             {
                 var approvedBy = GetCurrentUserId();
 
-if (!approvedBy.HasValue)
-{
-    return Unauthorized(new
-    {
-        message = "Unable to identify current user."
-    });
-}
+                if (!approvedBy.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Unable to identify current user."
+                    });
+                }
 
-var approved =
-    await _projectService.ApproveAsync(
-        id,
-        approvedBy.Value);
+                var approved =
+                    await _projectService.ApproveAsync(
+                        id,
+                        approvedBy.Value);
 
                 if (!approved)
                 {
@@ -696,20 +830,20 @@ var approved =
         {
             try
             {
-               var rejectedBy = GetCurrentUserId();
+                var rejectedBy = GetCurrentUserId();
 
-if (!rejectedBy.HasValue)
-{
-    return Unauthorized(new
-    {
-        message = "Unable to identify current user."
-    });
-}
+                if (!rejectedBy.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Unable to identify current user."
+                    });
+                }
 
-var rejected =
-    await _projectService.RejectAsync(
-        id,
-        rejectedBy.Value);
+                var rejected =
+                    await _projectService.RejectAsync(
+                        id,
+                        rejectedBy.Value);
 
                 if (!rejected)
                 {
@@ -742,107 +876,109 @@ var rejected =
         // CHANGE PROJECT STATUS
         // PROJ-008
         // =========================================================
-// =========================================================
-// PM-007
-// MANAGE PROJECT STATUS
-// =========================================================
 
-[HttpPut("{id:guid}/status")]
-[Authorize(Roles = "Manager")]
-public async Task<IActionResult> ChangeStatus(
-    Guid id,
-    [FromBody] ChangeProjectStatusRequest request)
-{
-    if (request == null)
-    {
-        return BadRequest(new
+        // =========================================================
+        // PM-007
+        // MANAGE PROJECT STATUS
+        // =========================================================
+
+        [HttpPut("{id:guid}/status")]
+        [Authorize(Roles = "Manager")]
+        public async Task<IActionResult> ChangeStatus(
+            Guid id,
+            [FromBody] ChangeProjectStatusRequest request)
         {
-            message = "Status information is required."
-        });
-    }
-
-    if (request.StatusId == Guid.Empty)
-    {
-        return BadRequest(new
-        {
-            message = "Invalid project status."
-        });
-    }
-
-    try
-    {
-        // =====================================================
-        // GET AUTHENTICATED MANAGER
-        // =====================================================
-
-        var managerId = GetCurrentUserId();
-
-        if (!managerId.HasValue)
-        {
-            return Unauthorized(new
+            if (request == null)
             {
-                message = "Unable to identify authenticated manager."
-            });
+                return BadRequest(new
+                {
+                    message = "Status information is required."
+                });
+            }
+
+            if (request.StatusId == Guid.Empty)
+            {
+                return BadRequest(new
+                {
+                    message = "Invalid project status."
+                });
+            }
+
+            try
+            {
+                // =====================================================
+                // GET AUTHENTICATED MANAGER
+                // =====================================================
+
+                var managerId = GetCurrentUserId();
+
+                if (!managerId.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message =
+                            "Unable to identify authenticated manager."
+                    });
+                }
+
+                // =====================================================
+                // CHANGE STATUS
+                // =====================================================
+
+                var result =
+                    await _projectService.ChangeStatusAsync(
+                        id,
+                        request.StatusId,
+                        managerId.Value,
+                        request.Notes);
+
+                // =====================================================
+                // PROJECT NOT FOUND
+                // =====================================================
+
+                if (!result.Success &&
+                    result.Message == "Project not found.")
+                {
+                    return NotFound(new
+                    {
+                        message = result.Message
+                    });
+                }
+
+                // =====================================================
+                // BUSINESS VALIDATION
+                // =====================================================
+
+                if (!result.Success)
+                {
+                    return BadRequest(new
+                    {
+                        message = result.Message,
+                        project = result.Project
+                    });
+                }
+
+                // =====================================================
+                // SUCCESS
+                // =====================================================
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message =
+                            "Unable to update project status. Please try again."
+                    });
+            }
         }
-
-        // =====================================================
-        // CHANGE STATUS
-        // =====================================================
-
-        var result =
-            await _projectService.ChangeStatusAsync(
-                id,
-                request.StatusId,
-                managerId.Value,
-                request.Notes);
-
-        // =====================================================
-        // PROJECT NOT FOUND
-        // =====================================================
-
-        if (!result.Success &&
-            result.Message == "Project not found.")
-        {
-            return NotFound(new
-            {
-                message = result.Message
-            });
-        }
-
-        // =====================================================
-        // BUSINESS VALIDATION
-        // =====================================================
-
-        if (!result.Success)
-        {
-            return BadRequest(new
-            {
-                message = result.Message,
-                project = result.Project
-            });
-        }
-
-        // =====================================================
-        // SUCCESS
-        // =====================================================
-
-        return Ok(result);
-    }
-    catch (UnauthorizedAccessException )
-    {
-        return Forbid();
-    }
-    catch (Exception)
-    {
-        return StatusCode(
-            StatusCodes.Status500InternalServerError,
-            new
-            {
-                message =
-                    "Unable to update project status. Please try again."
-            });
-    }
-}
 
         // =========================================================
         // ASSIGN PROJECT TO MANAGER
@@ -853,7 +989,8 @@ public async Task<IActionResult> ChangeStatus(
             Guid id,
             [FromBody] AssignManagerRequest request)
         {
-            if (request == null || request.ManagerId == Guid.Empty)
+            if (request == null ||
+                request.ManagerId == Guid.Empty)
             {
                 return BadRequest(new
                 {
@@ -865,19 +1002,19 @@ public async Task<IActionResult> ChangeStatus(
             {
                 var assignedBy = GetCurrentUserId();
 
-if (!assignedBy.HasValue)
-{
-    return Unauthorized(new
-    {
-        message = "Unable to identify current user."
-    });
-}
+                if (!assignedBy.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Unable to identify current user."
+                    });
+                }
 
-var assigned =
-    await _projectService.AssignManagerAsync(
-        id,
-        request.ManagerId,
-        assignedBy.Value);
+                var assigned =
+                    await _projectService.AssignManagerAsync(
+                        id,
+                        request.ManagerId,
+                        assignedBy.Value);
 
                 if (!assigned)
                 {
@@ -915,7 +1052,8 @@ var assigned =
             Guid id,
             [FromBody] AssignManagerRequest request)
         {
-            if (request == null || request.ManagerId == Guid.Empty)
+            if (request == null ||
+                request.ManagerId == Guid.Empty)
             {
                 return BadRequest(new
                 {
@@ -960,123 +1098,36 @@ var assigned =
             }
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-[HttpGet("debug-auth")]
-public IActionResult DebugAuth()
-{
-    return Ok(new
-    {
-        isAuthenticated = User.Identity?.IsAuthenticated,
-
-        name = User.Identity?.Name,
-
-        nameIdentifier =
-            User.FindFirstValue(ClaimTypes.NameIdentifier),
-
-        role =
-            User.FindFirstValue(ClaimTypes.Role),
-
-        allClaims = User.Claims.Select(c => new
+        // =========================================================
+        // DEBUG AUTHENTICATION
+        // =========================================================
+
+        [HttpGet("debug-auth")]
+        public IActionResult DebugAuth()
         {
-            type = c.Type,
-            value = c.Value
-        })
-    });
-}
+            return Ok(new
+            {
+                isAuthenticated =
+                    User.Identity?.IsAuthenticated,
 
+                name =
+                    User.Identity?.Name,
 
+                nameIdentifier =
+                    User.FindFirstValue(
+                        ClaimTypes.NameIdentifier),
 
+                role =
+                    User.FindFirstValue(
+                        ClaimTypes.Role),
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                allClaims = User.Claims.Select(c => new
+                {
+                    type = c.Type,
+                    value = c.Value
+                })
+            });
+        }
 
         // =========================================================
         // GET ASSIGNED MANAGER
@@ -1175,11 +1226,11 @@ public IActionResult DebugAuth()
     // =============================================================
 
     public class ChangeProjectStatusRequest
-{
-    public Guid StatusId { get; set; }
+    {
+        public Guid StatusId { get; set; }
 
-    public string? Notes { get; set; }
-}
+        public string? Notes { get; set; }
+    }
 
     public class AssignManagerRequest
     {

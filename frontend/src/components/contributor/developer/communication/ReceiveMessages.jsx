@@ -1,10 +1,4 @@
-import {
-    useCallback,
-    useEffect,
-    useMemo,
-    useState,
-} from "react";
-
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Bell,
     CheckCheck,
@@ -22,7 +16,6 @@ import {
     getMyMessages,
     getMyMessageById,
     markMessageAsRead,
-    getUnreadMessageCount,
 } from "../../../../services/communicationService";
 
 // ============================================================

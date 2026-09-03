@@ -1,19 +1,6 @@
 
 // ============================================================
-// MANAGER NAVBAR
-// AIPMS
-//
-// Features:
-// - Project Search
-// - Notifications
-// - Manager Profile
-//
-// COMM-001 — View Notifications
-//
-// IMPORTANT:
-// - Light theme only
-// - No dark: classes
-// - No dark background
+// AIPMS - MANAGER NAVBAR
 // ============================================================
 
 import React from "react";
@@ -69,6 +56,10 @@ function ManagerNavbar() {
                 border-slate-200
                 bg-white
                 px-8
+                transition-colors
+                duration-200
+                dark:border-slate-800
+                dark:bg-slate-900
             "
         >
 
@@ -86,6 +77,7 @@ function ManagerNavbar() {
                         top-1/2
                         -translate-y-1/2
                         text-slate-400
+                        dark:text-slate-500
                     "
                 />
 
@@ -108,6 +100,12 @@ function ManagerNavbar() {
                         focus:border-blue-500
                         focus:ring-2
                         focus:ring-blue-200
+                        dark:border-slate-700
+                        dark:bg-slate-800
+                        dark:text-slate-100
+                        dark:placeholder:text-slate-500
+                        dark:focus:border-blue-500
+                        dark:focus:ring-blue-900
                     "
                 />
 
@@ -138,12 +136,17 @@ function ManagerNavbar() {
                         focus:ring-2
                         focus:ring-blue-500
                         focus:ring-offset-2
+                        dark:hover:bg-slate-800
+                        dark:focus:ring-offset-slate-900
                     "
                 >
 
                     <Bell
                         size={24}
-                        className="text-slate-700"
+                        className="
+                            text-slate-700
+                            dark:text-slate-200
+                        "
                     />
 
                     {/* ==================================================
@@ -161,6 +164,7 @@ function ManagerNavbar() {
                             border-2
                             border-white
                             bg-red-600
+                            dark:border-slate-900
                         "
                     />
 
@@ -186,6 +190,8 @@ function ManagerNavbar() {
                         focus:ring-2
                         focus:ring-blue-500
                         focus:ring-offset-2
+                        dark:hover:bg-slate-800
+                        dark:focus:ring-offset-slate-900
                     "
                 >
 
@@ -219,6 +225,7 @@ function ManagerNavbar() {
                             className="
                                 font-semibold
                                 text-slate-800
+                                dark:text-slate-100
                             "
                         >
                             Manager
@@ -228,6 +235,7 @@ function ManagerNavbar() {
                             className="
                                 text-sm
                                 text-slate-500
+                                dark:text-slate-400
                             "
                         >
                             manager@email.com
@@ -248,4 +256,3 @@ function ManagerNavbar() {
 // ============================================================
 
 export default ManagerNavbar;
-

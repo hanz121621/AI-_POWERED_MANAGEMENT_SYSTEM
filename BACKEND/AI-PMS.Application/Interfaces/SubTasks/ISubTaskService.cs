@@ -4,40 +4,43 @@ namespace AI_PMS.Application.Interfaces.SubTasks
 {
     public interface ISubTaskService
     {
-        // =========================================================
-        // CREATE SUBTASK
-        // =========================================================
         Task<SubTaskUpdateResult> CreateSubTaskAsync(
             CreateSubTaskDto dto);
 
-        // =========================================================
-        // GET ALL SUBTASKS
-        // =========================================================
         Task<IEnumerable<SubTaskDto>> GetAllSubTasksAsync();
 
-        // =========================================================
-        // GET SUBTASK BY ID
-        // =========================================================
-        Task<SubTaskDto?> GetSubTaskByIdAsync(
-            Guid id);
+        Task<SubTaskDto?> GetSubTaskByIdAsync(Guid id);
 
-        // =========================================================
-        // GET SUBTASKS BY TASK
-        // =========================================================
         Task<IEnumerable<SubTaskDto>> GetTaskSubTasksAsync(
             Guid taskId);
 
-        // =========================================================
-        // UPDATE SUBTASK
-        // =========================================================
         Task<SubTaskUpdateResult> UpdateSubTaskAsync(
             Guid id,
             UpdateSubTaskDto dto);
 
-        // =========================================================
-        // SOFT DELETE SUBTASK
-        // =========================================================
         Task<(bool Success, string Message)> DeleteSubTaskAsync(
             Guid id);
+
+        // =========================================================
+        // CONTRIBUTOR / DEVELOPER ACCESS
+        // =========================================================
+
+        Task<bool> CanContributorAccessSubTaskAsync(
+            Guid userId,
+            Guid subTaskId);
+
+        Task<(
+            IEnumerable<SubTaskDto> SubTasks,
+            bool Success,
+            string Message
+        )> GetMyTaskSubTasksAsync(
+            Guid userId,
+            Guid taskId);
+
+        Task<(SubTaskDto? SubTask, string Message)>
+            UpdateMyAISubTaskStatusAsync(
+                Guid userId,
+                Guid subTaskId,
+                UpdateAISubTaskStatusDto dto);
     }
 }

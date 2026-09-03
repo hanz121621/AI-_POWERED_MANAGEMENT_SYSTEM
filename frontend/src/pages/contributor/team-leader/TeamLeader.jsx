@@ -1,3 +1,4 @@
+import React from "react";
 import {
     Users,
     ClipboardList,
@@ -5,270 +6,211 @@ import {
     UserRoundCog,
     MessageSquare,
     BarChart3,
+    FolderKanban,
 } from "lucide-react";
 
+// Team Management
 import ViewAssignedTeam from "@/components/contributor/teamleader/team-management/ViewAssignedTeam";
-
 import ViewTeamTasks from "@/components/contributor/teamleader/team-management/ViewTeamTasks";
-
 import MonitorTeamProgress from "@/components/contributor/teamleader/team-management/MonitorTeamProgress";
-
 import CoordinateTeamWork from "@/components/contributor/teamleader/team-management/CoordinateTeamWork";
-
-import CommunicateWithManager from "@/components/contributor/teamleader/communication/CommunicateWithManager";
-
 import ViewTeamPerformance from "@/components/contributor/teamleader/team-management/ViewTeamPerformance";
 
-/* ============================================================
-   TEAM LEADER PAGE
-   ============================================================ */
+// Project / Sprint Participation
+import ViewAssignedProjects from "@/components/contributor/teamleader/project-participation/ViewAssignedProjects";
+import ViewSprintProgress from "@/components/contributor/teamleader/sprint-participation/ViewSprintProgress";
 
-function TeamLeader() {
+// Reports
+import TeamPerformanceReport from "@/components/contributor/teamleader/reports/TeamPerformanceReport";
+
+// Communication
+import CommunicateWithManager from "@/components/contributor/teamleader/communication/CommunicateWithManager";
+import MentionTeamMembers from "@/components/contributor/teamleader/communication/MentionTeamMembers";
+import ReceiveMessages from "@/components/contributor/teamleader/communication/ReceiveMessages";
+import ViewNotifications from "@/components/contributor/teamleader/communication/ViewNotifications";
+
+const TeamLeader = () => {
     return (
-        <div className="min-h-screen bg-slate-50 p-6 dark:bg-[#081b33]">
-            {/* ==================================================
-                PAGE HEADER
-            ================================================== */}
+        <div className="space-y-8">
+            {/* ============================================================
+                HEADER
+            ============================================================ */}
+            <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Team Leader
+                </h1>
 
-            <div className="mb-6">
-                <div className="flex items-center gap-3">
-                    <div
-                        className="
-                            flex
-                            h-11
-                            w-11
-                            items-center
-                            justify-center
-                            rounded-xl
-                            bg-blue-100
-                            text-blue-600
-                            dark:bg-blue-950/60
-                            dark:text-blue-400
-                        "
-                    >
-                        <Users className="h-6 w-6" />
-                    </div>
-
-                    <div>
-                        <h1
-                            className="
-                                text-2xl
-                                font-bold
-                                text-slate-900
-                                dark:text-white
-                            "
-                        >
-                            Team Leader
-                        </h1>
-
-                        <p
-                            className="
-                                mt-1
-                                text-sm
-                                text-slate-500
-                                dark:text-slate-400
-                            "
-                        >
-                            Coordinate your team, monitor work,
-                            and communicate with the Manager.
-                        </p>
-                    </div>
-                </div>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Coordinate your team, monitor work, manage projects,
+                    track performance, and communicate with the Manager.
+                </p>
             </div>
 
-            {/* ==================================================
-                USE CASE 1
-                CONT-LEADER-001
-                VIEW ASSIGNED TEAM
-            ================================================== */}
+            {/* ============================================================
+                1. MY TEAM
+            ============================================================ */}
+            <section>
+                <div className="mb-6 flex items-center gap-3">
+                    <Users className="h-6 w-6 text-gray-700 dark:text-gray-300" />
 
-            <section className="mb-6">
-                <div
-                    className="
-                        mb-3
-                        flex
-                        items-center
-                        gap-2
-                    "
-                >
-                    <Users className="h-5 w-5 text-blue-500" />
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            My Team
+                        </h2>
 
-                    <h2
-                        className="
-                            text-lg
-                            font-semibold
-                            text-slate-900
-                            dark:text-white
-                        "
-                    >
-                        My Team
-                    </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            View and manage your assigned team members.
+                        </p>
+                    </div>
                 </div>
 
                 <ViewAssignedTeam />
             </section>
 
-            {/* ==================================================
-                USE CASE 2
-                CONT-LEADER-002
-                VIEW TEAM TASKS
-            ================================================== */}
+            {/* ============================================================
+                2. ASSIGNED PROJECTS
+            ============================================================ */}
+            <section>
+                <div className="mb-6 flex items-center gap-3">
+                    <FolderKanban className="h-6 w-6 text-gray-700 dark:text-gray-300" />
 
-            <section className="mb-6">
-                <div
-                    className="
-                        mb-3
-                        flex
-                        items-center
-                        gap-2
-                    "
-                >
-                    <ClipboardList className="h-5 w-5 text-blue-500" />
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            Assigned Projects
+                        </h2>
 
-                    <h2
-                        className="
-                            text-lg
-                            font-semibold
-                            text-slate-900
-                            dark:text-white
-                        "
-                    >
-                        Team Tasks
-                    </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            View projects assigned to your team.
+                        </p>
+                    </div>
+                </div>
+
+                <ViewAssignedProjects />
+            </section>
+
+            {/* ============================================================
+                3. TEAM TASKS
+            ============================================================ */}
+            <section>
+                <div className="mb-6 flex items-center gap-3">
+                    <ClipboardList className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            Team Tasks
+                        </h2>
+
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            View and coordinate tasks assigned to your team.
+                        </p>
+                    </div>
                 </div>
 
                 <ViewTeamTasks />
             </section>
 
-            {/* ==================================================
-                USE CASE 3
-                CONT-LEADER-003
-                MONITOR TEAM PROGRESS
-            ================================================== */}
+            {/* ============================================================
+                4. TEAM PROGRESS
+            ============================================================ */}
+            <section>
+                <div className="mb-6 flex items-center gap-3">
+                    <TrendingUp className="h-6 w-6 text-gray-700 dark:text-gray-300" />
 
-            <section className="mb-6">
-                <div
-                    className="
-                        mb-3
-                        flex
-                        items-center
-                        gap-2
-                    "
-                >
-                    <TrendingUp className="h-5 w-5 text-blue-500" />
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            Team Progress
+                        </h2>
 
-                    <h2
-                        className="
-                            text-lg
-                            font-semibold
-                            text-slate-900
-                            dark:text-white
-                        "
-                    >
-                        Team Progress
-                    </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Monitor sprint and overall team progress.
+                        </p>
+                    </div>
                 </div>
 
-                <MonitorTeamProgress />
+                <div className="space-y-6">
+                    <MonitorTeamProgress />
+                    <ViewSprintProgress />
+                </div>
             </section>
 
-            {/* ==================================================
-                USE CASE 4
-                CONT-LEADER-004
-                COORDINATE TEAM WORK
-            ================================================== */}
+            {/* ============================================================
+                5. COORDINATE TEAM WORK
+            ============================================================ */}
+            <section>
+                <div className="mb-6 flex items-center gap-3">
+                    <UserRoundCog className="h-6 w-6 text-gray-700 dark:text-gray-300" />
 
-            <section className="mb-6">
-                <div
-                    className="
-                        mb-3
-                        flex
-                        items-center
-                        gap-2
-                    "
-                >
-                    <UserRoundCog className="h-5 w-5 text-blue-500" />
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            Coordinate Team Work
+                        </h2>
 
-                    <h2
-                        className="
-                            text-lg
-                            font-semibold
-                            text-slate-900
-                            dark:text-white
-                        "
-                    >
-                        Coordinate Team Work
-                    </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Organize work, assign responsibilities, and
+                            coordinate team activities.
+                        </p>
+                    </div>
                 </div>
 
                 <CoordinateTeamWork />
             </section>
 
-            {/* ==================================================
-                USE CASE 5
-                CONT-LEADER-005
-                COMMUNICATE WITH MANAGER
-            ================================================== */}
+            {/* ============================================================
+                6. COMMUNICATION
+            ============================================================ */}
+            <section>
+                <div className="mb-6 flex items-center gap-3">
+                    <MessageSquare className="h-6 w-6 text-gray-700 dark:text-gray-300" />
 
-            <section className="mb-6">
-                <div
-                    className="
-                        mb-3
-                        flex
-                        items-center
-                        gap-2
-                    "
-                >
-                    <MessageSquare className="h-5 w-5 text-blue-500" />
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            Communication
+                        </h2>
 
-                    <h2
-                        className="
-                            text-lg
-                            font-semibold
-                            text-slate-900
-                            dark:text-white
-                        "
-                    >
-                        Communicate with Manager
-                    </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Communicate with the Manager and team members.
+                        </p>
+                    </div>
                 </div>
 
-                <CommunicateWithManager />
+                <div className="space-y-6">
+                    <CommunicateWithManager />
+
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                        <ReceiveMessages />
+                        <MentionTeamMembers />
+                    </div>
+
+                    <ViewNotifications />
+                </div>
             </section>
 
-            {/* ==================================================
-                USE CASE 6
-                CONT-LEADER-006
-                VIEW TEAM PERFORMANCE
-            ================================================== */}
-
+            {/* ============================================================
+                7. TEAM PERFORMANCE
+            ============================================================ */}
             <section>
-                <div
-                    className="
-                        mb-3
-                        flex
-                        items-center
-                        gap-2
-                    "
-                >
-                    <BarChart3 className="h-5 w-5 text-blue-500" />
+                <div className="mb-6 flex items-center gap-3">
+                    <BarChart3 className="h-6 w-6 text-gray-700 dark:text-gray-300" />
 
-                    <h2
-                        className="
-                            text-lg
-                            font-semibold
-                            text-slate-900
-                            dark:text-white
-                        "
-                    >
-                        Team Performance
-                    </h2>
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            Team Performance
+                        </h2>
+
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Review team performance and generate performance
+                            reports.
+                        </p>
+                    </div>
                 </div>
 
-                <ViewTeamPerformance />
+                <div className="space-y-6">
+                    <ViewTeamPerformance />
+                    <TeamPerformanceReport />
+                </div>
             </section>
         </div>
     );
-}
+};
 
 export default TeamLeader;

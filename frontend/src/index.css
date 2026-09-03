@@ -3,28 +3,14 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
-
 /* ============================================================
    DARK MODE
    ============================================================ */
 
 @custom-variant dark (&:is(.dark *));
 
-
 /* ============================================================
-   HTML / BODY / ROOT
-   ============================================================ */
-
-html,
-body,
-#root {
-    height: 100%;
-    margin: 0;
-}
-
-
-/* ============================================================
-   THEME VARIABLES
+   THEME
    ============================================================ */
 
 @theme inline {
@@ -81,7 +67,6 @@ body,
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-
 /* ============================================================
    LIGHT THEME
    ============================================================ */
@@ -132,7 +117,6 @@ body,
     --sidebar-ring: oklch(0.55 0.18 250);
 }
 
-
 /* ============================================================
    DARK THEME
    ============================================================ */
@@ -181,24 +165,39 @@ body,
     --sidebar-ring: oklch(0.60 0.12 250);
 }
 
-
 /* ============================================================
-   GLOBAL BASE STYLES
+   GLOBAL RESET / BASE
    ============================================================ */
 
 @layer base {
-    * {
+    *,
+    *::before,
+    *::after {
         @apply border-border outline-ring/50;
+        box-sizing: border-box;
     }
 
     html {
         @apply font-sans;
+        width: 100%;
+        min-width: 320px;
+        min-height: 100%;
+        overflow-x: hidden;
+        -webkit-text-size-adjust: 100%;
     }
 
     body {
         @apply bg-background text-foreground;
+
+        width: 100%;
+        min-width: 320px;
         min-height: 100vh;
         margin: 0;
+
+        overflow-x: hidden;
+
+        font-family: "Geist Variable", sans-serif;
+        line-height: 1.5;
 
         transition:
             background-color 200ms ease,
@@ -207,9 +206,39 @@ body,
 
     #root {
         @apply bg-background text-foreground;
-        min-height: 100%;
+
+        width: 100%;
+        min-width: 320px;
+        min-height: 100vh;
+
+        overflow-x: hidden;
     }
 
+    /* Prevent media from breaking mobile layouts */
+    img,
+    svg,
+    video,
+    canvas {
+        max-width: 100%;
+    }
+
+    img,
+    video {
+        height: auto;
+    }
+
+    /* Better text wrapping */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    p {
+        overflow-wrap: anywhere;
+    }
+
+    /* Interactive elements */
     button,
     a {
         transition:
@@ -218,5 +247,139 @@ body,
             color 200ms ease,
             box-shadow 200ms ease,
             transform 200ms ease;
+    }
+
+    button {
+        max-width: 100%;
+    }
+
+    /* Inputs should never force viewport width */
+    input,
+    textarea,
+    select {
+        max-width: 100%;
+    }
+
+    textarea {
+        resize: vertical;
+    }
+
+    /* Accessible focus */
+    :focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+    }
+
+    /* Remove tap highlight on mobile */
+    button,
+    a,
+    input,
+    textarea,
+    select {
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+/* ============================================================
+   GLOBAL RESPONSIVE UTILITIES
+   ============================================================ */
+
+@layer utilities {
+    /*
+     * Prevent a child from forcing its parent wider than the viewport.
+     */
+    .min-w-0 {
+        min-width: 0;
+    }
+
+    /*
+     * Safe responsive page container.
+     */
+    .app-container {
+        width: 100%;
+        max-width: 100%;
+        margin-inline: auto;
+        padding-inline: 1rem;
+    }
+
+    @media (min-width: 640px) {
+        .app-container {
+            padding-inline: 1.25rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .app-container {
+            padding-inline: 1.5rem;
+        }
+    }
+
+    @media (min-width: 1280px) {
+        .app-container {
+            padding-inline: 2rem;
+        }
+    }
+
+    /*
+     * Tables can remain wide without breaking the entire page.
+     */
+    .responsive-table {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .responsive-table > table {
+        min-width: 640px;
+        width: 100%;
+    }
+
+    /*
+     * Long values such as project names, emails and IDs.
+     */
+    .break-anywhere {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    /*
+     * Safe modal sizing.
+     */
+    .responsive-modal {
+        width: calc(100% - 2rem);
+        max-width: 42rem;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+    }
+}
+
+/* ============================================================
+   MOBILE TOUCH / SMALL SCREEN
+   ============================================================ */
+
+@media (max-width: 639px) {
+    html {
+        font-size: 15px;
+    }
+
+    body {
+        overflow-x: hidden;
+    }
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
     }
 }

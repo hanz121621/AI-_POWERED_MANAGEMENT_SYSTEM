@@ -1,24 +1,4 @@
 
-// ============================================================
-// AIPMS — MANAGER AI PREFERENCES
-//
-// Use Case:
-// SET-005 — Manage AI Preferences
-//
-// Primary Actor:
-// Project Manager
-//
-// Purpose:
-// Allow the authenticated Manager to configure how AI-assisted
-// features are presented and used.
-//
-// IMPORTANT:
-// - Preferences belong only to the authenticated Manager.
-// - Preferences do NOT change project permissions.
-// - Preferences do NOT change the underlying AI model.
-// - Preferences do NOT modify project data.
-// - AI recommendations remain distinguishable from actual data.
-// ============================================================
 
 import React, { useEffect, useState } from "react";
 

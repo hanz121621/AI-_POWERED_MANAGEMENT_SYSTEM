@@ -280,7 +280,9 @@ function normalizeProject(project) {
 
         progress:
             project?.progress ??
+            project?.progressPercentage ??
             project?.Progress ??
+            project?.ProgressPercentage ??
             0,
 
         tasks:
@@ -923,8 +925,7 @@ export async function rejectProject(
 //
 // Body:
 // {
-//     statusId: "UUID",
-//     notes: "optional"
+//     statusId: "UUID"
 // }
 // ============================================================
 
@@ -1029,47 +1030,33 @@ export async function getMyProjects() {
 }
 
 // ============================================================
-// GET PROJECTS ASSIGNED TO CURRENT DEVELOPER / STAFF
+// GET MY DEVELOPER PROJECTS
 //
-// GET /api/project-participation/my-projects
+// GET /api/projects/my-developer-projects
 //
-// Used by:
-// - Developer
-// - Staff Contributor
-//
-// IMPORTANT:
-// This is intentionally different from:
-//
-// GET /api/projects/my-projects
-//
-// because /projects/my-projects is restricted to Manager.
+// Intended for authenticated Developer.
 // ============================================================
 
 export async function getMyDeveloperProjects() {
     try {
         const response =
             await api.get(
-                "/project-participation/my-projects"
+                "/projects/my-developer-projects"
             );
-
-        console.log(
-            "DEVELOPER ASSIGNED PROJECTS RESPONSE:",
-            response.data
-        );
 
         return normalizeProjectList(
             response.data
         );
     } catch (error) {
         console.error(
-            "GET DEVELOPER ASSIGNED PROJECTS ERROR:",
+            "GET MY DEVELOPER PROJECTS ERROR:",
             error
         );
 
         throw new Error(
             getApiErrorMessage(
                 error,
-                "Failed to load your assigned projects."
+                "Unable to load your assigned projects."
             ),
             {
                 cause: error,
@@ -1363,6 +1350,20 @@ export async function getProjectsByManager(
 // GET PROJECTS BY MANAGER USER
 //
 // Frontend helper.
+//
+// Accepts:
+//
+// {
+//     id: "...",
+//     fullName: "..."
+// }
+//
+// OR
+//
+// {
+//     userId: "...",
+//     fullName: "..."
+// }
 // ============================================================
 
 export async function getProjectsByManagerUser(
@@ -1441,6 +1442,7 @@ export async function getProjectStatistics() {
 // POST   /api/projects/{projectId}/specification
 // PUT    /api/projects/{projectId}/specification
 // DELETE /api/projects/{projectId}/specification
+//
 // ============================================================
 
 // ============================================================
@@ -1921,17 +1923,17 @@ export default {
     archiveProject,
     restoreProject,
 
-    // Manager
+    // Manager / Current User
     getMyProjects,
 
-    // Developer / Staff Contributor
+    // Developer
     getMyDeveloperProjects,
 
     // Timeline / Deadline
     updateProjectTimeline,
     updateProjectDeadline,
 
-    // Manager Assignment
+    // Manager
     assignProjectManager,
     updateProjectManager,
     getProjectManager,

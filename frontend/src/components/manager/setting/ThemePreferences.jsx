@@ -1,4 +1,3 @@
-
 // ============================================================
 // AIPMS — MANAGER THEME PREFERENCES
 //
@@ -15,8 +14,9 @@
 // IMPORTANT:
 // - Applies only to the current Manager
 // - Does not modify project/team data
-// - Preference persists across sessions
-// - Uses configured theme options
+// - Does not use localStorage
+// - Theme is controlled by next-themes
+// - Persistence is handled by the Manager Settings backend
 // ============================================================
 
 import React, { useEffect, useState } from "react";
@@ -30,18 +30,10 @@ import {
     Save,
 } from "lucide-react";
 
-// ============================================================
-// STORAGE KEY
-// ============================================================
-
-const THEME_PREFERENCE_KEY =
-    "aipms_manager_theme_preference";
+import { useTheme } from "next-themes";
 
 // ============================================================
 // CONFIGURED THEME OPTIONS
-//
-// Keep theme options centralized rather than spreading
-// them throughout the application.
 // ============================================================
 
 const THEME_OPTIONS = [
@@ -69,15 +61,27 @@ const THEME_OPTIONS = [
 ];
 
 // ============================================================
+// DEFAULT THEME
+// ============================================================
+
+const DEFAULT_THEME = "light";
+
+// ============================================================
 // COMPONENT
 // ============================================================
 
 function ThemePreferences() {
+    const {
+        theme,
+        setTheme,
+        resolvedTheme,
+    } = useTheme();
+
     const [selectedTheme, setSelectedTheme] =
-        useState("light");
+        useState(DEFAULT_THEME);
 
     const [savedTheme, setSavedTheme] =
-        useState("light");
+        useState(DEFAULT_THEME);
 
     const [successMessage, setSuccessMessage] =
         useState("");
@@ -89,76 +93,34 @@ function ThemePreferences() {
         useState(false);
 
     // ========================================================
-    // LOAD SAVED PREFERENCE
+    // SYNCHRONIZE WITH GLOBAL THEME
+    //
+    // next-themes is the single source of truth.
     // ========================================================
 
     useEffect(() => {
-        try {
-            const storedTheme =
-                localStorage.getItem(
-                    THEME_PREFERENCE_KEY
-                );
+        const currentTheme =
+            theme || DEFAULT_THEME;
 
-            const validTheme =
-                THEME_OPTIONS.some(
-                    (theme) =>
-                        theme.id === storedTheme
-                );
-
-            if (validTheme) {
-                setSelectedTheme(storedTheme);
-                setSavedTheme(storedTheme);
-            } else {
-                // Valid default when no preference exists
-                setSelectedTheme("light");
-                setSavedTheme("light");
-            }
-        } catch (error) {
-            console.error(
-                "Failed to load theme preference:",
-                error
+        const validTheme =
+            THEME_OPTIONS.some(
+                (item) =>
+                    item.id === currentTheme
             );
+
+        if (validTheme) {
+            setSelectedTheme(currentTheme);
+            setSavedTheme(currentTheme);
         }
-    }, []);
+    }, [theme]);
 
     // ========================================================
-    // APPLY THEME
+    // CLEAR MESSAGES
     // ========================================================
 
-    useEffect(() => {
-        applyTheme(selectedTheme);
-    }, [selectedTheme]);
-
-    // ========================================================
-    // APPLY SELECTED THEME
-    // ========================================================
-
-    const applyTheme = (theme) => {
-        const root =
-            document.documentElement;
-
-        if (theme === "dark") {
-            root.classList.add("dark");
-            return;
-        }
-
-        if (theme === "light") {
-            root.classList.remove("dark");
-            return;
-        }
-
-        // System theme
-        if (theme === "system") {
-            const prefersDark =
-                window.matchMedia(
-                    "(prefers-color-scheme: dark)"
-                ).matches;
-
-            root.classList.toggle(
-                "dark",
-                prefersDark
-            );
-        }
+    const clearMessages = () => {
+        setSuccessMessage("");
+        setErrorMessage("");
     };
 
     // ========================================================
@@ -170,8 +132,8 @@ function ThemePreferences() {
 
         const exists =
             THEME_OPTIONS.some(
-                (theme) =>
-                    theme.id === themeId
+                (item) =>
+                    item.id === themeId
             );
 
         if (!exists) {
@@ -182,10 +144,19 @@ function ThemePreferences() {
         }
 
         setSelectedTheme(themeId);
+
+        // Apply immediately through next-themes.
+        setTheme(themeId);
     };
 
     // ========================================================
     // SAVE
+    //
+    // IMPORTANT:
+    // This component only handles the visual selection.
+    //
+    // The actual backend persistence is handled by
+    // ManagerSettings.jsx / managerSettingsService.
     // ========================================================
 
     const handleSave = async () => {
@@ -193,8 +164,8 @@ function ThemePreferences() {
 
         const validTheme =
             THEME_OPTIONS.some(
-                (theme) =>
-                    theme.id === selectedTheme
+                (item) =>
+                    item.id === selectedTheme
             );
 
         if (!validTheme) {
@@ -207,31 +178,26 @@ function ThemePreferences() {
         setIsSaving(true);
 
         try {
-            // ==================================================
-            // FRONTEND TEMPORARY STORAGE
-            //
-            // Replace this with the authenticated Manager's
-            // backend preference API when connected.
-            // ==================================================
+            // Apply globally.
+            setTheme(selectedTheme);
 
-            localStorage.setItem(
-                THEME_PREFERENCE_KEY,
-                selectedTheme
-            );
+            // This component no longer writes localStorage.
+            // Backend persistence should be performed by
+            // ManagerSettings.jsx.
 
             setSavedTheme(selectedTheme);
 
             setSuccessMessage(
-                "Theme preference saved successfully."
+                "Theme preference applied successfully."
             );
         } catch (error) {
             console.error(
-                "Failed to save theme preference:",
+                "Failed to apply theme preference:",
                 error
             );
 
             setErrorMessage(
-                "Unable to save your theme preference."
+                "Unable to apply your theme preference."
             );
         } finally {
             setIsSaving(false);
@@ -239,50 +205,50 @@ function ThemePreferences() {
     };
 
     // ========================================================
-    // RESET
+    // CANCEL
     // ========================================================
 
     const handleReset = () => {
         clearMessages();
 
         setSelectedTheme(savedTheme);
+
+        setTheme(savedTheme);
     };
 
     // ========================================================
-    // CLEAR MESSAGES
-    // ========================================================
-
-    const clearMessages = () => {
-        setSuccessMessage("");
-        setErrorMessage("");
-    };
-
-    // ========================================================
-    // GET CURRENT THEME NAME
+    // CURRENT THEME
     // ========================================================
 
     const currentTheme =
         THEME_OPTIONS.find(
-            (theme) =>
-                theme.id === selectedTheme
+            (item) =>
+                item.id === selectedTheme
         );
+
+    // ========================================================
+    // RESOLVED THEME
+    //
+    // Useful when "system" is selected.
+    // ========================================================
+
+    const effectiveTheme =
+        resolvedTheme || selectedTheme;
 
     // ========================================================
     // RENDER
     // ========================================================
 
     return (
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
-            {/* ==================================================
-                HEADER
-            ================================================== */}
+            {/* HEADER */}
 
-            <div className="border-b border-slate-200 px-6 py-5">
+            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
 
                 <div className="flex items-center gap-3">
 
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-950">
 
                         <Palette
                             size={22}
@@ -293,11 +259,11 @@ function ThemePreferences() {
 
                     <div>
 
-                        <h2 className="text-lg font-bold text-slate-900">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                             Theme Preferences
                         </h2>
 
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                             Customize the visual appearance of your AIPMS interface.
                         </p>
 
@@ -307,9 +273,7 @@ function ThemePreferences() {
 
             </div>
 
-            {/* ==================================================
-                SUCCESS MESSAGE
-            ================================================== */}
+            {/* SUCCESS */}
 
             {successMessage && (
 
@@ -321,9 +285,7 @@ function ThemePreferences() {
 
             )}
 
-            {/* ==================================================
-                ERROR MESSAGE
-            ================================================== */}
+            {/* ERROR */}
 
             {errorMessage && (
 
@@ -335,60 +297,55 @@ function ThemePreferences() {
 
             )}
 
-            {/* ==================================================
-                CONTENT
-            ================================================== */}
+            {/* CONTENT */}
 
             <div className="p-6">
 
                 <div className="mb-5">
 
-                    <h3 className="text-sm font-bold text-slate-900">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                         Choose Theme
                     </h3>
 
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                         Select how the application should appear for your account.
                     </p>
 
                 </div>
 
-                {/* ==================================================
-                    THEME OPTIONS
-                ================================================== */}
+                {/* OPTIONS */}
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 
                     {THEME_OPTIONS.map(
-                        (theme) => {
+                        (themeOption) => {
 
                             const Icon =
-                                theme.icon;
+                                themeOption.icon;
 
                             const isSelected =
                                 selectedTheme ===
-                                theme.id;
+                                themeOption.id;
 
                             return (
 
                                 <button
                                     key={
-                                        theme.id
+                                        themeOption.id
                                     }
                                     type="button"
                                     onClick={() =>
                                         handleThemeChange(
-                                            theme.id
+                                            themeOption.id
                                         )
                                     }
+                                    disabled={isSaving}
                                     className={`relative rounded-2xl border-2 p-5 text-left transition ${
                                         isSelected
-                                            ? "border-violet-500 bg-violet-50"
-                                            : "border-slate-200 bg-white hover:border-violet-300 hover:bg-slate-50"
+                                            ? "border-violet-500 bg-violet-50 dark:border-violet-400 dark:bg-violet-950"
+                                            : "border-slate-200 bg-white hover:border-violet-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-violet-600 dark:hover:bg-slate-800"
                                     }`}
                                 >
-
-                                    {/* CHECK */}
 
                                     {isSelected && (
 
@@ -402,13 +359,11 @@ function ThemePreferences() {
 
                                     )}
 
-                                    {/* ICON */}
-
                                     <div
                                         className={`flex h-12 w-12 items-center justify-center rounded-xl ${
                                             isSelected
-                                                ? "bg-violet-100"
-                                                : "bg-slate-100"
+                                                ? "bg-violet-100 dark:bg-violet-900"
+                                                : "bg-slate-100 dark:bg-slate-800"
                                         }`}
                                     >
 
@@ -417,45 +372,34 @@ function ThemePreferences() {
                                             className={
                                                 isSelected
                                                     ? "text-violet-600"
-                                                    : "text-slate-600"
+                                                    : "text-slate-600 dark:text-slate-300"
                                             }
                                         />
 
                                     </div>
 
-                                    {/* NAME */}
-
-                                    <h4 className="mt-4 font-bold text-slate-900">
-
+                                    <h4 className="mt-4 font-bold text-slate-900 dark:text-white">
                                         {
-                                            theme.name
+                                            themeOption.name
                                         }
-
                                     </h4>
 
-                                    {/* DESCRIPTION */}
-
-                                    <p className="mt-1 text-sm leading-6 text-slate-500">
-
+                                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
                                         {
-                                            theme.description
+                                            themeOption.description
                                         }
-
                                     </p>
 
                                 </button>
-
                             );
                         }
                     )}
 
                 </div>
 
-                {/* ==================================================
-                    CURRENT SELECTION
-                ================================================== */}
+                {/* CURRENT SELECTION */}
 
-                <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
 
                     <div className="flex items-center justify-between gap-4">
 
@@ -465,7 +409,7 @@ function ThemePreferences() {
                                 Selected Theme
                             </p>
 
-                            <p className="mt-1 font-bold text-slate-900">
+                            <p className="mt-1 font-bold text-slate-900 dark:text-white">
 
                                 {
                                     currentTheme?.name ||
@@ -474,9 +418,20 @@ function ThemePreferences() {
 
                             </p>
 
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+
+                                Effective theme:{" "}
+
+                                {effectiveTheme ===
+                                "dark"
+                                    ? "Dark"
+                                    : "Light"}
+
+                            </p>
+
                         </div>
 
-                        <div className="rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700">
+                        <div className="rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700 dark:bg-violet-950 dark:text-violet-300">
                             Manager Preference
                         </div>
 
@@ -486,40 +441,32 @@ function ThemePreferences() {
 
             </div>
 
-            {/* ==================================================
-                FOOTER
-            ================================================== */}
+            {/* FOOTER */}
 
-            <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
 
-                <p className="text-xs text-slate-500">
-
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                     Theme changes affect only your interface.
-
                 </p>
 
                 <div className="flex items-center gap-3">
 
                     <button
                         type="button"
-                        onClick={
-                            handleReset
-                        }
+                        onClick={handleReset}
                         disabled={
                             selectedTheme ===
                                 savedTheme ||
                             isSaving
                         }
-                        className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
                         Cancel
                     </button>
 
                     <button
                         type="button"
-                        onClick={
-                            handleSave
-                        }
+                        onClick={handleSave}
                         disabled={
                             selectedTheme ===
                                 savedTheme ||
@@ -532,7 +479,7 @@ function ThemePreferences() {
 
                         {isSaving
                             ? "Saving..."
-                            : "Save Changes"}
+                            : "Apply Theme"}
 
                     </button>
 
@@ -544,9 +491,4 @@ function ThemePreferences() {
     );
 }
 
-// ============================================================
-// DEFAULT EXPORT
-// ============================================================
-
 export default ThemePreferences;
-

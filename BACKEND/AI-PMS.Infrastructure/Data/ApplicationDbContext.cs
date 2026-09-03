@@ -1,5 +1,5 @@
 using AI_PMS.Application.Interfaces.Data;
-
+using AI_PMS.Domain.Entities.AI;
 using AI_PMS.Domain.Entities.AISettings;
 using AI_PMS.Domain.Entities.Activities;
 using AI_PMS.Domain.Entities.Auth;
@@ -20,7 +20,6 @@ using AI_PMS.Domain.Entities.Users;
 using AI_PMS.Domain.Entities.UserPreferences;
 using AI_PMS.Domain.Entities.TaskComments;
 using AI_PMS.Domain.Entities.TaskSubmissions;
-
 using AI_PMS.Infrastructure.Configurations.Activities;
 
 using Microsoft.EntityFrameworkCore;
@@ -43,7 +42,10 @@ namespace AI_PMS.Infrastructure.Data
 
         public DbSet<RefreshToken> RefreshTokens =>
             Set<RefreshToken>();
-
+public DbSet<AiSuggestion> AiSuggestions { get; set; }
+public DbSet<AiSettings> AiSettings { get; set; }
+public DbSet<AiUsageLog> AiUsageLogs { get; set; }
+public DbSet<AiSettingsAuditLog> AiSettingsAuditLogs { get; set; }
         // =========================================================
         // TEAMS
         // =========================================================

@@ -361,9 +361,7 @@ export default function Tasks() {
                 </section>
 
 
-
-
-<section className="mb-8">
+                <section className="mb-8">
     <div className="mb-5">
         <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-950/50">
@@ -383,8 +381,10 @@ export default function Tasks() {
     </div>
 
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-blue-900/60 dark:bg-[#0b2344]">
+
         <div className="border-b border-slate-200 px-5 py-4 dark:border-blue-900/60">
             <div className="flex items-center gap-3">
+
                 <div className="rounded-lg bg-purple-100 p-2 dark:bg-purple-950/50">
                     <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
@@ -398,12 +398,14 @@ export default function Tasks() {
                         AI-generated subtasks associated with the selected task.
                     </p>
                 </div>
+
             </div>
         </div>
 
         <div className="p-5">
             <ViewAISubtasks task={selectedTask} />
         </div>
+
     </div>
 </section>
 

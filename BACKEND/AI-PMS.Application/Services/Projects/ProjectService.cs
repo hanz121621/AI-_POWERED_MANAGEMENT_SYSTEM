@@ -1,28 +1,32 @@
 using AI_PMS.Application.DTOs.Projects;
 using AI_PMS.Application.Interfaces.Projects;
 using AI_PMS.Application.Interfaces.Repositories.Projects;
+using AI_PMS.Application.Interfaces.Repositories.Teams;
 using AI_PMS.Domain.Entities.Projects;
 using AI_PMS.Application.Interfaces.Activities;
 using AI_PMS.Application.Interfaces.AI;
 using AI_PMS.Domain.Enums;
+
 namespace AI_PMS.Application.Services.Projects
 {
     public class ProjectService : IProjectService
     {
         private readonly IProjectRepository _projectRepository;
-        
-         private readonly IActivityLogService _activityLogService;
-         private readonly IAiSuggestionService _aiSuggestionService;
-         
-       public ProjectService(
-    IProjectRepository projectRepository,
-    IActivityLogService activityLogService,
-    IAiSuggestionService aiSuggestionService)
-{
-    _projectRepository = projectRepository;
-    _activityLogService = activityLogService;
-    _aiSuggestionService = aiSuggestionService;
-}
+        private readonly ITeamRepository _teamRepository;
+        private readonly IActivityLogService _activityLogService;
+        private readonly IAiSuggestionService _aiSuggestionService;
+
+        public ProjectService(
+            IProjectRepository projectRepository,
+            IActivityLogService activityLogService,
+            IAiSuggestionService aiSuggestionService,
+            ITeamRepository teamRepository)
+        {
+            _projectRepository = projectRepository;
+            _activityLogService = activityLogService;
+            _aiSuggestionService = aiSuggestionService;
+            _teamRepository = teamRepository;
+        }
 
         // =========================================================
         // CREATE
@@ -69,678 +73,754 @@ namespace AI_PMS.Application.Services.Projects
                     return null;
             }
 
-          // Inside ProjectService.cs, CreateAsync method
+            var project = new Project
+            {
+                Id = Guid.NewGuid(),
+                Name = dto.Name.Trim(),
+                Description =
+                    string.IsNullOrWhiteSpace(dto.Description)
+                        ? null
+                        : dto.Description.Trim(),
 
-var project = new Project
-{
-    Id = Guid.NewGuid(),
-    Name = dto.Name.Trim(),
-    Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
-    StatusId = status.Id,
-    ManagerId = dto.ManagerId,
-    TeamId = dto.TeamId,
-    TeamLeaderId = dto.TeamLeaderId,
-    Priority = (ProjectPriority)dto.PriorityId,
+                StatusId = status.Id,
 
-    // ✅ CRITICAL FIX: Force UTC to prevent PostgreSQL timestamp errors
-    StartDate = DateTime.SpecifyKind(dto.StartDate, DateTimeKind.Utc),
-    Deadline = DateTime.SpecifyKind(dto.Deadline, DateTimeKind.Utc),
+                ManagerId = dto.ManagerId,
+                TeamId = dto.TeamId,
+                TeamLeaderId = dto.TeamLeaderId,
 
-    ProgressPercentage = 0,
-    CreatedAt = DateTime.UtcNow,
-    UpdatedAt = null,
-    CompletedAt = null,
-    ArchivedAt = null
-};
+                Priority = (ProjectPriority)dto.PriorityId,
+
+                // Force UTC for PostgreSQL timestamp compatibility.
+                StartDate =
+                    DateTime.SpecifyKind(
+                        dto.StartDate,
+                        DateTimeKind.Utc),
+
+                Deadline =
+                    DateTime.SpecifyKind(
+                        dto.Deadline,
+                        DateTimeKind.Utc),
+
+                ProgressPercentage = 0,
+
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = null,
+                CompletedAt = null,
+                ArchivedAt = null
+            };
 
             await _projectRepository.AddAsync(project);
 
-         await _activityLogService.CreateAsync(
-    createdBy,
-    "Project Created",
-    "Project",
-    project.Id,
-    "Project",
-    $"Project '{project.Name}' was created.",
-    project.Id,
-    project.TeamId);
+            await _activityLogService.CreateAsync(
+                createdBy,
+                "Project Created",
+                "Project",
+                project.Id,
+                "Project",
+                $"Project '{project.Name}' was created.",
+                project.Id,
+                project.TeamId);
 
-// Get the complete created project
-var createdProject = await GetByIdAsync(project.Id);
+            // Get the complete created project.
+            var createdProject =
+                await GetByIdAsync(project.Id);
 
-// Generate AI suggestion without breaking project creation
-
-return createdProject;
+            // AI suggestion generation remains separate
+            // so project creation is not blocked.
+            return createdProject;
         }
-        //
 
 
+        // =========================================================
+        // PM-004
+        // VIEW ASSIGNED PROJECTS
+        // MANAGER
+        // =========================================================
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// =========================================================
-// PM-004
-// VIEW ASSIGNED PROJECTS
-// =========================================================
-
-public async Task<IEnumerable<ProjectDto>> GetAssignedProjectsAsync(
-    Guid managerId)
-{
-    if (managerId == Guid.Empty)
-        throw new UnauthorizedAccessException(
-            "Invalid manager identity.");
-
-    var projects =
-        await _projectRepository.GetByManagerAsync(managerId);
-
-    var result = new List<ProjectDto>();
-
-    foreach (var project in projects)
-    {
-        result.Add(new ProjectDto
+        public async Task<IEnumerable<ProjectDto>> GetAssignedProjectsAsync(
+            Guid managerId)
         {
-            Id = project.Id,
+            if (managerId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException(
+                    "Invalid manager identity.");
+            }
 
-            Name = project.Name,
+            var projects =
+                await _projectRepository.GetByManagerAsync(
+                    managerId);
 
-            Description = project.Description,
+            var result = new List<ProjectDto>();
 
-            StatusId = project.StatusId,
+            foreach (var project in projects)
+            {
+                result.Add(new ProjectDto
+                {
+                    Id = project.Id,
 
-            StatusName =
-                project.Status?.Name ?? string.Empty,
+                    Name = project.Name,
 
-            IsStatusActive =
-                project.Status?.IsActive ?? false,
+                    Description = project.Description,
 
-            IsCompletedStatus =
-                project.Status?.IsCompletedStatus ?? false,
+                    StatusId = project.StatusId,
 
-            IsArchivedStatus =
-                project.Status?.IsArchivedStatus ?? false,
+                    StatusName =
+                        project.Status?.Name ?? string.Empty,
 
-            IsCancelledStatus =
-                project.Status?.IsCancelledStatus ?? false,
+                    IsStatusActive =
+                        project.Status?.IsActive ?? false,
 
-       ManagerId = project.ManagerId,
+                    IsCompletedStatus =
+                        project.Status?.IsCompletedStatus ?? false,
 
-TeamId = project.TeamId,
+                    IsArchivedStatus =
+                        project.Status?.IsArchivedStatus ?? false,
 
-TeamLeaderId = project.TeamLeaderId,
+                    IsCancelledStatus =
+                        project.Status?.IsCancelledStatus ?? false,
 
-PriorityId =
-    (int)project.Priority,
+                    ManagerId = project.ManagerId,
 
-            PriorityName =
-                project.Priority.ToString(),
+                    TeamId = project.TeamId,
 
-            StartDate = project.StartDate,
+                    TeamLeaderId = project.TeamLeaderId,
 
-            Deadline = project.Deadline,
+                    PriorityId =
+                        (int)project.Priority,
 
-            ProgressPercentage =
-                project.ProgressPercentage,
+                    PriorityName =
+                        project.Priority.ToString(),
 
-            CreatedAt = project.CreatedAt,
+                    StartDate = project.StartDate,
 
-            UpdatedAt = project.UpdatedAt,
+                    Deadline = project.Deadline,
 
-            CompletedAt = project.CompletedAt,
+                    ProgressPercentage =
+                        project.ProgressPercentage,
 
-            ArchivedAt = project.ArchivedAt,
+                    CreatedAt = project.CreatedAt,
 
-            IsCompleted =
-                project.Status?.IsCompletedStatus ?? false,
+                    UpdatedAt = project.UpdatedAt,
 
-            IsArchived =
-                project.Status?.IsArchivedStatus ?? false
-        });
-    }
+                    CompletedAt = project.CompletedAt,
 
-    return result;
-}
-// =========================================================
-// GET ALLOWED NEXT STATUSES
-// =========================================================
-public async Task<IEnumerable<ProjectStatusDto>> GetAllowedNextStatusesAsync(
-    Guid projectId)
-{
-    var project = await _projectRepository.GetByIdAsync(projectId);
+                    ArchivedAt = project.ArchivedAt,
 
-    if (project == null)
-        return Enumerable.Empty<ProjectStatusDto>();
+                    IsCompleted =
+                        project.Status?.IsCompletedStatus ?? false,
 
-    var statuses =
-        await _projectRepository.GetAllowedNextStatusesAsync(project.StatusId);
+                    IsArchived =
+                        project.Status?.IsArchivedStatus ?? false
+                });
+            }
 
-    return statuses.Select(status => new ProjectStatusDto
-    {
-        Id = status.Id,
-        Name = status.Name,
-        Description = status.Description,
-        IsActive = status.IsActive,
-        DisplayOrder = status.DisplayOrder,
-        IsInitialStatus = status.IsInitialStatus,
-        IsCompletedStatus = status.IsCompletedStatus,
-        IsArchivedStatus = status.IsArchivedStatus,
-        IsCancelledStatus = status.IsCancelledStatus
-    });
-}
+            return result;
+        }
 
-// =========================================================
-// PM-005
-// UPDATE PROJECT TIMELINE
-// =========================================================
 
-public async Task<ProjectDto?> UpdateTimelineAsync(
-    Guid projectId,
-    UpdateProjectTimelineDto dto,
-    Guid managerId)
-{
-    // ---------------------------------------------------------
-    // Validate authenticated manager
-    // ---------------------------------------------------------
+        // =========================================================
+        // DEVELOPER
+        // VIEW ASSIGNED PROJECTS
+        // =========================================================
 
-    if (managerId == Guid.Empty)
-    {
-        throw new UnauthorizedAccessException(
-            "Invalid manager identity.");
-    }
-
-    // ---------------------------------------------------------
-    // Validate project ID
-    // ---------------------------------------------------------
-
-    if (projectId == Guid.Empty)
-    {
-        throw new KeyNotFoundException(
-            "Invalid project ID.");
-    }
-
-    // ---------------------------------------------------------
-    // Validate dates
-    // ---------------------------------------------------------
-
-    if (dto.StartDate >= dto.Deadline)
-    {
-        throw new InvalidOperationException(
-            "Project start date must be earlier than the deadline.");
-    }
-
-    // ---------------------------------------------------------
-    // Get project dynamically from database
-    // ---------------------------------------------------------
-
-    var project =
-        await _projectRepository.GetByIdAsync(projectId);
-
-    if (project == null)
-    {
-        throw new KeyNotFoundException(
-            "Project not found.");
-    }
-
-    // ---------------------------------------------------------
-    // SECURITY
-    // Manager must be assigned to this project
-    // ---------------------------------------------------------
-
-    if (!project.ManagerId.HasValue ||
-        project.ManagerId.Value != managerId)
-    {
-        throw new UnauthorizedAccessException(
-            "You are not authorized to update this project's timeline.");
-    }
-
-    // ---------------------------------------------------------
-    // Check Sprint conflicts
-    // ---------------------------------------------------------
-
-    var hasConflict =
-        await _projectRepository.HasTimelineConflictAsync(
-            projectId,
-            dto.StartDate,
-            dto.Deadline);
-
-    if (hasConflict)
-    {
-        throw new InvalidOperationException(
-            "The proposed project timeline conflicts with an existing Sprint.");
-    }
-
-    // ---------------------------------------------------------
-    // Update ONLY project timeline
-    //
-    // Do NOT automatically modify Sprint or Task dates.
-    // ---------------------------------------------------------
-
-    project.StartDate = dto.StartDate;
-    project.Deadline = dto.Deadline;
-    project.UpdatedAt = DateTime.UtcNow;
-
-    // ---------------------------------------------------------
-    // Save database changes
-    // ---------------------------------------------------------
-
-    await _projectRepository.UpdateTimelineAsync(project);
-    
-    await _activityLogService.CreateAsync(
-    managerId,
-    "Project Timeline Updated",
-    "Project",
-    project.Id,
-    "Project",
-    $"Project '{project.Name}' timeline was updated. "
-        + $"Start: {project.StartDate:yyyy-MM-dd}, "
-        + $"Deadline: {project.Deadline:yyyy-MM-dd}.",
-    project.Id,
-    project.TeamId);
-
-    // ---------------------------------------------------------
-    // Return updated project
-    // ---------------------------------------------------------
-
-    var updatedProject =
-        await _projectRepository.GetByIdAsync(projectId);
-
-    if (updatedProject == null)
-    {
-        throw new KeyNotFoundException(
-            "Project could not be retrieved after updating the timeline.");
-    }
-
-    return MapToDto(updatedProject);
-
-    
-}
- // =========================================================
-// PM-006
-// SET / UPDATE PROJECT DEADLINE
-// =========================================================
-
-// =========================================================
-// PM-006
-// SET / UPDATE PROJECT DEADLINE
-// =========================================================
-
-public async Task<ProjectUpdateResultDto> UpdateDeadlineAsync(
-    Guid projectId,
-    UpdateProjectDeadlineDto dto,
-    Guid managerId)
-{
-    // =====================================================
-    // 1. VALIDATE INPUT
-    // =====================================================
-
-    if (projectId == Guid.Empty)
-    {
-        return new ProjectUpdateResultDto
+        public async Task<IEnumerable<ProjectDto>> GetDeveloperProjectsAsync(
+            Guid developerId)
         {
-            Success = false,
-            Message = "Invalid project ID."
-        };
-    }
+            if (developerId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException(
+                    "Invalid developer identity.");
+            }
 
-    if (managerId == Guid.Empty)
-    {
-        throw new UnauthorizedAccessException(
-            "Invalid manager identity.");
-    }
+            // -----------------------------------------------------
+            // 1. Get active teams where this developer is a member.
+            // -----------------------------------------------------
 
-    if (dto == null)
-    {
-        return new ProjectUpdateResultDto
+            var teamIds =
+                await _teamRepository.GetActiveTeamIdsByUserIdAsync(
+                    developerId);
+
+            if (teamIds.Count == 0)
+            {
+                return Enumerable.Empty<ProjectDto>();
+            }
+
+            // -----------------------------------------------------
+            // 2. Get projects belonging to those teams.
+            // -----------------------------------------------------
+
+            var projects =
+                await _projectRepository.GetByTeamIdsAsync(
+                    teamIds);
+
+            // -----------------------------------------------------
+            // 3. Convert Project entities to ProjectDto.
+            // -----------------------------------------------------
+
+            return projects
+                .Select(MapToDto)
+                .ToList();
+        }
+
+
+        // =========================================================
+        // GET ALLOWED NEXT STATUSES
+        // =========================================================
+
+        public async Task<IEnumerable<ProjectStatusDto>>
+            GetAllowedNextStatusesAsync(
+                Guid projectId)
         {
-            Success = false,
-            Message = "Deadline information is required."
-        };
-    }
+            var project =
+                await _projectRepository.GetByIdAsync(
+                    projectId);
 
-    // =====================================================
-    // 2. GET PROJECT
-    // =====================================================
+            if (project == null)
+                return Enumerable.Empty<ProjectStatusDto>();
 
-    var project =
-        await _projectRepository.GetByIdAsync(projectId);
+            var statuses =
+                await _projectRepository
+                    .GetAllowedNextStatusesAsync(
+                        project.StatusId);
 
-    if (project == null)
-    {
-        return new ProjectUpdateResultDto
+            return statuses.Select(status =>
+                new ProjectStatusDto
+                {
+                    Id = status.Id,
+
+                    Name = status.Name,
+
+                    Description = status.Description,
+
+                    IsActive = status.IsActive,
+
+                    DisplayOrder = status.DisplayOrder,
+
+                    IsInitialStatus =
+                        status.IsInitialStatus,
+
+                    IsCompletedStatus =
+                        status.IsCompletedStatus,
+
+                    IsArchivedStatus =
+                        status.IsArchivedStatus,
+
+                    IsCancelledStatus =
+                        status.IsCancelledStatus
+                });
+        }
+
+
+        // =========================================================
+        // PM-005
+        // UPDATE PROJECT TIMELINE
+        // =========================================================
+
+        public async Task<ProjectDto?> UpdateTimelineAsync(
+            Guid projectId,
+            UpdateProjectTimelineDto dto,
+            Guid managerId)
         {
-            Success = false,
-            Message = "Project not found."
-        };
-    }
+            // -----------------------------------------------------
+            // Validate authenticated manager
+            // -----------------------------------------------------
 
-    // =====================================================
-    // 3. CHECK MANAGER ASSIGNMENT
-    // =====================================================
+            if (managerId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException(
+                    "Invalid manager identity.");
+            }
 
-    if (!project.ManagerId.HasValue ||
-        project.ManagerId.Value != managerId)
-    {
-        throw new UnauthorizedAccessException(
-            "You are not authorized to update this project's deadline.");
-    }
+            // -----------------------------------------------------
+            // Validate project ID
+            // -----------------------------------------------------
 
-    // =====================================================
-    // 4. VALIDATE DEADLINE
-    // =====================================================
+            if (projectId == Guid.Empty)
+            {
+                throw new KeyNotFoundException(
+                    "Invalid project ID.");
+            }
 
-    if (dto.Deadline < project.StartDate)
-    {
-        return new ProjectUpdateResultDto
+            // -----------------------------------------------------
+            // Validate dates
+            // -----------------------------------------------------
+
+            if (dto.StartDate >= dto.Deadline)
+            {
+                throw new InvalidOperationException(
+                    "Project start date must be earlier than the deadline.");
+            }
+
+            // -----------------------------------------------------
+            // Get project dynamically from database
+            // -----------------------------------------------------
+
+            var project =
+                await _projectRepository.GetByIdAsync(
+                    projectId);
+
+            if (project == null)
+            {
+                throw new KeyNotFoundException(
+                    "Project not found.");
+            }
+
+            // -----------------------------------------------------
+            // SECURITY
+            // Manager must be assigned to this project
+            // -----------------------------------------------------
+
+            if (!project.ManagerId.HasValue ||
+                project.ManagerId.Value != managerId)
+            {
+                throw new UnauthorizedAccessException(
+                    "You are not authorized to update this project's timeline.");
+            }
+
+            // -----------------------------------------------------
+            // Check Sprint conflicts
+            // -----------------------------------------------------
+
+            var hasConflict =
+                await _projectRepository.HasTimelineConflictAsync(
+                    projectId,
+                    dto.StartDate,
+                    dto.Deadline);
+
+            if (hasConflict)
+            {
+                throw new InvalidOperationException(
+                    "The proposed project timeline conflicts with an existing Sprint.");
+            }
+
+            // -----------------------------------------------------
+            // Update ONLY project timeline
+            // -----------------------------------------------------
+
+            project.StartDate = dto.StartDate;
+            project.Deadline = dto.Deadline;
+            project.UpdatedAt = DateTime.UtcNow;
+
+            // -----------------------------------------------------
+            // Save database changes
+            // -----------------------------------------------------
+
+            await _projectRepository.UpdateTimelineAsync(
+                project);
+
+            await _activityLogService.CreateAsync(
+                managerId,
+                "Project Timeline Updated",
+                "Project",
+                project.Id,
+                "Project",
+                $"Project '{project.Name}' timeline was updated. "
+                    + $"Start: {project.StartDate:yyyy-MM-dd}, "
+                    + $"Deadline: {project.Deadline:yyyy-MM-dd}.",
+                project.Id,
+                project.TeamId);
+
+            // -----------------------------------------------------
+            // Return updated project
+            // -----------------------------------------------------
+
+            var updatedProject =
+                await _projectRepository.GetByIdAsync(
+                    projectId);
+
+            if (updatedProject == null)
+            {
+                throw new KeyNotFoundException(
+                    "Project could not be retrieved after updating the timeline.");
+            }
+
+            return MapToDto(updatedProject);
+        }
+
+
+        // =========================================================
+        // PM-006
+        // SET / UPDATE PROJECT DEADLINE
+        // =========================================================
+
+        public async Task<ProjectUpdateResultDto> UpdateDeadlineAsync(
+            Guid projectId,
+            UpdateProjectDeadlineDto dto,
+            Guid managerId)
         {
-            Success = false,
-            Message =
-                "Project deadline cannot be earlier than the project start date.",
-            Project = MapToDto(project)
-        };
-    }
+            // =====================================================
+            // 1. VALIDATE INPUT
+            // =====================================================
 
-    // =====================================================
-    // 5. CHECK SPRINT CONFLICT
-    // =====================================================
+            if (projectId == Guid.Empty)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Invalid project ID."
+                };
+            }
 
-    var hasConflict =
-        await _projectRepository.HasDeadlineConflictAsync(
-            projectId,
-            dto.Deadline);
+            if (managerId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException(
+                    "Invalid manager identity.");
+            }
 
-    if (hasConflict)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message =
-                "The proposed deadline conflicts with one or more existing Sprints.",
-            Project = MapToDto(project)
-        };
-    }
+            if (dto == null)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Deadline information is required."
+                };
+            }
 
-    // =====================================================
-    // 6. VALIDATE MILESTONES
-    // =====================================================
+            // =====================================================
+            // 2. GET PROJECT
+            // =====================================================
 
-    if (dto.Milestones != null)
-    {
-        foreach (var milestone in dto.Milestones)
-        {
-            if (milestone.Date > dto.Deadline)
+            var project =
+                await _projectRepository.GetByIdAsync(
+                    projectId);
+
+            if (project == null)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Project not found."
+                };
+            }
+
+            // =====================================================
+            // 3. CHECK MANAGER ASSIGNMENT
+            // =====================================================
+
+            if (!project.ManagerId.HasValue ||
+                project.ManagerId.Value != managerId)
+            {
+                throw new UnauthorizedAccessException(
+                    "You are not authorized to update this project's deadline.");
+            }
+
+            // =====================================================
+            // 4. VALIDATE DEADLINE
+            // =====================================================
+
+            if (dto.Deadline < project.StartDate)
             {
                 return new ProjectUpdateResultDto
                 {
                     Success = false,
                     Message =
-                        $"Milestone '{milestone.Name}' cannot be later than the project deadline.",
+                        "Project deadline cannot be earlier than the project start date.",
                     Project = MapToDto(project)
                 };
             }
 
-            if (milestone.Date < project.StartDate)
+            // =====================================================
+            // 5. CHECK SPRINT CONFLICT
+            // =====================================================
+
+            var hasConflict =
+                await _projectRepository.HasDeadlineConflictAsync(
+                    projectId,
+                    dto.Deadline);
+
+            if (hasConflict)
             {
                 return new ProjectUpdateResultDto
                 {
                     Success = false,
                     Message =
-                        $"Milestone '{milestone.Name}' cannot be earlier than the project start date.",
+                        "The proposed deadline conflicts with one or more existing Sprints.",
                     Project = MapToDto(project)
                 };
             }
+
+            // =====================================================
+            // 6. VALIDATE MILESTONES
+            // =====================================================
+
+            if (dto.Milestones != null)
+            {
+                foreach (var milestone in dto.Milestones)
+                {
+                    if (milestone.Date > dto.Deadline)
+                    {
+                        return new ProjectUpdateResultDto
+                        {
+                            Success = false,
+                            Message =
+                                $"Milestone '{milestone.Name}' cannot be later than the project deadline.",
+                            Project = MapToDto(project)
+                        };
+                    }
+
+                    if (milestone.Date < project.StartDate)
+                    {
+                        return new ProjectUpdateResultDto
+                        {
+                            Success = false,
+                            Message =
+                                $"Milestone '{milestone.Name}' cannot be earlier than the project start date.",
+                            Project = MapToDto(project)
+                        };
+                    }
+                }
+            }
+
+            // =====================================================
+            // 7. REASON REQUIRED WHEN DEADLINE CHANGES
+            // =====================================================
+
+            if (project.Deadline != dto.Deadline &&
+                string.IsNullOrWhiteSpace(dto.Reason))
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message =
+                        "A reason is required when changing the project deadline.",
+                    Project = MapToDto(project)
+                };
+            }
+
+            // =====================================================
+            // 8. CHECK IF THERE IS ACTUALLY A CHANGE
+            // =====================================================
+
+            if (project.Deadline == dto.Deadline)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "No deadline change detected.",
+                    Project = MapToDto(project)
+                };
+            }
+
+            // =====================================================
+            // 9. UPDATE OFFICIAL DEADLINE
+            // =====================================================
+
+            project.Deadline = dto.Deadline;
+            project.UpdatedAt = DateTime.UtcNow;
+
+            // =====================================================
+            // 10. SAVE
+            // =====================================================
+
+            await _projectRepository.UpdateDeadlineAsync(
+                project);
+
+            await _activityLogService.CreateAsync(
+                managerId,
+                "Project Deadline Updated",
+                "Project",
+                project.Id,
+                "Project",
+                $"Project '{project.Name}' deadline was changed to "
+                    + $"{project.Deadline:yyyy-MM-dd}."
+                    + (!string.IsNullOrWhiteSpace(dto.Reason)
+                        ? $" Reason: {dto.Reason.Trim()}"
+                        : string.Empty),
+                project.Id,
+                project.TeamId);
+
+            // =====================================================
+            // 11. GET UPDATED PROJECT
+            // =====================================================
+
+            var updatedProject =
+                await _projectRepository.GetByIdAsync(
+                    projectId);
+
+            if (updatedProject == null)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message =
+                        "Project could not be retrieved after updating the deadline."
+                };
+            }
+
+            // =====================================================
+            // 12. RETURN
+            // =====================================================
+
+            return new ProjectUpdateResultDto
+            {
+                Success = true,
+                Message = "Project deadline updated successfully.",
+                Project = MapToDto(updatedProject)
+            };
         }
-    }
 
-    // =====================================================
-    // 7. REASON REQUIRED WHEN DEADLINE CHANGES
-    // =====================================================
 
-    if (project.Deadline != dto.Deadline &&
-        string.IsNullOrWhiteSpace(dto.Reason))
-    {
-        return new ProjectUpdateResultDto
+        // =========================================================
+        // ARCHIVE PROJECT
+        // =========================================================
+
+        public async Task<ProjectUpdateResultDto> ArchiveAsync(
+            Guid id,
+            Guid archivedBy)
         {
-            Success = false,
-            Message =
-                "A reason is required when changing the project deadline.",
-            Project = MapToDto(project)
-        };
-    }
+            var project =
+                await _projectRepository.GetByIdAsync(id);
 
-    // =====================================================
-    // 8. CHECK IF THERE IS ACTUALLY A CHANGE
-    // =====================================================
+            if (project == null)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Project not found.",
+                    Project = null
+                };
+            }
 
-    if (project.Deadline == dto.Deadline)
-    {
-        return new ProjectUpdateResultDto
+            if (project.Status == null)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Project status not found.",
+                    Project = null
+                };
+            }
+
+            if (project.Status.IsArchivedStatus)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Project is already archived.",
+                    Project = MapToDto(project)
+                };
+            }
+
+            var archivedStatus =
+                await _projectRepository.GetArchivedStatusAsync();
+
+            if (archivedStatus == null)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "No active archived status is configured.",
+                    Project = MapToDto(project)
+                };
+            }
+
+            project.StatusId = archivedStatus.Id;
+            project.Status = archivedStatus;
+            project.ArchivedAt = DateTime.UtcNow;
+            project.UpdatedAt = DateTime.UtcNow;
+
+            await _projectRepository.UpdateAsync(project);
+
+            await _activityLogService.CreateAsync(
+                archivedBy,
+                "Project Archived",
+                "Project",
+                project.Id,
+                "Project",
+                $"Project '{project.Name}' was archived.",
+                project.Id,
+                project.TeamId);
+
+            return new ProjectUpdateResultDto
+            {
+                Success = true,
+                Message = "Project archived successfully.",
+                Project = MapToDto(project)
+            };
+        }
+
+
+        // =========================================================
+        // RESTORE PROJECT
+        // =========================================================
+
+        public async Task<ProjectUpdateResultDto> RestoreAsync(
+            Guid id,
+            Guid restoredBy)
         {
-            Success = false,
-            Message =
-                "No deadline change detected.",
-            Project = MapToDto(project)
-        };
-    }
+            var project =
+                await _projectRepository.GetByIdAsync(id);
 
-    // =====================================================
-    // 9. UPDATE OFFICIAL DEADLINE
-    // =====================================================
+            if (project == null)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Project not found.",
+                    Project = null
+                };
+            }
 
-    project.Deadline = dto.Deadline;
-    project.UpdatedAt = DateTime.UtcNow;
+            if (project.Status == null)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Project status not found.",
+                    Project = null
+                };
+            }
 
-    // IMPORTANT:
-    // This only changes the official project deadline.
-    // AI predicted completion date remains separate.
+            if (!project.Status.IsArchivedStatus)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Project is not archived.",
+                    Project = MapToDto(project)
+                };
+            }
 
-    // =====================================================
-    // 10. SAVE
-    // =====================================================
+            var initialStatus =
+                await _projectRepository.GetInitialStatusAsync();
 
-    await _projectRepository.UpdateDeadlineAsync(project);
+            if (initialStatus == null)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message =
+                        "No active initial status is configured.",
+                    Project = MapToDto(project)
+                };
+            }
 
-    await _activityLogService.CreateAsync(
-    managerId,
-    "Project Deadline Updated",
-    "Project",
-    project.Id,
-    "Project",
-    $"Project '{project.Name}' deadline was changed to "
-        + $"{project.Deadline:yyyy-MM-dd}."
-        + (!string.IsNullOrWhiteSpace(dto.Reason)
-            ? $" Reason: {dto.Reason.Trim()}"
-            : string.Empty),
-    project.Id,
-    project.TeamId);
+            project.StatusId = initialStatus.Id;
+            project.Status = initialStatus;
+            project.ArchivedAt = null;
+            project.UpdatedAt = DateTime.UtcNow;
 
-    // =====================================================
-    // 11. GET UPDATED PROJECT
-    // =====================================================
+            await _projectRepository.UpdateAsync(project);
 
-    var updatedProject =
-        await _projectRepository.GetByIdAsync(projectId);
+            await _activityLogService.CreateAsync(
+                restoredBy,
+                "Project Restored",
+                "Project",
+                project.Id,
+                "Project",
+                $"Project '{project.Name}' was restored.",
+                project.Id,
+                project.TeamId);
 
-    if (updatedProject == null)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message =
-                "Project could not be retrieved after updating the deadline."
-        };
-    }
+            return new ProjectUpdateResultDto
+            {
+                Success = true,
+                Message = "Project restored successfully.",
+                Project = MapToDto(project)
+            };
+        }
 
-    // =====================================================
-    // 12. RETURN
-    // =====================================================
 
-    return new ProjectUpdateResultDto
-    {
-        Success = true,
-        Message = "Project deadline updated successfully.",
-        Project = MapToDto(updatedProject)
-    };
-}// =========================================================
-// ARCHIVE PROJECT
-// =========================================================
-public async Task<ProjectUpdateResultDto> ArchiveAsync(
-    Guid id,
-    Guid archivedBy)
-{
-    var project = await _projectRepository.GetByIdAsync(id);
-
-    if (project == null)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "Project not found.",
-            Project = null
-        };
-    }
-
-    if (project.Status == null)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "Project status not found.",
-            Project = null
-        };
-    }
-
-    if (project.Status.IsArchivedStatus)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "Project is already archived.",
-            Project = MapToDto(project)
-        };
-    }
-
-    var archivedStatus = await _projectRepository.GetArchivedStatusAsync();
-
-    if (archivedStatus == null)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "No active archived status is configured.",
-            Project = MapToDto(project)
-        };
-    }
-
-    project.StatusId = archivedStatus.Id;
-    project.Status = archivedStatus;
-    project.ArchivedAt = DateTime.UtcNow;
-    project.UpdatedAt = DateTime.UtcNow;
-
-    await _projectRepository.UpdateAsync(project);
-    await _activityLogService.CreateAsync(
-    archivedBy,
-    "Project Archived",
-    "Project",
-    project.Id,
-    "Project",
-    $"Project '{project.Name}' was archived.",
-    project.Id,
-    project.TeamId);
-    
-
-    return new ProjectUpdateResultDto
-    {
-        Success = true,
-        Message = "Project archived successfully.",
-        Project = MapToDto(project)
-    };
-}// =========================================================
-// RESTORE PROJECT
-// =========================================================
-public async Task<ProjectUpdateResultDto> RestoreAsync(
-    Guid id,
-    Guid restoredBy)
-{
-    var project = await _projectRepository.GetByIdAsync(id);
-
-    if (project == null)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "Project not found.",
-            Project = null
-        };
-    }
-
-    if (project.Status == null)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "Project status not found.",
-            Project = null
-        };
-    }
-
-    if (!project.Status.IsArchivedStatus)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "Project is not archived.",
-            Project = MapToDto(project)
-        };
-    }
-
-    var initialStatus = await _projectRepository.GetInitialStatusAsync();
-
-    if (initialStatus == null)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "No active initial status is configured.",
-            Project = MapToDto(project)
-        };
-    }
-
-    project.StatusId = initialStatus.Id;
-    project.Status = initialStatus;
-    project.ArchivedAt = null;
-    project.UpdatedAt = DateTime.UtcNow;
-
-    await _projectRepository.UpdateAsync(project);
-    
-    await _activityLogService.CreateAsync(
-    restoredBy,
-    "Project Restored",
-    "Project",
-    project.Id,
-    "Project",
-    $"Project '{project.Name}' was restored.",
-    project.Id,
-    project.TeamId);
-
-    return new ProjectUpdateResultDto
-    {
-        Success = true,
-        Message = "Project restored successfully.",
-        Project = MapToDto(project)
-    };
-}
         // =========================================================
         // GET ALL
         // =========================================================
@@ -807,9 +887,9 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(
         // =========================================================
 
         public async Task<ProjectUpdateResultDto> UpdateAsync(
-    Guid id,
-    UpdateProjectDto dto,
-    Guid updatedBy)
+            Guid id,
+            UpdateProjectDto dto,
+            Guid updatedBy)
         {
             if (dto == null)
             {
@@ -913,9 +993,12 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(
                 project.ManagerId == dto.ManagerId
                 &&
                 project.TeamId == dto.TeamId
-               && project.TeamLeaderId == dto.TeamLeaderId
-               && (int)project.Priority == dto.PriorityId
-               && project.StartDate == dto.StartDate  
+                &&
+                project.TeamLeaderId == dto.TeamLeaderId
+                &&
+                (int)project.Priority == dto.PriorityId
+                &&
+                project.StartDate == dto.StartDate
                 &&
                 project.Deadline == dto.Deadline
                 &&
@@ -935,13 +1018,14 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(
             project.Name = newName;
             project.Description = newDescription;
 
-         project.ManagerId = dto.ManagerId;
-         project.TeamId = dto.TeamId;
-         project.TeamLeaderId = dto.TeamLeaderId;
+            project.ManagerId = dto.ManagerId;
+            project.TeamId = dto.TeamId;
+            project.TeamLeaderId = dto.TeamLeaderId;
 
-         project.Priority = (ProjectPriority)dto.PriorityId;
+            project.Priority =
+                (ProjectPriority)dto.PriorityId;
 
-            project.StartDate = dto.StartDate;  
+            project.StartDate = dto.StartDate;
             project.Deadline = dto.Deadline;
 
             project.StatusId = dto.StatusId;
@@ -970,14 +1054,14 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(
             await _projectRepository.UpdateAsync(project);
 
             await _activityLogService.CreateAsync(
-    updatedBy,
-    "Project Updated",
-    "Project",
-    project.Id,
-    "Project",
-    $"Project '{project.Name}' was updated.",
-    project.Id,
-    project.TeamId);
+                updatedBy,
+                "Project Updated",
+                "Project",
+                project.Id,
+                "Project",
+                $"Project '{project.Name}' was updated.",
+                project.Id,
+                project.TeamId);
 
             return new ProjectUpdateResultDto
             {
@@ -989,64 +1073,62 @@ public async Task<ProjectUpdateResultDto> RestoreAsync(
 
 
         // =========================================================
-        // DELETE
+        // DELETE PROJECT — SOFT DELETE
+        // COMM-004
         // =========================================================
-// =========================================================
-// DELETE PROJECT — SOFT DELETE
-// COMM-004
-// =========================================================
 
-public async Task<bool> DeleteAsync(
-    Guid id,
-    Guid deletedBy)
-{
-    if (id == Guid.Empty)
-        return false;
+        public async Task<bool> DeleteAsync(
+            Guid id,
+            Guid deletedBy)
+        {
+            if (id == Guid.Empty)
+                return false;
 
-    if (deletedBy == Guid.Empty)
-        throw new UnauthorizedAccessException(
-            "Invalid user identity.");
+            if (deletedBy == Guid.Empty)
+                throw new UnauthorizedAccessException(
+                    "Invalid user identity.");
 
-    var project =
-        await _projectRepository.GetByIdAsync(id);
+            var project =
+                await _projectRepository.GetByIdAsync(id);
 
-    if (project == null)
-        return false;
+            if (project == null)
+                return false;
 
-    // Already deleted
-    if (project.IsDeleted)
-        return false;
+            // Already deleted
+            if (project.IsDeleted)
+                return false;
 
-    // Soft delete
-    project.IsDeleted = true;
-    project.DeletedAt = DateTime.UtcNow;
-    project.UpdatedAt = DateTime.UtcNow;
+            // Soft delete
+            project.IsDeleted = true;
+            project.DeletedAt = DateTime.UtcNow;
+            project.UpdatedAt = DateTime.UtcNow;
 
-    // Save project without physically deleting it
-    await _projectRepository.UpdateAsync(project);
+            // Save project without physically deleting it.
+            await _projectRepository.UpdateAsync(project);
 
-    // COMM-004:
-    // Record the real project action in Activity Log
-    await _activityLogService.CreateAsync(
-        deletedBy,
-        "Project Deleted",
-        "Project",
-        project.Id,
-        "Project",
-        $"Project '{project.Name}' was deleted.",
-        project.Id,
-        project.TeamId);
+            // COMM-004:
+            // Record the real project action in Activity Log.
+            await _activityLogService.CreateAsync(
+                deletedBy,
+                "Project Deleted",
+                "Project",
+                project.Id,
+                "Project",
+                $"Project '{project.Name}' was deleted.",
+                project.Id,
+                project.TeamId);
 
-    return true;
-}
+            return true;
+        }
+
 
         // =========================================================
         // APPROVE
         // =========================================================
 
-       public async Task<bool> ApproveAsync(
-    Guid id,
-    Guid approvedBy)
+        public async Task<bool> ApproveAsync(
+            Guid id,
+            Guid approvedBy)
         {
             var project =
                 await _projectRepository.GetByIdAsync(id);
@@ -1076,15 +1158,16 @@ public async Task<bool> DeleteAsync(
             project.UpdatedAt = DateTime.UtcNow;
 
             await _projectRepository.UpdateAsync(project);
+
             await _activityLogService.CreateAsync(
-    approvedBy,
-    "Project Approved",
-    "Project",
-    project.Id,
-    "Project",
-    $"Project '{project.Name}' was approved.",
-    project.Id,
-    project.TeamId);
+                approvedBy,
+                "Project Approved",
+                "Project",
+                project.Id,
+                "Project",
+                $"Project '{project.Name}' was approved.",
+                project.Id,
+                project.TeamId);
 
             return true;
         }
@@ -1094,9 +1177,9 @@ public async Task<bool> DeleteAsync(
         // REJECT
         // =========================================================
 
-     public async Task<bool> RejectAsync(
-    Guid id,
-    Guid rejectedBy)   
+        public async Task<bool> RejectAsync(
+            Guid id,
+            Guid rejectedBy)
         {
             var project =
                 await _projectRepository.GetByIdAsync(id);
@@ -1126,255 +1209,265 @@ public async Task<bool> DeleteAsync(
             project.UpdatedAt = DateTime.UtcNow;
 
             await _projectRepository.UpdateAsync(project);
-             await _activityLogService.CreateAsync(
-    rejectedBy,
-    "Project Rejected",
-    "Project",
-    project.Id,
-    "Project",
-    $"Project '{project.Name}' was rejected.",
-    project.Id,
-    project.TeamId);
+
+            await _activityLogService.CreateAsync(
+                rejectedBy,
+                "Project Rejected",
+                "Project",
+                project.Id,
+                "Project",
+                $"Project '{project.Name}' was rejected.",
+                project.Id,
+                project.TeamId);
 
             return true;
         }
 
 
         // =========================================================
-        // CHANGE STATUS
+        // PM-007
+        // MANAGE PROJECT STATUS
         // =========================================================
-// =========================================================
-// PM-007
-// MANAGE PROJECT STATUS
-// =========================================================
 
-public async Task<ProjectUpdateResultDto> ChangeStatusAsync(
-    Guid projectId,
-    Guid statusId,
-    Guid managerId,
-    string? notes = null)
-{
-    // =====================================================
-    // 1. VALIDATE IDENTITIES
-    // =====================================================
-
-    if (projectId == Guid.Empty)
-    {
-        return new ProjectUpdateResultDto
+        public async Task<ProjectUpdateResultDto> ChangeStatusAsync(
+            Guid projectId,
+            Guid statusId,
+            Guid managerId,
+            string? notes = null)
         {
-            Success = false,
-            Message = "Invalid project ID."
-        };
-    }
+            // =====================================================
+            // 1. VALIDATE IDENTITIES
+            // =====================================================
 
-    if (managerId == Guid.Empty)
-    {
-        throw new UnauthorizedAccessException(
-            "Invalid manager identity.");
-    }
+            if (projectId == Guid.Empty)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Invalid project ID."
+                };
+            }
 
-    if (statusId == Guid.Empty)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "Invalid project status."
-        };
-    }
+            if (managerId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException(
+                    "Invalid manager identity.");
+            }
 
-    // =====================================================
-    // 2. GET PROJECT
-    // =====================================================
+            if (statusId == Guid.Empty)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Invalid project status."
+                };
+            }
 
-    var project =
-        await _projectRepository.GetByIdAsync(projectId);
+            // =====================================================
+            // 2. GET PROJECT
+            // =====================================================
 
-    if (project == null)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "Project not found."
-        };
-    }
+            var project =
+                await _projectRepository.GetByIdAsync(
+                    projectId);
 
-    // =====================================================
-    // 3. SECURITY
-    // MANAGER MUST BE ASSIGNED TO PROJECT
-    // =====================================================
+            if (project == null)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Project not found."
+                };
+            }
 
-    if (!project.ManagerId.HasValue ||
-        project.ManagerId.Value != managerId)
-    {
-        throw new UnauthorizedAccessException(
-            "You are not authorized to change the status of this project.");
-    }
+            // =====================================================
+            // 3. SECURITY
+            // MANAGER MUST BE ASSIGNED TO PROJECT
+            // =====================================================
 
-    // =====================================================
-    // 4. GET TARGET STATUS FROM DATABASE
-    // =====================================================
+            if (!project.ManagerId.HasValue ||
+                project.ManagerId.Value != managerId)
+            {
+                throw new UnauthorizedAccessException(
+                    "You are not authorized to change the status of this project.");
+            }
 
-    var targetStatus =
-        await _projectRepository.GetStatusByIdAsync(statusId);
+            // =====================================================
+            // 4. GET TARGET STATUS
+            // =====================================================
 
-    if (targetStatus == null)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "Project status not found.",
-            Project = MapToDto(project)
-        };
-    }
+            var targetStatus =
+                await _projectRepository.GetStatusByIdAsync(
+                    statusId);
 
-    if (!targetStatus.IsActive)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "The selected project status is inactive.",
-            Project = MapToDto(project)
-        };
-    }
+            if (targetStatus == null)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message = "Project status not found.",
+                    Project = MapToDto(project)
+                };
+            }
 
-    // =====================================================
-    // 5. CHECK CURRENT STATUS
-    // =====================================================
+            if (!targetStatus.IsActive)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message =
+                        "The selected project status is inactive.",
+                    Project = MapToDto(project)
+                };
+            }
 
-    if (project.StatusId == statusId)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message = "The project is already using this status.",
-            Project = MapToDto(project)
-        };
-    }
+            // =====================================================
+            // 5. CHECK CURRENT STATUS
+            // =====================================================
 
-    // =====================================================
-    // 6. VALIDATE CONFIGURED TRANSITION
-    // =====================================================
+            if (project.StatusId == statusId)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message =
+                        "The project is already using this status.",
+                    Project = MapToDto(project)
+                };
+            }
 
-    var allowed =
-        await _projectRepository
-            .IsStatusTransitionAllowedAsync(
-                project.StatusId,
-                statusId);
+            // =====================================================
+            // 6. VALIDATE CONFIGURED TRANSITION
+            // =====================================================
 
-    if (!allowed)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message =
-                "This project status transition is not allowed.",
-            Project = MapToDto(project)
-        };
-    }
+            var allowed =
+                await _projectRepository
+                    .IsStatusTransitionAllowedAsync(
+                        project.StatusId,
+                        statusId);
 
-    // =====================================================
-    // 7. NORMALIZE OPTIONAL NOTES
-    // =====================================================
+            if (!allowed)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message =
+                        "This project status transition is not allowed.",
+                    Project = MapToDto(project)
+                };
+            }
 
-    notes = string.IsNullOrWhiteSpace(notes)
-        ? null
-        : notes.Trim();
+            // =====================================================
+            // 7. NORMALIZE OPTIONAL NOTES
+            // =====================================================
 
-    // =====================================================
-    // 8. UPDATE PROJECT STATUS
-    // =====================================================
+            notes =
+                string.IsNullOrWhiteSpace(notes)
+                    ? null
+                    : notes.Trim();
 
-    project.StatusId = statusId;
+            // =====================================================
+            // 8. UPDATE PROJECT STATUS
+            // =====================================================
 
-    // Keep navigation property synchronized
-    project.Status = targetStatus;
+            project.StatusId = statusId;
 
-    project.UpdatedAt = DateTime.UtcNow;
+            // Keep navigation property synchronized.
+            project.Status = targetStatus;
 
-    // =====================================================
-    // 9. COMPLETED STATUS
-    // =====================================================
+            project.UpdatedAt = DateTime.UtcNow;
 
-    if (targetStatus.IsCompletedStatus)
-    {
-        project.CompletedAt ??= DateTime.UtcNow;
+            // =====================================================
+            // 9. COMPLETED STATUS
+            // =====================================================
 
-        project.ProgressPercentage = 100;
-    }
-    else
-    {
-        project.CompletedAt = null;
-    }
+            if (targetStatus.IsCompletedStatus)
+            {
+                project.CompletedAt ??= DateTime.UtcNow;
+                project.ProgressPercentage = 100;
+            }
+            else
+            {
+                project.CompletedAt = null;
+            }
 
-    // =====================================================
-    // 10. ARCHIVED STATUS
-    // =====================================================
+            // =====================================================
+            // 10. ARCHIVED STATUS
+            // =====================================================
 
-    if (targetStatus.IsArchivedStatus)
-    {
-        project.ArchivedAt ??= DateTime.UtcNow;
-    }
-    else
-    {
-        project.ArchivedAt = null;
-    }
+            if (targetStatus.IsArchivedStatus)
+            {
+                project.ArchivedAt ??= DateTime.UtcNow;
+            }
+            else
+            {
+                project.ArchivedAt = null;
+            }
 
-    // =====================================================
-    // 11. SAVE PROJECT
-    // =====================================================
+            // =====================================================
+            // 11. SAVE PROJECT
+            // =====================================================
 
-    await _projectRepository.UpdateAsync(project);
+            await _projectRepository.UpdateAsync(project);
 
-    await _activityLogService.CreateAsync(
-    managerId,
-    "Project Status Changed",
-    "Project",
-    project.Id,
-    "Project",
-    $"Project '{project.Name}' status changed to '{targetStatus.Name}'."
-        + (notes != null ? $" Notes: {notes}" : string.Empty),
-    project.Id,
-    project.TeamId);
+            await _activityLogService.CreateAsync(
+                managerId,
+                "Project Status Changed",
+                "Project",
+                project.Id,
+                "Project",
+                $"Project '{project.Name}' status changed to '{targetStatus.Name}'."
+                    + (notes != null
+                        ? $" Notes: {notes}"
+                        : string.Empty),
+                project.Id,
+                project.TeamId);
 
-    // =====================================================
-    // 12. RETRIEVE UPDATED PROJECT
-    // =====================================================
+            // =====================================================
+            // 12. RETRIEVE UPDATED PROJECT
+            // =====================================================
 
-    var updatedProject =
-        await _projectRepository.GetByIdAsync(projectId);
+            var updatedProject =
+                await _projectRepository.GetByIdAsync(
+                    projectId);
 
-    if (updatedProject == null)
-    {
-        return new ProjectUpdateResultDto
-        {
-            Success = false,
-            Message =
-                "Project could not be retrieved after status update."
-        };
-    }
+            if (updatedProject == null)
+            {
+                return new ProjectUpdateResultDto
+                {
+                    Success = false,
+                    Message =
+                        "Project could not be retrieved after status update."
+                };
+            }
 
-    // =====================================================
-    // 13. RETURN RESULT
-    // =====================================================
+            // =====================================================
+            // 13. RETURN RESULT
+            // =====================================================
 
-    return new ProjectUpdateResultDto
-    {
-        Success = true,
-        Message = "Project status updated successfully.",
-        Project = MapToDto(updatedProject)
-    };
-}
+            return new ProjectUpdateResultDto
+            {
+                Success = true,
+                Message =
+                    "Project status updated successfully.",
+                Project =
+                    MapToDto(updatedProject)
+            };
+        }
+
+
         // =========================================================
         // ASSIGN MANAGER
         // =========================================================
 
         public async Task<bool> AssignManagerAsync(
-    Guid projectId,
-    Guid managerId,
-    Guid assignedBy)
+            Guid projectId,
+            Guid managerId,
+            Guid assignedBy)
         {
             var project =
-                await _projectRepository.GetByIdAsync(projectId);
+                await _projectRepository.GetByIdAsync(
+                    projectId);
 
             if (project == null)
                 return false;
@@ -1386,15 +1479,16 @@ public async Task<ProjectUpdateResultDto> ChangeStatusAsync(
             project.UpdatedAt = DateTime.UtcNow;
 
             await _projectRepository.UpdateAsync(project);
+
             await _activityLogService.CreateAsync(
-    assignedBy,
-    "Manager Assigned",
-    "Project",
-    project.Id,
-    "Project",
-    $"Manager '{managerId}' was assigned to project '{project.Name}'.",
-    project.Id,
-    project.TeamId);
+                assignedBy,
+                "Manager Assigned",
+                "Project",
+                project.Id,
+                "Project",
+                $"Manager '{managerId}' was assigned to project '{project.Name}'.",
+                project.Id,
+                project.TeamId);
 
             return true;
         }
@@ -1404,67 +1498,68 @@ public async Task<ProjectUpdateResultDto> ChangeStatusAsync(
         // ENTITY → DTO
         // =========================================================
 
-       private static ProjectDto MapToDto(Project project)
-{
-    return new ProjectDto
-    {
-        Id = project.Id,
+        private static ProjectDto MapToDto(
+            Project project)
+        {
+            return new ProjectDto
+            {
+                Id = project.Id,
 
-        Name = project.Name,
+                Name = project.Name,
 
-        Description =
-            project.Description ?? string.Empty,
+                Description =
+                    project.Description ?? string.Empty,
 
-        StatusId = project.StatusId,
+                StatusId = project.StatusId,
 
-        StatusName =
-            project.Status?.Name ?? string.Empty,
+                StatusName =
+                    project.Status?.Name ?? string.Empty,
 
-        IsStatusActive =
-            project.Status?.IsActive ?? false,
+                IsStatusActive =
+                    project.Status?.IsActive ?? false,
 
-        IsCompletedStatus =
-            project.Status?.IsCompletedStatus ?? false,
+                IsCompletedStatus =
+                    project.Status?.IsCompletedStatus ?? false,
 
-        IsArchivedStatus =
-            project.Status?.IsArchivedStatus ?? false,
+                IsArchivedStatus =
+                    project.Status?.IsArchivedStatus ?? false,
 
-        IsCancelledStatus =
-            project.Status?.IsCancelledStatus ?? false,
+                IsCancelledStatus =
+                    project.Status?.IsCancelledStatus ?? false,
 
-       ManagerId = project.ManagerId,
+                ManagerId = project.ManagerId,
 
-TeamId = project.TeamId,
+                TeamId = project.TeamId,
 
-TeamLeaderId = project.TeamLeaderId,
+                TeamLeaderId = project.TeamLeaderId,
 
-PriorityId =
-    (int)project.Priority,
+                PriorityId =
+                    (int)project.Priority,
 
-        PriorityName =
-            project.Priority.ToString(),
+                PriorityName =
+                    project.Priority.ToString(),
 
-        StartDate = project.StartDate,
+                StartDate = project.StartDate,
 
-        Deadline = project.Deadline,
+                Deadline = project.Deadline,
 
-        ProgressPercentage =
-            project.ProgressPercentage,
+                ProgressPercentage =
+                    project.ProgressPercentage,
 
-        CreatedAt = project.CreatedAt,
+                CreatedAt = project.CreatedAt,
 
-        UpdatedAt = project.UpdatedAt,
+                UpdatedAt = project.UpdatedAt,
 
-        CompletedAt = project.CompletedAt,
+                CompletedAt = project.CompletedAt,
 
-        ArchivedAt = project.ArchivedAt,
+                ArchivedAt = project.ArchivedAt,
 
-        IsCompleted =
-            project.Status?.IsCompletedStatus ?? false,
+                IsCompleted =
+                    project.Status?.IsCompletedStatus ?? false,
 
-        IsArchived =
-            project.Status?.IsArchivedStatus ?? false
-    };
-}
+                IsArchived =
+                    project.Status?.IsArchivedStatus ?? false
+            };
+        }
     }
-} 
+}

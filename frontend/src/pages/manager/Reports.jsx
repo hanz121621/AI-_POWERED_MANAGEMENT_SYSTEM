@@ -1,13 +1,18 @@
 
 // ============================================================
-// AIPMS - MANAGER REPORTS PAGE
+// AIPMS - MANAGER REPORTS
 // src/pages/manager/Reports.jsx
 //
-// Manager Reports Dashboard
-// Styled to match the Manager Sprint Management page
+// Manager Project Reporting Dashboard
+// Connected to ASP.NET Core backend APIs.
 // ============================================================
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 
 import {
     AlertTriangle,
@@ -21,6 +26,9 @@ import {
     RefreshCw,
     Users,
     TrendingUp,
+    UserCheck,
+    UserRound,
+    BriefcaseBusiness,
 } from "lucide-react";
 
 import {
@@ -29,286 +37,438 @@ import {
     getProjectRisksAndIssues,
     getProjectSprints,
     getSprintProgress,
-} from "@/services/projectReportService";
+    getTeamPerformance,
+    getProjectTimeline,
+} from "../../services/projectReportService";
 
 // ============================================================
-// COMPONENT
+// HELPERS
 // ============================================================
 
-function ReportsPage() {
+const getAccessToken = () => {
+    return (
+        localStorage.getItem("aipms_access_token") ||
+        localStorage.getItem("accessToken") ||
+        localStorage.getItem("token") ||
+        ""
+    );
+};
+
+const getProjectId = (project) => {
+    if (!project) return "";
+
+    return (
+        project.id ||
+        project.projectId ||
+        project.ProjectId ||
+        project.projectID ||
+        ""
+    );
+};
+
+const getProjectName = (project) => {
+    if (!project) return "Unnamed Project";
+
+    return (
+        project.name ||
+        project.projectName ||
+        project.title ||
+        project.ProjectName ||
+        "Unnamed Project"
+    );
+};
+
+const getSprintId = (sprint) => {
+    if (!sprint) return "";
+
+    return (
+        sprint.id ||
+        sprint.sprintId ||
+        sprint.SprintId ||
+        sprint.sprintID ||
+        ""
+    );
+};
+
+const getSprintName = (sprint) => {
+    if (!sprint) return "Unnamed Sprint";
+
+    return (
+        sprint.name ||
+        sprint.sprintName ||
+        sprint.title ||
+        sprint.SprintName ||
+        "Unnamed Sprint"
+    );
+};
+
+const getSprintStatus = (sprint) => {
+    if (!sprint) return "";
+
+    return (
+        sprint.status ||
+        sprint.Status ||
+        ""
+    );
+};
+
+const getArrayResponse = (
+    response,
+    keys = []
+) => {
+    if (Array.isArray(response)) {
+        return response;
+    }
+
+    if (
+        response &&
+        Array.isArray(response.data)
+    ) {
+        return response.data;
+    }
+
+    for (const key of keys) {
+        if (
+            response &&
+            Array.isArray(response[key])
+        ) {
+            return response[key];
+        }
+
+        if (
+            response?.data &&
+            Array.isArray(response.data[key])
+        ) {
+            return response.data[key];
+        }
+    }
+
+    return [];
+};
+
+const getValue = (
+    object,
+    keys,
+    fallback = 0
+) => {
+    if (!object) return fallback;
+
+    for (const key of keys) {
+        if (
+            object[key] !== undefined &&
+            object[key] !== null
+        ) {
+            return object[key];
+        }
+    }
+
+    return fallback;
+};
+
+const formatNumber = (value) => {
+    const number = Number(value);
+
+    if (Number.isNaN(number)) {
+        return "0";
+    }
+
+    return number.toLocaleString();
+};
+
+const formatPercentage = (value) => {
+    const number = Number(value);
+
+    if (Number.isNaN(number)) {
+        return "0%";
+    }
+
+    return `${number.toFixed(1)}%`;
+};
+
+const formatDate = (value) => {
+    if (!value) return "—";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return "—";
+    }
+
+    return date.toLocaleDateString();
+};
+
+const formatDateTime = (value) => {
+    if (!value) return "—";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return "—";
+    }
+
+    return date.toLocaleString();
+};
+
+const normalizeStatus = (status) => {
+    return String(status || "")
+        .trim()
+        .toLowerCase();
+};
+
+const getRiskTitle = (risk) => {
+    return (
+        risk?.title ||
+        risk?.name ||
+        risk?.description ||
+        risk?.Title ||
+        risk?.Name ||
+        risk?.Description ||
+        "Untitled Risk / Issue"
+    );
+};
+
+const getRiskSeverity = (risk) => {
+    return (
+        risk?.severity ||
+        risk?.Severity ||
+        risk?.priority ||
+        risk?.Priority ||
+        "Unknown"
+    );
+};
+
+const getRiskId = (risk, index) => {
+    return (
+        risk?.id ||
+        risk?.riskId ||
+        risk?.issueId ||
+        risk?.RiskId ||
+        risk?.IssueId ||
+        index
+    );
+};
+
+// ============================================================
+// SMALL UI COMPONENTS
+// ============================================================
+
+const StatCard = ({
+    title,
+    value,
+    description,
+    icon: Icon,
+}) => {
+    return (
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between">
+                <div>
+                    <p className="text-sm font-medium text-slate-500">
+                        {title}
+                    </p>
+
+                    <p className="mt-2 text-2xl font-bold text-slate-900">
+                        {value}
+                    </p>
+
+                    {description && (
+                        <p className="mt-1 text-xs text-slate-500">
+                            {description}
+                        </p>
+                    )}
+                </div>
+
+                <div className="rounded-lg bg-slate-100 p-2.5">
+                    <Icon className="h-5 w-5 text-slate-700" />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const SectionHeader = ({
+    icon: Icon,
+    title,
+    description,
+}) => {
+    return (
+        <div className="mb-5 flex items-start gap-3">
+            <div className="rounded-lg bg-slate-100 p-2">
+                <Icon className="h-5 w-5 text-slate-700" />
+            </div>
+
+            <div>
+                <h2 className="text-lg font-semibold text-slate-900">
+                    {title}
+                </h2>
+
+                {description && (
+                    <p className="mt-1 text-sm text-slate-500">
+                        {description}
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const EmptyState = ({
+    title,
+    description,
+}) => {
+    return (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+            <FileText className="mx-auto h-8 w-8 text-slate-400" />
+
+            <h3 className="mt-3 text-sm font-semibold text-slate-800">
+                {title}
+            </h3>
+
+            <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+                {description}
+            </p>
+        </div>
+    );
+};
+
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
+
+export default function Reports() {
     // ========================================================
-    // STATE
+    // PROJECT STATE
     // ========================================================
 
     const [projects, setProjects] = useState([]);
-    const [selectedProjectId, setSelectedProjectId] = useState("");
 
-    const [dashboard, setDashboard] = useState(null);
-    const [risks, setRisks] = useState([]);
-    const [sprints, setSprints] = useState([]);
-
-    const [selectedSprintId, setSelectedSprintId] = useState("");
-    const [sprintProgress, setSprintProgress] = useState(null);
-
-    const [loadingProjects, setLoadingProjects] = useState(true);
-    const [loadingReport, setLoadingReport] = useState(false);
-    const [loadingSprint, setLoadingSprint] = useState(false);
-
-    const [error, setError] = useState("");
+    const [selectedProjectId, setSelectedProjectId] =
+        useState("");
 
     // ========================================================
-    // CURRENT USER
+    // REPORT STATE
     // ========================================================
 
-    const [currentUser] = useState(() => {
-        try {
-            const storedUser = localStorage.getItem(
-                "aipms_current_user"
-            );
+    const [dashboard, setDashboard] =
+        useState(null);
 
-            return storedUser
-                ? JSON.parse(storedUser)
-                : null;
-        } catch (err) {
-            console.error(
-                "Unable to read current user:",
-                err
-            );
+    const [risks, setRisks] =
+        useState([]);
 
-            return null;
-        }
-    });
+    const [sprints, setSprints] =
+        useState([]);
 
-    // ========================================================
-    // ACCESS TOKEN
-    // ========================================================
+    const [selectedSprintId, setSelectedSprintId] =
+        useState("");
 
-    const getAccessToken = useCallback(() => {
-        return (
-            localStorage.getItem("aipms_access_token") ||
-            localStorage.getItem("accessToken") ||
-            localStorage.getItem("token") ||
-            null
-        );
-    }, []);
+    const [sprintProgress, setSprintProgress] =
+        useState(null);
+
+    const [teamPerformance, setTeamPerformance] =
+        useState(null);
+
+    const [timeline, setTimeline] =
+        useState([]);
 
     // ========================================================
-    // PROJECT HELPERS
+    // LOADING STATE
     // ========================================================
 
-    const getProjectName = useCallback((project) => {
-        return (
-            project?.name ||
-            project?.projectName ||
-            project?.title ||
-            project?.ProjectName ||
-            "Unnamed Project"
-        );
-    }, []);
+    const [loadingProjects, setLoadingProjects] =
+        useState(true);
 
-    const getProjectId = useCallback((project) => {
-        return (
-            project?.id ??
-            project?.projectId ??
-            project?.ProjectId ??
-            project?.projectID ??
-            null
-        );
-    }, []);
+    const [loadingReport, setLoadingReport] =
+        useState(false);
+
+    const [loadingSprint, setLoadingSprint] =
+        useState(false);
+
+    const [loadingTeam, setLoadingTeam] =
+        useState(false);
 
     // ========================================================
-    // SPRINT HELPERS
+    // ERROR
     // ========================================================
 
-    const getSprintId = useCallback((sprint) => {
-        return (
-            sprint?.id ??
-            sprint?.sprintId ??
-            sprint?.SprintId ??
-            sprint?.sprintID ??
-            null
-        );
-    }, []);
-
-    const getSprintName = useCallback(
-        (sprint) => {
-            return (
-                sprint?.name ||
-                sprint?.sprintName ||
-                sprint?.title ||
-                sprint?.SprintName ||
-                `Sprint ${getSprintId(sprint) ?? ""}`
-            );
-        },
-        [getSprintId]
-    );
-
-    const getSprintStatus = useCallback((sprint) => {
-        return (
-            sprint?.status ||
-            sprint?.Status ||
-            "Unknown"
-        );
-    }, []);
-
-    // ========================================================
-    // GENERIC HELPERS
-    // ========================================================
-
-    const getValue = useCallback(
-        (object, keys, fallback = 0) => {
-            if (!object) {
-                return fallback;
-            }
-
-            for (const key of keys) {
-                if (
-                    object[key] !== undefined &&
-                    object[key] !== null
-                ) {
-                    return object[key];
-                }
-            }
-
-            return fallback;
-        },
-        []
-    );
-
-    const getArrayResponse = useCallback(
-        (response, keys = []) => {
-            if (Array.isArray(response)) {
-                return response;
-            }
-
-            if (Array.isArray(response?.data)) {
-                return response.data;
-            }
-
-            for (const key of keys) {
-                if (Array.isArray(response?.[key])) {
-                    return response[key];
-                }
-
-                if (
-                    Array.isArray(
-                        response?.data?.[key]
-                    )
-                ) {
-                    return response.data[key];
-                }
-            }
-
-            return [];
-        },
-        []
-    );
-
-    const formatNumber = useCallback((value) => {
-        const number = Number(value);
-
-        return Number.isNaN(number)
-            ? "0"
-            : number.toLocaleString();
-    }, []);
-
-    const formatDate = useCallback((value) => {
-        if (!value) {
-            return "—";
-        }
-
-        const date = new Date(value);
-
-        if (Number.isNaN(date.getTime())) {
-            return String(value);
-        }
-
-        return date.toLocaleDateString();
-    }, []);
+    const [error, setError] =
+        useState("");
 
     // ========================================================
     // LOAD PROJECTS
     // ========================================================
 
-    const loadProjects = useCallback(async () => {
-        try {
-            setLoadingProjects(true);
-            setError("");
+    const loadProjects = useCallback(
+        async () => {
+            try {
+                setLoadingProjects(true);
+                setError("");
 
-            const response =
-                await getAuthorizedManagerProjects(
-                    getAccessToken()
-                );
+                const token = getAccessToken();
 
-            const projectList =
-                getArrayResponse(
-                    response,
-                    ["projects"]
-                );
-
-            setProjects(projectList);
-
-            if (projectList.length === 0) {
-                setSelectedProjectId("");
-                setDashboard(null);
-                setRisks([]);
-                setSprints([]);
-                setSelectedSprintId("");
-                setSprintProgress(null);
-
-                return;
-            }
-
-            const exists = projectList.some(
-                (project) =>
-                    String(
-                        getProjectId(project)
-                    ) ===
-                    String(selectedProjectId)
-            );
-
-            if (
-                !selectedProjectId ||
-                !exists
-            ) {
-                const firstId =
-                    getProjectId(
-                        projectList[0]
+                const response =
+                    await getAuthorizedManagerProjects(
+                        token
                     );
 
-                if (firstId !== null) {
+                const projectList =
+                    getArrayResponse(
+                        response,
+                        [
+                            "projects",
+                            "items",
+                            "data",
+                        ]
+                    );
+
+                setProjects(projectList);
+
+                if (projectList.length === 0) {
+                    setSelectedProjectId("");
+                    setDashboard(null);
+                    setRisks([]);
+                    setSprints([]);
+                    setSelectedSprintId("");
+                    setSprintProgress(null);
+                    setTeamPerformance(null);
+                    setTimeline([]);
+                    return;
+                }
+
+                const existingProject =
+                    projectList.find(
+                        (project) =>
+                            String(
+                                getProjectId(project)
+                            ) ===
+                            String(
+                                selectedProjectId
+                            )
+                    );
+
+                if (!existingProject) {
                     setSelectedProjectId(
-                        String(firstId)
+                        String(
+                            getProjectId(
+                                projectList[0]
+                            )
+                        )
                     );
                 }
+            } catch (err) {
+                console.error(
+                    "Failed to load manager projects:",
+                    err
+                );
+
+                setError(
+                    err?.message ||
+                    "Unable to load your projects."
+                );
+            } finally {
+                setLoadingProjects(false);
             }
-        } catch (err) {
-            console.error(
-                "Failed to load manager projects:",
-                err
-            );
-
-            setProjects([]);
-            setSelectedProjectId("");
-            setDashboard(null);
-            setRisks([]);
-            setSprints([]);
-            setSelectedSprintId("");
-            setSprintProgress(null);
-
-            setError(
-                err?.message ||
-                    "Unable to load assigned projects."
-            );
-        } finally {
-            setLoadingProjects(false);
-        }
-    }, [
-        getAccessToken,
-        getArrayResponse,
-        getProjectId,
-        selectedProjectId,
-    ]);
+        },
+        [selectedProjectId]
+    );
 
     // ========================================================
     // LOAD PROJECT REPORT
@@ -329,14 +489,21 @@ function ReportsPage() {
                 setSprints([]);
                 setSelectedSprintId("");
                 setSprintProgress(null);
+                setTeamPerformance(null);
+                setTimeline([]);
 
                 const token =
                     getAccessToken();
 
+                // ------------------------------------------------
+                // Load core project reports.
+                // ------------------------------------------------
+
                 const [
                     dashboardResponse,
-                    riskResponse,
-                    sprintResponse,
+                    risksResponse,
+                    sprintsResponse,
+                    timelineResponse,
                 ] = await Promise.all([
                     getProjectDashboard(
                         projectId,
@@ -352,57 +519,114 @@ function ReportsPage() {
                         projectId,
                         token
                     ),
+
+                    getProjectTimeline(
+                        projectId,
+                        token
+                    ),
                 ]);
 
-                setDashboard(
+                const dashboardData =
                     dashboardResponse?.data ??
-                        dashboardResponse ??
-                        null
+                    dashboardResponse;
+
+                setDashboard(
+                    dashboardData || null
                 );
 
                 setRisks(
                     getArrayResponse(
-                        riskResponse,
+                        risksResponse,
                         [
                             "risks",
+                            "issues",
                             "items",
+                            "data",
                         ]
                     )
                 );
 
-                setSprints(
+                const sprintList =
                     getArrayResponse(
-                        sprintResponse,
+                        sprintsResponse,
                         [
                             "sprints",
                             "items",
+                            "data",
+                        ]
+                    );
+
+                setSprints(sprintList);
+
+                setTimeline(
+                    getArrayResponse(
+                        timelineResponse,
+                        [
+                            "timeline",
+                            "items",
+                            "events",
+                            "data",
                         ]
                     )
                 );
+
+                // ------------------------------------------------
+                // TEAM PERFORMANCE
+                //
+                // ProjectDashboardDto already provides TeamId.
+                // ------------------------------------------------
+
+                const teamId =
+                    dashboardData?.TeamId ||
+                    dashboardData?.teamId;
+
+                if (teamId) {
+                    try {
+                        setLoadingTeam(true);
+
+                        const teamResponse =
+                            await getTeamPerformance(
+                                teamId,
+                                token
+                            );
+
+                        const teamData =
+                            teamResponse?.data ??
+                            teamResponse;
+
+                        setTeamPerformance(
+                            teamData || null
+                        );
+                    } catch (teamError) {
+                        console.error(
+                            "Failed to load team performance:",
+                            teamError
+                        );
+
+                        // Team report should not
+                        // prevent the rest of
+                        // the project report
+                        // from displaying.
+                        setTeamPerformance(null);
+                    } finally {
+                        setLoadingTeam(false);
+                    }
+                }
             } catch (err) {
                 console.error(
-                    "Failed to load manager report:",
+                    "Failed to load project report:",
                     err
                 );
 
-                setDashboard(null);
-                setRisks([]);
-                setSprints([]);
-                setSelectedSprintId("");
-                setSprintProgress(null);
-
                 setError(
                     err?.message ||
-                        "Unable to load project report."
+                    "Unable to load the project report."
                 );
             } finally {
                 setLoadingReport(false);
             }
         },
-        [
-            getAccessToken,
-            getArrayResponse,
-        ]
+        []
     );
 
     // ========================================================
@@ -414,7 +638,7 @@ function ReportsPage() {
             sprintId,
             projectId = selectedProjectId
         ) => {
-            if (!projectId || !sprintId) {
+            if (!sprintId || !projectId) {
                 setSprintProgress(null);
                 return;
             }
@@ -423,17 +647,20 @@ function ReportsPage() {
                 setLoadingSprint(true);
                 setError("");
 
+                const token =
+                    getAccessToken();
+
                 const response =
                     await getSprintProgress(
                         projectId,
                         sprintId,
-                        getAccessToken()
+                        token
                     );
 
                 setSprintProgress(
                     response?.data ??
-                        response ??
-                        null
+                    response ??
+                    null
                 );
             } catch (err) {
                 console.error(
@@ -445,20 +672,17 @@ function ReportsPage() {
 
                 setError(
                     err?.message ||
-                        "Unable to load sprint progress."
+                    "Unable to load sprint progress."
                 );
             } finally {
                 setLoadingSprint(false);
             }
         },
-        [
-            getAccessToken,
-            selectedProjectId,
-        ]
+        [selectedProjectId]
     );
 
     // ========================================================
-    // INITIAL LOAD
+    // INITIAL PROJECT LOAD
     // ========================================================
 
     useEffect(() => {
@@ -466,7 +690,7 @@ function ReportsPage() {
     }, [loadProjects]);
 
     // ========================================================
-    // PROJECT LOAD
+    // PROJECT REPORT LOAD
     // ========================================================
 
     useEffect(() => {
@@ -484,184 +708,280 @@ function ReportsPage() {
     // SELECTED PROJECT
     // ========================================================
 
-    const selectedProject = useMemo(() => {
-        return (
-            projects.find(
+    const selectedProject =
+        useMemo(() => {
+            return projects.find(
                 (project) =>
                     String(
                         getProjectId(project)
                     ) ===
-                    String(selectedProjectId)
-            ) || null
-        );
-    }, [
-        projects,
-        selectedProjectId,
-        getProjectId,
-    ]);
+                    String(
+                        selectedProjectId
+                    )
+            );
+        }, [
+            projects,
+            selectedProjectId,
+        ]);
 
     // ========================================================
-    // REPORT VALUES
+    // DASHBOARD METRICS
     // ========================================================
 
-    const totalTasks = Number(
-        getValue(
-            dashboard,
-            [
-                "totalTasks",
-                "taskCount",
-                "tasks",
-                "TotalTasks",
-            ],
-            0
-        )
-    );
-
-    const completedTasks = Number(
-        getValue(
-            dashboard,
-            [
-                "completedTasks",
-                "completedTaskCount",
-                "CompletedTasks",
-            ],
-            0
-        )
-    );
-
-    const pendingTasks = Number(
-        getValue(
-            dashboard,
-            [
-                "pendingTasks",
-                "remainingTasks",
-                "PendingTasks",
-                "RemainingTasks",
-            ],
-            Math.max(
-                totalTasks -
-                    completedTasks,
+    const totalTasks =
+        Number(
+            getValue(
+                dashboard,
+                [
+                    "TotalTasks",
+                    "totalTasks",
+                    "taskCount",
+                    "tasks",
+                ],
                 0
             )
-        )
-    );
+        );
 
-    const activeSprints = Number(
-        getValue(
-            dashboard,
-            [
-                "activeSprints",
-                "activeSprintCount",
-                "ActiveSprints",
-            ],
-            sprints.filter(
-                (sprint) =>
-                    String(
+    const completedTasks =
+        Number(
+            getValue(
+                dashboard,
+                [
+                    "CompletedTasks",
+                    "completedTasks",
+                    "completedTaskCount",
+                ],
+                0
+            )
+        );
+
+    const remainingTasks =
+        Number(
+            getValue(
+                dashboard,
+                [
+                    "RemainingTasks",
+                    "remainingTasks",
+                    "pendingTasks",
+                ],
+                Math.max(
+                    totalTasks -
+                    completedTasks,
+                    0
+                )
+            )
+        );
+
+    const activeSprints =
+        sprints.filter(
+            (sprint) => {
+                const status =
+                    normalizeStatus(
                         getSprintStatus(
                             sprint
                         )
-                    ).toLowerCase() ===
-                    "active"
-            ).length
-        )
-    );
+                    );
 
-    const teamMembers = Number(
-        getValue(
-            dashboard,
-            [
-                "teamMembers",
-                "memberCount",
-                "totalMembers",
-                "TeamMembers",
-            ],
-            0
-        )
-    );
+                return (
+                    status === "active" ||
+                    status === "in progress" ||
+                    status === "inprogress"
+                );
+            }
+        ).length;
+
+    const dashboardTeamMembers =
+        Number(
+            getValue(
+                dashboard,
+                [
+                    "TeamMemberCount",
+                    "teamMemberCount",
+                    "memberCount",
+                    "totalMembers",
+                ],
+                0
+            )
+        );
 
     const completionRate =
         totalTasks > 0
-            ? Math.round(
-                  (completedTasks /
-                      totalTasks) *
-                      100
-              )
-            : 0;
-
-    const safeCompletionRate =
-        Math.min(
-            Math.max(
-                completionRate,
+            ? (completedTasks /
+                totalTasks) *
+              100
+            : Number(
+                dashboard?.OverallProjectProgress ??
+                dashboard?.overallProjectProgress ??
                 0
-            ),
-            100
+            );
+
+    // ========================================================
+    // TEAM PERFORMANCE METRICS
+    // ========================================================
+
+    const teamCompletionRate =
+        Number(
+            teamPerformance?.CompletionRate ??
+            teamPerformance?.completionRate ??
+            dashboard?.TeamProgressPercentage ??
+            dashboard?.teamProgressPercentage ??
+            0
+        );
+
+    const teamTotalTasks =
+        Number(
+            teamPerformance?.TotalTasks ??
+            teamPerformance?.totalTasks ??
+            0
+        );
+
+    const teamCompletedTasks =
+        Number(
+            teamPerformance?.CompletedTasks ??
+            teamPerformance?.completedTasks ??
+            0
+        );
+
+    const teamDelayedTasks =
+        Number(
+            teamPerformance?.DelayedTasks ??
+            teamPerformance?.delayedTasks ??
+            0
+        );
+
+    const teamBlockedTasks =
+        Number(
+            teamPerformance?.BlockedTasks ??
+            teamPerformance?.blockedTasks ??
+            0
+        );
+
+    const teamEstimatedHours =
+        Number(
+            teamPerformance?.TotalEstimatedHours ??
+            teamPerformance?.totalEstimatedHours ??
+            0
+        );
+
+    const teamActualHours =
+        Number(
+            teamPerformance?.TotalActualHours ??
+            teamPerformance?.totalActualHours ??
+            0
+        );
+
+    const teamWorkload =
+        Number(
+            teamPerformance?.WorkloadPercentage ??
+            teamPerformance?.workloadPercentage ??
+            0
+        );
+
+    const teamName =
+        teamPerformance?.TeamName ||
+        teamPerformance?.teamName ||
+        dashboard?.TeamName ||
+        dashboard?.teamName ||
+        "No team assigned";
+
+    const teamLeaders =
+        getArrayResponse(
+            teamPerformance,
+            [
+                "TeamLeaders",
+                "teamLeaders",
+            ]
+        );
+
+    const contributors =
+        getArrayResponse(
+            teamPerformance,
+            [
+                "Contributors",
+                "contributors",
+            ]
+        );
+
+    const taskDistribution =
+        getArrayResponse(
+            teamPerformance,
+            [
+                "TaskDistribution",
+                "taskDistribution",
+            ]
         );
 
     // ========================================================
-    // RISK HELPERS
+    // ACTIVE SPRINT
     // ========================================================
 
-    const getRiskTitle = useCallback(
-        (risk) =>
-            risk?.title ||
-            risk?.name ||
-            risk?.description ||
-            risk?.issue ||
-            "Risk / Issue",
-        []
-    );
+    const activeSprint =
+        useMemo(() => {
+            return sprints.find(
+                (sprint) => {
+                    const status =
+                        normalizeStatus(
+                            getSprintStatus(
+                                sprint
+                            )
+                        );
 
-    const getRiskSeverity = useCallback(
-        (risk) =>
-            risk?.severity ||
-            risk?.priority ||
-            risk?.level ||
-            "Unknown",
-        []
-    );
-
-    const getRiskId = useCallback(
-        (risk, index) =>
-            risk?.id ??
-            risk?.riskId ??
-            risk?.issueId ??
-            index,
-        []
-    );
+                    return (
+                        status === "active" ||
+                        status === "in progress" ||
+                        status === "inprogress"
+                    );
+                }
+            );
+        }, [sprints]);
 
     // ========================================================
-    // EVENT HANDLERS
+    // PROJECT CHANGE
     // ========================================================
 
-    const handleProjectChange = (event) => {
+    const handleProjectChange = (
+        event
+    ) => {
+        const projectId =
+            event.target.value;
+
         setSelectedProjectId(
-            event.target.value
+            projectId
         );
 
         setSelectedSprintId("");
         setSprintProgress(null);
-        setError("");
     };
 
-    const handleSprintChange = (event) => {
+    // ========================================================
+    // SPRINT CHANGE
+    // ========================================================
+
+    const handleSprintChange = (
+        event
+    ) => {
         const sprintId =
             event.target.value;
 
-        setSelectedSprintId(sprintId);
-        setSprintProgress(null);
-        setError("");
+        setSelectedSprintId(
+            sprintId
+        );
 
         if (sprintId) {
             loadSprintProgress(
                 sprintId,
                 selectedProjectId
             );
+        } else {
+            setSprintProgress(null);
         }
     };
 
-    const handleRefresh = async () => {
-        setError("");
+    // ========================================================
+    // REFRESH
+    // ========================================================
 
+    const handleRefresh = async () => {
         await loadProjects();
 
         if (selectedProjectId) {
@@ -672,76 +992,92 @@ function ReportsPage() {
     };
 
     // ========================================================
+    // LOADING PROJECTS
+    // ========================================================
+
+    if (loadingProjects) {
+        return (
+            <div className="min-h-screen bg-slate-50 p-6">
+                <div className="mx-auto max-w-7xl">
+                    <div className="flex min-h-[400px] items-center justify-center">
+                        <div className="text-center">
+                            <RefreshCw className="mx-auto h-8 w-8 animate-spin text-slate-500" />
+
+                            <p className="mt-3 text-sm text-slate-500">
+                                Loading your projects...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ========================================================
     // RENDER
     // ========================================================
 
     return (
-        <div className="min-h-full bg-gray-50 p-4 md:p-6">
-            <div className="mx-auto max-w-7xl">
+        <div className="min-h-screen bg-slate-50">
+            <div className="mx-auto max-w-7xl space-y-6 p-6">
 
-                {/* ==================================================
-                    PAGE HEADER
-                ================================================== */}
+                {/* =================================================
+                    HEADER
+                ================================================= */}
 
-                <div className="mb-6">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-                        <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
-                                <BarChart3 className="h-6 w-6" />
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
+                                <BarChart3 className="h-6 w-6 text-slate-700" />
                             </div>
 
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">
+                                <h1 className="text-2xl font-bold text-slate-900">
                                     Reports
                                 </h1>
 
-                                <p className="mt-1 text-sm text-gray-500">
-                                    View project performance,
-                                    sprint progress, tasks,
-                                    team activity and risks.
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Monitor project, sprint, and team performance.
                                 </p>
                             </div>
                         </div>
-
-                        <button
-                            type="button"
-                            onClick={handleRefresh}
-                            disabled={
-                                loadingProjects ||
-                                loadingReport ||
-                                loadingSprint
-                            }
-                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            <RefreshCw
-                                className={`h-4 w-4 ${
-                                    loadingProjects ||
-                                    loadingReport ||
-                                    loadingSprint
-                                        ? "animate-spin"
-                                        : ""
-                                }`}
-                            />
-
-                            Refresh
-                        </button>
                     </div>
+
+                    <button
+                        type="button"
+                        onClick={handleRefresh}
+                        disabled={
+                            loadingProjects ||
+                            loadingReport
+                        }
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <RefreshCw
+                            className={`h-4 w-4 ${
+                                loadingProjects ||
+                                loadingReport
+                                    ? "animate-spin"
+                                    : ""
+                            }`}
+                        />
+
+                        Refresh
+                    </button>
                 </div>
 
-                {/* ==================================================
-                    PROJECT FILTER
-                ================================================== */}
+                {/* =================================================
+                    PROJECT SELECTOR
+                ================================================= */}
 
-                <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-end">
-
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div className="flex-1">
                             <label
                                 htmlFor="project-select"
-                                className="mb-2 block text-sm font-semibold text-gray-700"
+                                className="mb-2 block text-sm font-medium text-slate-700"
                             >
-                                Project
+                                Select Project
                             </label>
 
                             <select
@@ -752,768 +1088,1199 @@ function ReportsPage() {
                                 onChange={
                                     handleProjectChange
                                 }
-                                disabled={
-                                    loadingProjects
-                                }
-                                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:bg-gray-50"
+                                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 lg:max-w-xl"
                             >
-                                <option value="">
-                                    {loadingProjects
-                                        ? "Loading projects..."
-                                        : projects.length ===
-                                          0
-                                            ? "No assigned projects"
-                                            : "Select project"}
-                                </option>
-
                                 {projects.map(
-                                    (project) => {
-                                        const id =
-                                            getProjectId(
-                                                project
-                                            );
-
-                                        return (
-                                            <option
-                                                key={String(
-                                                    id
-                                                )}
-                                                value={id}
-                                            >
-                                                {getProjectName(
+                                    (project) => (
+                                        <option
+                                            key={String(
+                                                getProjectId(
                                                     project
-                                                )}
-                                            </option>
-                                        );
-                                    }
+                                                )
+                                            )}
+                                            value={String(
+                                                getProjectId(
+                                                    project
+                                                )
+                                            )}
+                                        >
+                                            {getProjectName(
+                                                project
+                                            )}
+                                        </option>
+                                    )
                                 )}
                             </select>
                         </div>
 
                         {selectedProject && (
-                            <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-4 py-2.5 text-sm text-gray-600">
-                                <FolderKanban className="h-4 w-4 text-indigo-500" />
+                            <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-4 py-2.5 text-sm text-slate-600">
+                                <FolderKanban className="h-4 w-4" />
 
                                 <span>
-                                    {getProjectName(
-                                        selectedProject
+                                    Project ID:
+                                </span>
+
+                                <span className="font-medium text-slate-800">
+                                    {String(
+                                        getProjectId(
+                                            selectedProject
+                                        )
+                                    ).slice(
+                                        0,
+                                        8
                                     )}
+                                    ...
                                 </span>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* ==================================================
+                {/* =================================================
                     ERROR
-                ================================================== */}
+                ================================================= */}
 
                 {error && (
-                    <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
-                        <div className="flex items-start gap-3 text-sm text-red-700">
-                            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+                    <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">
+                        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
 
-                            <div>
-                                <p className="font-semibold">
-                                    Unable to load report
-                                </p>
+                        <div>
+                            <p className="font-medium">
+                                Unable to load report
+                            </p>
 
-                                <p className="mt-1">
-                                    {error}
-                                </p>
-                            </div>
+                            <p className="mt-1 text-sm">
+                                {error}
+                            </p>
                         </div>
                     </div>
                 )}
 
-                {/* ==================================================
-                    LOADING
-                ================================================== */}
+                {/* =================================================
+                    NO PROJECTS
+                ================================================= */}
 
-                {loadingReport && (
-                    <div className="mb-6 flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-700">
-                        <RefreshCw className="h-5 w-5 animate-spin" />
-                        <span>
-                            Loading project report...
-                        </span>
-                    </div>
+                {projects.length === 0 && (
+                    <EmptyState
+                        title="No projects assigned"
+                        description="There are currently no projects assigned to your manager account."
+                    />
                 )}
 
-                {/* ==================================================
-                    NO PROJECT
-                ================================================== */}
+                {/* =================================================
+                    REPORT CONTENT
+                ================================================= */}
 
-                {!loadingProjects &&
-                    projects.length === 0 &&
-                    !error && (
-                        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-12 text-center">
-                            <FolderKanban className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+                {selectedProjectId &&
+                    loadingReport && (
+                        <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                            <RefreshCw className="mx-auto h-8 w-8 animate-spin text-slate-400" />
 
-                            <h2 className="text-lg font-semibold text-gray-900">
-                                No Projects Available
-                            </h2>
-
-                            <p className="mx-auto mt-2 max-w-lg text-sm text-gray-500">
-                                There are currently no
-                                projects assigned to you
-                                for reporting.
+                            <p className="mt-3 text-sm text-slate-500">
+                                Loading project report...
                             </p>
                         </div>
                     )}
 
-                {/* ==================================================
-                    REPORT
-                ================================================== */}
-
                 {selectedProjectId &&
-                    !loadingReport && (
+                    !loadingReport &&
+                    dashboard && (
                         <>
+                            {/* =============================================
+                                PROJECT STATISTICS
+                            ============================================= */}
 
-                            {/* ==================================================
-                                STATISTICS
-                            ================================================== */}
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                <StatCard
+                                    title="Total Tasks"
+                                    value={formatNumber(
+                                        totalTasks
+                                    )}
+                                    description="Tasks in this project"
+                                    icon={
+                                        ListChecks
+                                    }
+                                />
 
-                            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                                <StatCard
+                                    title="Completed Tasks"
+                                    value={formatNumber(
+                                        completedTasks
+                                    )}
+                                    description={`${formatPercentage(
+                                        completionRate
+                                    )} project completion`}
+                                    icon={
+                                        CheckCircle2
+                                    }
+                                />
 
-                                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-500">
-                                                Total Tasks
-                                            </p>
+                                <StatCard
+                                    title="Active Sprints"
+                                    value={formatNumber(
+                                        activeSprints
+                                    )}
+                                    description={
+                                        activeSprint
+                                            ? getSprintName(
+                                                activeSprint
+                                            )
+                                            : "No active sprint"
+                                    }
+                                    icon={
+                                        Clock3
+                                    }
+                                />
 
-                                            <p className="mt-2 text-3xl font-bold text-gray-900">
-                                                {formatNumber(
-                                                    totalTasks
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-xl bg-indigo-100 p-3 text-indigo-600">
-                                            <ListChecks className="h-5 w-5" />
-                                        </div>
-                                    </div>
-
-                                    <p className="mt-3 text-xs text-gray-400">
-                                        Project tasks
-                                    </p>
-                                </div>
-
-                                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-500">
-                                                Completed
-                                            </p>
-
-                                            <p className="mt-2 text-3xl font-bold text-gray-900">
-                                                {formatNumber(
-                                                    completedTasks
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-xl bg-emerald-100 p-3 text-emerald-600">
-                                            <CheckCircle2 className="h-5 w-5" />
-                                        </div>
-                                    </div>
-
-                                    <p className="mt-3 text-xs text-gray-400">
-                                        Finished tasks
-                                    </p>
-                                </div>
-
-                                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-500">
-                                                Active Sprints
-                                            </p>
-
-                                            <p className="mt-2 text-3xl font-bold text-gray-900">
-                                                {formatNumber(
-                                                    activeSprints
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-xl bg-purple-100 p-3 text-purple-600">
-                                            <CalendarDays className="h-5 w-5" />
-                                        </div>
-                                    </div>
-
-                                    <p className="mt-3 text-xs text-gray-400">
-                                        Currently active
-                                    </p>
-                                </div>
-
-                                <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-500">
-                                                Risks & Issues
-                                            </p>
-
-                                            <p className="mt-2 text-3xl font-bold text-gray-900">
-                                                {formatNumber(
-                                                    risks.length
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-xl bg-amber-100 p-3 text-amber-600">
-                                            <AlertTriangle className="h-5 w-5" />
-                                        </div>
-                                    </div>
-
-                                    <p className="mt-3 text-xs text-gray-400">
-                                        Requires attention
-                                    </p>
-                                </div>
+                                <StatCard
+                                    title="Risks & Issues"
+                                    value={formatNumber(
+                                        risks.length
+                                    )}
+                                    description="Reported project concerns"
+                                    icon={
+                                        AlertTriangle
+                                    }
+                                />
                             </div>
 
-                            {/* ==================================================
-                                OVERVIEW
-                            ================================================== */}
+                            {/* =============================================
+                                PROJECT OVERVIEW
+                            ============================================= */}
 
-                            <div className="mb-6 grid gap-6 lg:grid-cols-3">
+                            <div className="grid gap-6 lg:grid-cols-3">
+                                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+                                    <SectionHeader
+                                        icon={
+                                            TrendingUp
+                                        }
+                                        title="Project Overview"
+                                        description="Current progress based on actual project tasks."
+                                    />
 
-                                {/* COMPLETION */}
-
-                                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2">
-                                    <div className="mb-5 flex items-center justify-between">
+                                    <div className="flex items-end justify-between">
                                         <div>
-                                            <h2 className="text-lg font-bold text-gray-900">
-                                                Project Overview
-                                            </h2>
+                                            <p className="text-3xl font-bold text-slate-900">
+                                                {formatPercentage(
+                                                    completionRate
+                                                )}
+                                            </p>
 
-                                            <p className="mt-1 text-sm text-gray-500">
-                                                Overall task completion
-                                                for this project.
+                                            <p className="mt-1 text-sm text-slate-500">
+                                                Overall project progress
                                             </p>
                                         </div>
 
-                                        <TrendingUp className="h-5 w-5 text-indigo-500" />
+                                        <div className="text-right text-sm text-slate-500">
+                                            <p>
+                                                <span className="font-semibold text-slate-800">
+                                                    {formatNumber(
+                                                        completedTasks
+                                                    )}
+                                                </span>{" "}
+                                                completed
+                                            </p>
+
+                                            <p className="mt-1">
+                                                <span className="font-semibold text-slate-800">
+                                                    {formatNumber(
+                                                        remainingTasks
+                                                    )}
+                                                </span>{" "}
+                                                remaining
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    <div className="mb-2 flex items-center justify-between">
-                                        <span className="text-sm font-medium text-gray-600">
-                                            Completion
-                                        </span>
-
-                                        <span className="text-sm font-bold text-gray-900">
-                                            {
-                                                safeCompletionRate
-                                            }
-                                            %
-                                        </span>
-                                    </div>
-
-                                    <div className="h-3 overflow-hidden rounded-full bg-gray-100">
+                                    <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-100">
                                         <div
-                                            className="h-full rounded-full bg-indigo-600 transition-all duration-500"
+                                            className="h-full rounded-full bg-slate-700 transition-all"
                                             style={{
-                                                width: `${safeCompletionRate}%`,
+                                                width: `${Math.min(
+                                                    Math.max(
+                                                        completionRate,
+                                                        0
+                                                    ),
+                                                    100
+                                                )}%`,
                                             }}
                                         />
                                     </div>
 
-                                    <div className="mt-6 grid grid-cols-2 gap-4">
-                                        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-                                            <div className="flex items-center gap-2">
-                                                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                        <div className="rounded-lg bg-slate-50 p-4">
+                                            <p className="text-xs text-slate-500">
+                                                To Do
+                                            </p>
 
-                                                <span className="text-sm font-medium text-emerald-700">
-                                                    Completed
-                                                </span>
-                                            </div>
-
-                                            <p className="mt-2 text-2xl font-bold text-emerald-800">
+                                            <p className="mt-1 text-lg font-semibold text-slate-900">
                                                 {formatNumber(
-                                                    completedTasks
+                                                    dashboard?.TodoTasks ??
+                                                    dashboard?.todoTasks ??
+                                                    0
                                                 )}
                                             </p>
                                         </div>
 
-                                        <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
-                                            <div className="flex items-center gap-2">
-                                                <Clock3 className="h-4 w-4 text-amber-600" />
+                                        <div className="rounded-lg bg-slate-50 p-4">
+                                            <p className="text-xs text-slate-500">
+                                                In Progress
+                                            </p>
 
-                                                <span className="text-sm font-medium text-amber-700">
-                                                    Remaining
-                                                </span>
-                                            </div>
-
-                                            <p className="mt-2 text-2xl font-bold text-amber-800">
+                                            <p className="mt-1 text-lg font-semibold text-slate-900">
                                                 {formatNumber(
-                                                    pendingTasks
+                                                    dashboard?.InProgressTasks ??
+                                                    dashboard?.inProgressTasks ??
+                                                    0
+                                                )}
+                                            </p>
+                                        </div>
+
+                                        <div className="rounded-lg bg-slate-50 p-4">
+                                            <p className="text-xs text-slate-500">
+                                                In Review
+                                            </p>
+
+                                            <p className="mt-1 text-lg font-semibold text-slate-900">
+                                                {formatNumber(
+                                                    dashboard?.InReviewTasks ??
+                                                    dashboard?.inReviewTasks ??
+                                                    0
+                                                )}
+                                            </p>
+                                        </div>
+
+                                        <div className="rounded-lg bg-slate-50 p-4">
+                                            <p className="text-xs text-slate-500">
+                                                Blocked
+                                            </p>
+
+                                            <p className="mt-1 text-lg font-semibold text-slate-900">
+                                                {formatNumber(
+                                                    dashboard?.BlockedTasks ??
+                                                    dashboard?.blockedTasks ??
+                                                    0
                                                 )}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* TEAM */}
+                                {/* =============================================
+                                    TEAM SUMMARY
+                                ============================================= */}
 
-                                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                                    <div className="mb-5 flex items-center gap-3">
-                                        <div className="rounded-xl bg-indigo-100 p-3 text-indigo-600">
-                                            <Users className="h-5 w-5" />
+                                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                                    <SectionHeader
+                                        icon={
+                                            Users
+                                        }
+                                        title="Team"
+                                        description="Team assigned to this project."
+                                    />
+
+                                    <div className="rounded-lg bg-slate-50 p-5">
+                                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                                            Team Name
+                                        </p>
+
+                                        <p className="mt-2 text-lg font-semibold text-slate-900">
+                                            {teamName}
+                                        </p>
+                                    </div>
+
+                                    <div className="mt-4 grid grid-cols-2 gap-3">
+                                        <div className="rounded-lg border border-slate-200 p-4">
+                                            <p className="text-xs text-slate-500">
+                                                Members
+                                            </p>
+
+                                            <p className="mt-1 text-xl font-bold text-slate-900">
+                                                {formatNumber(
+                                                    dashboardTeamMembers
+                                                )}
+                                            </p>
                                         </div>
 
-                                        <div>
-                                            <h2 className="text-lg font-bold text-gray-900">
-                                                Team
-                                            </h2>
+                                        <div className="rounded-lg border border-slate-200 p-4">
+                                            <p className="text-xs text-slate-500">
+                                                Team Progress
+                                            </p>
 
-                                            <p className="text-sm text-gray-500">
-                                                Project members
+                                            <p className="mt-1 text-xl font-bold text-slate-900">
+                                                {formatPercentage(
+                                                    dashboard?.TeamProgressPercentage ??
+                                                    dashboard?.teamProgressPercentage ??
+                                                    0
+                                                )}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="rounded-xl bg-gray-50 p-5">
-                                        <p className="text-sm text-gray-500">
-                                            Team Members
-                                        </p>
+                                    <div className="mt-4 space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">
+                                                Assigned work
+                                            </span>
 
-                                        <p className="mt-2 text-4xl font-bold text-gray-900">
-                                            {formatNumber(
-                                                teamMembers
-                                            )}
-                                        </p>
+                                            <span className="font-medium text-slate-800">
+                                                {formatNumber(
+                                                    dashboard?.TeamAssignedWorkItems ??
+                                                    dashboard?.teamAssignedWorkItems ??
+                                                    0
+                                                )}
+                                            </span>
+                                        </div>
 
-                                        <p className="mt-2 text-xs text-gray-500">
-                                            Members assigned
-                                            to this project
-                                        </p>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">
+                                                Developers
+                                            </span>
+
+                                            <span className="font-medium text-slate-800">
+                                                {formatNumber(
+                                                    dashboard?.TeamDeveloperCount ??
+                                                    dashboard?.teamDeveloperCount ??
+                                                    0
+                                                )}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">
+                                                Staff
+                                            </span>
+
+                                            <span className="font-medium text-slate-800">
+                                                {formatNumber(
+                                                    dashboard?.TeamStaffCount ??
+                                                    dashboard?.teamStaffCount ??
+                                                    0
+                                                )}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* ==================================================
-                                SPRINT PROGRESS
-                            ================================================== */}
+                            {/* =============================================
+                                TEAM PERFORMANCE
+                            ============================================= */}
 
-                            <div className="mb-6 rounded-2xl border border-gray-200 bg-white shadow-sm">
+                            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                                <SectionHeader
+                                    icon={
+                                        Users
+                                    }
+                                    title="Team Performance"
+                                    description={`Performance report for ${teamName}.`}
+                                />
 
-                                <div className="border-b border-gray-200 px-6 py-5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="rounded-xl bg-purple-100 p-3 text-purple-600">
-                                            <CalendarDays className="h-5 w-5" />
-                                        </div>
+                                {loadingTeam ? (
+                                    <div className="py-10 text-center">
+                                        <RefreshCw className="mx-auto h-7 w-7 animate-spin text-slate-400" />
 
-                                        <div>
-                                            <h2 className="text-lg font-bold text-gray-900">
-                                                Sprint Progress
-                                            </h2>
-
-                                            <p className="mt-1 text-sm text-gray-500">
-                                                Select a sprint to
-                                                view detailed
-                                                progress.
-                                            </p>
-                                        </div>
+                                        <p className="mt-2 text-sm text-slate-500">
+                                            Loading team performance...
+                                        </p>
                                     </div>
-                                </div>
+                                ) : teamPerformance ? (
+                                    <>
+                                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                                            <StatCard
+                                                title="Completion Rate"
+                                                value={formatPercentage(
+                                                    teamCompletionRate
+                                                )}
+                                                description="Team task completion"
+                                                icon={
+                                                    CheckCircle2
+                                                }
+                                            />
 
-                                <div className="p-6">
+                                            <StatCard
+                                                title="Total Tasks"
+                                                value={formatNumber(
+                                                    teamTotalTasks
+                                                )}
+                                                description="Team assigned tasks"
+                                                icon={
+                                                    ListChecks
+                                                }
+                                            />
+
+                                            <StatCard
+                                                title="Completed"
+                                                value={formatNumber(
+                                                    teamCompletedTasks
+                                                )}
+                                                description="Completed team tasks"
+                                                icon={
+                                                    CheckCircle2
+                                                }
+                                            />
+
+                                            <StatCard
+                                                title="Delayed"
+                                                value={formatNumber(
+                                                    teamDelayedTasks
+                                                )}
+                                                description="Delayed tasks"
+                                                icon={
+                                                    Clock3
+                                                }
+                                            />
+
+                                            <StatCard
+                                                title="Blocked"
+                                                value={formatNumber(
+                                                    teamBlockedTasks
+                                                )}
+                                                description="Blocked tasks"
+                                                icon={
+                                                    AlertTriangle
+                                                }
+                                            />
+                                        </div>
+
+                                        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                                            <div className="rounded-lg border border-slate-200 p-4">
+                                                <p className="text-sm text-slate-500">
+                                                    Estimated Hours
+                                                </p>
+
+                                                <p className="mt-1 text-2xl font-bold text-slate-900">
+                                                    {formatNumber(
+                                                        teamEstimatedHours
+                                                    )}
+                                                </p>
+                                            </div>
+
+                                            <div className="rounded-lg border border-slate-200 p-4">
+                                                <p className="text-sm text-slate-500">
+                                                    Actual Hours
+                                                </p>
+
+                                                <p className="mt-1 text-2xl font-bold text-slate-900">
+                                                    {formatNumber(
+                                                        teamActualHours
+                                                    )}
+                                                </p>
+                                            </div>
+
+                                            <div className="rounded-lg border border-slate-200 p-4">
+                                                <p className="text-sm text-slate-500">
+                                                    Workload
+                                                </p>
+
+                                                <p className="mt-1 text-2xl font-bold text-slate-900">
+                                                    {formatPercentage(
+                                                        teamWorkload
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* TEAM LEADERS */}
+
+                                        <div className="mt-8">
+                                            <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-800">
+                                                <UserCheck className="h-4 w-4" />
+                                                Team Leaders
+                                            </h3>
+
+                                            {teamLeaders.length > 0 ? (
+                                                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                                        <thead className="bg-slate-50">
+                                                            <tr>
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Name
+                                                                </th>
+
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Assigned
+                                                                </th>
+
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Completed
+                                                                </th>
+
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Delayed
+                                                                </th>
+
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Completion
+                                                                </th>
+
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Workload
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+
+                                                        <tbody className="divide-y divide-slate-200 bg-white">
+                                                            {teamLeaders.map(
+                                                                (
+                                                                    member,
+                                                                    index
+                                                                ) => (
+                                                                    <tr
+                                                                        key={
+                                                                            member?.UserId ||
+                                                                            member?.userId ||
+                                                                            index
+                                                                        }
+                                                                    >
+                                                                        <td className="px-4 py-3 font-medium text-slate-800">
+                                                                            {member?.UserName ||
+                                                                                member?.userName ||
+                                                                                "Unknown"}
+                                                                        </td>
+
+                                                                        <td className="px-4 py-3 text-slate-600">
+                                                                            {formatNumber(
+                                                                                member?.AssignedTasks ??
+                                                                                member?.assignedTasks ??
+                                                                                0
+                                                                            )}
+                                                                        </td>
+
+                                                                        <td className="px-4 py-3 text-slate-600">
+                                                                            {formatNumber(
+                                                                                member?.CompletedTasks ??
+                                                                                member?.completedTasks ??
+                                                                                0
+                                                                            )}
+                                                                        </td>
+
+                                                                        <td className="px-4 py-3 text-slate-600">
+                                                                            {formatNumber(
+                                                                                member?.DelayedTasks ??
+                                                                                member?.delayedTasks ??
+                                                                                0
+                                                                            )}
+                                                                        </td>
+
+                                                                        <td className="px-4 py-3 font-medium text-slate-700">
+                                                                            {formatPercentage(
+                                                                                member?.CompletionRate ??
+                                                                                member?.completionRate ??
+                                                                                0
+                                                                            )}
+                                                                        </td>
+
+                                                                        <td className="px-4 py-3 text-slate-600">
+                                                                            {formatPercentage(
+                                                                                member?.WorkloadPercentage ??
+                                                                                member?.workloadPercentage ??
+                                                                                0
+                                                                            )}
+                                                                        </td>
+                                                                    </tr>
+                                                                )
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            ) : (
+                                                <EmptyState
+                                                    title="No team leaders"
+                                                    description="No team leader performance records were returned for this team."
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* CONTRIBUTORS */}
+
+                                        <div className="mt-8">
+                                            <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-800">
+                                                <UserRound className="h-4 w-4" />
+                                                Contributors
+                                            </h3>
+
+                                            {contributors.length > 0 ? (
+                                                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                                        <thead className="bg-slate-50">
+                                                            <tr>
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Name
+                                                                </th>
+
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Type
+                                                                </th>
+
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Assigned
+                                                                </th>
+
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Completed
+                                                                </th>
+
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Delayed
+                                                                </th>
+
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Blocked
+                                                                </th>
+
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Completion
+                                                                </th>
+
+                                                                <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                                    Workload
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+
+                                                        <tbody className="divide-y divide-slate-200 bg-white">
+                                                            {contributors.map(
+                                                                (
+                                                                    member,
+                                                                    index
+                                                                ) => (
+                                                                    <tr
+                                                                        key={
+                                                                            member?.UserId ||
+                                                                            member?.userId ||
+                                                                            index
+                                                                        }
+                                                                    >
+                                                                        <td className="px-4 py-3 font-medium text-slate-800">
+                                                                            {member?.UserName ||
+                                                                                member?.userName ||
+                                                                                "Unknown"}
+                                                                        </td>
+
+                                                                        <td className="px-4 py-3 text-slate-600">
+                                                                            {member?.ContributorType ||
+                                                                                member?.contributorType ||
+                                                                                "—"}
+                                                                        </td>
+
+                                                                        <td className="px-4 py-3 text-slate-600">
+                                                                            {formatNumber(
+                                                                                member?.AssignedTasks ??
+                                                                                member?.assignedTasks ??
+                                                                                0
+                                                                            )}
+                                                                        </td>
+
+                                                                        <td className="px-4 py-3 text-slate-600">
+                                                                            {formatNumber(
+                                                                                member?.CompletedTasks ??
+                                                                                member?.completedTasks ??
+                                                                                0
+                                                                            )}
+                                                                        </td>
+
+                                                                        <td className="px-4 py-3 text-slate-600">
+                                                                            {formatNumber(
+                                                                                member?.DelayedTasks ??
+                                                                                member?.delayedTasks ??
+                                                                                0
+                                                                            )}
+                                                                        </td>
+
+                                                                        <td className="px-4 py-3 text-slate-600">
+                                                                            {formatNumber(
+                                                                                member?.BlockedTasks ??
+                                                                                member?.blockedTasks ??
+                                                                                0
+                                                                            )}
+                                                                        </td>
+
+                                                                        <td className="px-4 py-3 font-medium text-slate-700">
+                                                                            {formatPercentage(
+                                                                                member?.CompletionRate ??
+                                                                                member?.completionRate ??
+                                                                                0
+                                                                            )}
+                                                                        </td>
+
+                                                                        <td className="px-4 py-3 text-slate-600">
+                                                                            {formatPercentage(
+                                                                                member?.WorkloadPercentage ??
+                                                                                member?.workloadPercentage ??
+                                                                                0
+                                                                            )}
+                                                                        </td>
+                                                                    </tr>
+                                                                )
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            ) : (
+                                                <EmptyState
+                                                    title="No contributors"
+                                                    description="No contributor performance records were returned for this team."
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* TASK DISTRIBUTION */}
+
+                                        {taskDistribution.length >
+                                            0 && (
+                                            <div className="mt-8">
+                                                <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-800">
+                                                    <BriefcaseBusiness className="h-4 w-4" />
+                                                    Task Distribution
+                                                </h3>
+
+                                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                                    {taskDistribution.map(
+                                                        (
+                                                            item,
+                                                            index
+                                                        ) => {
+                                                            const name =
+                                                                item?.Status ||
+                                                                item?.status ||
+                                                                item?.Name ||
+                                                                item?.name ||
+                                                                item?.Label ||
+                                                                item?.label ||
+                                                                `Status ${index + 1}`;
+
+                                                            const count =
+                                                                item?.Count ??
+                                                                item?.count ??
+                                                                item?.Total ??
+                                                                item?.total ??
+                                                                0;
+
+                                                            return (
+                                                                <div
+                                                                    key={`${name}-${index}`}
+                                                                    className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                                                                >
+                                                                    <p className="text-sm text-slate-500">
+                                                                        {name}
+                                                                    </p>
+
+                                                                    <p className="mt-1 text-xl font-bold text-slate-900">
+                                                                        {formatNumber(
+                                                                            count
+                                                                        )}
+                                                                    </p>
+                                                                </div>
+                                                            );
+                                                        }
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <EmptyState
+                                        title="Team performance unavailable"
+                                        description={
+                                            dashboard?.TeamId ||
+                                            dashboard?.teamId
+                                                ? "The project has a team, but the team performance report could not be loaded."
+                                                : "No team is currently assigned to this project."
+                                        }
+                                    />
+                                )}
+                            </div>
+
+                            {/* =============================================
+                                SPRINT PROGRESS
+                            ============================================= */}
+
+                            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                                <SectionHeader
+                                    icon={
+                                        CalendarDays
+                                    }
+                                    title="Sprint Progress"
+                                    description="Select a sprint to view its current progress."
+                                />
+
+                                <div className="max-w-xl">
+                                    <label
+                                        htmlFor="sprint-select"
+                                        className="mb-2 block text-sm font-medium text-slate-700"
+                                    >
+                                        Sprint
+                                    </label>
 
                                     <select
+                                        id="sprint-select"
                                         value={
                                             selectedSprintId
                                         }
                                         onChange={
                                             handleSprintChange
                                         }
-                                        disabled={
-                                            sprints.length ===
-                                            0
-                                        }
-                                        className="mb-5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                                     >
                                         <option value="">
-                                            {sprints.length ===
-                                            0
-                                                ? "No sprints available"
-                                                : "Select sprint"}
+                                            Select a sprint
                                         </option>
 
                                         {sprints.map(
                                             (
-                                                sprint,
+                                                sprint
+                                            ) => (
+                                                <option
+                                                    key={String(
+                                                        getSprintId(
+                                                            sprint
+                                                        )
+                                                    )}
+                                                    value={String(
+                                                        getSprintId(
+                                                            sprint
+                                                        )
+                                                    )}
+                                                >
+                                                    {getSprintName(
+                                                        sprint
+                                                    )}
+                                                </option>
+                                            )
+                                        )}
+                                    </select>
+                                </div>
+
+                                {loadingSprint && (
+                                    <div className="mt-6 flex items-center gap-2 text-sm text-slate-500">
+                                        <RefreshCw className="h-4 w-4 animate-spin" />
+                                        Loading sprint progress...
+                                    </div>
+                                )}
+
+                                {!loadingSprint &&
+                                    sprintProgress && (
+                                        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                            <StatCard
+                                                title="Total Tasks"
+                                                value={formatNumber(
+                                                    sprintProgress?.TotalTasks ??
+                                                    sprintProgress?.totalTasks ??
+                                                    sprintProgress?.TaskCount ??
+                                                    sprintProgress?.taskCount ??
+                                                    0
+                                                )}
+                                                icon={
+                                                    ListChecks
+                                                }
+                                            />
+
+                                            <StatCard
+                                                title="Completed"
+                                                value={formatNumber(
+                                                    sprintProgress?.CompletedTasks ??
+                                                    sprintProgress?.completedTasks ??
+                                                    0
+                                                )}
+                                                icon={
+                                                    CheckCircle2
+                                                }
+                                            />
+
+                                            <StatCard
+                                                title="Remaining"
+                                                value={formatNumber(
+                                                    sprintProgress?.RemainingTasks ??
+                                                    sprintProgress?.remainingTasks ??
+                                                    0
+                                                )}
+                                                icon={
+                                                    Clock3
+                                                }
+                                            />
+
+                                            <StatCard
+                                                title="Progress"
+                                                value={formatPercentage(
+                                                    sprintProgress?.ProgressPercentage ??
+                                                    sprintProgress?.progressPercentage ??
+                                                    sprintProgress?.CompletionRate ??
+                                                    sprintProgress?.completionRate ??
+                                                    0
+                                                )}
+                                                icon={
+                                                    TrendingUp
+                                                }
+                                            />
+                                        </div>
+                                    )}
+
+                                {!loadingSprint &&
+                                    selectedSprintId &&
+                                    !sprintProgress && (
+                                        <div className="mt-6">
+                                            <EmptyState
+                                                title="Sprint progress unavailable"
+                                                description="No progress information was returned for the selected sprint."
+                                            />
+                                        </div>
+                                    )}
+                            </div>
+
+                            {/* =============================================
+                                RISKS & ISSUES
+                            ============================================= */}
+
+                            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                                <SectionHeader
+                                    icon={
+                                        AlertTriangle
+                                    }
+                                    title="Risks & Issues"
+                                    description="Current risks and issues reported for this project."
+                                />
+
+                                {risks.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {risks.map(
+                                            (
+                                                risk,
+                                                index
+                                            ) => (
+                                                <div
+                                                    key={String(
+                                                        getRiskId(
+                                                            risk,
+                                                            index
+                                                        )
+                                                    )}
+                                                    className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between"
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="rounded-lg bg-slate-100 p-2">
+                                                            <AlertTriangle className="h-4 w-4 text-slate-600" />
+                                                        </div>
+
+                                                        <div>
+                                                            <p className="font-medium text-slate-800">
+                                                                {getRiskTitle(
+                                                                    risk
+                                                                )}
+                                                            </p>
+
+                                                            {risk?.description &&
+                                                                risk.description !==
+                                                                    getRiskTitle(
+                                                                        risk
+                                                                    ) && (
+                                                                    <p className="mt-1 text-sm text-slate-500">
+                                                                        {
+                                                                            risk.description
+                                                                        }
+                                                                    </p>
+                                                                )}
+                                                        </div>
+                                                    </div>
+
+                                                    <span className="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                                                        {getRiskSeverity(
+                                                            risk
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+                                ) : (
+                                    <EmptyState
+                                        title="No risks or issues"
+                                        description="No risks or issues were returned for this project."
+                                    />
+                                )}
+                            </div>
+
+                            {/* =============================================
+                                PROJECT SPRINTS
+                            ============================================= */}
+
+                            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                                <SectionHeader
+                                    icon={
+                                        CalendarDays
+                                    }
+                                    title="Project Sprints"
+                                    description="All sprints associated with the selected project."
+                                />
+
+                                {sprints.length > 0 ? (
+                                    <div className="overflow-x-auto rounded-lg border border-slate-200">
+                                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                            <thead className="bg-slate-50">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                        Sprint
+                                                    </th>
+
+                                                    <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                        Status
+                                                    </th>
+
+                                                    <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                        Start
+                                                    </th>
+
+                                                    <th className="px-4 py-3 text-left font-medium text-slate-500">
+                                                        End
+                                                    </th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody className="divide-y divide-slate-200 bg-white">
+                                                {sprints.map(
+                                                    (
+                                                        sprint,
+                                                        index
+                                                    ) => (
+                                                        <tr
+                                                            key={
+                                                                String(
+                                                                    getSprintId(
+                                                                        sprint
+                                                                    )
+                                                                ) ||
+                                                                index
+                                                            }
+                                                        >
+                                                            <td className="px-4 py-3 font-medium text-slate-800">
+                                                                {getSprintName(
+                                                                    sprint
+                                                                )}
+                                                            </td>
+
+                                                            <td className="px-4 py-3">
+                                                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                                                                    {getSprintStatus(
+                                                                        sprint
+                                                                    ) ||
+                                                                        "Unknown"}
+                                                                </span>
+                                                            </td>
+
+                                                            <td className="px-4 py-3 text-slate-600">
+                                                                {formatDate(
+                                                                    sprint?.startDate ||
+                                                                    sprint?.StartDate
+                                                                )}
+                                                            </td>
+
+                                                            <td className="px-4 py-3 text-slate-600">
+                                                                {formatDate(
+                                                                    sprint?.endDate ||
+                                                                    sprint?.EndDate
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <EmptyState
+                                        title="No sprints"
+                                        description="No sprints have been created for this project."
+                                    />
+                                )}
+                            </div>
+
+                            {/* =============================================
+                                TIMELINE
+                            ============================================= */}
+
+                            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                                <SectionHeader
+                                    icon={
+                                        Clock3
+                                    }
+                                    title="Project Timeline"
+                                    description="Timeline information returned by the project reporting API."
+                                />
+
+                                {timeline.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {timeline.map(
+                                            (
+                                                item,
                                                 index
                                             ) => {
-                                                const id =
-                                                    getSprintId(
-                                                        sprint
-                                                    );
+                                                const title =
+                                                    item?.title ||
+                                                    item?.name ||
+                                                    item?.eventName ||
+                                                    item?.Name ||
+                                                    item?.Title ||
+                                                    "Timeline Event";
+
+                                                const description =
+                                                    item?.description ||
+                                                    item?.Description ||
+                                                    "";
+
+                                                const date =
+                                                    item?.date ||
+                                                    item?.createdAt ||
+                                                    item?.startDate ||
+                                                    item?.Date ||
+                                                    item?.CreatedAt ||
+                                                    item?.StartDate;
 
                                                 return (
-                                                    <option
+                                                    <div
                                                         key={
-                                                            id ??
+                                                            item?.id ||
+                                                            item?.Id ||
                                                             index
                                                         }
-                                                        value={
-                                                            id
-                                                        }
+                                                        className="flex gap-4 rounded-lg border border-slate-200 p-4"
                                                     >
-                                                        {getSprintName(
-                                                            sprint
-                                                        )}
-                                                    </option>
+                                                        <div className="mt-1 rounded-full bg-slate-100 p-2">
+                                                            <Clock3 className="h-4 w-4 text-slate-600" />
+                                                        </div>
+
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                                                <p className="font-medium text-slate-800">
+                                                                    {title}
+                                                                </p>
+
+                                                                <p className="text-xs text-slate-500">
+                                                                    {formatDateTime(
+                                                                        date
+                                                                    )}
+                                                                </p>
+                                                            </div>
+
+                                                            {description && (
+                                                                <p className="mt-1 text-sm text-slate-500">
+                                                                    {
+                                                                        description
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 );
                                             }
                                         )}
-                                    </select>
-
-                                    {loadingSprint && (
-                                        <div className="flex items-center gap-2 rounded-xl bg-indigo-50 p-4 text-sm text-indigo-700">
-                                            <RefreshCw className="h-4 w-4 animate-spin" />
-                                            Loading sprint
-                                            progress...
-                                        </div>
-                                    )}
-
-                                    {!loadingSprint &&
-                                        sprintProgress && (
-                                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-                                                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                                                    <p className="text-sm text-gray-500">
-                                                        Total Tasks
-                                                    </p>
-
-                                                    <p className="mt-2 text-2xl font-bold text-gray-900">
-                                                        {formatNumber(
-                                                            getValue(
-                                                                sprintProgress,
-                                                                [
-                                                                    "totalTasks",
-                                                                    "taskCount",
-                                                                    "TotalTasks",
-                                                                ],
-                                                                0
-                                                            )
-                                                        )}
-                                                    </p>
-                                                </div>
-
-                                                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-                                                    <p className="text-sm text-emerald-700">
-                                                        Completed
-                                                    </p>
-
-                                                    <p className="mt-2 text-2xl font-bold text-emerald-800">
-                                                        {formatNumber(
-                                                            getValue(
-                                                                sprintProgress,
-                                                                [
-                                                                    "completedTasks",
-                                                                    "completedTaskCount",
-                                                                    "CompletedTasks",
-                                                                ],
-                                                                0
-                                                            )
-                                                        )}
-                                                    </p>
-                                                </div>
-
-                                                <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
-                                                    <p className="text-sm text-amber-700">
-                                                        Remaining
-                                                    </p>
-
-                                                    <p className="mt-2 text-2xl font-bold text-amber-800">
-                                                        {formatNumber(
-                                                            getValue(
-                                                                sprintProgress,
-                                                                [
-                                                                    "remainingTasks",
-                                                                    "pendingTasks",
-                                                                    "RemainingTasks",
-                                                                ],
-                                                                0
-                                                            )
-                                                        )}
-                                                    </p>
-                                                </div>
-
-                                                <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-                                                    <p className="text-sm text-indigo-700">
-                                                        Progress
-                                                    </p>
-
-                                                    <p className="mt-2 text-2xl font-bold text-indigo-800">
-                                                        {getValue(
-                                                            sprintProgress,
-                                                            [
-                                                                "completionRate",
-                                                                "progress",
-                                                                "percentage",
-                                                            ],
-                                                            0
-                                                        )}
-                                                        %
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
-                                </div>
-                            </div>
-
-                            {/* ==================================================
-                                RISKS
-                            ================================================== */}
-
-                            <div className="mb-6 rounded-2xl border border-gray-200 bg-white shadow-sm">
-
-                                <div className="flex items-center justify-between border-b border-gray-200 px-6 py-5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="rounded-xl bg-amber-100 p-3 text-amber-600">
-                                            <AlertTriangle className="h-5 w-5" />
-                                        </div>
-
-                                        <div>
-                                            <h2 className="text-lg font-bold text-gray-900">
-                                                Risks & Issues
-                                            </h2>
-
-                                            <p className="mt-1 text-sm text-gray-500">
-                                                Current project risks
-                                                and issues.
-                                            </p>
-                                        </div>
                                     </div>
-
-                                    <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                                        {risks.length}
-                                    </span>
-                                </div>
-
-                                <div className="p-6">
-                                    {risks.length ===
-                                    0 ? (
-                                        <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center">
-                                            <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-emerald-500" />
-
-                                            <p className="font-medium text-gray-700">
-                                                No risks or issues
-                                            </p>
-
-                                            <p className="mt-1 text-sm text-gray-500">
-                                                This project
-                                                currently has
-                                                no reported
-                                                risks.
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {risks.map(
-                                                (
-                                                    risk,
-                                                    index
-                                                ) => (
-                                                    <div
-                                                        key={getRiskId(
-                                                            risk,
-                                                            index
-                                                        )}
-                                                        className="rounded-xl border border-gray-200 p-4 transition hover:bg-gray-50"
-                                                    >
-                                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                                            <div className="flex items-start gap-3">
-                                                                <div className="rounded-lg bg-amber-50 p-2 text-amber-600">
-                                                                    <AlertTriangle className="h-4 w-4" />
-                                                                </div>
-
-                                                                <div>
-                                                                    <p className="font-semibold text-gray-900">
-                                                                        {getRiskTitle(
-                                                                            risk
-                                                                        )}
-                                                                    </p>
-
-                                                                    {risk?.description &&
-                                                                        risk.description !==
-                                                                            getRiskTitle(
-                                                                                risk
-                                                                            ) && (
-                                                                            <p className="mt-1 text-sm text-gray-500">
-                                                                                {
-                                                                                    risk.description
-                                                                                }
-                                                                            </p>
-                                                                        )}
-                                                                </div>
-                                                            </div>
-
-                                                            <span className="w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                                                                {getRiskSeverity(
-                                                                    risk
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* ==================================================
-                                SPRINT TABLE
-                            ================================================== */}
-
-                            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-
-                                <div className="border-b border-gray-200 px-6 py-5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="rounded-xl bg-indigo-100 p-3 text-indigo-600">
-                                            <FileText className="h-5 w-5" />
-                                        </div>
-
-                                        <div>
-                                            <h2 className="text-lg font-bold text-gray-900">
-                                                Project Sprints
-                                            </h2>
-
-                                            <p className="mt-1 text-sm text-gray-500">
-                                                Sprints associated
-                                                with this project.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="p-6">
-                                    {sprints.length ===
-                                    0 ? (
-                                        <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center">
-                                            <Clock3 className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-
-                                            <p className="font-medium text-gray-700">
-                                                No sprints found
-                                            </p>
-
-                                            <p className="mt-1 text-sm text-gray-500">
-                                                No sprint data
-                                                is available.
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full min-w-[650px]">
-                                                <thead>
-                                                    <tr className="border-b border-gray-200">
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                            Sprint
-                                                        </th>
-
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                            Status
-                                                        </th>
-
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                            Start Date
-                                                        </th>
-
-                                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                                            End Date
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-
-                                                <tbody>
-                                                    {sprints.map(
-                                                        (
-                                                            sprint,
-                                                            index
-                                                        ) => {
-                                                            const status =
-                                                                getSprintStatus(
-                                                                    sprint
-                                                                );
-
-                                                            const normalized =
-                                                                String(
-                                                                    status
-                                                                ).toLowerCase();
-
-                                                            let statusClass =
-                                                                "bg-gray-100 text-gray-700";
-
-                                                            if (
-                                                                normalized ===
-                                                                "active"
-                                                            ) {
-                                                                statusClass =
-                                                                    "bg-emerald-50 text-emerald-700";
-                                                            } else if (
-                                                                normalized ===
-                                                                "completed"
-                                                            ) {
-                                                                statusClass =
-                                                                    "bg-indigo-50 text-indigo-700";
-                                                            } else if (
-                                                                normalized ===
-                                                                "planning"
-                                                            ) {
-                                                                statusClass =
-                                                                    "bg-amber-50 text-amber-700";
-                                                            }
-
-                                                            return (
-                                                                <tr
-                                                                    key={
-                                                                        getSprintId(
-                                                                            sprint
-                                                                        ) ??
-                                                                        index
-                                                                    }
-                                                                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
-                                                                >
-                                                                    <td className="px-4 py-4 font-medium text-gray-900">
-                                                                        {getSprintName(
-                                                                            sprint
-                                                                        )}
-                                                                    </td>
-
-                                                                    <td className="px-4 py-4">
-                                                                        <span
-                                                                            className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass}`}
-                                                                        >
-                                                                            {
-                                                                                status
-                                                                            }
-                                                                        </span>
-                                                                    </td>
-
-                                                                    <td className="px-4 py-4 text-sm text-gray-600">
-                                                                        {formatDate(
-                                                                            sprint?.startDate ??
-                                                                                sprint?.StartDate
-                                                                        )}
-                                                                    </td>
-
-                                                                    <td className="px-4 py-4 text-sm text-gray-600">
-                                                                        {formatDate(
-                                                                            sprint?.endDate ??
-                                                                                sprint?.EndDate
-                                                                        )}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        }
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                </div>
+                                ) : (
+                                    <EmptyState
+                                        title="No timeline data"
+                                        description="No timeline events were returned for this project."
+                                    />
+                                )}
                             </div>
                         </>
                     )}
@@ -1521,10 +2288,4 @@ function ReportsPage() {
         </div>
     );
 }
-
-// ============================================================
-// EXPORT
-// ============================================================
-
-export default ReportsPage;
 

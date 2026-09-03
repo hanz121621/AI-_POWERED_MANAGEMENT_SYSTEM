@@ -12,8 +12,8 @@ import {
     Clock3,
 } from "lucide-react";
 
-import ViewSprintProgress from "@/components/contributor/developer/sprint-participation/ViewSprintProgress";
 import ViewSprintTasks from "@/components/contributor/developer/sprint-participation/ViewSprintTasks";
+import ViewSprintProgress from "@/components/contributor/developer/sprint-participation/ViewSprintProgress";
 
 // ============================================================
 // SPRINT PARTICIPATION
