@@ -7,7 +7,7 @@ import {
     AlertCircle,
     CalendarDays,
 } from "lucide-react";
-
+import { updateProjectDeadline } from "@/services/projectService";
 function SetUpdateProjectDeadline({
     project,
     currentManager,
@@ -78,35 +78,19 @@ function SetUpdateProjectDeadline({
         // SAVE
         // --------------------------------------------------------
 
-        try {
+               try {
             setSaving(true);
 
-            /*
-             * Temporary local implementation.
-             *
-             * Replace later with:
-             *
-             * await projectService.updateDeadline(...)
-             */
-
-            await new Promise((resolve) =>
-                setTimeout(resolve, 300)
-            );
-
-            onUpdated(
-                project.id,
+            // 🌟 REAL BACKEND CALL
+            await updateProjectDeadline(project.id, {
                 deadline,
-                reason
-            );
-        } catch (submitError) {
-            console.error(
-                "Failed to update project deadline:",
-                submitError
-            );
+                notes: reason,
+            });
 
-            setError(
-                "Unable to update the project deadline. Please try again."
-            );
+            onUpdated(project.id, deadline, reason);
+        } catch (submitError) {
+            console.error("Failed to update project deadline:", submitError);
+            setError(submitError?.response?.data?.message || "Unable to update the project deadline. Please try again.");
         } finally {
             setSaving(false);
         }

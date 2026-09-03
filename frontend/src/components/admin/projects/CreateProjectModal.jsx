@@ -29,14 +29,16 @@ function CreateProjectModal({
     onSave,
     existingProjects = [],
     teams = [],
+    managers = [],
 }) {
     // ========================================================
     // INITIAL FORM DATA
     // ========================================================
 
-    const initialFormData = {
+   const initialFormData = {
     name: "",
     description: "",
+    managerId: "", // 🌟 ADD THIS LINE
     team: "",
     teamId: "",
     teamLeader: "",
@@ -276,6 +278,7 @@ useEffect(() => {
 
             description:
                 formData.description.trim(),
+                managerId: formData.managerId || null,
 
             // =================================================
             // TEAM INFORMATION
@@ -623,7 +626,40 @@ teamLeaderId:
                         />
 
                     </div>
+{/* ==================================================
+    PROJECT MANAGER
+================================================== */}
+<div className="space-y-2">
+    <label
+        htmlFor="project-manager"
+        className="flex items-center gap-2 text-sm font-medium text-blue-100"
+    >
+        <UserRound size={15} className="text-cyan-400" />
+        Project Manager
+        <span className="ml-1 text-red-400">*</span>
+    </label>
 
+    <select
+        id="project-manager"
+        name="managerId"
+        value={formData.managerId || ""}
+        onChange={handleChange}
+        className="h-11 w-full rounded-md border border-blue-700 bg-blue-900 px-3 text-sm text-white outline-none transition-all duration-300 hover:border-blue-400 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/30"
+    >
+        <option value="" className="bg-blue-950">
+            Select Project Manager
+        </option>
+        {managers.map((manager) => (
+            <option
+                key={manager.id}
+                value={manager.id} // 🌟 This sends the REAL database GUID!
+                className="bg-blue-950"
+            >
+                {manager.name}
+            </option>
+        ))}
+    </select>
+</div>
                     {/* ==================================================
                         TEAM + TEAM LEADER
                     ================================================== */}

@@ -3,6 +3,7 @@ import CreateProjectModal from "@/components/admin/projects/CreateProjectModal";
 import EditProjectModal from "@/components/admin/projects/EditProjectModal";
 import DeleteProjectDialog from "@/components/admin/projects/DeleteProjectDialog";
 
+import api from "@/services/api";
 import {
     Archive,
     ArchiveRestore,
@@ -62,6 +63,7 @@ function ProjectOversight() {
     const [deleteProjectState, setDeleteProjectState] =
         useState(null);
     const [teams, setTeams] = useState([]);
+    const [managers, setManagers] = useState([]);
 const [teamLeaders, setTeamLeaders] =
     useState([]);
     // ========================================================
@@ -98,32 +100,6 @@ const [teamLeaders, setTeamLeaders] =
 
     const [message, setMessage] =
         useState(null);
-
-    // ========================================================
-    // MANAGERS
-    //
-    // These can later also come from userService.
-    // ========================================================
-
-    const managers = [
-        {
-            id: 1,
-            name: "Hana Nigussie",
-        },
-        {
-            id: 2,
-            name: "Meron Bekele",
-        },
-        {
-            id: 3,
-            name: "Daniel Tesfaye",
-        },
-        {
-            id: 4,
-            name: "Selamawit Alemu",
-        },
-    ];
-
   // ========================================================
     // NORMALIZE PROJECT
     //
@@ -351,142 +327,111 @@ const loadTeams = useCallback(
     },
     []
 );
-const loadTeamLeaders = useCallback(
-    async () => {
-        try {
-            console.log(
-                "========== LOAD TEAM LEADERS =========="
-            );
+const loadTeamLeadersAndManagers = useCallback(
+  async () => {
+    try {
+      console.log("========== LOAD TEAM LEADERS & MANAGERS ==========");
+      const users = await getAllUsers();
+      console.log("ALL DATABASE USERS:", users);
+      
+      // 1. Filter real Team Leaders
+      const leaders = Array.isArray(users)
+        ? users.filter((user) => {
+            const contributorType = String(user?.contributorType || "").trim().toLowerCase();
+            return user?.isActive !== false && contributorType === "team leader";
+          })
+        : [];
+      console.log("DATABASE TEAM LEADERS:", leaders);
+      setTeamLeaders(leaders);
 
-            const users =
-                await getAllUsers();
+      // 🌟 2. Filter REAL Managers and format them for the dropdown
+      const realManagers = Array.isArray(users)
+        ? users
+            .filter((user) => user?.role === "Manager" || user?.role === 2)
+            .map((user) => ({
+              id: user.id, // This is the REAL database GUID!
+              name: user.fullName || user.name || "Unknown Manager",
+            }))
+        : [];
+      console.log("REAL MANAGERS:", realManagers);
+      setManagers(realManagers);
 
-            console.log(
-                "ALL DATABASE USERS:",
-                users
-            );
-
-            const leaders =
-                Array.isArray(users)
-                    ? users.filter(
-                        (user) => {
-                            const contributorType =
-                                String(
-                                    user?.contributorType ||
-                                    ""
-                                )
-                                    .trim()
-                                    .toLowerCase();
-
-                            return (
-                                user?.isActive !== false &&
-                                contributorType ===
-                                    "team leader"
-                            );
-                        }
-                    )
-                    : [];
-
-            console.log(
-                "DATABASE TEAM LEADERS:",
-                leaders
-            );
-
-            setTeamLeaders(leaders);
-
-            return leaders;
-        } catch (error) {
-            console.error(
-                "LOAD TEAM LEADERS ERROR:",
-                error
-            );
-
-            setTeamLeaders([]);
-
-            return [];
-        }
-    },
-    []
+    } catch (error) {
+      console.error("LOAD USERS ERROR:", error);
+      setTeamLeaders([]);
+      setManagers([]);
+    }
+  },
+  []
 );
-    // ========================================================
-    // LOAD PROJECTS FROM BACKEND
-    // ========================================================
-
-    const loadProjects = useCallback(
-        async () => {
-            try {
-                setLoading(true);
-                setMessage(null);
-
-                console.log(
-                    "========== GET PROJECTS =========="
-                );
-
-                const response =
-                    await getProjects();
-
-                console.log(
-                    "RAW PROJECTS RESPONSE:",
-                    response
-                );
-
-                const projectList =
-                    extractProjects(
-                        response
-                    );
-
-                const normalizedProjects =
-                    projectList
-                        .map(
-                            normalizeProject
-                        )
-                        .filter(Boolean);
-
-                console.log(
-                    "NORMALIZED PROJECTS:",
-                    normalizedProjects
-                );
-
-                setProjects(
-                    normalizedProjects
-                );
-            } catch (error) {
-                console.error(
-                    "GET PROJECTS ERROR:",
-                    error
-                );
-
-                setProjects([]);
-
-                setMessage({
-                    type: "error",
-                    text:
-                        error?.message ||
-                        "Unable to load projects from the server.",
-                });
-            } finally {
-                setLoading(false);
-            }
-        },
-        [
-            extractProjects,
-            normalizeProject,
-        ]
-    );
+// ========================================================
+// LOAD PROJECTS FROM BACKEND
+// ========================================================
+const loadProjects = useCallback(
+  async () => {
+    try {
+      setLoading(true);
+      setMessage(null);
+      console.log("========== GET PROJECTS ==========");
+      const response = await getProjects();
+      console.log("RAW PROJECTS RESPONSE:", response);
+      const projectList = extractProjects(response);
+      
+      const normalizedProjects = projectList
+        .map((project) => normalizeProject(project))
+        .filter(Boolean);
+        
+      console.log("NORMALIZED PROJECTS:", normalizedProjects);
+      setProjects(normalizedProjects);
+    } catch (error) {
+      console.error("GET PROJECTS ERROR:", error);
+      setProjects([]);
+      setMessage({
+        type: "error",
+        text: error?.message || "Unable to load projects from the server.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  },
+  [extractProjects, normalizeProject] // 🌟 REMOVED teamLeaders to prevent infinite loop
+);
     
 
-    // ========================================================
-    // LOAD PROJECTS WHEN PAGE OPENS
-    // ========================================================
-
+// ========================================================
+// LOAD DATA WHEN PAGE OPENS
+// ========================================================
 useEffect(() => {
-    loadProjects();
-    loadTeams();
+  loadProjects();
+  loadTeams();
+  loadTeamLeadersAndManagers(); // 🌟 Updated function name
 }, [
-    loadProjects,
-    loadTeams,
+  loadProjects,
+  loadTeams,
+  loadTeamLeadersAndManagers,
 ]);
-
+// ========================================================
+// ENRICH PROJECTS WITH TEAM LEADER NAMES
+// ========================================================
+useEffect(() => {
+  if (projects.length > 0 && teamLeaders.length > 0) {
+    setProjects((currentProjects) =>
+      currentProjects.map((project) => {
+        // If the team leader is missing or says "Not assigned", but we have an ID, find the name
+        if ((!project.teamLeader || project.teamLeader === "Not assigned") && project.teamLeaderId) {
+          const leader = teamLeaders.find((l) => String(l.id) === String(project.teamLeaderId));
+          if (leader) {
+            return {
+              ...project,
+              teamLeader: leader.fullName || leader.name || "Not assigned",
+            };
+          }
+        }
+        return project; // Return unchanged if no match
+      })
+    );
+  }
+}, [teamLeaders]); // 🌟 This safely updates the names when teamLeaders loads, without looping
     // ========================================================
     // CREATE PROJECT
     // ========================================================
@@ -582,19 +527,18 @@ useEffect(() => {
             // Keep this object compatible with projectService.
             // ------------------------------------------------
 
-                 const requestData = {
+const requestData = {
     name: String(newProject.name || "").trim(),
     description: String(newProject.description || "").trim(),
-    
-    // ✅ FIX: Provide valid defaults instead of null
-    statusId: newProject.statusId || "a1b2c3d4-e5f6-7890-abcd-ef1234567890", // Your Planning status UUID
-    priorityId: newProject.priorityId || 1, // Default to 1 (Medium)
-    
+    statusId: newProject.statusId || "a1b2c3d4-e5f6-7890-abcd-ef1234567890", 
+    priorityId: newProject.priorityId || 1, 
     managerId: newProject.managerId || null,
     teamId: newProject.teamId ?? selectedTeam?.id ?? selectedTeam?.teamId ?? null,
     teamLeaderId: newProject.teamLeaderId || null,
-    startDate: newProject.startDate || null,
-    deadline: newProject.deadline || null,
+    
+    // ✅ FIX: Provide valid default date strings, NOT null
+    startDate: newProject.startDate || "2026-09-02", 
+    deadline: newProject.deadline || "2026-10-01",   
 };
 
             console.log(
@@ -647,6 +591,38 @@ useEffect(() => {
             setActionLoading(false);
         }
     };
+    // ========================================================
+// AI INSIGHTS (AI-002: Predict Project Risk)
+// ========================================================
+const [loadingAi, setLoadingAi] = useState(false);
+const [aiInsightData, setAiInsightData] = useState(null);
+const [aiInsightOpen, setAiInsightOpen] = useState(false);
+
+const handleGetAiInsight = async (project) => {
+  if (!project?.id) return;
+  
+  setLoadingAi(true);
+  setAiInsightData(null);
+  setAiInsightOpen(true);
+  
+  try {
+    // We use the main api instance to call our new AI-002 endpoint
+    const response = await api.get(`/projects/${project.id}/ai-risk`);
+    
+    if (response.data?.success) {
+      setAiInsightData(response.data.data);
+    } else {
+      setAiInsightData({ error: response.data?.message || "Failed to get AI insight." });
+    }
+  }catch (error) {
+    console.error("AI INSIGHT ERROR:", error);
+    // 🌟 FIX: Show the detailed error from the backend instead of the generic one
+    const detailedError = error.response?.data?.error || error.response?.data?.message || "AI service is currently unavailable.";
+    setAiInsightData({ error: detailedError });
+  } finally {
+    setLoadingAi(false);
+  }
+};
     // ========================================================
     // EDIT PROJECT
     // ========================================================
@@ -2470,6 +2446,20 @@ useEffect(() => {
                                                 sm:flex-wrap
                                             "
                                         >
+                                         <Button
+    type="button"
+    variant="outline"
+    onClick={() => handleGetAiInsight(project)}
+    disabled={actionLoading || loadingAi}
+    className="flex-1 gap-2 border-violet-500/50 bg-background text-violet-600 hover:border-violet-400 hover:bg-violet-500/10 dark:text-violet-300"
+  >
+    {loadingAi ? (
+      <Loader2 size={16} className="animate-spin" />
+    ) : (
+      <Trophy size={16} />
+    )}
+    AI Insights
+  </Button>
                                             <Button
                                                 type="button"
                                                 variant="outline"
@@ -2621,6 +2611,75 @@ useEffect(() => {
                                                 Delete
                                             </Button>
                                         </div>
+                                        {/* ==================================================
+    AI INSIGHT MODAL (AI-002: Predict Project Risk)
+================================================== */}
+<Dialog open={aiInsightOpen} onOpenChange={setAiInsightOpen}>
+  <DialogContent className="max-w-2xl border-violet-500/30 bg-background">
+    <DialogHeader>
+      <DialogTitle className="flex items-center gap-2 text-violet-600">
+        <Trophy size={20} />
+        AI Project Risk Analysis
+      </DialogTitle>
+      <DialogDescription>
+        AI-generated risk assessment for: <strong>{selectedProject?.name || "Selected Project"}</strong>
+      </DialogDescription>
+    </DialogHeader>
+
+    {loadingAi ? (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 size={32} className="animate-spin text-violet-500" />
+        <p className="mt-4 text-sm text-muted-foreground">Analyzing project data...</p>
+      </div>
+    ) : aiInsightData?.error ? (
+      <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-600">
+        {aiInsightData.error}
+      </div>
+    ) : aiInsightData ? (
+      <div className="space-y-4">
+        {/* Risk Level & Score */}
+        <div className="flex items-center gap-4 rounded-xl border border-border bg-muted/30 p-4">
+          <div className={`flex h-16 w-16 items-center justify-center rounded-full text-2xl font-bold ${
+            aiInsightData.riskLevel === 'High' ? 'bg-red-500/10 text-red-600' :
+            aiInsightData.riskLevel === 'Medium' ? 'bg-amber-500/10 text-amber-600' :
+            'bg-emerald-500/10 text-emerald-600'
+          }`}>
+            {aiInsightData.riskScore}
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Overall Risk Level</p>
+            <p className="text-xl font-bold text-foreground">{aiInsightData.riskLevel} Risk</p>
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <p className="text-sm font-semibold text-foreground">AI Summary</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{aiInsightData.summary}</p>
+        </div>
+
+        {/* Supporting Factors */}
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <p className="text-sm font-semibold text-foreground">Supporting Factors</p>
+          <ul className="mt-2 space-y-2">
+            {aiInsightData.supportingFactors?.map((factor, index) => (
+              <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500" />
+                {factor}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    ) : null}
+
+    <DialogFooter>
+      <Button onClick={() => setAiInsightOpen(false)} className="bg-violet-600 text-white hover:bg-violet-700">
+        Close
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
                                     </div>
                                 )
                             )
@@ -2661,20 +2720,12 @@ useEffect(() => {
                 CREATE PROJECT MODAL
             ================================================== */}
 
-           <CreateProjectModal
-    open={
-        createProjectOpen
-    }
-    onClose={
-        handleCloseCreateProject
-    }
-    onSave={
-        handleSaveProject
-    }
-    existingProjects={
-        projects
-    }
-    managers={managers}
+        <CreateProjectModal
+    open={createProjectOpen}
+    onClose={handleCloseCreateProject}
+    onSave={handleSaveProject}
+    existingProjects={projects}
+    managers={managers} // 🌟 ADD THIS LINE
     teams={teams}
     teamLeaders={teamLeaders}
 />

@@ -9,17 +9,7 @@ import {
     AlertTriangle,
     Sparkles,
 } from "lucide-react";
-
-// ============================================================
-// AIPMS — MANAGE PROJECT STATUS
-//
-// Design:
-// - Matches Sprint Management page
-// - Colorful violet / blue / cyan gradient
-// - Slate-50 background
-// - Rounded 2xl cards
-// - Professional status management modal
-// ============================================================
+import { updateProjectStatus } from "@/services/projectService";
 
 function ManageProjectStatus({
     project,
@@ -76,37 +66,25 @@ function ManageProjectStatus({
         // SAVE
         // ----------------------------------------------------
 
-        try {
+               try {
             setSaving(true);
 
-            /*
-             * Replace with backend service later:
-             *
-             * await projectService.updateStatus(
-             *     project.id,
-             *     status,
-             *     notes
-             * );
-             */
-
-            await new Promise((resolve) =>
-                setTimeout(resolve, 300)
+            // 🌟 Find the real GUID for the selected status
+            const selectedStatusObj = statuses.find(
+                (s) => (s.value || s.label || s.name) === status
             );
+            const statusId = selectedStatusObj?.id || selectedStatusObj?.value || status;
 
-            onUpdated(
-                project.id,
-                status,
-                notes
-            );
+            // 🌟 REAL BACKEND CALL
+            await updateProjectStatus(project.id, {
+                statusId,
+                notes,
+            });
+
+            onUpdated(project.id, status, notes);
         } catch (saveError) {
-            console.error(
-                "Failed to update project status:",
-                saveError
-            );
-
-            setError(
-                "Unable to update the project status. Please try again."
-            );
+            console.error("Failed to update project status:", saveError);
+            setError(saveError?.response?.data?.message || "Unable to update the project status. Please try again.");
         } finally {
             setSaving(false);
         }

@@ -8,7 +8,7 @@ import {
     AlertCircle,
     Sparkles,
 } from "lucide-react";
-
+import { createProjectSpecification } from "@/services/projectService";
 const INITIAL_FORM = {
     objectives: "",
     scope: "",
@@ -98,7 +98,6 @@ function CreateProjectSpecification({
 
         return Object.keys(newErrors).length === 0;
     };
-
     // ========================================================
     // SUBMIT
     // ========================================================
@@ -115,7 +114,6 @@ function CreateProjectSpecification({
                 general:
                     "You are not authorised to manage this project.",
             });
-
             return;
         }
 
@@ -124,7 +122,6 @@ function CreateProjectSpecification({
                 general:
                     "You are not authorised to manage this project.",
             });
-
             return;
         }
 
@@ -137,7 +134,6 @@ function CreateProjectSpecification({
                 general:
                     "A project specification already exists. Please update it instead.",
             });
-
             return;
         }
 
@@ -151,36 +147,29 @@ function CreateProjectSpecification({
                 general:
                     "Please complete all required fields.",
             }));
-
             return;
         }
 
         try {
             setSaving(true);
 
-            /*
-             * Temporary local implementation.
-             *
-             * Replace this section later with:
-             *
-             * await projectSpecificationService.create(...)
-             */
-
-            const specification = {
-                ...form,
-
-                projectId: project.id,
-
-                createdBy: currentManager.id,
-
-                createdAt: new Date().toISOString(),
+            // 🌟 REAL BACKEND API CALL
+            const specificationData = {
+                objectives: form.objectives.trim(),
+                scope: form.scope.trim(),
+                functionalRequirements: form.functionalRequirements.trim(),
+                nonFunctionalRequirements: form.nonFunctionalRequirements.trim(),
+                deliverables: form.deliverables.trim(),
+                technologyStack: form.technologyStack.trim(),
+                assumptions: form.assumptions.trim(),
+                constraints: form.constraints.trim(),
             };
 
-            await new Promise((resolve) =>
-                setTimeout(resolve, 300)
-            );
+            await createProjectSpecification(project.id, specificationData);
 
-            onCreated(project.id, specification);
+            // Refresh the project list to show the new specification
+            onCreated(project.id, specificationData);
+            
         } catch (error) {
             console.error(
                 "Failed to create project specification:",
@@ -189,13 +178,13 @@ function CreateProjectSpecification({
 
             setErrors({
                 general:
+                    error?.response?.data?.message ||
                     "Unable to create the project specification. Please try again.",
             });
         } finally {
             setSaving(false);
         }
     };
-
     // ========================================================
     // SPECIFICATION FIELDS
     // ========================================================

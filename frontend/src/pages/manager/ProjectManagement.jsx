@@ -1,18 +1,3 @@
-
-// ============================================================
-// AIPMS — MANAGER PROJECT MANAGEMENT
-//
-// PM-001 — Create Project Specification
-// PM-002 — Update Project Specification
-// PM-003 — Delete Project Specification
-// PM-004 — View Assigned Projects
-// PM-005 — Update Project Timeline
-// PM-006 — Set / Update Project Deadline
-// PM-007 — Manage Project Status
-//
-// REAL BACKEND VERSION
-// ============================================================
-
 import React, {
     useCallback,
     useEffect,
@@ -34,12 +19,16 @@ import {
     CircleDot,
     RefreshCw,
     Loader2,
+    FileText,
+    Lightbulb,
 } from "lucide-react";
 
 // ============================================================
 // SERVICES
 // ============================================================
-
+import AiRecommendationsModal from "../../components/manager/project/AiRecommendationsModal"; // 🌟 ADD THIS
+import AiBottlenecksModal from "../../components/manager/project/AiBottlenecksModal";         // 🌟 ADD THIS
+import AiProjectSummaryModal from "../../components/manager/project/AiProjectSummaryModal";
 import {
     getMyProjects,
     getProjectSpecification,
@@ -86,6 +75,14 @@ function ProjectManagement() {
     // ========================================================
 
     const [projects, setProjects] = useState([]);
+
+    const [summaryOpen, setSummaryOpen] = useState(false);
+   const [summaryProject, setSummaryProject] = useState(null);
+       const [recommendationsOpen, setRecommendationsOpen] = useState(false);
+    const [recommendationsProject, setRecommendationsProject] = useState(null);
+
+    const [bottlenecksOpen, setBottlenecksOpen] = useState(false);
+    const [bottlenecksProject, setBottlenecksProject] = useState(null);
 
     // ========================================================
     // LOADING
@@ -710,32 +707,53 @@ function ProjectManagement() {
         [projects]
     );
 
-    // ========================================================
+       // ========================================================
     // MANAGER AUTHORIZATION
     // ========================================================
 
-    const isCurrentManagerProject =
-        useCallback(
-            (project) => {
-                if (
-                    !project ||
-                    !currentManager?.id
-                ) {
-                    return false;
-                }
+    const isCurrentManagerProject = useCallback(
+        (project) => {
+            if (!project || !currentManager?.id) {
+                return false;
+            }
+            return (
+                String(project.managerId).toLowerCase() ===
+                String(currentManager.id).toLowerCase()
+            );
+        },
+        [currentManager]
+    );
 
-                return (
-                    String(
-                        project.managerId
-                    ).toLowerCase() ===
-                    String(
-                        currentManager.id
-                    ).toLowerCase()
-                );
-            },
-            [currentManager]
-        );
+    // 🌟 PASTE IT HERE, BELOW isCurrentManagerProject AND handleProjectError 🌟
+    // ========================================================
+    // AI-008: OPEN AI PROJECT SUMMARY
+    // ========================================================
+    const handleOpenSummary = useCallback(
+        (project) => {
+            clearMessages();
+            if (!project) {
+                handleProjectError("The selected project could not be found.");
+                return;
+            }
+            if (!isCurrentManagerProject(project)) {
+                handleProjectError("You are not authorised to view this project's AI summary.");
+                return;
+            }
+            setSummaryProject(project);
+            setSummaryOpen(true);
+        },
+        [clearMessages, handleProjectError, isCurrentManagerProject]
+    );
 
+    const handleOpenRecommendations = useCallback((project) => {
+        setRecommendationsProject(project);
+        setRecommendationsOpen(true);
+    }, []);
+
+    const handleOpenBottlenecks = useCallback((project) => {
+        setBottlenecksProject(project);
+        setBottlenecksOpen(true);
+    }, []);
     // ========================================================
     // PM-001
     // CREATE PROJECT SPECIFICATION
@@ -1991,7 +2009,36 @@ function ProjectManagement() {
                                                         </div>
 
                                                         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                                                            
+    {/* AI-008: AI PROJECT SUMMARY */}
+    <button
+        type="button"
+        onClick={() => handleOpenSummary(project)}
+        className="flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-700 transition hover:-translate-y-0.5 hover:bg-violet-100 hover:shadow-sm"
+    >
+        <FileText size={17} />
+        AI Project Summary
+    </button>
 
+    {/* 🌟 AI-003: RECOMMENDATIONS */}
+    <button
+        type="button"
+        onClick={() => handleOpenRecommendations(project)}
+        className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700 transition hover:-translate-y-0.5 hover:bg-amber-100 hover:shadow-sm"
+    >
+        <Lightbulb size={17} />
+        AI Recommendations
+    </button>
+
+    {/* 🌟 AI-009: BOTTLENECKS */}
+    <button
+        type="button"
+        onClick={() => handleOpenBottlenecks(project)}
+        className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition hover:-translate-y-0.5 hover:bg-red-100 hover:shadow-sm"
+    >
+        <AlertTriangle size={17} />
+        AI Bottlenecks
+    </button>
                                                             {/* PM-001 */}
 
                                                             {!project.hasSpecification && (
@@ -2015,6 +2062,7 @@ function ProjectManagement() {
 
                                                                 </button>
                                                             )}
+                                                            
 
                                                             {/* PM-002 */}
 
@@ -2359,10 +2407,56 @@ function ProjectManagement() {
                         }
                     />
                 )}
+                       {/* ============================================================
+                AI-008 — AI PROJECT SUMMARY MODAL
+            ============================================================ */}
+            {summaryOpen && summaryProject && (
+                <AiProjectSummaryModal
+                    project={summaryProject}
+                    currentManager={currentManager}
+                    onClose={() => setSummaryOpen(false)}
+                    onError={(msg) => {
+                        handleProjectError(msg);
+                        setSummaryOpen(false);
+                    }}
+                />
+            )}
+
+            {/* 🌟 ============================================================
+                AI-003 — AI RECOMMENDATIONS MODAL
+            ============================================================ */}
+            {recommendationsOpen && recommendationsProject && (
+                <AiRecommendationsModal
+                    project={recommendationsProject}
+                    currentManager={currentManager}
+                    onClose={() => setRecommendationsOpen(false)}
+                    onError={(msg) => {
+                        handleProjectError(msg);
+                        setRecommendationsOpen(false);
+                    }}
+                />
+            )}
+
+            {/* 🌟 ============================================================
+                AI-009 — AI BOTTLENECKS MODAL
+            ============================================================ */}
+            {bottlenecksOpen && bottlenecksProject && (
+                <AiBottlenecksModal
+                    project={bottlenecksProject}
+                    currentManager={currentManager}
+                    onClose={() => setBottlenecksOpen(false)}
+                    onError={(msg) => {
+                        handleProjectError(msg);
+                        setBottlenecksOpen(false);
+                    }}
+                />
+            )}
 
         </div>
     );
 }
+
+
 
 // ============================================================
 // DEFAULT EXPORT

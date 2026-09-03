@@ -872,10 +872,193 @@ namespace AI_PMS.API.Controllers.Projects
             }
         }
 
+                // =========================================================
+        // AI-002: PREDICT PROJECT RISK
         // =========================================================
-        // CHANGE PROJECT STATUS
-        // PROJ-008
+        [HttpGet("{id:guid}/ai-risk")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> PredictProjectRisk(Guid id)
+        {
+            try
+            {
+                var managerId = GetCurrentUserId();
+
+                if (!managerId.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid user identity."
+                    });
+                }
+
+                var prediction =
+                    await _aiSuggestionService.PredictProjectRiskAsync(
+                        id,
+                        managerId.Value);
+
+                return Ok(new
+                {
+                    success = true,
+                    projectId = id,
+                    data = prediction
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = "Unable to generate AI risk prediction.",
+                        error = ex.Message
+                    });
+            }
+        }
+
         // =========================================================
+        // AI-008: GENERATE PROJECT SUMMARY
+        // =========================================================
+        [HttpGet("{id:guid}/ai-summary")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GenerateProjectSummary(Guid id)
+        {
+            try
+            {
+                var managerId = GetCurrentUserId();
+
+                if (!managerId.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid user identity."
+                    });
+                }
+
+                var summary =
+                    await _aiSuggestionService.GenerateProjectSummaryAsync(
+                        id,
+                        managerId.Value);
+
+                return Ok(new
+                {
+                    success = true,
+                    projectId = id,
+                    data = summary
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = "Unable to generate AI project summary.",
+                        error = ex.Message
+                    });
+            }
+        }
+
+        // =========================================================
+        // AI-003: GENERATE PROJECT RECOMMENDATIONS
+        // =========================================================
+        [HttpGet("{id:guid}/ai-recommendations")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GenerateRecommendations(Guid id)
+        {
+            try
+            {
+                var managerId = GetCurrentUserId();
+
+                if (!managerId.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid user identity."
+                    });
+                }
+
+                var recommendations =
+                    await _aiSuggestionService
+                        .GenerateProjectRecommendationsAsync(
+                            id,
+                            managerId.Value);
+
+                return Ok(new
+                {
+                    success = true,
+                    projectId = id,
+                    data = recommendations
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message =
+                            "Unable to generate project recommendations.",
+                        error = ex.Message
+                    });
+            }
+        }
+
+        // =========================================================
+        // AI-009: DETECT PROJECT BOTTLENECKS
+        // =========================================================
+        [HttpGet("{id:guid}/ai-bottlenecks")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> DetectBottlenecks(Guid id)
+        {
+            try
+            {
+                var managerId = GetCurrentUserId();
+
+                if (!managerId.HasValue)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Invalid user identity."
+                    });
+                }
+
+                var bottlenecks =
+                    await _aiSuggestionService
+                        .DetectProjectBottlenecksAsync(
+                            id,
+                            managerId.Value);
+
+                return Ok(new
+                {
+                    success = true,
+                    projectId = id,
+                    data = bottlenecks
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message =
+                            "Unable to detect project bottlenecks.",
+                        error = ex.Message
+                    });
+            }
+        }
 
         // =========================================================
         // PM-007

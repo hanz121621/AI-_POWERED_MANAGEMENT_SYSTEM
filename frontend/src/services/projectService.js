@@ -564,104 +564,45 @@ export async function getProjectById(
         );
     }
 }
-
+// ============================================================
+// CREATE PROJECT
+// ============================================================
 // ============================================================
 // CREATE PROJECT
 //
 // POST /api/projects
 // ============================================================
 
-export async function createProject(
-    projectData
-) {
+export async function createProject(projectData) {
     if (!projectData) {
         return {
             success: false,
-            error:
-                "Project information is required.",
+            error: "Project information is required.",
         };
     }
 
     try {
-        const requestData = {
-            name: String(
-                projectData.name || ""
-            ).trim(),
-
-            description: String(
-                projectData.description || ""
-            ).trim(),
-
-            statusId:
-                projectData.statusId ||
-                null,
-
-            managerId:
-                projectData.managerId ||
-                null,
-
-            teamId:
-                projectData.teamId ||
-                null,
-
-            teamLeaderId:
-                projectData.teamLeaderId ||
-                null,
-
-            priorityId:
-                projectData.priorityId ??
-                null,
-
-            startDate:
-                projectData.startDate ||
-                null,
-
-            deadline:
-                projectData.deadline ||
-                null,
-        };
-
-        const response = await api.post(
-            "/projects",
-            requestData
-        );
+        // ✅ CRITICAL FIX: Do NOT rebuild the object. 
+        // Just send projectData exactly as it was constructed in ProjectOversight.jsx
+        console.log("Sending to backend:", projectData);
+        const response = await api.post("/projects", projectData);
 
         return {
             success: true,
-
-            project:
-                normalizeProject(
-                    response.data
-                ),
-
-            message:
-                response.data?.message ||
-                "Project created successfully.",
+            project: normalizeProject(response.data),
+            message: response.data?.message || "Project created successfully.",
         };
     } catch (error) {
-        console.error(
-            "CREATE PROJECT ERROR:",
-            error
-        );
+        console.error("CREATE PROJECT ERROR:", error);
 
         return {
             success: false,
-
-            error:
-                getApiErrorMessage(
-                    error,
-                    "Unable to create project."
-                ),
-
-            status:
-                error?.response?.status,
-
-            details:
-                error?.response?.data,
+            error: getApiErrorMessage(error, "Unable to create project."),
+            status: error?.response?.status,
+            details: error?.response?.data,
         };
     }
 }
-
 // ============================================================
 // UPDATE PROJECT
 //
@@ -1602,6 +1543,9 @@ export async function createProjectSpecification(
     }
 }
 
+
+
+
 // ============================================================
 // UPDATE PROJECT SPECIFICATION
 // ============================================================
@@ -1835,72 +1779,54 @@ export async function deleteProjectSpecification(
         };
     }
 }
+// ========================================================
+// PM-006: Update Project Deadline
+// ========================================================
+export const updateProjectDeadline = async (projectId, deadlineData) => {
+  try {
+    const response = await api.put(`/projects/${projectId}/deadline`, deadlineData);
+    return response.data;
+  } catch (error) {
+    console.error("UPDATE DEADLINE ERROR:", error);
+    throw error;
+  }
+};
 
-// ============================================================
-// UPDATE PROJECT DEADLINE
-//
-// PUT /api/projects/{projectId}/deadline
-// ============================================================
+// ========================================================
+// PM-007: Manage Project Status
+// ========================================================
+export const updateProjectStatus = async (projectId, statusData) => {
+  try {
+    const response = await api.put(`/projects/${projectId}/status`, statusData);
+    return response.data;
+  } catch (error) {
+    console.error("UPDATE STATUS ERROR:", error);
+    throw error;
+  }
+};
 
-export async function updateProjectDeadline(
-    projectId,
-    deadlineData
-) {
-    if (!projectId) {
-        return {
-            success: false,
-            error: "Project ID is required.",
-        };
-    }
+// ========================================================
+// AI-008: Generate Automated Project Summary
+// ========================================================
+export const generateProjectSummary = async (projectId) => {
+  try {
+    const response = await api.get(`/projects/${projectId}/ai-summary`);
+    return response.data;
+  } catch (error) {
+    console.error("GENERATE PROJECT SUMMARY ERROR:", error);
+    throw error;
+  }
+};
 
-    if (!deadlineData) {
-        return {
-            success: false,
-            error: "Deadline information is required.",
-        };
-    }
+export const getAiRecommendations = async (projectId) => {
+  const response = await api.get(`/projects/${projectId}/ai-recommendations`);
+  return response.data;
+};
 
-    try {
-        const response = await api.put(
-            `/projects/${projectId}/deadline`,
-            deadlineData
-        );
-
-        return {
-            success: true,
-
-            project: normalizeProject(
-                response.data?.data ??
-                response.data
-            ),
-
-            message:
-                response.data?.message ||
-                "Project deadline updated successfully.",
-        };
-    } catch (error) {
-        console.error(
-            "UPDATE PROJECT DEADLINE ERROR:",
-            error
-        );
-
-        return {
-            success: false,
-
-            error: getApiErrorMessage(
-                error,
-                "Unable to update project deadline."
-            ),
-
-            status:
-                error?.response?.status,
-
-            details:
-                error?.response?.data,
-        };
-    }
-}
-
+export const getAiBottlenecks = async (projectId) => {
+  const response = await api.get(`/projects/${projectId}/ai-bottlenecks`);
+  return response.data;
+};
 // ============================================================
 // DEFAULT EXPORT
 // ============================================================

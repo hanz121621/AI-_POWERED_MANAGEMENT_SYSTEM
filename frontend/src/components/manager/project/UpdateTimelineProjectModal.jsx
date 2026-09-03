@@ -7,6 +7,7 @@ import {
     AlertCircle,
 } from "lucide-react";
 
+import { updateProjectTimeline } from "@/services/projectService";
 function UpdateProjectTimeline({
     project,
     currentManager,
@@ -79,38 +80,19 @@ function UpdateProjectTimeline({
             return;
         }
 
-        try {
+              try {
             setSaving(true);
 
-            const timeline = {
+            // 🌟 REAL BACKEND CALL
+            await updateProjectTimeline(project.id, {
                 startDate,
-                endDate,
-                updatedBy: currentManager.id,
-                updatedAt: new Date().toISOString(),
-            };
+                deadline: endDate,
+            });
 
-            /*
-             * Temporary local implementation.
-             *
-             * Replace later with:
-             *
-             * await projectService.updateTimeline(...)
-             */
-
-            await new Promise((resolve) =>
-                setTimeout(resolve, 300)
-            );
-
-            onUpdated(project.id, timeline);
+            onUpdated(project.id, { startDate, deadline: endDate });
         } catch (submitError) {
-            console.error(
-                "Failed to update project timeline:",
-                submitError
-            );
-
-            setError(
-                "Unable to update the project timeline. Please try again."
-            );
+            console.error("Failed to update project timeline:", submitError);
+            setError(submitError?.response?.data?.message || "Unable to update the project timeline. Please try again.");
         } finally {
             setSaving(false);
         }

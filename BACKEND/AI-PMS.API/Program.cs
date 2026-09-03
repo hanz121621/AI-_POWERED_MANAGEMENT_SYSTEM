@@ -129,7 +129,7 @@ builder.Services.AddHttpClient<IAiSuggestionService, AiSuggestionService>(
 // =========================================================
 // DATABASE
 // =========================================================
-
+//builder.Services.AddScoped<AI_PMS.Application.Interfaces.AI.IAiProjectContextService, AI_PMS.Application.Services.AI.AiProjectContextService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -795,7 +795,7 @@ builder.Services
 // Register HttpClient for Ollama
 builder.Services.AddHttpClient<AI_PMS.Application.Interfaces.AI.IAiSuggestionService, AI_PMS.Application.Services.AI.AiSuggestionService>(client =>
 {
-    client.Timeout = TimeSpan.FromSeconds(60); // AI generation can take a few seconds
+    client.Timeout = TimeSpan.FromSeconds(300); // AI generation can take a few seconds
 });
 
 var app = builder.Build();
