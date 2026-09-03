@@ -6,15 +6,11 @@ import axios from "axios";
 // ============================================================
 
 const api = axios.create({
-    baseURL:
-        "http://localhost:5043/api",
+    baseURL: "http://localhost:5043/api",
 
     headers: {
-        "Content-Type":
-            "application/json",
-
-        Accept:
-            "application/json",
+        "Content-Type": "application/json",
+        Accept: "application/json",
     },
 });
 
@@ -47,21 +43,11 @@ function getAccessToken() {
     // 1. Direct token storage
     // --------------------------------------------------------
 
-    for (
-        const key of TOKEN_KEYS
-    ) {
-        const value =
-            localStorage.getItem(
-                key
-            );
+    for (const key of TOKEN_KEYS) {
+        const value = localStorage.getItem(key);
 
-        if (
-            value &&
-            String(value).trim()
-        ) {
-            return String(
-                value
-            ).trim();
+        if (value && String(value).trim()) {
+            return String(value).trim();
         }
     }
 
@@ -69,23 +55,15 @@ function getAccessToken() {
     // 2. Authentication objects
     // --------------------------------------------------------
 
-    for (
-        const key of AUTH_KEYS
-    ) {
+    for (const key of AUTH_KEYS) {
         try {
-            const stored =
-                localStorage.getItem(
-                    key
-                );
+            const stored = localStorage.getItem(key);
 
             if (!stored) {
                 continue;
             }
 
-            const parsed =
-                JSON.parse(
-                    stored
-                );
+            const parsed = JSON.parse(stored);
 
             const token =
                 parsed?.accessToken ??
@@ -93,15 +71,10 @@ function getAccessToken() {
                 parsed?.access_token ??
                 null;
 
-            if (
-                token &&
-                String(token).trim()
-            ) {
-                return String(
-                    token
-                ).trim();
+            if (token && String(token).trim()) {
+                return String(token).trim();
             }
-        } catch (error) {
+        } catch {
             console.warn(
                 `Unable to parse localStorage "${key}".`
             );
@@ -117,8 +90,7 @@ function getAccessToken() {
 
 api.interceptors.request.use(
     (config) => {
-        const token =
-            getAccessToken();
+        const token = getAccessToken();
 
         console.log(
             "========== API REQUEST =========="
@@ -135,20 +107,48 @@ api.interceptors.request.use(
         );
 
         console.log(
+            "FULL URL:",
+            `${config.baseURL || ""}${config.url || ""}`
+        );
+
+        console.log(
             "TOKEN:",
-            token
-                ? "AVAILABLE"
-                : "NOT FOUND"
+            token ? "AVAILABLE" : "NOT FOUND"
         );
 
         // ----------------------------------------------------
-        // Do not attach token to login request.
+        // Request body
+        // ----------------------------------------------------
+
+        if (config.data) {
+            console.log(
+                "REQUEST BODY:",
+                config.data
+            );
+
+            try {
+                console.log(
+                    "REQUEST BODY JSON:",
+                    JSON.stringify(
+                        config.data,
+                        null,
+                        2
+                    )
+                );
+            } catch {
+                console.warn(
+                    "Unable to stringify request body."
+                );
+            }
+        }
+
+        // ----------------------------------------------------
+        // Attach JWT token
         // ----------------------------------------------------
 
         if (
             token &&
-            config.url !==
-                "/Auth/login"
+            config.url !== "/Auth/login"
         ) {
             config.headers =
                 config.headers || {};
@@ -161,8 +161,7 @@ api.interceptors.request.use(
                 "Bearer token attached"
             );
         } else if (
-            config.url ===
-            "/Auth/login"
+            config.url === "/Auth/login"
         ) {
             console.log(
                 "AUTHORIZATION:",
@@ -183,9 +182,20 @@ api.interceptors.request.use(
     },
 
     (error) => {
-        return Promise.reject(
+        console.error(
+            "========== REQUEST SETUP ERROR =========="
+        );
+
+        console.error(
+            "ERROR:",
             error
         );
+
+        console.error(
+            "=========================================="
+        );
+
+        return Promise.reject(error);
     }
 );
 
@@ -195,6 +205,49 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
     (response) => {
+        console.log(
+            "========== API RESPONSE =========="
+        );
+
+        console.log(
+            "STATUS:",
+            response.status
+        );
+
+        console.log(
+            "METHOD:",
+            response.config?.method?.toUpperCase()
+        );
+
+        console.log(
+            "URL:",
+            response.config?.url
+        );
+
+        console.log(
+            "RESPONSE DATA:",
+            response.data
+        );
+
+        try {
+            console.log(
+                "RESPONSE DATA JSON:",
+                JSON.stringify(
+                    response.data,
+                    null,
+                    2
+                )
+            );
+        } catch {
+            console.warn(
+                "Unable to stringify response data."
+            );
+        }
+
+        console.log(
+            "=================================="
+        );
+
         return response;
     },
 
@@ -202,8 +255,146 @@ api.interceptors.response.use(
         const status =
             error?.response?.status;
 
+        const responseData =
+            error?.response?.data;
+
+        const requestConfig =
+            error?.config;
+
         // ----------------------------------------------------
-        // 401
+        // GENERAL ERROR INFORMATION
+        // ----------------------------------------------------
+
+        console.error(
+            "========== API ERROR =========="
+        );
+
+        console.error(
+            "STATUS:",
+            status ?? "NO STATUS"
+        );
+
+        console.error(
+            "METHOD:",
+            requestConfig?.method?.toUpperCase()
+        );
+
+        console.error(
+            "URL:",
+            requestConfig?.url
+        );
+
+        console.error(
+            "FULL URL:",
+            `${requestConfig?.baseURL || ""}${requestConfig?.url || ""}`
+        );
+
+        // ----------------------------------------------------
+        // REQUEST BODY
+        // ----------------------------------------------------
+
+        if (requestConfig?.data) {
+            console.error(
+                "REQUEST BODY:",
+                requestConfig.data
+            );
+
+            try {
+                const parsedRequestData =
+                    typeof requestConfig.data === "string"
+                        ? JSON.parse(requestConfig.data)
+                        : requestConfig.data;
+
+                console.error(
+                    "REQUEST BODY JSON:",
+                    JSON.stringify(
+                        parsedRequestData,
+                        null,
+                        2
+                    )
+                );
+            } catch {
+                console.error(
+                    "Unable to parse request body."
+                );
+            }
+        }
+
+        // ----------------------------------------------------
+        // BACKEND RESPONSE
+        // ----------------------------------------------------
+
+        console.error(
+            "BACKEND RESPONSE:",
+            responseData
+        );
+
+        try {
+            console.error(
+                "BACKEND RESPONSE JSON:",
+                JSON.stringify(
+                    responseData,
+                    null,
+                    2
+                )
+            );
+        } catch {
+            console.error(
+                "Unable to stringify backend response."
+            );
+        }
+
+        // ----------------------------------------------------
+        // 400 BAD REQUEST
+        // ----------------------------------------------------
+
+        if (status === 400) {
+            console.error(
+                "========== 400 BAD REQUEST =========="
+            );
+
+            console.error(
+                "The server rejected the request."
+            );
+
+            console.error(
+                "This usually means the request body",
+                "does not match the backend DTO or",
+                "backend validation failed."
+            );
+
+            console.error(
+                "REQUEST BODY:",
+                requestConfig?.data
+            );
+
+            console.error(
+                "BACKEND ERROR:",
+                responseData
+            );
+
+            // ASP.NET Core validation errors
+            if (responseData?.errors) {
+                console.error(
+                    "VALIDATION ERRORS:"
+                );
+
+                console.error(
+                    JSON.stringify(
+                        responseData.errors,
+                        null,
+                        2
+                    )
+                );
+            }
+
+            console.error(
+                "===================================="
+            );
+        }
+
+        // ----------------------------------------------------
+        // 401 UNAUTHORIZED
         // ----------------------------------------------------
 
         if (status === 401) {
@@ -213,17 +404,17 @@ api.interceptors.response.use(
 
             console.error(
                 "METHOD:",
-                error?.config?.method?.toUpperCase()
+                requestConfig?.method?.toUpperCase()
             );
 
             console.error(
                 "URL:",
-                error?.config?.url
+                requestConfig?.url
             );
 
             console.error(
                 "AUTHORIZATION HEADER:",
-                error?.config?.headers
+                requestConfig?.headers
                     ?.Authorization
                     ? "SENT"
                     : "NOT SENT"
@@ -231,7 +422,7 @@ api.interceptors.response.use(
 
             console.error(
                 "BACKEND RESPONSE:",
-                error?.response?.data
+                responseData
             );
 
             console.error(
@@ -240,13 +431,10 @@ api.interceptors.response.use(
 
             // IMPORTANT:
             // Do NOT clear localStorage here.
-            //
-            // This prevents a random 401 from immediately
-            // destroying the login session.
         }
 
         // ----------------------------------------------------
-        // 403
+        // 403 FORBIDDEN
         // ----------------------------------------------------
 
         if (status === 403) {
@@ -256,17 +444,17 @@ api.interceptors.response.use(
 
             console.error(
                 "METHOD:",
-                error?.config?.method?.toUpperCase()
+                requestConfig?.method?.toUpperCase()
             );
 
             console.error(
                 "URL:",
-                error?.config?.url
+                requestConfig?.url
             );
 
             console.error(
                 "BACKEND RESPONSE:",
-                error?.response?.data
+                responseData
             );
 
             console.error(
@@ -275,7 +463,77 @@ api.interceptors.response.use(
         }
 
         // ----------------------------------------------------
-        // 500+
+        // 404 NOT FOUND
+        // ----------------------------------------------------
+
+        if (status === 404) {
+            console.error(
+                "========== 404 NOT FOUND =========="
+            );
+
+            console.error(
+                "The requested API endpoint was not found."
+            );
+
+            console.error(
+                "URL:",
+                requestConfig?.url
+            );
+
+            console.error(
+                "==================================="
+            );
+        }
+
+        // ----------------------------------------------------
+        // 409 CONFLICT
+        // ----------------------------------------------------
+
+        if (status === 409) {
+            console.error(
+                "========== 409 CONFLICT =========="
+            );
+
+            console.error(
+                "The server rejected the request because",
+                "of a resource conflict."
+            );
+
+            console.error(
+                "BACKEND RESPONSE:",
+                responseData
+            );
+
+            console.error(
+                "=================================="
+            );
+        }
+
+        // ----------------------------------------------------
+        // 422 UNPROCESSABLE ENTITY
+        // ----------------------------------------------------
+
+        if (status === 422) {
+            console.error(
+                "========== 422 UNPROCESSABLE ENTITY =========="
+            );
+
+            console.error(
+                "The server could not process the supplied data."
+            );
+
+            console.error(
+                "BACKEND RESPONSE:",
+                responseData
+            );
+
+            console.error(
+                "==============================================="
+            );
+        }
+
+        // ----------------------------------------------------
+        // 500+ SERVER ERRORS
         // ----------------------------------------------------
 
         if (
@@ -293,12 +551,12 @@ api.interceptors.response.use(
 
             console.error(
                 "URL:",
-                error?.config?.url
+                requestConfig?.url
             );
 
             console.error(
                 "BACKEND RESPONSE:",
-                error?.response?.data
+                responseData
             );
 
             console.error(
@@ -306,16 +564,64 @@ api.interceptors.response.use(
             );
         }
 
-        return Promise.reject(
-            error
+        // ----------------------------------------------------
+        // NETWORK ERROR
+        // ----------------------------------------------------
+
+        if (!error.response) {
+            console.error(
+                "========== NETWORK ERROR =========="
+            );
+
+            console.error(
+                "The request did not receive a response."
+            );
+
+            console.error(
+                "Possible causes:"
+            );
+
+            console.error(
+                "1. Backend API is not running."
+            );
+
+            console.error(
+                "2. Incorrect API URL."
+            );
+
+            console.error(
+                "3. CORS configuration."
+            );
+
+            console.error(
+                "4. Network connection problem."
+            );
+
+            console.error(
+                "ERROR MESSAGE:",
+                error.message
+            );
+
+            console.error(
+                "==================================="
+            );
+        }
+
+        console.error(
+            "================================="
         );
+
+        return Promise.reject(error);
     }
 );
+
 // ============================================================
 // AI
 // ============================================================
 
-export const generateAIResponse = async (prompt) => {
+export const generateAIResponse = async (
+    prompt
+) => {
     const response = await api.post(
         "/AI/generate",
         {
@@ -325,7 +631,9 @@ export const generateAIResponse = async (prompt) => {
 
     return response.data;
 };
+
 // ============================================================
 // EXPORT
 // ============================================================
+
 export default api;

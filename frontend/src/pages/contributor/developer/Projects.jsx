@@ -1,3 +1,4 @@
+import { useState } from "react";
 
 import {
     FolderKanban,
@@ -18,6 +19,8 @@ import ViewProjectDetails
 // ============================================================
 
 export default function Projects() {
+    const [selectedProject, setSelectedProject] = useState(null);
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-[#071a2f]">
 
@@ -26,7 +29,6 @@ export default function Projects() {
                 {/* ==================================================
                     PAGE HEADER
                 ================================================== */}
-
                 <header className="mb-6">
 
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -565,7 +567,10 @@ export default function Projects() {
 
                     <div className="p-4 sm:p-6">
 
-                        <ViewAssignedProjects />
+                        <ViewAssignedProjects
+                            selectedProject={selectedProject}
+                            onSelectProject={setSelectedProject}
+                        />
 
                     </div>
 
@@ -656,7 +661,10 @@ export default function Projects() {
 
                     <div className="p-4 sm:p-6">
 
-                        <ViewProjectDetails />
+                        <ViewProjectDetails
+                            project={selectedProject}
+                            onBack={() => setSelectedProject(null)}
+                        />
 
                     </div>
 

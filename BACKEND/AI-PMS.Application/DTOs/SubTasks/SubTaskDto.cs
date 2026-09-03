@@ -1,3 +1,5 @@
+using AI_PMS.Domain.Enums;
+
 namespace AI_PMS.Application.DTOs.SubTasks
 {
     public class SubTaskDto
@@ -17,6 +19,10 @@ namespace AI_PMS.Application.DTOs.SubTasks
         // Kept for database compatibility.
         // It is NOT used as an approval workflow.
         public bool IsApproved { get; set; }
+
+        public ProjectTaskStatus Status { get; set; }
+
+        public int Progress { get; set; }
 
         public DateTime CreatedAt { get; set; }
 

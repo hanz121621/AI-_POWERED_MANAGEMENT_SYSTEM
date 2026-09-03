@@ -4,30 +4,15 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
     Activity,
     BarChart3,
-    Bell,
-    BookOpen,
-   
-    
-    ClipboardCheck,
     Code2,
     FolderKanban,
-   
-    History,
-    Languages,
     ListTodo,
     MessageSquare,
-    MessageSquareCode,
-   
     PanelLeftClose,
     PanelLeftOpen,
-    Send,
     Settings2,
     ShieldCheck,
-    Sparkles,
-    Sun,
     UserRound,
-    UsersRound,
-    Wrench,
     X,
 } from "lucide-react";
 
@@ -47,6 +32,10 @@ import { Button } from "@/components/ui/button";
 // 6. Communication
 // 7. Reports & Monitoring
 // 8. Settings & Preferences
+//
+// IMPORTANT:
+// All modules are DIRECT navigation items.
+// There are NO dropdowns or submenus.
 //
 // ============================================================
 
@@ -177,6 +166,9 @@ function getInitials(name) {
 // IMPORTANT:
 // These paths should match AppRoutes.jsx.
 //
+// Every item below is a DIRECT navigation item.
+// No item has a submenu.
+//
 // ============================================================
 
 const MAIN_NAVIGATION = [
@@ -273,188 +265,6 @@ const MAIN_NAVIGATION = [
         label: "Settings",
         path: "/developer/settings",
         icon: Settings2,
-        exact: false,
-    },
-];
-
-
-// ============================================================
-// PROFILE SUB NAVIGATION
-// ============================================================
-
-const PROFILE_NAVIGATION = [
-    {
-        label: "View Profile",
-        path: "/developer/profile",
-        icon: UserRound,
-        exact: true,
-    },
-    {
-        label: "Update Profile",
-        path: "/developer/profile/update",
-        icon: Wrench,
-        exact: true,
-    },
-];
-
-
-// ============================================================
-// PROJECT SUB NAVIGATION
-// ============================================================
-
-const PROJECT_NAVIGATION = [
-    {
-        label: "Assigned Projects",
-        path: "/developer/projects",
-        icon: FolderKanban,
-        exact: true,
-    },
-    {
-        label: "Project Details",
-        path: "/developer/projects/details",
-        icon: BookOpen,
-        exact: false,
-    },
-];
-
-
-// ============================================================
-// TASK SUB NAVIGATION
-// ============================================================
-
-const TASK_NAVIGATION = [
-    {
-        label: "Assigned Tasks",
-        path: "/developer/tasks",
-        icon: ListTodo,
-        exact: true,
-    },
-    {
-        label: "Update Task Status",
-        path: "/developer/tasks/status",
-        icon: Activity,
-        exact: false,
-    },
-    {
-        label: "Add Task Comment",
-        path: "/developer/tasks/comments",
-        icon: MessageSquareCode,
-        exact: false,
-    },
-    {
-        label: "Submit Completed Work",
-        path: "/developer/tasks/submit",
-        icon: Send,
-        exact: false,
-    },
-    {
-        label: "Upload Task Files",
-        path: "/developer/tasks/files",
-        icon: ClipboardCheck,
-        exact: false,
-    },
-];
-
-
-// ============================================================
-// SPRINT SUB NAVIGATION
-// ============================================================
-
-const SPRINT_NAVIGATION = [
-    {
-        label: "Sprint Tasks",
-        path: "/developer/sprints/tasks",
-        icon: ListTodo,
-        exact: false,
-    },
-    {
-        label: "Sprint Progress",
-        path: "/developer/sprints/progress",
-        icon: Activity,
-        exact: false,
-    },
-];
-
-
-// ============================================================
-// COMMUNICATION SUB NAVIGATION
-// ============================================================
-
-const COMMUNICATION_NAVIGATION = [
-    {
-        label: "Messages",
-        path: "/developer/communication/messages",
-        icon: MessageSquare,
-        exact: false,
-    },
-    {
-        label: "Task Comments",
-        path: "/developer/communication/comments",
-        icon: MessageSquareCode,
-        exact: false,
-    },
-    {
-        label: "Mentions",
-        path: "/developer/communication/mentions",
-        icon: UsersRound,
-        exact: false,
-    },
-    {
-        label: "Notifications",
-        path: "/developer/communication/notifications",
-        icon: Bell,
-        exact: false,
-    },
-];
-
-
-// ============================================================
-// REPORTS SUB NAVIGATION
-// ============================================================
-
-const REPORT_NAVIGATION = [
-    {
-        label: "Personal Performance",
-        path: "/developer/reports/performance",
-        icon: BarChart3,
-        exact: false,
-    },
-    {
-        label: "Task History",
-        path: "/developer/reports/history",
-        icon: History,
-        exact: false,
-    },
-];
-
-
-// ============================================================
-// SETTINGS SUB NAVIGATION
-// ============================================================
-
-const SETTINGS_NAVIGATION = [
-    {
-        label: "Notification Preferences",
-        path: "/developer/settings/notifications",
-        icon: Bell,
-        exact: false,
-    },
-    {
-        label: "Language Preferences",
-        path: "/developer/settings/language",
-        icon: Languages,
-        exact: false,
-    },
-    {
-        label: "Theme Preferences",
-        path: "/developer/settings/theme",
-        icon: Sun,
-        exact: false,
-    },
-    {
-        label: "AI Preferences",
-        path: "/developer/settings/ai",
-        icon: Sparkles,
         exact: false,
     },
 ];
@@ -639,88 +449,6 @@ function DeveloperSidebar({
             </button>
         );
     };
-
-
-    // ========================================================
-    // RENDER SUB NAVIGATION
-    // ========================================================
-
-    const renderSubNavigation = (
-        items,
-        title
-    ) => {
-        if (collapsed) {
-            return null;
-        }
-
-        return (
-            <div className="mt-2 mb-3">
-                <p
-                    className="
-                        mb-1
-                        px-3
-                        text-[9px]
-                        font-semibold
-                        uppercase
-                        tracking-wider
-                        text-slate-400
-                        dark:text-slate-500
-                    "
-                >
-                    {title}
-                </p>
-
-                <div className="space-y-0.5">
-                    {items.map((item) =>
-                        renderNavigationItem(item)
-                    )}
-                </div>
-            </div>
-        );
-    };
-
-
-    // ========================================================
-    // DETERMINE CURRENT MODULE
-    // ========================================================
-
-    const currentModule = useMemo(() => {
-        const path = location.pathname;
-
-        if (path.startsWith("/developer/profile")) {
-            return "profile";
-        }
-
-        if (path.startsWith("/developer/projects")) {
-            return "projects";
-        }
-
-        if (path.startsWith("/developer/tasks")) {
-            return "tasks";
-        }
-
-        if (path.startsWith("/developer/sprints")) {
-            return "sprints";
-        }
-
-        if (
-            path.startsWith(
-                "/developer/communication"
-            )
-        ) {
-            return "communication";
-        }
-
-        if (path.startsWith("/developer/reports")) {
-            return "reports";
-        }
-
-        if (path.startsWith("/developer/settings")) {
-            return "settings";
-        }
-
-        return null;
-    }, [location.pathname]);
 
 
     // ========================================================
@@ -1106,7 +834,9 @@ function DeveloperSidebar({
                     )}
 
 
-                    {/* MAIN NAVIGATION */}
+                    {/* ==================================================
+                        DIRECT MAIN NAVIGATION
+                    ================================================== */}
 
                     <nav
                         className="space-y-0.5"
@@ -1116,83 +846,6 @@ function DeveloperSidebar({
                             renderNavigationItem
                         )}
                     </nav>
-
-
-                    {/* ==================================================
-                        PROFILE
-                    ================================================== */}
-
-                    {currentModule === "profile" &&
-                        renderSubNavigation(
-                            PROFILE_NAVIGATION,
-                            "Profile Management"
-                        )}
-
-
-                    {/* ==================================================
-                        PROJECTS
-                    ================================================== */}
-
-                    {currentModule === "projects" &&
-                        renderSubNavigation(
-                            PROJECT_NAVIGATION,
-                            "Project Participation"
-                        )}
-
-
-                    {/* ==================================================
-                        TASKS
-                    ================================================== */}
-
-                    {currentModule === "tasks" &&
-                        renderSubNavigation(
-                            TASK_NAVIGATION,
-                            "Task Management"
-                        )}
-
-
-                    {/* ==================================================
-                        SPRINTS
-                    ================================================== */}
-
-                    {currentModule === "sprints" &&
-                        renderSubNavigation(
-                            SPRINT_NAVIGATION,
-                            "Sprint Participation"
-                        )}
-
-
-                    {/* ==================================================
-                        COMMUNICATION
-                    ================================================== */}
-
-                    {currentModule === "communication" &&
-                        renderSubNavigation(
-                            COMMUNICATION_NAVIGATION,
-                            "Communication"
-                        )}
-
-
-                    {/* ==================================================
-                        REPORTS
-                    ================================================== */}
-
-                    {currentModule === "reports" &&
-                        renderSubNavigation(
-                            REPORT_NAVIGATION,
-                            "Reports & Monitoring"
-                        )}
-
-
-                    {/* ==================================================
-                        SETTINGS
-                    ================================================== */}
-
-                    {currentModule === "settings" &&
-                        renderSubNavigation(
-                            SETTINGS_NAVIGATION,
-                            "Settings & Preferences"
-                        )}
                 </div>
 
 

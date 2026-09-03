@@ -1,4 +1,9 @@
-import { useMemo, useState } from "react";
+import {
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+
 import {
     Search,
     Filter,
@@ -10,75 +15,11 @@ import {
     Clock3,
     CircleDot,
     AlertTriangle,
+    ClipboardList,
     X,
 } from "lucide-react";
 
-const INITIAL_TASKS = [
-    {
-        id: 1,
-        title: "Implement User Authentication",
-        description:
-            "Develop login, logout, authentication validation, and protected route functionality.",
-        status: "In Progress",
-        priority: "High",
-        project: "AI-Powered Management System",
-        sprint: "Sprint 3",
-        dueDate: "2026-09-05",
-        creator: "Team Leader",
-        subtasks: 4,
-        completedSubtasks: 2,
-        comments: 3,
-        files: 2,
-    },
-    {
-        id: 2,
-        title: "Create Developer Dashboard",
-        description:
-            "Build the developer dashboard with task, sprint, project, and notification information.",
-        status: "Review",
-        priority: "High",
-        project: "AI-Powered Management System",
-        sprint: "Sprint 3",
-        dueDate: "2026-09-03",
-        creator: "Manager",
-        subtasks: 5,
-        completedSubtasks: 5,
-        comments: 5,
-        files: 4,
-    },
-    {
-        id: 3,
-        title: "Implement Task Comments",
-        description:
-            "Allow developers to add comments and communicate with project team members.",
-        status: "To Do",
-        priority: "Medium",
-        project: "AI-Powered Management System",
-        sprint: "Sprint 4",
-        dueDate: "2026-09-12",
-        creator: "Team Leader",
-        subtasks: 3,
-        completedSubtasks: 0,
-        comments: 0,
-        files: 0,
-    },
-    {
-        id: 4,
-        title: "Fix Notification Service",
-        description:
-            "Investigate and resolve notification delivery issues.",
-        status: "Blocked",
-        priority: "Critical",
-        project: "AI-Powered Management System",
-        sprint: "Sprint 3",
-        dueDate: "2026-09-02",
-        creator: "Team Leader",
-        subtasks: 2,
-        completedSubtasks: 1,
-        comments: 2,
-        files: 1,
-    },
-];
+import api from "@/services/api";
 
 const STATUS_OPTIONS = [
     "All",
@@ -97,415 +38,1959 @@ const PRIORITY_OPTIONS = [
     "Low",
 ];
 
-function statusIcon(status) {
-    switch (status) {
-        case "Completed":
-            return <CheckCircle2 className="h-4 w-4" />;
-        case "In Progress":
-            return <Clock3 className="h-4 w-4" />;
-        case "Review":
-            return <CircleDot className="h-4 w-4" />;
-        case "Blocked":
-            return <AlertTriangle className="h-4 w-4" />;
-        default:
-            return <CircleDot className="h-4 w-4" />;
+/*
+|--------------------------------------------------------------------------
+| Backend enum values
+|--------------------------------------------------------------------------
+| ProjectTaskStatus:
+|
+| Todo       = 1
+| InProgress = 2
+| InReview   = 3
+| Completed  = 4
+| Blocked    = 5
+|--------------------------------------------------------------------------
+*/
+const BACKEND_STATUS_VALUES = {
+    Todo: 1,
+    InProgress: 2,
+    InReview: 3,
+    Completed: 4,
+    Blocked: 5,
+};
+
+const normalizeStatus = (status) => {
+    if (typeof status === "number") {
+        switch (status) {
+            case 1:
+                return "To Do";
+
+            case 2:
+                return "In Progress";
+
+            case 3:
+                return "Review";
+
+            case 4:
+                return "Completed";
+
+            case 5:
+                return "Blocked";
+
+            default:
+                return "To Do";
+        }
     }
-}
 
-function statusClasses(status) {
-    switch (status) {
-        case "Completed":
-            return "bg-green-100 text-green-700";
-        case "In Progress":
-            return "bg-blue-100 text-blue-700";
-        case "Review":
-            return "bg-purple-100 text-purple-700";
-        case "Blocked":
-            return "bg-red-100 text-red-700";
+    const normalized = String(status ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/[_-]/g, " ");
+
+    switch (normalized) {
+        case "todo":
+        case "to do":
+            return "To Do";
+
+        case "inprogress":
+        case "in progress":
+            return "In Progress";
+
+        case "inreview":
+        case "in review":
+        case "review":
+            return "Review";
+
+        case "completed":
+        case "complete":
+            return "Completed";
+
+        case "blocked":
+            return "Blocked";
+
         default:
-            return "bg-gray-100 text-gray-700";
+            return "To Do";
     }
-}
+};
 
-function priorityClasses(priority) {
-    switch (priority) {
-        case "Critical":
-            return "bg-red-100 text-red-700";
-        case "High":
-            return "bg-orange-100 text-orange-700";
-        case "Medium":
-            return "bg-yellow-100 text-yellow-700";
+const normalizePriority = (priority) => {
+    if (typeof priority === "number") {
+        switch (priority) {
+            case 0:
+                return "Critical";
+
+            case 1:
+                return "High";
+
+            case 2:
+                return "Medium";
+
+            case 3:
+                return "Low";
+
+            default:
+                return "Medium";
+        }
+    }
+
+    const normalized = String(priority ?? "")
+        .trim()
+        .toLowerCase();
+
+    switch (normalized) {
+        case "critical":
+            return "Critical";
+
+        case "high":
+            return "High";
+
+        case "medium":
+            return "Medium";
+
+        case "low":
+            return "Low";
+
         default:
-            return "bg-green-100 text-green-700";
+            return "Medium";
     }
-}
+};
 
-function calculateProgress(task) {
-    if (!task.subtasks) return 0;
-    return Math.round((task.completedSubtasks / task.subtasks) * 100);
-}
+const formatDate = (value) => {
+    if (!value) {
+        return "—";
+    }
 
-export default function ViewAssignedTasks() {
-    const [tasks, setTasks] = useState(INITIAL_TASKS);
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return "—";
+    }
+
+    return date.toLocaleDateString();
+};
+
+const shortId = (value) => {
+    if (!value) {
+        return "—";
+    }
+
+    const stringValue = String(value);
+
+    if (stringValue.length <= 8) {
+        return stringValue;
+    }
+
+    return stringValue.slice(0, 8);
+};
+
+const mapBackendTask = (task) => {
+    const estimatedHours = Number(
+        task?.estimatedHours ?? 0
+    );
+
+    const actualHours = Number(
+        task?.actualHours ?? 0
+    );
+
+    const progress =
+        estimatedHours > 0
+            ? Math.min(
+                  100,
+                  Math.round(
+                      (actualHours / estimatedHours) * 100
+                  )
+              )
+            : 0;
+
+    return {
+        id: task?.id,
+        title: task?.title || "Untitled Task",
+        description: task?.description || "",
+
+        status: normalizeStatus(task?.status),
+        priority: normalizePriority(task?.priority),
+
+        project: "—",
+        sprint: shortId(task?.sprintId),
+
+        dueDate: task?.dueDate,
+        creator: shortId(task?.createdBy),
+
+        estimatedHours,
+        actualHours,
+
+        subtasks: 0,
+        completedSubtasks: 0,
+        comments: 0,
+        files: 0,
+
+        progress,
+
+        sprintId: task?.sprintId,
+        createdBy: task?.createdBy,
+        assignedContributorSDId:
+            task?.assignedContributorSDId,
+
+        createdAt: task?.createdAt,
+        updatedAt: task?.updatedAt,
+    };
+};
+
+const getApiErrorMessage = (
+    error,
+    fallback = "Something went wrong."
+) => {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.response?.data?.title ||
+        error?.message ||
+        fallback
+    );
+};
+
+export default function ViewAssignedTasks({
+    selectedTask: controlledSelectedTask,
+    onSelectTask,
+}) {
+    /*
+    |--------------------------------------------------------------------------
+    | Selected task
+    |--------------------------------------------------------------------------
+    */
+
+    const [
+        localSelectedTask,
+        setLocalSelectedTask,
+    ] = useState(null);
+
+    const isControlled =
+        typeof onSelectTask === "function";
+
+    const selectedTask = isControlled
+        ? controlledSelectedTask
+        : localSelectedTask;
+
+    const selectTask = (task) => {
+        if (isControlled) {
+            onSelectTask(task);
+        } else {
+            setLocalSelectedTask(task);
+        }
+    };
+
+    const clearSelectedTask = () => {
+        if (isControlled) {
+            onSelectTask(null);
+        } else {
+            setLocalSelectedTask(null);
+        }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Task state
+    |--------------------------------------------------------------------------
+    */
+
+    const [tasks, setTasks] = useState([]);
+
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("All");
     const [priority, setPriority] = useState("All");
-    const [selectedTask, setSelectedTask] = useState(null);
+
+    const [loading, setLoading] = useState(true);
+    const [updatingStatus, setUpdatingStatus] =
+        useState(false);
+
+    const [error, setError] = useState("");
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load developer's assigned tasks
+    |--------------------------------------------------------------------------
+    */
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadMyWork = async () => {
+            setLoading(true);
+            setError("");
+
+            try {
+                const response = await api.get(
+                    "/tasks/my-work"
+                );
+
+                const responseData = response?.data;
+
+                let backendTasks = [];
+
+                if (Array.isArray(responseData)) {
+                    backendTasks = responseData;
+                } else if (
+                    Array.isArray(responseData?.data)
+                ) {
+                    backendTasks = responseData.data;
+                } else if (
+                    Array.isArray(responseData?.tasks)
+                ) {
+                    backendTasks = responseData.tasks;
+                }
+
+                if (isMounted) {
+                    setTasks(
+                        backendTasks.map(
+                            mapBackendTask
+                        )
+                    );
+                }
+            } catch (error) {
+                console.error(
+                    "GET MY WORK ERROR:",
+                    error
+                );
+
+                if (isMounted) {
+                    setError(
+                        getApiErrorMessage(
+                            error,
+                            "Unable to load your assigned tasks."
+                        )
+                    );
+                }
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadMyWork();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Filter tasks
+    |--------------------------------------------------------------------------
+    */
 
     const filteredTasks = useMemo(() => {
-        return tasks.filter((task) => {
-            const searchText = search.toLowerCase();
+        const searchValue = search
+            .trim()
+            .toLowerCase();
 
+        return tasks.filter((task) => {
             const matchesSearch =
-                task.title.toLowerCase().includes(searchText) ||
-                task.description.toLowerCase().includes(searchText) ||
-                task.project.toLowerCase().includes(searchText);
+                !searchValue ||
+                task.title
+                    .toLowerCase()
+                    .includes(searchValue) ||
+                task.description
+                    .toLowerCase()
+                    .includes(searchValue) ||
+                task.id
+                    ?.toString()
+                    .toLowerCase()
+                    .includes(searchValue);
 
             const matchesStatus =
-                status === "All" || task.status === status;
+                status === "All" ||
+                task.status === status;
 
             const matchesPriority =
-                priority === "All" || task.priority === priority;
+                priority === "All" ||
+                task.priority === priority;
 
-            return matchesSearch && matchesStatus && matchesPriority;
+            return (
+                matchesSearch &&
+                matchesStatus &&
+                matchesPriority
+            );
         });
-    }, [tasks, search, status, priority]);
+    }, [
+        tasks,
+        search,
+        status,
+        priority,
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Update task in local list
+    |--------------------------------------------------------------------------
+    */
 
     const updateTask = (updatedTask) => {
-        setTasks((current) =>
-            current.map((task) =>
-                task.id === updatedTask.id ? updatedTask : task
+        if (!updatedTask) {
+            return;
+        }
+
+        const mappedTask =
+            mapBackendTask(updatedTask);
+
+        setTasks((currentTasks) =>
+            currentTasks.map((task) =>
+                task.id === mappedTask.id
+                    ? mappedTask
+                    : task
             )
         );
 
-        setSelectedTask(updatedTask);
+        selectTask(mappedTask);
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mark selected task as In Progress
+    |--------------------------------------------------------------------------
+    */
+
+    const handleMarkInProgress = async () => {
+        if (!selectedTask?.id) {
+            return;
+        }
+
+        setUpdatingStatus(true);
+        setError("");
+
+        try {
+            const response = await api.put(
+                `/tasks/${selectedTask.id}/status`,
+                {
+                    status:
+                        BACKEND_STATUS_VALUES.InProgress,
+
+                    progressNote: null,
+                    comment: null,
+                }
+            );
+
+            const responseData = response?.data;
+
+            const updatedBackendTask =
+                responseData?.task ||
+                responseData?.data ||
+                responseData;
+
+            if (
+                updatedBackendTask &&
+                typeof updatedBackendTask ===
+                    "object"
+            ) {
+                updateTask(updatedBackendTask);
+            } else {
+                /*
+                |--------------------------------------------------------------------------
+                | API returned only a success message.
+                |--------------------------------------------------------------------------
+                */
+
+                const locallyUpdatedTask = {
+                    ...selectedTask,
+                    status: "In Progress",
+                };
+
+                setTasks((currentTasks) =>
+                    currentTasks.map((task) =>
+                        task.id ===
+                        locallyUpdatedTask.id
+                            ? locallyUpdatedTask
+                            : task
+                    )
+                );
+
+                selectTask(locallyUpdatedTask);
+            }
+        } catch (error) {
+            console.error(
+                "UPDATE TASK STATUS ERROR:",
+                error
+            );
+
+            setError(
+                getApiErrorMessage(
+                    error,
+                    "Unable to update task status."
+                )
+            );
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Summary counts
+    |--------------------------------------------------------------------------
+    */
+
+    const totalTasks = tasks.length;
+
+    const inProgressCount = tasks.filter(
+        (task) =>
+            task.status === "In Progress"
+    ).length;
+
+    const reviewCount = tasks.filter(
+        (task) =>
+            task.status === "Review"
+    ).length;
+
+    const blockedCount = tasks.filter(
+        (task) =>
+            task.status === "Blocked"
+    ).length;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Status icon
+    |--------------------------------------------------------------------------
+    */
+
+    const getStatusIcon = (taskStatus) => {
+        switch (taskStatus) {
+            case "Completed":
+                return (
+                    <CheckCircle2 className="h-4 w-4" />
+                );
+
+            case "In Progress":
+                return (
+                    <Clock3 className="h-4 w-4" />
+                );
+
+            case "Review":
+                return (
+                    <CircleDot className="h-4 w-4" />
+                );
+
+            case "Blocked":
+                return (
+                    <AlertTriangle className="h-4 w-4" />
+                );
+
+            default:
+                return (
+                    <CircleDot className="h-4 w-4" />
+                );
+        }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Status styling
+    |--------------------------------------------------------------------------
+    */
+
+    const getStatusClasses = (taskStatus) => {
+        switch (taskStatus) {
+            case "Completed":
+                return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300";
+
+            case "In Progress":
+                return "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300";
+
+            case "Review":
+                return "bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300";
+
+            case "Blocked":
+                return "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300";
+
+            default:
+                return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+        }
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Priority styling
+    |--------------------------------------------------------------------------
+    */
+
+    const getPriorityClasses = (taskPriority) => {
+        switch (taskPriority) {
+            case "Critical":
+                return "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300";
+
+            case "High":
+                return "bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300";
+
+            case "Medium":
+                return "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/50 dark:text-yellow-300";
+
+            case "Low":
+                return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+
+            default:
+                return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+        }
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-6">
-            <div className="mx-auto max-w-7xl space-y-6">
+        <div className="space-y-5">
 
-                {/* Header */}
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900">
-                        Assigned Tasks
-                    </h1>
+            {/* =========================================================
+                ERROR
+            ========================================================= */}
 
-                    <p className="mt-1 text-sm text-slate-500">
-                        View and manage tasks assigned to you.
+            {error && (
+                <div
+                    className="
+                        rounded-xl
+                        border
+                        border-red-200
+                        bg-red-50
+                        px-4
+                        py-3
+                        text-sm
+                        text-red-700
+                        dark:border-red-900/60
+                        dark:bg-red-950/20
+                        dark:text-red-300
+                    "
+                >
+                    {error}
+                </div>
+            )}
+
+            {/* =========================================================
+                SUMMARY
+            ========================================================= */}
+
+            <div
+                className="
+                    grid
+                    grid-cols-2
+                    gap-3
+                    sm:grid-cols-4
+                "
+            >
+
+                {/* TOTAL */}
+
+                <div
+                    className="
+                        rounded-xl
+                        border
+                        border-slate-200
+                        bg-slate-50
+                        p-4
+                        dark:border-blue-900/60
+                        dark:bg-[#071a33]
+                    "
+                >
+                    <p
+                        className="
+                            text-xs
+                            font-medium
+                            text-slate-500
+                            dark:text-slate-400
+                        "
+                    >
+                        Total
+                    </p>
+
+                    <p
+                        className="
+                            mt-1
+                            text-2xl
+                            font-bold
+                            text-slate-900
+                            dark:text-white
+                        "
+                    >
+                        {totalTasks}
                     </p>
                 </div>
 
-                {/* Summary */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-xl bg-white p-5 shadow-sm border">
-                        <p className="text-sm text-slate-500">Total Tasks</p>
-                        <p className="mt-2 text-2xl font-bold">
-                            {tasks.length}
-                        </p>
-                    </div>
+                {/* IN PROGRESS */}
 
-                    <div className="rounded-xl bg-white p-5 shadow-sm border">
-                        <p className="text-sm text-slate-500">In Progress</p>
-                        <p className="mt-2 text-2xl font-bold text-blue-600">
-                            {tasks.filter(
-                                (task) => task.status === "In Progress"
-                            ).length}
-                        </p>
-                    </div>
+                <div
+                    className="
+                        rounded-xl
+                        border
+                        border-blue-200
+                        bg-blue-50
+                        p-4
+                        dark:border-blue-900/60
+                        dark:bg-blue-950/20
+                    "
+                >
+                    <p
+                        className="
+                            text-xs
+                            font-medium
+                            text-blue-600
+                            dark:text-blue-400
+                        "
+                    >
+                        In Progress
+                    </p>
 
-                    <div className="rounded-xl bg-white p-5 shadow-sm border">
-                        <p className="text-sm text-slate-500">Review</p>
-                        <p className="mt-2 text-2xl font-bold text-purple-600">
-                            {tasks.filter(
-                                (task) => task.status === "Review"
-                            ).length}
-                        </p>
-                    </div>
-
-                    <div className="rounded-xl bg-white p-5 shadow-sm border">
-                        <p className="text-sm text-slate-500">Blocked</p>
-                        <p className="mt-2 text-2xl font-bold text-red-600">
-                            {tasks.filter(
-                                (task) => task.status === "Blocked"
-                            ).length}
-                        </p>
-                    </div>
+                    <p
+                        className="
+                            mt-1
+                            text-2xl
+                            font-bold
+                            text-blue-700
+                            dark:text-blue-300
+                        "
+                    >
+                        {inProgressCount}
+                    </p>
                 </div>
 
-                {/* Filters */}
-                <div className="rounded-xl border bg-white p-4 shadow-sm">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                {/* REVIEW */}
 
-                        <div className="relative">
-                            <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                <div
+                    className="
+                        rounded-xl
+                        border
+                        border-purple-200
+                        bg-purple-50
+                        p-4
+                        dark:border-purple-900/60
+                        dark:bg-purple-950/20
+                    "
+                >
+                    <p
+                        className="
+                            text-xs
+                            font-medium
+                            text-purple-600
+                            dark:text-purple-400
+                        "
+                    >
+                        Review
+                    </p>
 
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search tasks..."
-                                className="w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-4 outline-none focus:border-blue-500"
-                            />
-                        </div>
-
-                        <div className="relative">
-                            <Filter className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-
-                            <select
-                                value={status}
-                                onChange={(e) => setStatus(e.target.value)}
-                                className="w-full appearance-none rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-4 outline-none focus:border-blue-500"
-                            >
-                                {STATUS_OPTIONS.map((option) => (
-                                    <option key={option}>{option}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <select
-                            value={priority}
-                            onChange={(e) => setPriority(e.target.value)}
-                            className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 outline-none focus:border-blue-500"
-                        >
-                            {PRIORITY_OPTIONS.map((option) => (
-                                <option key={option}>{option}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <p
+                        className="
+                            mt-1
+                            text-2xl
+                            font-bold
+                            text-purple-700
+                            dark:text-purple-300
+                        "
+                    >
+                        {reviewCount}
+                    </p>
                 </div>
 
-                {/* Task list */}
-                <div className="space-y-4">
-                    {filteredTasks.length === 0 ? (
-                        <div className="rounded-xl border bg-white p-12 text-center shadow-sm">
-                            <FolderKanban className="mx-auto h-12 w-12 text-slate-300" />
+                {/* BLOCKED */}
 
-                            <h3 className="mt-4 font-semibold text-slate-800">
-                                No assigned tasks available.
-                            </h3>
+                <div
+                    className="
+                        rounded-xl
+                        border
+                        border-red-200
+                        bg-red-50
+                        p-4
+                        dark:border-red-900/60
+                        dark:bg-red-950/20
+                    "
+                >
+                    <p
+                        className="
+                            text-xs
+                            font-medium
+                            text-red-600
+                            dark:text-red-400
+                        "
+                    >
+                        Blocked
+                    </p>
 
-                            <p className="mt-1 text-sm text-slate-500">
-                                Try changing your search or filters.
-                            </p>
-                        </div>
-                    ) : (
-                        filteredTasks.map((task) => {
-                            const progress = calculateProgress(task);
-
-                            return (
-                                <div
-                                    key={task.id}
-                                    className="rounded-xl border bg-white p-5 shadow-sm transition hover:shadow-md"
-                                >
-                                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-
-                                        <div className="flex-1">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <h2 className="text-lg font-semibold text-slate-900">
-                                                    {task.title}
-                                                </h2>
-
-                                                <span
-                                                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${statusClasses(
-                                                        task.status
-                                                    )}`}
-                                                >
-                                                    {statusIcon(task.status)}
-                                                    {task.status}
-                                                </span>
-
-                                                <span
-                                                    className={`rounded-full px-3 py-1 text-xs font-medium ${priorityClasses(
-                                                        task.priority
-                                                    )}`}
-                                                >
-                                                    {task.priority}
-                                                </span>
-                                            </div>
-
-                                            <p className="mt-2 text-sm text-slate-600">
-                                                {task.description}
-                                            </p>
-
-                                            <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-slate-500 sm:grid-cols-2 lg:grid-cols-4">
-                                                <div className="flex items-center gap-2">
-                                                    <FolderKanban className="h-4 w-4" />
-                                                    {task.project}
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    <CircleDot className="h-4 w-4" />
-                                                    {task.sprint}
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    <CalendarDays className="h-4 w-4" />
-                                                    {task.dueDate}
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    <Flag className="h-4 w-4" />
-                                                    {task.creator}
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-5">
-                                                <div className="mb-2 flex justify-between text-xs">
-                                                    <span className="text-slate-500">
-                                                        Subtask Progress
-                                                    </span>
-
-                                                    <span className="font-medium">
-                                                        {progress}%
-                                                    </span>
-                                                </div>
-
-                                                <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                                                    <div
-                                                        className="h-full rounded-full bg-blue-600"
-                                                        style={{
-                                                            width: `${progress}%`,
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500">
-                                                <span>
-                                                    {task.completedSubtasks}/
-                                                    {task.subtasks} subtasks
-                                                </span>
-
-                                                <span>
-                                                    {task.comments} comments
-                                                </span>
-
-                                                <span>
-                                                    {task.files} files
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            onClick={() =>
-                                                setSelectedTask(task)
-                                            }
-                                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
-                                        >
-                                            <Eye className="h-4 w-4" />
-                                            View Details
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
+                    <p
+                        className="
+                            mt-1
+                            text-2xl
+                            font-bold
+                            text-red-700
+                            dark:text-red-300
+                        "
+                    >
+                        {blockedCount}
+                    </p>
                 </div>
+
             </div>
 
-            {/* Details modal */}
-            {selectedTask && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
+            {/* =========================================================
+                FILTERS
+            ========================================================= */}
 
-                        <div className="flex items-center justify-between border-b p-5">
-                            <h2 className="text-xl font-bold">
-                                Task Details
-                            </h2>
+            <div
+                className="
+                    rounded-xl
+                    border
+                    border-slate-200
+                    bg-slate-50
+                    p-4
+                    dark:border-blue-900/60
+                    dark:bg-[#071a33]
+                "
+            >
+
+                <div
+                    className="
+                        mb-3
+                        flex
+                        items-center
+                        gap-2
+                    "
+                >
+                    <Filter
+                        className="
+                            h-4
+                            w-4
+                            text-slate-500
+                            dark:text-slate-400
+                        "
+                    />
+
+                    <span
+                        className="
+                            text-sm
+                            font-semibold
+                            text-slate-700
+                            dark:text-slate-300
+                        "
+                    >
+                        Filters
+                    </span>
+                </div>
+
+                <div
+                    className="
+                        grid
+                        grid-cols-1
+                        gap-3
+                        md:grid-cols-3
+                    "
+                >
+
+                    {/* SEARCH */}
+
+                    <div className="relative">
+
+                        <Search
+                            className="
+                                pointer-events-none
+                                absolute
+                                left-3
+                                top-1/2
+                                h-4
+                                w-4
+                                -translate-y-1/2
+                                text-slate-400
+                            "
+                        />
+
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(event) =>
+                                setSearch(
+                                    event.target.value
+                                )
+                            }
+                            placeholder="Search tasks..."
+                            className="
+                                w-full
+                                rounded-lg
+                                border
+                                border-slate-200
+                                bg-white
+                                py-2.5
+                                pl-9
+                                pr-3
+                                text-sm
+                                text-slate-900
+                                outline-none
+                                transition
+                                focus:border-blue-400
+                                focus:ring-2
+                                focus:ring-blue-100
+                                dark:border-blue-900/60
+                                dark:bg-[#0b2344]
+                                dark:text-white
+                                dark:focus:ring-blue-950/50
+                            "
+                        />
+
+                    </div>
+
+                    {/* STATUS */}
+
+                    <select
+                        value={status}
+                        onChange={(event) =>
+                            setStatus(
+                                event.target.value
+                            )
+                        }
+                        className="
+                            w-full
+                            rounded-lg
+                            border
+                            border-slate-200
+                            bg-white
+                            px-3
+                            py-2.5
+                            text-sm
+                            text-slate-900
+                            outline-none
+                            transition
+                            focus:border-blue-400
+                            focus:ring-2
+                            focus:ring-blue-100
+                            dark:border-blue-900/60
+                            dark:bg-[#0b2344]
+                            dark:text-white
+                            dark:focus:ring-blue-950/50
+                        "
+                    >
+                        {STATUS_OPTIONS.map(
+                            (option) => (
+                                <option
+                                    key={option}
+                                    value={option}
+                                >
+                                    Status: {option}
+                                </option>
+                            )
+                        )}
+                    </select>
+
+                    {/* PRIORITY */}
+
+                    <select
+                        value={priority}
+                        onChange={(event) =>
+                            setPriority(
+                                event.target.value
+                            )
+                        }
+                        className="
+                            w-full
+                            rounded-lg
+                            border
+                            border-slate-200
+                            bg-white
+                            px-3
+                            py-2.5
+                            text-sm
+                            text-slate-900
+                            outline-none
+                            transition
+                            focus:border-blue-400
+                            focus:ring-2
+                            focus:ring-blue-100
+                            dark:border-blue-900/60
+                            dark:bg-[#0b2344]
+                            dark:text-white
+                            dark:focus:ring-blue-950/50
+                        "
+                    >
+                        {PRIORITY_OPTIONS.map(
+                            (option) => (
+                                <option
+                                    key={option}
+                                    value={option}
+                                >
+                                    Priority: {option}
+                                </option>
+                            )
+                        )}
+                    </select>
+
+                </div>
+
+            </div>
+
+            {/* =========================================================
+                TASK LIST
+            ========================================================= */}
+
+            <div className="space-y-3">
+
+                {loading ? (
+                    <div
+                        className="
+                            rounded-xl
+                            border
+                            border-slate-200
+                            bg-slate-50
+                            p-8
+                            text-center
+                            dark:border-blue-900/60
+                            dark:bg-[#071a33]
+                        "
+                    >
+                        <div
+                            className="
+                                mx-auto
+                                mb-3
+                                h-6
+                                w-6
+                                animate-spin
+                                rounded-full
+                                border-2
+                                border-slate-300
+                                border-t-blue-600
+                                dark:border-blue-900
+                                dark:border-t-blue-400
+                            "
+                        />
+
+                        <p
+                            className="
+                                text-sm
+                                text-slate-500
+                                dark:text-slate-400
+                            "
+                        >
+                            Loading your assigned tasks...
+                        </p>
+                    </div>
+                ) : filteredTasks.length === 0 ? (
+                    <div
+                        className="
+                            rounded-xl
+                            border
+                            border-dashed
+                            border-slate-300
+                            bg-slate-50
+                            p-8
+                            text-center
+                            dark:border-blue-900/60
+                            dark:bg-[#071a33]
+                        "
+                    >
+                        <ClipboardList
+                            className="
+                                mx-auto
+                                h-8
+                                w-8
+                                text-slate-400
+                                dark:text-slate-500
+                            "
+                        />
+
+                        <p
+                            className="
+                                mt-3
+                                text-sm
+                                font-medium
+                                text-slate-700
+                                dark:text-slate-300
+                            "
+                        >
+                            No assigned tasks found.
+                        </p>
+
+                        <p
+                            className="
+                                mt-1
+                                text-xs
+                                text-slate-500
+                                dark:text-slate-400
+                            "
+                        >
+                            Try changing your search or filters.
+                        </p>
+                    </div>
+                ) : (
+                    filteredTasks.map((task) => (
+                        <div
+                            key={task.id}
+                            className="
+                                rounded-xl
+                                border
+                                border-slate-200
+                                bg-white
+                                p-4
+                                shadow-sm
+                                transition
+                                hover:-translate-y-0.5
+                                hover:border-blue-200
+                                hover:shadow-md
+                                dark:border-blue-900/60
+                                dark:bg-[#071a33]
+                                dark:hover:border-blue-800
+                            "
+                        >
+
+                            {/* TOP */}
+
+                            <div
+                                className="
+                                    flex
+                                    flex-col
+                                    gap-3
+                                    sm:flex-row
+                                    sm:items-start
+                                    sm:justify-between
+                                "
+                            >
+
+                                <div className="min-w-0">
+
+                                    <div
+                                        className="
+                                            flex
+                                            flex-wrap
+                                            items-center
+                                            gap-2
+                                        "
+                                    >
+
+                                        <h4
+                                            className="
+                                                text-sm
+                                                font-bold
+                                                text-slate-900
+                                                dark:text-white
+                                            "
+                                        >
+                                            {task.title}
+                                        </h4>
+
+                                        <span
+                                            className={`
+                                                inline-flex
+                                                items-center
+                                                gap-1
+                                                rounded-full
+                                                px-2
+                                                py-1
+                                                text-[10px]
+                                                font-semibold
+                                                ${getStatusClasses(
+                                                    task.status
+                                                )}
+                                            `}
+                                        >
+                                            {getStatusIcon(
+                                                task.status
+                                            )}
+
+                                            {task.status}
+                                        </span>
+
+                                        <span
+                                            className={`
+                                                rounded-full
+                                                px-2
+                                                py-1
+                                                text-[10px]
+                                                font-semibold
+                                                ${getPriorityClasses(
+                                                    task.priority
+                                                )}
+                                            `}
+                                        >
+                                            {task.priority}
+                                        </span>
+
+                                    </div>
+
+                                    <p
+                                        className="
+                                            mt-2
+                                            line-clamp-2
+                                            text-xs
+                                            leading-5
+                                            text-slate-500
+                                            dark:text-slate-400
+                                        "
+                                    >
+                                        {task.description ||
+                                            "No task description available."}
+                                    </p>
+
+                                </div>
+
+                                {/* VIEW DETAILS */}
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        selectTask(task)
+                                    }
+                                    className="
+                                        inline-flex
+                                        shrink-0
+                                        items-center
+                                        justify-center
+                                        gap-2
+                                        rounded-lg
+                                        border
+                                        border-slate-200
+                                        bg-white
+                                        px-3
+                                        py-2
+                                        text-xs
+                                        font-semibold
+                                        text-slate-700
+                                        transition
+                                        hover:border-blue-200
+                                        hover:bg-blue-50
+                                        hover:text-blue-700
+                                        dark:border-blue-900/60
+                                        dark:bg-[#0b2344]
+                                        dark:text-slate-300
+                                        dark:hover:bg-blue-950/40
+                                        dark:hover:text-blue-300
+                                    "
+                                >
+                                    <Eye className="h-4 w-4" />
+                                    View Details
+                                </button>
+
+                            </div>
+
+                            {/* META */}
+
+                            <div
+                                className="
+                                    mt-4
+                                    grid
+                                    grid-cols-1
+                                    gap-2
+                                    sm:grid-cols-3
+                                "
+                            >
+
+                                <div
+                                    className="
+                                        flex
+                                        items-center
+                                        gap-2
+                                        text-xs
+                                        text-slate-500
+                                        dark:text-slate-400
+                                    "
+                                >
+                                    <FolderKanban
+                                        className="
+                                            h-4
+                                            w-4
+                                            text-blue-500
+                                        "
+                                    />
+
+                                    <span>
+                                        Sprint {task.sprint}
+                                    </span>
+                                </div>
+
+                                <div
+                                    className="
+                                        flex
+                                        items-center
+                                        gap-2
+                                        text-xs
+                                        text-slate-500
+                                        dark:text-slate-400
+                                    "
+                                >
+                                    <CalendarDays
+                                        className="
+                                            h-4
+                                            w-4
+                                            text-orange-500
+                                        "
+                                    />
+
+                                    <span>
+                                        Due{" "}
+                                        {formatDate(
+                                            task.dueDate
+                                        )}
+                                    </span>
+                                </div>
+
+                                <div
+                                    className="
+                                        flex
+                                        items-center
+                                        gap-2
+                                        text-xs
+                                        text-slate-500
+                                        dark:text-slate-400
+                                    "
+                                >
+                                    <Flag
+                                        className="
+                                            h-4
+                                            w-4
+                                            text-purple-500
+                                        "
+                                    />
+
+                                    <span>
+                                        {task.actualHours}h /{" "}
+                                        {task.estimatedHours}h
+                                    </span>
+                                </div>
+
+                            </div>
+
+                            {/* PROGRESS */}
+
+                            <div className="mt-4">
+
+                                <div
+                                    className="
+                                        mb-1.5
+                                        flex
+                                        items-center
+                                        justify-between
+                                    "
+                                >
+                                    <span
+                                        className="
+                                            text-[11px]
+                                            font-medium
+                                            text-slate-500
+                                            dark:text-slate-400
+                                        "
+                                    >
+                                        Progress
+                                    </span>
+
+                                    <span
+                                        className="
+                                            text-[11px]
+                                            font-semibold
+                                            text-slate-700
+                                            dark:text-slate-300
+                                        "
+                                    >
+                                        {task.progress}%
+                                    </span>
+                                </div>
+
+                                <div
+                                    className="
+                                        h-2
+                                        overflow-hidden
+                                        rounded-full
+                                        bg-slate-100
+                                        dark:bg-blue-950/60
+                                    "
+                                >
+                                    <div
+                                        className="
+                                            h-full
+                                            rounded-full
+                                            bg-blue-600
+                                            transition-all
+                                            dark:bg-blue-500
+                                        "
+                                        style={{
+                                            width: `${task.progress}%`,
+                                        }}
+                                    />
+                                </div>
+
+                            </div>
+
+                        </div>
+                    ))
+                )}
+
+            </div>
+
+            {/* =========================================================
+                TASK DETAILS MODAL
+            ========================================================= */}
+
+            {selectedTask && (
+                <div
+                    className="
+                        fixed
+                        inset-0
+                        z-50
+                        flex
+                        items-center
+                        justify-center
+                        bg-slate-950/50
+                        p-4
+                        backdrop-blur-sm
+                    "
+                    onClick={clearSelectedTask}
+                >
+
+                    <div
+                        className="
+                            max-h-[90vh]
+                            w-full
+                            max-w-2xl
+                            overflow-y-auto
+                            rounded-2xl
+                            border
+                            border-slate-200
+                            bg-white
+                            shadow-2xl
+                            dark:border-blue-900/60
+                            dark:bg-[#0b2344]
+                        "
+                        onClick={(event) =>
+                            event.stopPropagation()
+                        }
+                    >
+
+                        {/* MODAL HEADER */}
+
+                        <div
+                            className="
+                                flex
+                                items-start
+                                justify-between
+                                border-b
+                                border-slate-200
+                                px-5
+                                py-4
+                                dark:border-blue-900/60
+                            "
+                        >
+
+                            <div className="min-w-0 pr-4">
+
+                                <div
+                                    className="
+                                        flex
+                                        flex-wrap
+                                        items-center
+                                        gap-2
+                                    "
+                                >
+
+                                    <h3
+                                        className="
+                                            text-lg
+                                            font-bold
+                                            text-slate-900
+                                            dark:text-white
+                                        "
+                                    >
+                                        {selectedTask.title}
+                                    </h3>
+
+                                    <span
+                                        className={`
+                                            inline-flex
+                                            items-center
+                                            gap-1
+                                            rounded-full
+                                            px-2
+                                            py-1
+                                            text-[10px]
+                                            font-semibold
+                                            ${getStatusClasses(
+                                                selectedTask.status
+                                            )}
+                                        `}
+                                    >
+                                        {getStatusIcon(
+                                            selectedTask.status
+                                        )}
+
+                                        {selectedTask.status}
+                                    </span>
+
+                                </div>
+
+                                <p
+                                    className="
+                                        mt-1
+                                        text-xs
+                                        text-slate-500
+                                        dark:text-slate-400
+                                    "
+                                >
+                                    Task ID: {selectedTask.id}
+                                </p>
+
+                            </div>
 
                             <button
-                                onClick={() => setSelectedTask(null)}
-                                className="rounded-lg p-2 hover:bg-slate-100"
+                                type="button"
+                                onClick={clearSelectedTask}
+                                className="
+                                    rounded-lg
+                                    p-2
+                                    text-slate-400
+                                    transition
+                                    hover:bg-slate-100
+                                    hover:text-slate-700
+                                    dark:hover:bg-blue-950/50
+                                    dark:hover:text-slate-200
+                                "
+                                aria-label="Close task details"
                             >
                                 <X className="h-5 w-5" />
                             </button>
+
                         </div>
 
-                        <div className="space-y-5 p-6">
-                            <div>
-                                <h3 className="text-xl font-bold text-slate-900">
-                                    {selectedTask.title}
-                                </h3>
+                        {/* MODAL CONTENT */}
 
-                                <p className="mt-2 text-sm text-slate-600">
-                                    {selectedTask.description}
+                        <div className="space-y-5 p-5">
+
+                            {/* DESCRIPTION */}
+
+                            <div>
+
+                                <h4
+                                    className="
+                                        text-sm
+                                        font-semibold
+                                        text-slate-900
+                                        dark:text-white
+                                    "
+                                >
+                                    Description
+                                </h4>
+
+                                <p
+                                    className="
+                                        mt-2
+                                        whitespace-pre-wrap
+                                        text-sm
+                                        leading-6
+                                        text-slate-600
+                                        dark:text-slate-300
+                                    "
+                                >
+                                    {selectedTask.description ||
+                                        "No task description available."}
                                 </p>
+
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-xs text-slate-500">
-                                        Status
-                                    </p>
-                                    <p className="mt-1 font-medium">
-                                        {selectedTask.status}
-                                    </p>
-                                </div>
+                            {/* TASK INFORMATION */}
 
-                                <div>
-                                    <p className="text-xs text-slate-500">
+                            <div
+                                className="
+                                    grid
+                                    grid-cols-1
+                                    gap-3
+                                    sm:grid-cols-2
+                                "
+                            >
+
+                                <div
+                                    className="
+                                        rounded-xl
+                                        bg-slate-50
+                                        p-3
+                                        dark:bg-[#071a33]
+                                    "
+                                >
+                                    <p
+                                        className="
+                                            text-[11px]
+                                            text-slate-500
+                                            dark:text-slate-400
+                                        "
+                                    >
                                         Priority
                                     </p>
-                                    <p className="mt-1 font-medium">
+
+                                    <p
+                                        className="
+                                            mt-1
+                                            text-sm
+                                            font-semibold
+                                            text-slate-900
+                                            dark:text-white
+                                        "
+                                    >
                                         {selectedTask.priority}
                                     </p>
                                 </div>
 
-                                <div>
-                                    <p className="text-xs text-slate-500">
-                                        Project
-                                    </p>
-                                    <p className="mt-1 font-medium">
-                                        {selectedTask.project}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-xs text-slate-500">
-                                        Sprint
-                                    </p>
-                                    <p className="mt-1 font-medium">
-                                        {selectedTask.sprint}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-xs text-slate-500">
+                                <div
+                                    className="
+                                        rounded-xl
+                                        bg-slate-50
+                                        p-3
+                                        dark:bg-[#071a33]
+                                    "
+                                >
+                                    <p
+                                        className="
+                                            text-[11px]
+                                            text-slate-500
+                                            dark:text-slate-400
+                                        "
+                                    >
                                         Due Date
                                     </p>
-                                    <p className="mt-1 font-medium">
-                                        {selectedTask.dueDate}
+
+                                    <p
+                                        className="
+                                            mt-1
+                                            text-sm
+                                            font-semibold
+                                            text-slate-900
+                                            dark:text-white
+                                        "
+                                    >
+                                        {formatDate(
+                                            selectedTask.dueDate
+                                        )}
                                     </p>
                                 </div>
 
-                                <div>
-                                    <p className="text-xs text-slate-500">
-                                        Created By
+                                <div
+                                    className="
+                                        rounded-xl
+                                        bg-slate-50
+                                        p-3
+                                        dark:bg-[#071a33]
+                                    "
+                                >
+                                    <p
+                                        className="
+                                            text-[11px]
+                                            text-slate-500
+                                            dark:text-slate-400
+                                        "
+                                    >
+                                        Estimated Hours
                                     </p>
-                                    <p className="mt-1 font-medium">
-                                        {selectedTask.creator}
+
+                                    <p
+                                        className="
+                                            mt-1
+                                            text-sm
+                                            font-semibold
+                                            text-slate-900
+                                            dark:text-white
+                                        "
+                                    >
+                                        {selectedTask.estimatedHours}h
                                     </p>
                                 </div>
+
+                                <div
+                                    className="
+                                        rounded-xl
+                                        bg-slate-50
+                                        p-3
+                                        dark:bg-[#071a33]
+                                    "
+                                >
+                                    <p
+                                        className="
+                                            text-[11px]
+                                            text-slate-500
+                                            dark:text-slate-400
+                                        "
+                                    >
+                                        Actual Hours
+                                    </p>
+
+                                    <p
+                                        className="
+                                            mt-1
+                                            text-sm
+                                            font-semibold
+                                            text-slate-900
+                                            dark:text-white
+                                        "
+                                    >
+                                        {selectedTask.actualHours}h
+                                    </p>
+                                </div>
+
                             </div>
 
-                            <button
-                                onClick={() => {
-                                    const updated = {
-                                        ...selectedTask,
-                                        status: "In Progress",
-                                    };
+                            {/* PROGRESS */}
 
-                                    updateTask(updated);
-                                }}
-                                className="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700"
+                            <div>
+
+                                <div
+                                    className="
+                                        mb-2
+                                        flex
+                                        items-center
+                                        justify-between
+                                    "
+                                >
+                                    <h4
+                                        className="
+                                            text-sm
+                                            font-semibold
+                                            text-slate-900
+                                            dark:text-white
+                                        "
+                                    >
+                                        Progress
+                                    </h4>
+
+                                    <span
+                                        className="
+                                            text-sm
+                                            font-bold
+                                            text-blue-600
+                                            dark:text-blue-400
+                                        "
+                                    >
+                                        {selectedTask.progress}%
+                                    </span>
+
+                                </div>
+
+                                <div
+                                    className="
+                                        h-2.5
+                                        overflow-hidden
+                                        rounded-full
+                                        bg-slate-100
+                                        dark:bg-blue-950/60
+                                    "
+                                >
+                                    <div
+                                        className="
+                                            h-full
+                                            rounded-full
+                                            bg-blue-600
+                                            transition-all
+                                            dark:bg-blue-500
+                                        "
+                                        style={{
+                                            width: `${selectedTask.progress}%`,
+                                        }}
+                                    />
+                                </div>
+
+                            </div>
+
+                            {/* TASK METADATA */}
+
+                            <div
+                                className="
+                                    rounded-xl
+                                    border
+                                    border-slate-200
+                                    p-4
+                                    dark:border-blue-900/60
+                                "
                             >
-                                Mark In Progress
-                            </button>
+
+                                <div
+                                    className="
+                                        grid
+                                        grid-cols-1
+                                        gap-3
+                                        sm:grid-cols-2
+                                    "
+                                >
+
+                                    <div>
+
+                                        <p
+                                            className="
+                                                text-[11px]
+                                                text-slate-500
+                                                dark:text-slate-400
+                                            "
+                                        >
+                                            Sprint
+                                        </p>
+
+                                        <p
+                                            className="
+                                                mt-1
+                                                text-sm
+                                                font-medium
+                                                text-slate-900
+                                                dark:text-white
+                                            "
+                                        >
+                                            {selectedTask.sprint}
+                                        </p>
+
+                                    </div>
+
+                                    <div>
+
+                                        <p
+                                            className="
+                                                text-[11px]
+                                                text-slate-500
+                                                dark:text-slate-400
+                                            "
+                                        >
+                                            Created By
+                                        </p>
+
+                                        <p
+                                            className="
+                                                mt-1
+                                                text-sm
+                                                font-medium
+                                                text-slate-900
+                                                dark:text-white
+                                            "
+                                        >
+                                            {selectedTask.creator}
+                                        </p>
+
+                                    </div>
+
+                                    <div>
+
+                                        <p
+                                            className="
+                                                text-[11px]
+                                                text-slate-500
+                                                dark:text-slate-400
+                                            "
+                                        >
+                                            Created
+                                        </p>
+
+                                        <p
+                                            className="
+                                                mt-1
+                                                text-sm
+                                                font-medium
+                                                text-slate-900
+                                                dark:text-white
+                                            "
+                                        >
+                                            {formatDate(
+                                                selectedTask.createdAt
+                                            )}
+                                        </p>
+
+                                    </div>
+
+                                    <div>
+
+                                        <p
+                                            className="
+                                                text-[11px]
+                                                text-slate-500
+                                                dark:text-slate-400
+                                            "
+                                        >
+                                            Last Updated
+                                        </p>
+
+                                        <p
+                                            className="
+                                                mt-1
+                                                text-sm
+                                                font-medium
+                                                text-slate-900
+                                                dark:text-white
+                                            "
+                                        >
+                                            {formatDate(
+                                                selectedTask.updatedAt
+                                            )}
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
                         </div>
+
+                        {/* MODAL FOOTER */}
+
+                        <div
+                            className="
+                                flex
+                                flex-col-reverse
+                                gap-3
+                                border-t
+                                border-slate-200
+                                px-5
+                                py-4
+                                sm:flex-row
+                                sm:justify-end
+                                dark:border-blue-900/60
+                            "
+                        >
+
+                            <button
+                                type="button"
+                                onClick={clearSelectedTask}
+                                className="
+                                    rounded-lg
+                                    border
+                                    border-slate-200
+                                    bg-white
+                                    px-4
+                                    py-2.5
+                                    text-sm
+                                    font-semibold
+                                    text-slate-700
+                                    transition
+                                    hover:bg-slate-50
+                                    dark:border-blue-900/60
+                                    dark:bg-[#071a33]
+                                    dark:text-slate-300
+                                    dark:hover:bg-blue-950/40
+                                "
+                            >
+                                Close
+                            </button>
+
+                            {selectedTask.status ===
+                                "To Do" && (
+                                <button
+                                    type="button"
+                                    onClick={
+                                        handleMarkInProgress
+                                    }
+                                    disabled={
+                                        updatingStatus
+                                    }
+                                    className="
+                                        rounded-lg
+                                        bg-blue-600
+                                        px-4
+                                        py-2.5
+                                        text-sm
+                                        font-semibold
+                                        text-white
+                                        transition
+                                        hover:bg-blue-700
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-60
+                                    "
+                                >
+                                    {updatingStatus
+                                        ? "Updating..."
+                                        : "Mark In Progress"}
+                                </button>
+                            )}
+
+                        </div>
+
                     </div>
+
                 </div>
             )}
+
         </div>
     );
 }

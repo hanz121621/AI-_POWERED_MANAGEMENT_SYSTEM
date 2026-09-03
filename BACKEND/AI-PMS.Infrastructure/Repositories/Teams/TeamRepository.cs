@@ -161,7 +161,31 @@ public async Task<TeamMember?> GetTeamLeaderMembershipAsync(
                     tm.TeamId == teamId &&
                     tm.UserId == userId);
         }
+// =========================================================
+// GET ACTIVE TEAM IDS BY USER
+// =========================================================
 
+public async Task<List<Guid>> GetActiveTeamIdsByUserIdAsync(
+    Guid userId)
+{
+    if (userId == Guid.Empty)
+    {
+        return new List<Guid>();
+    }
+
+    return await _context.TeamMembers
+        .AsNoTracking()
+        .Where(tm =>
+            tm.UserId == userId &&
+            tm.IsActive &&
+            tm.User != null &&
+            tm.User.IsActive &&
+            tm.Team != null &&
+            tm.Team.IsActive)
+        .Select(tm => tm.TeamId)
+        .Distinct()
+        .ToListAsync();
+}
         // =========================================================
         // GET ACTIVE TEAM MEMBERS
         // =========================================================

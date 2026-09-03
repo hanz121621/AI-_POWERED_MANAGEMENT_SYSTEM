@@ -1,4 +1,3 @@
-
 // ============================================================
 // AIPMS USER SERVICE
 // BACKEND API VERSION
@@ -19,11 +18,6 @@ export const USER_ROLES = {
     MANAGER: 2,
     CONTRIBUTOR: 3,
 };
-
-// ============================================================
-// NORMALIZE ROLE
-// Supports numeric and string backend values.
-// ============================================================
 
 // ============================================================
 // NORMALIZE ROLE
@@ -87,7 +81,6 @@ export function normalizeUserRole(role) {
 
     return "";
 }
-
 
 // ============================================================
 // NORMALIZE USER
@@ -163,6 +156,16 @@ export function normalizeUser(user) {
         bio:
             user?.bio ??
             user?.Bio ??
+            null,
+
+        profileImage:
+            user?.profileImage ??
+            user?.ProfileImage ??
+            null,
+
+        technicalSkills:
+            user?.technicalSkills ??
+            user?.TechnicalSkills ??
             null,
 
         contributorTypeId:
@@ -500,10 +503,14 @@ export async function getUsersByRole(role) {
             console.log(
                 "CHECKING USER:",
                 {
-                    name: user?.fullName,
-                    role: user?.role,
-                    rawRole: user?.rawRole,
-                    normalizedRole: userRole,
+                    name:
+                        user?.fullName,
+                    role:
+                        user?.role,
+                    rawRole:
+                        user?.rawRole,
+                    normalizedRole:
+                        userRole,
                 }
             );
 
@@ -563,7 +570,8 @@ export async function getContributors() {
                     user?.RoleId
                 );
 
-            return role === "Contributor";
+            return role ===
+                "Contributor";
         });
 
     console.log(
@@ -586,6 +594,7 @@ export async function getContributors() {
 
     return contributors;
 }
+
 // ============================================================
 // GET ACTIVE USERS
 // ============================================================
@@ -688,56 +697,6 @@ export async function getUserByEmail(
 
 // ============================================================
 // CREATE USER
-//
-// IMPORTANT:
-// These are the fields sent to the backend:
-//
-// fullName
-// email
-// password
-// confirmPassword
-// role
-// contributorTypeId
-// contributorSubTypeId
-// phoneNumber
-// bio
-// isActive
-// permissions
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ============================================================
-// CREATE USER
 // POST /api/Users
 // ============================================================
 
@@ -745,7 +704,8 @@ export async function createUser(userData) {
     if (!userData) {
         return {
             success: false,
-            error: "User information is required.",
+            error:
+                "User information is required.",
         };
     }
 
@@ -753,18 +713,28 @@ export async function createUser(userData) {
         const role =
             typeof userData.role === "number"
                 ? userData.role
-                : normalizeUserRole(userData.role) === "Admin"
+                : normalizeUserRole(
+                      userData.role
+                  ) === "Admin"
                 ? USER_ROLES.ADMIN
-                : normalizeUserRole(userData.role) === "Manager"
+                : normalizeUserRole(
+                      userData.role
+                  ) === "Manager"
                 ? USER_ROLES.MANAGER
                 : USER_ROLES.CONTRIBUTOR;
 
         const requestData = {
             fullName:
-                String(userData.fullName || "").trim(),
+                String(
+                    userData.fullName ||
+                    ""
+                ).trim(),
 
             email:
-                String(userData.email || "")
+                String(
+                    userData.email ||
+                    ""
+                )
                     .trim()
                     .toLowerCase(),
 
@@ -776,27 +746,29 @@ export async function createUser(userData) {
 
             role,
 
-            // ==================================================
-            // IMPORTANT
-            // THESE NAMES MUST MATCH CreateUserDto.cs
-            // ==================================================
-
             isActive:
-                userData.isActive !== undefined
-                    ? Boolean(userData.isActive)
+                userData.isActive !==
+                undefined
+                    ? Boolean(
+                          userData.isActive
+                      )
                     : true,
 
             contributorTypeId:
-                userData.contributorTypeId || null,
+                userData.contributorTypeId ||
+                null,
 
             contributorSubTypeId:
-                userData.contributorSubTypeId || null,
+                userData.contributorSubTypeId ||
+                null,
 
             phoneNumber:
-                userData.phoneNumber || null,
+                userData.phoneNumber ||
+                null,
 
             bio:
-                userData.bio || null,
+                userData.bio ||
+                null,
         };
 
         console.log(
@@ -894,12 +866,6 @@ export async function createUser(userData) {
         };
     }
 }
-
-
-
-
-
-
 
 // ============================================================
 // UPDATE USER
@@ -1116,6 +1082,8 @@ export async function changeUserRole(
 // MY PROFILE
 // ============================================================
 
+// GET /api/Users/profile
+
 export async function getMyProfile() {
     try {
         const response =
@@ -1123,10 +1091,41 @@ export async function getMyProfile() {
                 "/Users/profile"
             );
 
-        return normalizeUser(
+        console.log(
+            "========== GET MY PROFILE =========="
+        );
+
+        console.log(
+            "STATUS:",
+            response.status
+        );
+
+        console.log(
+            "PROFILE RESPONSE:",
             response.data
         );
+
+        const profile =
+            normalizeUser(
+                response.data
+            );
+
+        console.log(
+            "NORMALIZED MY PROFILE:",
+            profile
+        );
+
+        console.log(
+            "====================================="
+        );
+
+        return profile;
     } catch (error) {
+        console.error(
+            "GET MY PROFILE ERROR:",
+            error
+        );
+
         throw new Error(
             getApiErrorMessage(
                 error,
@@ -1141,32 +1140,179 @@ export async function getMyProfile() {
 
 // ============================================================
 // UPDATE MY PROFILE
+// PUT /api/Users/profile
+//
+// IMPORTANT:
+// Email is REQUIRED by UpdateProfileDto.cs,
+// but it is NOT editable in the frontend.
+//
+// The frontend gets the existing email from
+// GET /Users/profile and sends it back unchanged.
 // ============================================================
 
 export async function updateMyProfile(
     profileData
 ) {
+    if (!profileData) {
+        return {
+            success: false,
+            error:
+                "Profile information is required.",
+        };
+    }
+
+    const email =
+        String(
+            profileData.email || ""
+        ).trim();
+
+    const fullName =
+        String(
+            profileData.fullName || ""
+        ).trim();
+
+    // ========================================================
+    // FRONTEND VALIDATION
+    // ========================================================
+
+    if (!fullName) {
+        return {
+            success: false,
+            error:
+                "Full name is required.",
+        };
+    }
+
+    if (!email) {
+        return {
+            success: false,
+            error:
+                "Email is required.",
+        };
+    }
+
+    // Basic email validation.
+    // Email is NOT being edited here.
+    const emailPattern =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(email)) {
+        return {
+            success: false,
+            error:
+                "The existing profile email is not valid.",
+        };
+    }
+
+    // ========================================================
+    // BUILD BACKEND REQUEST
+    //
+    // Email is included ONLY because the backend DTO
+    // requires it. The frontend UI keeps it read-only.
+    // ========================================================
+
+    const requestData = {
+        fullName,
+
+        email,
+
+        phoneNumber:
+            profileData.phoneNumber
+                ? String(
+                      profileData.phoneNumber
+                  ).trim()
+                : null,
+
+        bio:
+            profileData.bio
+                ? String(
+                      profileData.bio
+                  ).trim()
+                : null,
+
+        profileImage:
+            profileData.profileImage
+                ? String(
+                      profileData.profileImage
+                  ).trim()
+                : null,
+
+        technicalSkills:
+            profileData.technicalSkills
+                ? String(
+                      profileData.technicalSkills
+                  ).trim()
+                : null,
+    };
+
+    console.log(
+        "========== UPDATE MY PROFILE =========="
+    );
+
+    console.log(
+        "REQUEST DATA:",
+        requestData
+    );
+
+    console.log(
+        "EMAIL:",
+        requestData.email,
+        "(read-only / unchanged)"
+    );
+
+    console.log(
+        "FULL NAME:",
+        requestData.fullName
+    );
+
+    console.log(
+        "PHONE:",
+        requestData.phoneNumber
+    );
+
+    console.log(
+        "BIO:",
+        requestData.bio
+    );
+
+    console.log(
+        "PROFILE IMAGE:",
+        requestData.profileImage
+    );
+
+    console.log(
+        "TECHNICAL SKILLS:",
+        requestData.technicalSkills
+    );
+
+    console.log(
+        "========================================"
+    );
+
     try {
         const response =
             await api.put(
                 "/Users/profile",
-                {
-                    fullName:
-                        profileData.fullName,
-
-                    phoneNumber:
-                        profileData.phoneNumber ||
-                        null,
-
-                    bio:
-                        profileData.bio ||
-                        null,
-
-                    profileImage:
-                        profileData.profileImage ||
-                        null,
-                }
+                requestData
             );
+
+        console.log(
+            "========== UPDATE PROFILE SUCCESS =========="
+        );
+
+        console.log(
+            "STATUS:",
+            response.status
+        );
+
+        console.log(
+            "RESPONSE:",
+            response.data
+        );
+
+        console.log(
+            "============================================="
+        );
 
         return {
             success: true,
@@ -1174,8 +1320,34 @@ export async function updateMyProfile(
             message:
                 response.data?.message ||
                 "Profile updated successfully.",
+
+            data:
+                response.data,
         };
     } catch (error) {
+        console.error(
+            "========== UPDATE MY PROFILE ERROR =========="
+        );
+
+        console.error(
+            "ERROR:",
+            error
+        );
+
+        console.error(
+            "STATUS:",
+            error?.response?.status
+        );
+
+        console.error(
+            "BACKEND RESPONSE:",
+            error?.response?.data
+        );
+
+        console.error(
+            "=============================================="
+        );
+
         return {
             success: false,
 
@@ -1184,6 +1356,12 @@ export async function updateMyProfile(
                     error,
                     "Unable to update profile."
                 ),
+
+            status:
+                error?.response?.status,
+
+            details:
+                error?.response?.data,
         };
     }
 }

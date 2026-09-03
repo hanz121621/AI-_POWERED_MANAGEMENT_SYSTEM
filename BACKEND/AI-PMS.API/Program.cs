@@ -345,6 +345,10 @@ builder.Services.AddScoped<
     ITaskService,
     TaskService>();
 
+    builder.Services.AddScoped<
+    ITeamLeaderTaskService,
+    TeamLeaderTaskService>();
+
 
   builder.Services.AddScoped<
     ITaskCommentRepository,

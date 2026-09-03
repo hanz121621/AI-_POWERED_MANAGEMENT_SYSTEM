@@ -119,12 +119,8 @@ var task = new TaskItem
 
     Description = dto.Description,
 
-
-   // AssignedDeveloperId =
-     //   dto.AssignedDeveloperId,
-
-        AssignedContributorSDId =
-            dto.AssignedContributorSDId,
+    AssignedContributorSDId =
+        dto.AssignedContributorSDId,
 
     Priority = dto.Priority,
 

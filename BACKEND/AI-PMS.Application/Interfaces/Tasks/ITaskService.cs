@@ -22,12 +22,17 @@ namespace AI_PMS.Application.Interfaces.Tasks
         // =========================================================
         Task<TaskDto?> GetTaskByIdAsync(Guid id);
 
+        // =========================================================
+        // AI TASK SUGGESTION
+        // =========================================================
         Task<string?> GenerateTaskSuggestionAsync(Guid taskId);
+
         // =========================================================
         // VIEW SPRINT TASKS
         // =========================================================
         Task<IEnumerable<TaskDto>> GetSprintTasksAsync(
             Guid sprintId);
+
         // =========================================================
         // VIEW CONTRIBUTOR TASKS
         // =========================================================
