@@ -1014,7 +1014,7 @@ namespace AI_PMS.API.Controllers.Projects
                     });
             }
         }
-
+        
         // =========================================================
         // AI-009: DETECT PROJECT BOTTLENECKS
         // =========================================================
@@ -1311,7 +1311,65 @@ namespace AI_PMS.API.Controllers.Projects
                 })
             });
         }
+        // =========================================================
+        // AI-004: ANALYZE TEAM PERFORMANCE
+        // =========================================================
+        [HttpGet("{id:guid}/ai-team-performance")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> AnalyzeTeamPerformance(Guid id)
+        {
+            var managerId = GetCurrentUserId();
+            if (!managerId.HasValue) return Unauthorized(new { message = "Invalid user identity." });
+            try {
+                var result = await _aiSuggestionService.AnalyzeTeamPerformanceAsync(id, managerId.Value);
+                return Ok(new { success = true, projectId = id, data = result });
+            } catch (Exception ex) { return StatusCode(500, new { message = "Unable to analyze team performance.", error = ex.Message }); }
+        }
 
+        // =========================================================
+        // AI-005: PREDICT PROJECT PROGRESS
+        // =========================================================
+        [HttpGet("{id:guid}/ai-progress-prediction")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> PredictProjectProgress(Guid id)
+        {
+            var managerId = GetCurrentUserId();
+            if (!managerId.HasValue) return Unauthorized(new { message = "Invalid user identity." });
+            try {
+                var result = await _aiSuggestionService.PredictProjectProgressAsync(id, managerId.Value);
+                return Ok(new { success = true, projectId = id, data = result });
+            } catch (Exception ex) { return StatusCode(500, new { message = "Unable to predict progress.", error = ex.Message }); }
+        }
+
+        // =========================================================
+        // AI-006: AI DEADLINE PREDICTION
+        // =========================================================
+        [HttpGet("{id:guid}/ai-deadline-prediction")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> PredictDeadline(Guid id)
+        {
+            var managerId = GetCurrentUserId();
+            if (!managerId.HasValue) return Unauthorized(new { message = "Invalid user identity." });
+            try {
+                var result = await _aiSuggestionService.PredictDeadlineAsync(id, managerId.Value);
+                return Ok(new { success = true, projectId = id, data = result });
+            } catch (Exception ex) { return StatusCode(500, new { message = "Unable to predict deadline.", error = ex.Message }); }
+        }
+
+        // =========================================================
+        // AI-007: GENERATE SPRINT PLANNING SUGGESTIONS
+        // =========================================================
+        [HttpGet("{id:guid}/ai-sprint-planning")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GenerateSprintPlanning(Guid id)
+        {
+            var managerId = GetCurrentUserId();
+            if (!managerId.HasValue) return Unauthorized(new { message = "Invalid user identity." });
+            try {
+                var result = await _aiSuggestionService.GenerateSprintPlanningSuggestionsAsync(id, managerId.Value);
+                return Ok(new { success = true, projectId = id, data = result });
+            } catch (Exception ex) { return StatusCode(500, new { message = "Unable to generate sprint suggestions.", error = ex.Message }); }
+        }
         // =========================================================
         // GET ASSIGNED MANAGER
         // =========================================================

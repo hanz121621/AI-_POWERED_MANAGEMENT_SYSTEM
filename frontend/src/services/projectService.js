@@ -603,6 +603,82 @@ export async function createProject(projectData) {
         };
     }
 }
+// ========================================================
+// AI-004: Analyze Team Performance
+// ========================================================
+export const getAiTeamPerformance = async (projectId) => {
+  try {
+    const response = await api.get(`/projects/${projectId}/ai-team-performance`);
+    return response.data;
+  } catch (error) {
+    console.error("GET AI TEAM PERFORMANCE ERROR:", error);
+    throw error;
+  }
+};
+
+// ========================================================
+// AI-005: Predict Project Progress
+// ========================================================
+export const getAiProgressPrediction = async (projectId) => {
+  try {
+    const response = await api.get(`/projects/${projectId}/ai-progress-prediction`);
+    return response.data;
+  } catch (error) {
+    console.error("GET AI PROGRESS PREDICTION ERROR:", error);
+    throw error;
+  }
+};
+
+// ========================================================
+// AI-007: Generate Sprint Planning Suggestions
+// ========================================================
+export const getAiSprintPlanning = async (projectId) => {
+  try {
+    const response = await api.get(`/projects/${projectId}/ai-sprint-planning`);
+    return response.data;
+  } catch (error) {
+    console.error("GET AI SPRINT PLANNING ERROR:", error);
+    throw error;
+  }
+};
+// ========================================================
+// ADMIN: GET AI SETTINGS
+// ========================================================
+export const getAiSettings = async () => {
+  try {
+    const response = await api.get('/ai/settings'); // Adjust endpoint if different
+    return response.data;
+  } catch (error) {
+    console.error("GET AI SETTINGS ERROR:", error);
+    throw error;
+  }
+};
+
+// ========================================================
+// ADMIN: UPDATE AI SETTINGS
+// ========================================================
+export const updateAiSettings = async (settingsData) => {
+  try {
+    const response = await api.put('/ai/settings', settingsData);
+    return response.data;
+  } catch (error) {
+    console.error("UPDATE AI SETTINGS ERROR:", error);
+    throw error;
+  }
+};
+
+// ========================================================
+// ADMIN: GET AI USAGE LOGS
+// ========================================================
+export const getAiUsageLogs = async () => {
+  try {
+    const response = await api.get('/ai/usage-logs'); // Adjust endpoint if different
+    return response.data;
+  } catch (error) {
+    console.error("GET AI USAGE LOGS ERROR:", error);
+    throw error;
+  }
+};
 // ============================================================
 // UPDATE PROJECT
 //
@@ -1804,7 +1880,18 @@ export const updateProjectStatus = async (projectId, statusData) => {
     throw error;
   }
 };
-
+// ========================================================
+// AI-006: AI Deadline Prediction and Delay Warning
+// ========================================================
+export const getAiDeadlinePrediction = async (projectId) => {
+  try {
+    const response = await api.get(`/projects/${projectId}/ai-deadline-prediction`);
+    return response.data;
+  } catch (error) {
+    console.error("GET AI DEADLINE PREDICTION ERROR:", error);
+    throw error;
+  }
+};
 // ========================================================
 // AI-008: Generate Automated Project Summary
 // ========================================================

@@ -35,7 +35,7 @@ import {
 // ============================================================
 
 import sprintService from "../../services/sprintService";
-
+import api from "../../services/api"; // 🌟 ADD THIS (or wherever your api.js is)
 // ============================================================
 // SPRINT COMPONENTS
 // ============================================================
@@ -223,7 +223,7 @@ function SprintManagement() {
     // ========================================================
 
     const [sprints, setSprints] = useState([]);
-
+    const [teams, setTeams] = useState([]);
     // ========================================================
     // LOADING
     // ========================================================
@@ -277,7 +277,26 @@ function SprintManagement() {
     const [errorMessage, setErrorMessage] =
         useState("");
 
-    // ========================================================
+
+
+            const loadTeams = useCallback(async () => {
+        try {
+            // 🌟 Use the existing api service which automatically handles the Bearer token!
+            const response = await api.get("/Team");
+            
+            // The api interceptor usually returns the data directly in response.data
+            const teamData = Array.isArray(response.data) ? response.data : [];
+            setTeams(teamData);
+        } catch (error) {
+            console.error("Failed to load teams:", error);
+        }
+    }, []);
+
+
+
+
+    // ===============
+    //=========================================
     // LOAD SPRINTS
     // ========================================================
 
@@ -324,9 +343,10 @@ function SprintManagement() {
     // INITIAL LOAD
     // ========================================================
 
-    useEffect(() => {
+         useEffect(() => {
         loadSprints();
-    }, [loadSprints]);
+        loadTeams(); // 🌟 This will now work perfectly
+    }, [loadSprints, loadTeams]);
 
     // ========================================================
     // MESSAGE HELPERS
@@ -1493,18 +1513,14 @@ function SprintManagement() {
 
             </main>
 
-            {/* ==========================================================
-                CREATE SPRINT
-            ========================================================== */}
-
-            {showCreateForm && (
+                      {showCreateForm && (
                 <CreateSprintModal
-                    onClose={() =>
-                        setShowCreateForm(false)
-                    }
-                    onCreated={
-                        handleCreateSprint
-                    }
+                    isOpen={showCreateForm}
+                    onClose={() => setShowCreateForm(false)}
+                    onCreated={handleCreateSprint}
+                    projectId="4a66be10-c9b6-44d5-bc8e-94de161b5fc3" 
+                    teamId="bd2b9476-e01b-4911-99c1-3a89a2d8a010"   
+                    teams={teams} // 🌟 PASS THE FETCHED TEAMS HERE
                 />
             )}
 

@@ -1,891 +1,272 @@
-
-// ============================================================
-// AIPMS — MANAGER AI FEATURES
-//
-// AI Use Case
-// - View AI Recommendations
-// - Select Assigned Project
-// - Generate AI Recommendations
-// - Refresh AI Recommendations
-//
-// IMPORTANT
-// - No localStorage
-// - No hard-coded recommendations
-// - No automatic project modification
-// - Manager selects an assigned project
-// - Backend verifies authorization
-// - Backend retrieves project data
-// - AI generates recommendations
-//
-// Colorful Professional UI
-// ============================================================
-
-import { useEffect, useState } from "react";
-
-import {
-    AlertTriangle,
-    BrainCircuit,
-    CheckCircle2,
-    Info,
-    Lightbulb,
-    RefreshCw,
-    Sparkles,
-    FolderKanban,
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { 
+  Sparkles, FileText, AlertTriangle, Lightbulb, 
+  Users, TrendingUp, CalendarDays, CalendarClock, 
+  ChevronDown, BrainCircuit 
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { getMyProjects } from "@/services/projectService";
+import { getCurrentUser } from "@/services/authService";
 
-import {
-    getManagerProjects,
-    getAIRecommendations,
-} from "@/services/aiService";
-
-// ============================================================
-// COMPONENT
-// ============================================================
+// Import all the AI modals we built
+import AiProjectSummaryModal from "../../components/manager/project/AiProjectSummaryModal";
+import AiRecommendationsModal from "../../components/manager/project/AiRecommendationsModal";
+import AiBottlenecksModal from "../../components/manager/project/AiBottlenecksModal";
+import AiTeamPerformanceModal from "../../components/manager/project/AiTeamPerformanceModal";
+import AiProgressPredictionModal from "../../components/manager/project/AiProgressPredictionModal";
+import AiDeadlinePredictionModal from "../../components/manager/project/AiDeadlinePredictionModal";
+import AiSprintPlanningModal from "../../components/manager/project/AiSprintPlanningModal";
 
 function AIFeatures() {
-    // ========================================================
-    // STATE
-    // ========================================================
+  const navigate = useNavigate();
+  const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [currentManager, setCurrentManager] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    const [projects, setProjects] = useState([]);
+  // Active modal state
+  const [activeModal, setActiveModal] = useState(null);
 
-    const [selectedProjectId, setSelectedProjectId] =
-        useState("");
-
-    const [selectedProject, setSelectedProject] =
-        useState(null);
-
-    const [recommendations, setRecommendations] =
-        useState([]);
-
-    const [loadingProjects, setLoadingProjects] =
-        useState(true);
-
-    const [loadingRecommendations, setLoadingRecommendations] =
-        useState(false);
-
-    const [error, setError] = useState("");
-
-    const [lastGeneratedAt, setLastGeneratedAt] =
-        useState(null);
-
-    // ========================================================
-    // LOAD ASSIGNED PROJECTS
-    // ========================================================
-
-    useEffect(() => {
-        loadProjects();
-    }, []);
-
-    // ========================================================
-    // LOAD PROJECTS
-    // ========================================================
-
-    const loadProjects = async () => {
-        try {
-            setLoadingProjects(true);
-            setError("");
-
-            const result = await getManagerProjects();
-
-            const projectList = Array.isArray(result)
-                ? result
-                : result?.projects || [];
-
-            setProjects(projectList);
-        } catch (error) {
-            console.error(
-                "Project loading error:",
-                error
-            );
-
-            setError(
-                error.message ||
-                    "Unable to load assigned projects."
-            );
-        } finally {
-            setLoadingProjects(false);
-        }
-    };
-
-    // ========================================================
-    // PROJECT NAME
-    // ========================================================
-
-    const getProjectName = (project) => {
-        if (!project) {
-            return "Unnamed Project";
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        // 1. Load current manager
+        const user = await getCurrentUser();
+        if (user) {
+          setCurrentManager({ id: user.id, name: user.fullName || user.name });
         }
 
-        return (
-            project.name ||
-            project.title ||
-            project.projectName ||
-            "Unnamed Project"
-        );
-    };
-
-    // ========================================================
-    // PROJECT ID
-    // ========================================================
-
-    const getProjectId = (project) => {
-        if (!project) {
-            return null;
+        // 2. Load assigned projects
+        const response = await getMyProjects();
+        const data = response?.data || response || [];
+        setProjects(data);
+        if (data.length > 0) {
+          setSelectedProjectId(data[0].id);
         }
-
-        return (
-            project.id ??
-            project.projectId ??
-            project.projectID
-        );
+      } catch (error) {
+        console.error("Failed to load AI Hub data:", error);
+      } finally {
+        setLoading(false);
+      }
     };
+    initialize();
+  }, []);
 
-    // ========================================================
-    // HANDLE PROJECT SELECTION
-    // ========================================================
+  const selectedProject = projects.find(p => p.id === selectedProjectId);
 
-    const handleProjectChange = async (event) => {
-        const projectId = event.target.value;
+  const aiFeatures = [
+    {
+      id: "summary",
+      title: "Automated Project Summary",
+      description: "Get a concise, AI-generated executive summary of the project's current health, risks, and next steps.",
+      icon: FileText,
+      color: "from-violet-500 to-purple-600",
+      bg: "bg-violet-50",
+      border: "border-violet-200",
+      text: "text-violet-700"
+    },
+    {
+      id: "recommendations",
+      title: "Project Recommendations",
+      description: "Receive 3 actionable, data-driven recommendations to improve project performance and workflow.",
+      icon: Lightbulb,
+      color: "from-amber-500 to-orange-600",
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      text: "text-amber-700"
+    },
+    {
+      id: "bottlenecks",
+      title: "Detect Bottlenecks",
+      description: "Identify active blockers, resource constraints, or process inefficiencies slowing down your project.",
+      icon: AlertTriangle,
+      color: "from-red-500 to-rose-600",
+      bg: "bg-red-50",
+      border: "border-red-200",
+      text: "text-red-700"
+    },
+    {
+      id: "team",
+      title: "Team Performance Analysis",
+      description: "Analyze team workload, completion rates, and productivity trends based strictly on project metrics.",
+      icon: Users,
+      color: "from-blue-500 to-cyan-600",
+      bg: "bg-blue-50",
+      border: "border-blue-200",
+      text: "text-blue-700"
+    },
+    {
+      id: "progress",
+      title: "Progress Prediction",
+      description: "Forecast future project completion percentage and trajectory based on current velocity.",
+      icon: TrendingUp,
+      color: "from-emerald-500 to-green-600",
+      bg: "bg-emerald-50",
+      border: "border-emerald-200",
+      text: "text-emerald-700"
+    },
+    {
+      id: "deadline",
+      title: "Deadline Prediction & Warning",
+      description: "Predict if the project will meet its official deadline and get early warnings for potential delays.",
+      icon: CalendarClock,
+      color: "from-indigo-500 to-blue-600",
+      bg: "bg-indigo-50",
+      border: "border-indigo-200",
+      text: "text-indigo-700"
+    },
+    {
+      id: "sprint",
+      title: "Sprint Planning Suggestions",
+      description: "Get AI advisory on optimal sprint capacity, priority focus, and potential blockers for the next sprint.",
+      icon: CalendarDays,
+      color: "from-purple-500 to-pink-600",
+      bg: "bg-purple-50",
+      border: "border-purple-200",
+      text: "text-purple-700"
+    }
+  ];
 
-        setSelectedProjectId(projectId);
-        setSelectedProject(null);
-        setRecommendations([]);
-        setError("");
-        setLastGeneratedAt(null);
+  const handleOpenModal = (featureId) => {
+    if (!selectedProject) return;
+    setActiveModal(featureId);
+  };
 
-        if (!projectId) {
-            return;
-        }
+  const handleCloseModal = () => {
+    setActiveModal(null);
+  };
 
-        const project = projects.find(
-            (item) =>
-                String(getProjectId(item)) ===
-                String(projectId)
-        );
+  const handleModalError = (msg) => {
+    console.error("AI Modal Error:", msg);
+    alert(msg);
+    setActiveModal(null);
+  };
 
-        setSelectedProject(project || null);
-
-        await loadRecommendations(projectId);
-    };
-
-    // ========================================================
-    // LOAD AI RECOMMENDATIONS
-    // ========================================================
-
-    const loadRecommendations = async (projectId) => {
-        try {
-            setLoadingRecommendations(true);
-            setError("");
-            setRecommendations([]);
-
-            const result =
-                await getAIRecommendations(projectId);
-
-            const recommendationList = Array.isArray(result)
-                ? result
-                : result?.recommendations || [];
-
-            setRecommendations(recommendationList);
-
-            setLastGeneratedAt(new Date());
-        } catch (error) {
-            console.error(
-                "AI recommendation error:",
-                error
-            );
-
-            setError(
-                error.message ||
-                    "Unable to generate AI recommendations."
-            );
-        } finally {
-            setLoadingRecommendations(false);
-        }
-    };
-
-    // ========================================================
-    // REFRESH
-    // ========================================================
-
-    const handleRefresh = async () => {
-        setError("");
-
-        if (!selectedProjectId) {
-            await loadProjects();
-            return;
-        }
-
-        await loadRecommendations(
-            selectedProjectId
-        );
-    };
-
-    // ========================================================
-    // RECOMMENDATION ICON
-    // ========================================================
-
-    const getRecommendationIcon = (type) => {
-        const normalizedType = String(type || "")
-            .trim()
-            .toLowerCase();
-
-        if (
-            normalizedType.includes("risk") ||
-            normalizedType.includes("warning")
-        ) {
-            return (
-                <AlertTriangle
-                    className="h-5 w-5 text-amber-600"
-                />
-            );
-        }
-
-        if (
-            normalizedType.includes("success") ||
-            normalizedType.includes("positive") ||
-            normalizedType.includes("completed")
-        ) {
-            return (
-                <CheckCircle2
-                    className="h-5 w-5 text-emerald-600"
-                />
-            );
-        }
-
-        if (
-            normalizedType.includes("info") ||
-            normalizedType.includes("information")
-        ) {
-            return (
-                <Info
-                    className="h-5 w-5 text-sky-600"
-                />
-            );
-        }
-
-        return (
-            <Lightbulb
-                className="h-5 w-5 text-violet-600"
-            />
-        );
-    };
-
-    // ========================================================
-    // RECOMMENDATION TITLE
-    // ========================================================
-
-    const getRecommendationTitle = (
-        recommendation,
-        index
-    ) => {
-        return (
-            recommendation?.title ||
-            recommendation?.name ||
-            `Recommendation ${index + 1}`
-        );
-    };
-
-    // ========================================================
-    // RECOMMENDATION DESCRIPTION
-    // ========================================================
-
-    const getRecommendationDescription = (
-        recommendation
-    ) => {
-        return (
-            recommendation?.description ||
-            recommendation?.message ||
-            recommendation?.content ||
-            recommendation?.recommendation ||
-            "No recommendation details were provided."
-        );
-    };
-
-    // ========================================================
-    // RECOMMENDATION TYPE
-    // ========================================================
-
-    const getRecommendationType = (
-        recommendation
-    ) => {
-        return (
-            recommendation?.type ||
-            recommendation?.category ||
-            "Recommendation"
-        );
-    };
-
-    // ========================================================
-    // RENDER
-    // ========================================================
-
+  if (loading) {
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900">
-
-            <main className="min-h-screen">
-
-                <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-
-                    {/* ==================================================
-                        COLORFUL HEADER
-                    ================================================== */}
-
-                    <div className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-500 p-7 text-white shadow-lg">
-
-                        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/10" />
-
-                        <div className="absolute -bottom-20 right-24 h-44 w-44 rounded-full bg-white/10" />
-
-                        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-                            <div className="flex items-center gap-4">
-
-                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20 backdrop-blur-sm">
-
-                                    <BrainCircuit
-                                        size={28}
-                                        className="text-white"
-                                    />
-
-                                </div>
-
-                                <div>
-
-                                    <div className="mb-1 flex items-center gap-2">
-
-                                        <Sparkles
-                                            size={16}
-                                            className="text-cyan-200"
-                                        />
-
-                                        <span className="text-xs font-semibold uppercase tracking-wider text-white/80">
-                                            AI Workspace
-                                        </span>
-
-                                    </div>
-
-                                    <h1 className="text-3xl font-bold tracking-tight">
-                                        AI Features
-                                    </h1>
-
-                                    <p className="mt-1 max-w-2xl text-sm text-white/80">
-                                        Analyze assigned projects and view AI-generated recommendations.
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-                            {/* REFRESH */}
-
-                            <Button
-                                type="button"
-                                onClick={handleRefresh}
-                                disabled={
-                                    loadingProjects ||
-                                    loadingRecommendations
-                                }
-                                className="inline-flex items-center justify-center gap-2 rounded-xl border-0 bg-white px-5 py-3 text-sm font-bold text-violet-700 shadow-md transition hover:bg-slate-50 hover:shadow-lg disabled:opacity-60"
-                            >
-
-                                <RefreshCw
-                                    className={`h-4 w-4 ${
-                                        loadingProjects ||
-                                        loadingRecommendations
-                                            ? "animate-spin"
-                                            : ""
-                                    }`}
-                                />
-
-                                Refresh
-
-                            </Button>
-
-                        </div>
-
-                    </div>
-
-                    {/* ==================================================
-                        ERROR
-                    ================================================== */}
-
-                    {error && (
-                        <div
-                            role="alert"
-                            className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-sm"
-                        >
-
-                            <AlertTriangle
-                                size={19}
-                                className="mt-0.5 shrink-0 text-red-600"
-                            />
-
-                            <span>
-                                {error}
-                            </span>
-
-                        </div>
-                    )}
-
-                    {/* ==================================================
-                        PROJECT SELECTOR
-                    ================================================== */}
-
-                    <section className="mb-8">
-
-                        <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
-                            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 via-blue-500 to-cyan-500" />
-
-                            <div className="p-6">
-
-                                <div className="mb-5 flex items-center gap-3">
-
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100">
-
-                                        <FolderKanban
-                                            size={21}
-                                            className="text-violet-600"
-                                        />
-
-                                    </div>
-
-                                    <div>
-
-                                        <h2 className="text-lg font-bold text-slate-900">
-                                            Select Project
-                                        </h2>
-
-                                        <p className="mt-1 text-sm text-slate-500">
-                                            Select an assigned project to view AI recommendations.
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                                <select
-                                    value={
-                                        selectedProjectId
-                                    }
-                                    onChange={
-                                        handleProjectChange
-                                    }
-                                    disabled={
-                                        loadingProjects
-                                    }
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100 disabled:cursor-not-allowed disabled:bg-slate-50"
-                                >
-
-                                    <option value="">
-
-                                        {loadingProjects
-                                            ? "Loading assigned projects..."
-                                            : projects.length === 0
-                                            ? "No assigned projects found"
-                                            : "Select an assigned project"}
-
-                                    </option>
-
-                                    {projects.map(
-                                        (project) => {
-
-                                            const id =
-                                                getProjectId(
-                                                    project
-                                                );
-
-                                            return (
-                                                <option
-                                                    key={id}
-                                                    value={id}
-                                                >
-                                                    {getProjectName(
-                                                        project
-                                                    )}
-                                                </option>
-                                            );
-                                        }
-                                    )}
-
-                                </select>
-
-                                {selectedProject && (
-                                    <div className="mt-4 flex items-center gap-2 rounded-xl border border-violet-100 bg-violet-50 px-4 py-3">
-
-                                        <CheckCircle2
-                                            size={17}
-                                            className="shrink-0 text-violet-600"
-                                        />
-
-                                        <p className="text-sm font-medium text-violet-700">
-
-                                            Selected project:
-
-                                            <span className="ml-1 font-bold">
-                                                {getProjectName(
-                                                    selectedProject
-                                                )}
-                                            </span>
-
-                                        </p>
-
-                                    </div>
-                                )}
-
-                            </div>
-
-                        </div>
-
-                    </section>
-
-                    {/* ==================================================
-                        NO PROJECT SELECTED
-                    ================================================== */}
-
-                    {!selectedProjectId &&
-                        !loadingProjects &&
-                        !error && (
-
-                            <div className="rounded-2xl border border-dashed border-violet-300 bg-white px-6 py-16 text-center shadow-sm">
-
-                                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100">
-
-                                    <BrainCircuit
-                                        size={32}
-                                        className="text-violet-600"
-                                    />
-
-                                </div>
-
-                                <h2 className="text-lg font-bold text-slate-900">
-                                    AI Recommendations
-                                </h2>
-
-                                <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
-                                    Select one of your assigned projects to allow the AI service to analyze the available project data and generate recommendations.
-                                </p>
-
-                            </div>
-                        )}
-
-                    {/* ==================================================
-                        AI LOADING
-                    ================================================== */}
-
-                    {selectedProjectId &&
-                        loadingRecommendations && (
-
-                            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
-
-                                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100">
-
-                                    <RefreshCw
-                                        size={30}
-                                        className="animate-spin text-violet-600"
-                                    />
-
-                                </div>
-
-                                <h2 className="text-lg font-bold text-slate-900">
-                                    AI is analyzing project data...
-                                </h2>
-
-                                <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
-                                    The AI service is analyzing the authorized project data and generating recommendations.
-                                </p>
-
-                            </div>
-                        )}
-
-                    {/* ==================================================
-                        RECOMMENDATIONS
-                    ================================================== */}
-
-                    {selectedProjectId &&
-                        !loadingRecommendations &&
-                        recommendations.length > 0 && (
-
-                            <section className="space-y-6">
-
-                                {/* SECTION HEADER */}
-
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-
-                                    <div>
-
-                                        <div className="flex items-center gap-2">
-
-                                            <div className="h-2.5 w-2.5 rounded-full bg-violet-500" />
-
-                                            <h2 className="text-xl font-bold text-slate-900">
-                                                AI Recommendations
-                                            </h2>
-
-                                        </div>
-
-                                        <p className="mt-1 text-sm text-slate-500">
-                                            {selectedProject
-                                                ? getProjectName(
-                                                      selectedProject
-                                                  )
-                                                : "Selected Project"}
-                                        </p>
-
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center gap-2">
-
-                                        <span className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-xs font-bold text-violet-700">
-
-                                            <BrainCircuit
-                                                size={15}
-                                            />
-
-                                            AI Generated
-
-                                        </span>
-
-                                        <span className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-bold text-blue-700">
-
-                                            {recommendations.length}
-
-                                            {" "}
-
-                                            {recommendations.length ===
-                                            1
-                                                ? "Recommendation"
-                                                : "Recommendations"}
-
-                                        </span>
-
-                                    </div>
-
-                                </div>
-
-                                {/* LAST GENERATED */}
-
-                                {lastGeneratedAt && (
-                                    <p className="text-xs text-slate-400">
-                                        Generated{" "}
-                                        {lastGeneratedAt.toLocaleString()}
-                                    </p>
-                                )}
-
-                                {/* RECOMMENDATION CARDS */}
-
-                                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-
-                                    {recommendations.map(
-                                        (
-                                            recommendation,
-                                            index
-                                        ) => {
-
-                                            const title =
-                                                getRecommendationTitle(
-                                                    recommendation,
-                                                    index
-                                                );
-
-                                            const description =
-                                                getRecommendationDescription(
-                                                    recommendation
-                                                );
-
-                                            const type =
-                                                getRecommendationType(
-                                                    recommendation
-                                                );
-
-                                            const normalizedType =
-                                                String(
-                                                    type || ""
-                                                )
-                                                    .trim()
-                                                    .toLowerCase();
-
-                                            const isRisk =
-                                                normalizedType.includes(
-                                                    "risk"
-                                                ) ||
-                                                normalizedType.includes(
-                                                    "warning"
-                                                );
-
-                                            const isSuccess =
-                                                normalizedType.includes(
-                                                    "success"
-                                                ) ||
-                                                normalizedType.includes(
-                                                    "positive"
-                                                );
-
-                                            const isInfo =
-                                                normalizedType.includes(
-                                                    "info"
-                                                );
-
-                                            const accentClass =
-                                                isRisk
-                                                    ? "from-amber-400 to-orange-500"
-                                                    : isSuccess
-                                                    ? "from-emerald-400 to-green-600"
-                                                    : isInfo
-                                                    ? "from-sky-400 to-blue-600"
-                                                    : "from-violet-500 to-indigo-600";
-
-                                            const iconBgClass =
-                                                isRisk
-                                                    ? "bg-amber-100"
-                                                    : isSuccess
-                                                    ? "bg-emerald-100"
-                                                    : isInfo
-                                                    ? "bg-sky-100"
-                                                    : "bg-violet-100";
-
-                                            return (
-                                                <div
-                                                    key={
-                                                        recommendation.id ||
-                                                        recommendation.recommendationId ||
-                                                        index
-                                                    }
-                                                    className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
-                                                >
-
-                                                    {/* TOP ACCENT */}
-
-                                                    <div
-                                                        className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${accentClass}`}
-                                                    />
-
-                                                    <div className="p-6">
-
-                                                        <div className="flex gap-4">
-
-                                                            {/* ICON */}
-
-                                                            <div
-                                                                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconBgClass}`}
-                                                            >
-
-                                                                {getRecommendationIcon(
-                                                                    type
-                                                                )}
-
-                                                            </div>
-
-                                                            {/* CONTENT */}
-
-                                                            <div className="min-w-0 flex-1">
-
-                                                                <div className="flex flex-wrap items-start justify-between gap-2">
-
-                                                                    <h3 className="font-bold leading-6 text-slate-900">
-                                                                        {
-                                                                            title
-                                                                        }
-                                                                    </h3>
-
-                                                                    <span className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                                                                        {
-                                                                            type
-                                                                        }
-                                                                    </span>
-
-                                                                </div>
-
-                                                                <p className="mt-3 text-sm leading-6 text-slate-600">
-                                                                    {
-                                                                        description
-                                                                    }
-                                                                </p>
-
-                                                                <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4 text-xs font-semibold text-violet-600">
-
-                                                                    <BrainCircuit
-                                                                        size={15}
-                                                                    />
-
-                                                                    AI-generated recommendation
-
-                                                                </div>
-
-                                                            </div>
-
-                                                        </div>
-
-                                                    </div>
-
-                                                </div>
-                                            );
-                                        }
-                                    )}
-
-                                </div>
-
-                            </section>
-                        )}
-
-                    {/* ==================================================
-                        NO RECOMMENDATIONS
-                    ================================================== */}
-
-                    {selectedProjectId &&
-                        !loadingRecommendations &&
-                        !error &&
-                        recommendations.length === 0 && (
-
-                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
-
-                                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
-
-                                    <BrainCircuit
-                                        size={32}
-                                        className="text-slate-400"
-                                    />
-
-                                </div>
-
-                                <h2 className="text-lg font-bold text-slate-900">
-                                    No Recommendations Available
-                                </h2>
-
-                                <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
-                                    The AI service did not return any recommendations for this project.
-                                </p>
-
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={
-                                        handleRefresh
-                                    }
-                                    className="mt-5 gap-2"
-                                >
-
-                                    <RefreshCw
-                                        size={16}
-                                    />
-
-                                    Generate Again
-
-                                </Button>
-
-                            </div>
-                        )}
-
-                </div>
-
-            </main>
-
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto flex h-16 w-16 animate-spin items-center justify-center rounded-2xl bg-violet-100">
+            <BrainCircuit size={32} className="text-violet-600" />
+          </div>
+          <h2 className="mt-4 text-lg font-bold text-slate-800">Loading AI Hub...</h2>
         </div>
+      </div>
     );
+  }
+
+  return (
+    <div className="space-y-6 p-6">
+      
+      {/* HEADER */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 p-7 text-white shadow-lg">
+        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/10" />
+        <div className="absolute -bottom-20 right-24 h-44 w-44 rounded-full bg-white/10" />
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20 backdrop-blur-sm">
+              <BrainCircuit size={28} className="text-white" />
+            </div>
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <Sparkles size={16} className="text-cyan-200" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-white/80">
+                  AI-Powered Intelligence
+                </span>
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight">AI Features Hub</h1>
+              <p className="mt-1 max-w-2xl text-sm text-white/80">
+                Select a project below to unlock real-time, data-driven AI insights, predictions, and recommendations.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* PROJECT SELECTOR */}
+      <div>
+        <label className="mb-2 block text-sm font-bold text-slate-700">
+          Select a Project to Analyze
+        </label>
+        <div className="relative max-w-md">
+          <select
+            value={selectedProjectId}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-3 pr-10 text-sm font-medium text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+          >
+            {projects.length === 0 && <option value="">No projects assigned</option>}
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={18} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        </div>
+      </div>
+
+      {/* AI FEATURES GRID */}
+      {selectedProject ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {aiFeatures.map((feature) => {
+            const Icon = feature.icon;
+            return (
+              <button
+                key={feature.id}
+                onClick={() => handleOpenModal(feature.id)}
+                className={`group relative overflow-hidden rounded-2xl border ${feature.border} bg-white p-6 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg`}
+              >
+                <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${feature.color}`} />
+                <div className="flex items-start justify-between">
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${feature.bg}`}>
+                    <Icon size={24} className={feature.text} />
+                  </div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition group-hover:bg-violet-100 group-hover:text-violet-600">
+                    <ChevronDown size={18} className="-rotate-90" />
+                  </div>
+                </div>
+                <h3 className="mt-4 text-lg font-bold text-slate-900">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-500">{feature.description}</p>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center">
+          <BrainCircuit size={48} className="mx-auto mb-4 text-slate-300" />
+          <h3 className="text-lg font-bold text-slate-800">No Project Selected</h3>
+          <p className="mt-2 text-sm text-slate-500">Please select a project from the dropdown above to view AI insights.</p>
+        </div>
+      )}
+
+      {/* ============================================================
+          MODALS RENDERING
+      ============================================================ */}
+      {selectedProject && currentManager && activeModal === "summary" && (
+        <AiProjectSummaryModal project={selectedProject} currentManager={currentManager} onClose={handleCloseModal} onError={handleModalError} />
+      )}
+      {selectedProject && currentManager && activeModal === "recommendations" && (
+        <AiRecommendationsModal project={selectedProject} currentManager={currentManager} onClose={handleCloseModal} onError={handleModalError} />
+      )}
+      {selectedProject && currentManager && activeModal === "bottlenecks" && (
+        <AiBottlenecksModal project={selectedProject} currentManager={currentManager} onClose={handleCloseModal} onError={handleModalError} />
+      )}
+      {selectedProject && currentManager && activeModal === "team" && (
+        <AiTeamPerformanceModal project={selectedProject} currentManager={currentManager} onClose={handleCloseModal} onError={handleModalError} />
+      )}
+      {selectedProject && currentManager && activeModal === "progress" && (
+        <AiProgressPredictionModal project={selectedProject} currentManager={currentManager} onClose={handleCloseModal} onError={handleModalError} />
+      )}
+      {selectedProject && currentManager && activeModal === "deadline" && (
+        <AiDeadlinePredictionModal project={selectedProject} currentManager={currentManager} onClose={handleCloseModal} onError={handleModalError} />
+      )}
+      {selectedProject && currentManager && activeModal === "sprint" && (
+        <AiSprintPlanningModal project={selectedProject} currentManager={currentManager} onClose={handleCloseModal} onError={handleModalError} />
+      )}
+
+    </div>
+  );
 }
 
 export default AIFeatures;
-

@@ -46,6 +46,7 @@ public DbSet<AiSuggestion> AiSuggestions { get; set; }
 public DbSet<AiSettings> AiSettings { get; set; }
 public DbSet<AiUsageLog> AiUsageLogs { get; set; }
 public DbSet<AiSettingsAuditLog> AiSettingsAuditLogs { get; set; }
+public DbSet<TaskItem> ProjectTasks { get; set; }
         // =========================================================
         // TEAMS
         // =========================================================

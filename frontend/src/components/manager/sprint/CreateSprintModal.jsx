@@ -29,6 +29,9 @@ function CreateSprintModal({
     isOpen = true,
     onClose,
     onCreated,
+    projectId = "",
+    teamId = "",
+    teams = [], // 🌟 ADD THIS
 }) {
     // ========================================================
     // FORM STATE
@@ -36,7 +39,7 @@ function CreateSprintModal({
 
     const [formData, setFormData] = useState({
         name: "",
-        team: "AIPMS Development Team",
+        teamId: "",
         startDate: "",
         endDate: "",
         goal: "",
@@ -55,10 +58,13 @@ function CreateSprintModal({
     useEffect(() => {
         if (isOpen) {
             setError("");
+ const selectedTeam = teams.find(t => t.id === teamId || t.Id === teamId);
+            const defaultTeamName = selectedTeam ? (selectedTeam.name || selectedTeam.Name || "Unknown Team") : "";
 
             setFormData({
-                name: "",
-                team: "AIPMS Development Team",
+                  name: "",
+                teamId: teamId,       // 🌟 Store the ID to send to backend
+                teamName: defaultTeamName, // 🌟 Store the Name to display
                 startDate: "",
                 endDate: "",
                 goal: "",
@@ -89,21 +95,25 @@ function CreateSprintModal({
         setError("");
     };
 
-    // ========================================================
+
+
+
+       // ========================================================
     // VALIDATE
     // ========================================================
 
     const validateForm = () => {
-        const name = formData.name.trim();
-        const team = formData.team.trim();
-        const goal = formData.goal.trim();
+        // 🌟 Safely default to empty string if undefined
+        const name = (formData.name || "").trim();
+        const teamId = (formData.teamId || "").trim();
+        const goal = (formData.goal || "").trim();
 
         if (!name) {
             return "Sprint name is required.";
         }
 
-        if (!team) {
-            return "Team is required.";
+        if (!teamId) {
+            return "Please select a team.";
         }
 
         if (!formData.startDate) {
@@ -114,13 +124,8 @@ function CreateSprintModal({
             return "End date is required.";
         }
 
-        const startDate = new Date(
-            `${formData.startDate}T00:00:00`
-        );
-
-        const endDate = new Date(
-            `${formData.endDate}T00:00:00`
-        );
+        const startDate = new Date(`${formData.startDate}T00:00:00`);
+        const endDate = new Date(`${formData.endDate}T00:00:00`);
 
         if (Number.isNaN(startDate.getTime())) {
             return "Start date is invalid.";
@@ -140,7 +145,7 @@ function CreateSprintModal({
 
         return {
             name,
-            team,
+            teamId, // 🌟 Return teamId instead of team name
             startDate: formData.startDate,
             endDate: formData.endDate,
             goal,
@@ -164,19 +169,15 @@ function CreateSprintModal({
         }
 
         if (typeof onCreated !== "function") {
-            setError(
-                "Create sprint handler is not available."
-            );
+            setError("Create sprint handler is not available.");
             return;
         }
 
-        // ====================================================
-        // SEND DATA TO SprintManagement.jsx
-        // ====================================================
-
+        // 🌟 Send the correct data structure to the backend
         const newSprintData = {
+            projectId: projectId, 
+            teamId: result.teamId, // 🌟 Use the GUID from validation
             name: result.name,
-            team: result.team,
             startDate: result.startDate,
             endDate: result.endDate,
             goal: result.goal,
@@ -185,39 +186,38 @@ function CreateSprintModal({
         try {
             onCreated(newSprintData);
         } catch (submitError) {
-            console.error(
-                "Failed to create sprint:",
-                submitError
-            );
-
-            setError(
-                submitError?.message ||
-                    "Failed to create the sprint."
-            );
-
+            console.error("Failed to create sprint:", submitError);
+            setError(submitError?.message || "Failed to create the sprint.");
             return;
         }
 
-        // ====================================================
-        // RESET
-        // ====================================================
-
+        // Reset form
         setFormData({
             name: "",
-            team: "AIPMS Development Team",
+            teamId: "",
+            teamName: "",
             startDate: "",
             endDate: "",
             goal: "",
         });
 
-        // ====================================================
-        // CLOSE
-        // ====================================================
-
+        // Close modal
         if (typeof onClose === "function") {
             onClose();
         }
     };
+
+
+
+
+  
+
+
+
+
+
+
+
 
     // ========================================================
     // RENDER
@@ -347,12 +347,16 @@ function CreateSprintModal({
 
                     </div>
 
+
+
+
+
+
                     {/* ==================================================
                         TEAM
                     ================================================== */}
 
                     <div>
-
                         <label
                             htmlFor="create-sprint-team"
                             className="mb-1.5 block text-sm font-semibold text-slate-700"
@@ -360,17 +364,28 @@ function CreateSprintModal({
                             Team
                         </label>
 
-                        <input
+                        {/* 🌟 Use a dropdown to show the actual team name */}
+                        <select
                             id="create-sprint-team"
-                            name="team"
-                            type="text"
-                            value={formData.team}
-                            onChange={handleChange}
-                            placeholder="Enter team name"
-                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                        />
-
+                            value={formData.teamId}
+                            onChange={(e) => setFormData(prev => ({ ...prev, teamId: e.target.value }))}
+                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                        >
+                            {teams.length === 0 ? (
+                                <option value="">Loading teams...</option>
+                            ) : (
+                                teams.map((team) => (
+                                    <option key={team.id || team.Id} value={team.id || team.Id}>
+                                        {team.name || team.Name}
+                                    </option>
+                                ))
+                            )}
+                        </select>
                     </div>
+
+
+
+
 
                     {/* ==================================================
                         DATES

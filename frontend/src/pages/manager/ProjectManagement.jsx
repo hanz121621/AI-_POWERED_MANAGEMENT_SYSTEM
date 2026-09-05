@@ -19,16 +19,22 @@ import {
     CircleDot,
     RefreshCw,
     Loader2,
-    FileText,
-    Lightbulb,
+    FileText,        // 🌟 Kept for AI Summary
+    Lightbulb,       // 🌟 Added for Recommendations
+    Users,           // 🌟 Added for Team Performance
+    TrendingUp,      // 🌟 Added for Progress Prediction
+    CalendarDays,    // 🌟 Added for Sprint Planning
 } from "lucide-react";
 
 // ============================================================
 // SERVICES
 // ============================================================
-import AiRecommendationsModal from "../../components/manager/project/AiRecommendationsModal"; // 🌟 ADD THIS
-import AiBottlenecksModal from "../../components/manager/project/AiBottlenecksModal";         // 🌟 ADD THIS
+import AiRecommendationsModal from "../../components/manager/project/AiRecommendationsModal"; 
+import AiBottlenecksModal from "../../components/manager/project/AiBottlenecksModal";        
 import AiProjectSummaryModal from "../../components/manager/project/AiProjectSummaryModal";
+import AiTeamPerformanceModal from "../../components/manager/project/AiTeamPerformanceModal";
+import AiProgressPredictionModal from "../../components/manager/project/AiProgressPredictionModal";
+import AiSprintPlanningModal from "../../components/manager/project/AiSprintPlanningModal";
 import {
     getMyProjects,
     getProjectSpecification,
@@ -56,7 +62,7 @@ import DeleteProjectSpecificationModal from "../../components/manager/project/De
 import ViewAssignedProjectModal from "../../components/manager/project/ViewAssignedProjectModal";
 import UpdateTimelineProjectModal from "../../components/manager/project/UpdateTimelineProjectModal";
 import SetUpdateProjectDeadlineModal from "../../components/manager/project/SetUpdateProjectDeadlineModal";
-import ManageProjectStatusModal from "../../components/manager/project/ManageProjectStatusModal";
+import ManageProjectStatusModal from "../../components/manager/project/ManageProjectStatusModal";import AiDeadlinePredictionModal from "../../components/manager/project/AiDeadlinePredictionModal";
 
 // ============================================================
 // COMPONENT
@@ -83,7 +89,21 @@ function ProjectManagement() {
 
     const [bottlenecksOpen, setBottlenecksOpen] = useState(false);
     const [bottlenecksProject, setBottlenecksProject] = useState(null);
+       const [deadlineOpen, setDeadlineOpen] = useState(false);
+   const [deadlineProject, setDeadlineProject] = useState(null);
+   const handleOpenDeadline = useCallback((project) => {
+       setDeadlineProject(project);
+       setDeadlineOpen(true);
+   }, []);
+    // 🌟 AI-004, AI-005, AI-007 STATES
+    const [teamPerformanceOpen, setTeamPerformanceOpen] = useState(false);
+    const [teamPerformanceProject, setTeamPerformanceProject] = useState(null);
 
+    const [progressPredictionOpen, setProgressPredictionOpen] = useState(false);
+    const [progressPredictionProject, setProgressPredictionProject] = useState(null);
+
+    const [sprintPlanningOpen, setSprintPlanningOpen] = useState(false);
+    const [sprintPlanningProject, setSprintPlanningProject] = useState(null);
     // ========================================================
     // LOADING
     // ========================================================
@@ -745,6 +765,7 @@ function ProjectManagement() {
         [clearMessages, handleProjectError, isCurrentManagerProject]
     );
 
+
     const handleOpenRecommendations = useCallback((project) => {
         setRecommendationsProject(project);
         setRecommendationsOpen(true);
@@ -753,6 +774,23 @@ function ProjectManagement() {
     const handleOpenBottlenecks = useCallback((project) => {
         setBottlenecksProject(project);
         setBottlenecksOpen(true);
+    }, []);
+        // 🌟 AI-004: OPEN TEAM PERFORMANCE
+    const handleOpenTeamPerformance = useCallback((project) => {
+        setTeamPerformanceProject(project);
+        setTeamPerformanceOpen(true);
+    }, []);
+
+    // 🌟 AI-005: OPEN PROGRESS PREDICTION
+    const handleOpenProgressPrediction = useCallback((project) => {
+        setProgressPredictionProject(project);
+        setProgressPredictionOpen(true);
+    }, []);
+
+    // 🌟 AI-007: OPEN SPRINT PLANNING
+    const handleOpenSprintPlanning = useCallback((project) => {
+        setSprintPlanningProject(project);
+        setSprintPlanningOpen(true);
     }, []);
     // ========================================================
     // PM-001
@@ -2039,6 +2077,42 @@ function ProjectManagement() {
         <AlertTriangle size={17} />
         AI Bottlenecks
     </button>
+       <button
+       type="button"
+       onClick={() => handleOpenDeadline(project)}
+       className="flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-700 transition hover:-translate-y-0.5 hover:bg-indigo-100 hover:shadow-sm"
+   >
+       <CalendarClock size={17} />
+       AI Deadline Prediction
+   </button>
+   
+    <button
+        type="button"
+        onClick={() => handleOpenTeamPerformance(project)}
+        className="flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-700 transition hover:-translate-y-0.5 hover:bg-violet-100 hover:shadow-sm"
+    >
+        <Users size={17} />
+        AI Team Performance
+    </button>
+
+    <button
+        type="button"
+        onClick={() => handleOpenProgressPrediction(project)}
+        className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 transition hover:-translate-y-0.5 hover:bg-emerald-100 hover:shadow-sm"
+    >
+        <TrendingUp size={17} />
+        AI Progress Prediction
+    </button>
+
+    <button
+        type="button"
+        onClick={() => handleOpenSprintPlanning(project)}
+        className="flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-700 transition hover:-translate-y-0.5 hover:bg-indigo-100 hover:shadow-sm"
+    >
+        <CalendarDays size={17} />
+        AI Sprint Planning
+    </button>
+
                                                             {/* PM-001 */}
 
                                                             {!project.hasSpecification && (
@@ -2436,7 +2510,61 @@ function ProjectManagement() {
                     }}
                 />
             )}
+   {deadlineOpen && deadlineProject && (
+       <AiDeadlinePredictionModal
+           project={deadlineProject}
+           currentManager={currentManager}
+           onClose={() => setDeadlineOpen(false)}
+           onError={(msg) => {
+               handleProjectError(msg);
+               setDeadlineOpen(false);
+           }}
+       />
+   )}
+               {/* ============================================================
+                AI-004 — AI TEAM PERFORMANCE MODAL
+            ============================================================ */}
+            {teamPerformanceOpen && teamPerformanceProject && (
+                <AiTeamPerformanceModal
+                    project={teamPerformanceProject}
+                    currentManager={currentManager}
+                    onClose={() => setTeamPerformanceOpen(false)}
+                    onError={(msg) => {
+                        handleProjectError(msg);
+                        setTeamPerformanceOpen(false);
+                    }}
+                />
+            )}
 
+            {/* ============================================================
+                AI-005 — AI PROGRESS PREDICTION MODAL
+            ============================================================ */}
+            {progressPredictionOpen && progressPredictionProject && (
+                <AiProgressPredictionModal
+                    project={progressPredictionProject}
+                    currentManager={currentManager}
+                    onClose={() => setProgressPredictionOpen(false)}
+                    onError={(msg) => {
+                        handleProjectError(msg);
+                        setProgressPredictionOpen(false);
+                    }}
+                />
+            )}
+
+            {/* ============================================================
+                AI-007 — AI SPRINT PLANNING MODAL
+            ============================================================ */}
+            {sprintPlanningOpen && sprintPlanningProject && (
+                <AiSprintPlanningModal
+                    project={sprintPlanningProject}
+                    currentManager={currentManager}
+                    onClose={() => setSprintPlanningOpen(false)}
+                    onError={(msg) => {
+                        handleProjectError(msg);
+                        setSprintPlanningOpen(false);
+                    }}
+                />
+                )}
             {/* 🌟 ============================================================
                 AI-009 — AI BOTTLENECKS MODAL
             ============================================================ */}

@@ -5,21 +5,24 @@ import StaffSidebar from "@/components/contributor/shared/StaffSidebar";
 
 function StaffLayout() {
     return (
-        <div className="flex min-h-screen w-full overflow-x-hidden bg-background text-foreground">
-            {/* Sidebar */}
+        <div className="min-h-screen w-full bg-background text-foreground">
+
+            {/* Fixed Sidebar */}
             <StaffSidebar />
 
-            {/* Main application area */}
-            <div className="flex min-w-0 flex-1 flex-col">
+            {/* Main Application Area */}
+            <div className="flex min-h-screen min-w-0 flex-col lg:ml-64">
+
                 {/* Navbar */}
                 <StaffNavbar />
 
-                {/* Page content */}
-                <main className="min-w-0 flex-1 overflow-x-hidden p-3 sm:p-4 md:p-6 lg:p-6">
-                    <div className="mx-auto w-full max-w-[1800px] min-w-0">
+                {/* Scrollable Content */}
+                <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+                    <div className="mx-auto w-full max-w-[1800px] px-3 py-4 sm:px-4 md:px-6 lg:px-8">
                         <Outlet />
                     </div>
                 </main>
+
             </div>
         </div>
     );

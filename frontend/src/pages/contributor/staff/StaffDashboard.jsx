@@ -1,4 +1,9 @@
-import { useMemo, useState } from "react";
+import {
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+
 import {
     BriefcaseBusiness,
     CheckCircle2,
@@ -20,71 +25,24 @@ import {
     X,
 } from "lucide-react";
 
-
-
 // ============================================================
-// DEMO DATA
+// API CLIENT
 // ============================================================
 //
-// This data is temporary UI data.
-// Later we will replace it with data from your .NET backend.
+// Adjust this import path if your api.js is located elsewhere.
+//
+// Example:
+// src/services/api.js
+//
+// If StaffDashboard.jsx is:
+// src/components/contributor/staff/StaffDashboard.jsx
+//
+// then use:
+// ../../../services/api
 //
 // ============================================================
 
-const INITIAL_TASKS = [
-    {
-        id: "TASK-001",
-        title: "Prepare project documentation",
-        description:
-            "Prepare and organize the required project documentation.",
-        project: "AI-PMS",
-        sprint: "Sprint 04",
-        priority: "High",
-        status: "In Progress",
-        dueDate: "2026-08-28",
-        progress: 65,
-        specialization: "Documentation",
-    },
-    {
-        id: "TASK-002",
-        title: "Review customer requirements",
-        description:
-            "Review submitted requirements and identify missing information.",
-        project: "Client Portal",
-        sprint: "Sprint 04",
-        priority: "Medium",
-        status: "Review",
-        dueDate: "2026-08-29",
-        progress: 85,
-        specialization: "Business Analysis",
-    },
-    {
-        id: "TASK-003",
-        title: "Prepare user report",
-        description:
-            "Prepare the monthly user activity report for the project.",
-        project: "AI-PMS",
-        sprint: "Sprint 05",
-        priority: "Low",
-        status: "Backlog",
-        dueDate: "2026-09-02",
-        progress: 0,
-        specialization: "Reporting",
-    },
-    {
-        id: "TASK-004",
-        title: "Collect project documents",
-        description:
-            "Collect the required project documents from the responsible team.",
-        project: "FieldSync",
-        sprint: "Sprint 03",
-        priority: "High",
-        status: "Blocked",
-        dueDate: "2026-08-26",
-        progress: 40,
-        specialization: "Administration",
-    },
-];
+import api from "../../../services/api";
 
 // ============================================================
 // STATUS CONFIG
@@ -143,11 +101,266 @@ function formatDate(dateString) {
 
     const date = new Date(dateString);
 
+    if (Number.isNaN(date.getTime())) {
+        return "No date";
+    }
+
     return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
     });
+}
+
+// ============================================================
+// NORMALIZE BACKEND STATUS
+// ============================================================
+//
+// Backend enum:
+//
+// Todo
+// InProgress
+// InReview
+// Blocked
+// Completed
+//
+// Frontend UI:
+//
+// Backlog
+// In Progress
+// Review
+// Blocked
+// Done
+//
+// ============================================================
+
+function normalizeStatus(status) {
+    if (typeof status === "string") {
+        const normalized = status
+            .trim()
+            .toLowerCase()
+            .replace(/[\s_-]/g, "");
+
+        switch (normalized) {
+            case "todo":
+                return "Backlog";
+
+            case "inprogress":
+                return "In Progress";
+
+            case "inreview":
+                return "Review";
+
+            case "blocked":
+                return "Blocked";
+
+            case "completed":
+            case "done":
+                return "Done";
+
+            case "backlog":
+                return "Backlog";
+
+            case "review":
+                return "Review";
+
+            default:
+                return "Backlog";
+        }
+    }
+
+    // Fallback for numeric enum serialization.
+    //
+    // IMPORTANT:
+    // These numeric values assume the enum declaration
+    // follows the expected order.
+    //
+    // String enum serialization is preferred.
+
+    switch (status) {
+        case 0:
+            return "Backlog";
+
+        case 1:
+            return "In Progress";
+
+        case 2:
+            return "Review";
+
+        case 3:
+            return "Blocked";
+
+        case 4:
+            return "Done";
+
+        default:
+            return "Backlog";
+    }
+}
+
+// ============================================================
+// NORMALIZE BACKEND PRIORITY
+// ============================================================
+
+function normalizePriority(priority) {
+    if (typeof priority === "string") {
+        const normalized = priority
+            .trim()
+            .toLowerCase();
+
+        switch (normalized) {
+            case "high":
+                return "High";
+
+            case "medium":
+                return "Medium";
+
+            case "low":
+                return "Low";
+
+            default:
+                return priority;
+        }
+    }
+
+    // Fallback for numeric enum serialization.
+    switch (priority) {
+        case 0:
+            return "Low";
+
+        case 1:
+            return "Medium";
+
+        case 2:
+            return "High";
+
+        default:
+            return "Low";
+    }
+}
+
+// ============================================================
+// CALCULATE PROGRESS
+// ============================================================
+//
+// TaskDto currently does not have a Progress property.
+//
+// Therefore, for now:
+//
+// ActualHours / EstimatedHours * 100
+//
+// Completed task = 100%
+//
+// ============================================================
+
+function calculateProgress(
+    actualHours,
+    estimatedHours,
+    status
+) {
+    if (status === "Done") {
+        return 100;
+    }
+
+    const estimated =
+        Number(estimatedHours) || 0;
+
+    const actual =
+        Number(actualHours) || 0;
+
+    if (estimated <= 0) {
+        return 0;
+    }
+
+    return Math.min(
+        100,
+        Math.max(
+            0,
+            Math.round(
+                (actual / estimated) * 100
+            )
+        )
+    );
+}
+
+// ============================================================
+// MAP BACKEND TASK TO FRONTEND TASK
+// ============================================================
+
+function mapBackendTask(task) {
+    const status = normalizeStatus(
+        task.status
+    );
+
+    const priority = normalizePriority(
+        task.priority
+    );
+
+    return {
+        // Backend
+        id: task.id,
+
+        title:
+            task.title ||
+            "Untitled Task",
+
+        description:
+            task.description ||
+            "",
+
+        sprintId:
+            task.sprintId,
+
+        priority,
+
+        status,
+
+        dueDate:
+            task.dueDate,
+
+        estimatedHours:
+            Number(task.estimatedHours) || 0,
+
+        actualHours:
+            Number(task.actualHours) || 0,
+
+        assignedContributorSDId:
+            task.assignedContributorSDId,
+
+        createdBy:
+            task.createdBy,
+
+        createdAt:
+            task.createdAt,
+
+        updatedAt:
+            task.updatedAt,
+
+        // ----------------------------------------------------
+        // FRONTEND DISPLAY VALUES
+        // ----------------------------------------------------
+        //
+        // These values are not currently provided by TaskDto.
+        //
+        // We keep placeholders until the backend DTO is expanded.
+        //
+
+        project: "Project",
+
+        sprint: task.sprintId
+            ? `Sprint ${String(task.sprintId).substring(0, 8)}`
+            : "Sprint",
+
+        specialization:
+            "Not specified",
+
+        progress:
+            calculateProgress(
+                task.actualHours,
+                task.estimatedHours,
+                status
+            ),
+    };
 }
 
 // ============================================================
@@ -237,7 +450,10 @@ function StatCard({
 // ============================================================
 
 function StatusBadge({ status }) {
-    const config = STATUS_CONFIG[status] || STATUS_CONFIG.Backlog;
+    const config =
+        STATUS_CONFIG[status] ||
+        STATUS_CONFIG.Backlog;
+
     const Icon = config.icon;
 
     return (
@@ -271,7 +487,10 @@ function PriorityBadge({ priority }) {
             className={`
                 text-xs
                 font-semibold
-                ${PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.Low}
+                ${
+                    PRIORITY_CONFIG[priority] ||
+                    PRIORITY_CONFIG.Low
+                }
             `}
         >
             {priority}
@@ -292,23 +511,35 @@ function TaskDetailsModal({
     onSubmit,
 }) {
     const [comment, setComment] = useState("");
-    const [status, setStatus] = useState(task.status);
+
+    const [status, setStatus] =
+        useState(task?.status || "Backlog");
 
     if (!task) {
         return null;
     }
 
     const handleStatusUpdate = () => {
-        onUpdateStatus(task.id, status);
+        onUpdateStatus(
+            task.id,
+            status
+        );
     };
 
     const handleComment = () => {
         if (!comment.trim()) {
-            alert("Comment cannot be empty.");
+            alert(
+                "Comment cannot be empty."
+            );
+
             return;
         }
 
-        onAddComment(task.id, comment);
+        onAddComment(
+            task.id,
+            comment
+        );
+
         setComment("");
     };
 
@@ -438,7 +669,8 @@ function TaskDetailsModal({
                                 dark:text-slate-300
                             "
                         >
-                            {task.description}
+                            {task.description ||
+                                "No description provided."}
                         </p>
                     </div>
 
@@ -478,6 +710,7 @@ function TaskDetailsModal({
                             <p
                                 className="
                                     mt-1
+                                    break-all
                                     text-sm
                                     font-semibold
                                     text-slate-800
@@ -520,7 +753,9 @@ function TaskDetailsModal({
                                     dark:text-white
                                 "
                             >
-                                {formatDate(task.dueDate)}
+                                {formatDate(
+                                    task.dueDate
+                                )}
                             </p>
                         </div>
                     </div>
@@ -595,7 +830,9 @@ function TaskDetailsModal({
                             <select
                                 value={status}
                                 onChange={(event) =>
-                                    setStatus(event.target.value)
+                                    setStatus(
+                                        event.target.value
+                                    )
                                 }
                                 className="
                                     flex-1
@@ -640,7 +877,9 @@ function TaskDetailsModal({
 
                             <button
                                 type="button"
-                                onClick={handleStatusUpdate}
+                                onClick={
+                                    handleStatusUpdate
+                                }
                                 className="
                                     rounded-xl
                                     bg-blue-600
@@ -685,7 +924,9 @@ function TaskDetailsModal({
                         <textarea
                             value={comment}
                             onChange={(event) =>
-                                setComment(event.target.value)
+                                setComment(
+                                    event.target.value
+                                )
                             }
                             placeholder="Write your progress update or comment..."
                             rows={4}
@@ -754,7 +995,9 @@ function TaskDetailsModal({
                     >
                         <button
                             type="button"
-                            onClick={handleUpload}
+                            onClick={
+                                handleUpload
+                            }
                             className="
                                 inline-flex
                                 items-center
@@ -783,8 +1026,13 @@ function TaskDetailsModal({
 
                         <button
                             type="button"
-                            onClick={handleSubmit}
-                            disabled={task.status === "Done"}
+                            onClick={
+                                handleSubmit
+                            }
+                            disabled={
+                                task.status ===
+                                "Done"
+                            }
                             className="
                                 inline-flex
                                 items-center
@@ -846,64 +1094,212 @@ function TaskDetailsModal({
 // ============================================================
 
 function StaffDashboard() {
-   
 
-    const [tasks, setTasks] = useState(INITIAL_TASKS);
+    // ========================================================
+    // TASK STATE
+    // ========================================================
 
-    const [selectedTask, setSelectedTask] = useState(null);
+    const [tasks, setTasks] = useState([]);
 
-    const [search, setSearch] = useState("");
+    const [loading, setLoading] =
+        useState(true);
 
-    const [statusFilter, setStatusFilter] = useState("All");
+    const [error, setError] =
+        useState("");
 
-    // --------------------------------------------------------
+    const [selectedTask, setSelectedTask] =
+        useState(null);
+
+    const [search, setSearch] =
+        useState("");
+
+    const [statusFilter, setStatusFilter] =
+        useState("All");
+
+    // ========================================================
     // CURRENT STAFF
-    // --------------------------------------------------------
-const currentUser = (() => {
-    try {
-        const storedUser = localStorage.getItem("user");
+    // ========================================================
 
-        if (!storedUser) {
+    const currentUser = (() => {
+        try {
+            const storedUser =
+                localStorage.getItem("user");
+
+            if (!storedUser) {
+                return null;
+            }
+
+            return JSON.parse(
+                storedUser
+            );
+        } catch (error) {
+            console.error(
+                "Failed to read current user:",
+                error
+            );
+
             return null;
         }
+    })();
 
-        return JSON.parse(storedUser);
-    } catch (error) {
-        console.error("Failed to read current user:", error);
-        return null;
-    }
-})();
+    // ========================================================
+    // LOAD MY ASSIGNED WORK
+    // ========================================================
 
-    // --------------------------------------------------------
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadMyWork = async () => {
+            try {
+                setLoading(true);
+                setError("");
+
+                console.log(
+                    "========== STAFF MY WORK =========="
+                );
+
+                console.log(
+                    "Loading assigned tasks..."
+                );
+
+                const response =
+                    await api.get(
+                        "/tasks/my-work"
+                    );
+
+                console.log(
+                    "My Work API response:",
+                    response.data
+                );
+
+                const backendTasks =
+                    Array.isArray(
+                        response.data
+                    )
+                        ? response.data
+                        : [];
+
+                const mappedTasks =
+                    backendTasks.map(
+                        mapBackendTask
+                    );
+
+                console.log(
+                    "Mapped Staff tasks:",
+                    mappedTasks
+                );
+
+                if (isMounted) {
+                    setTasks(
+                        mappedTasks
+                    );
+                }
+            } catch (error) {
+                console.error(
+                    "Failed to load Staff assigned tasks:",
+                    error
+                );
+
+                if (!isMounted) {
+                    return;
+                }
+
+                let message =
+                    "Unable to load your assigned tasks.";
+
+                if (
+                    error?.response?.status ===
+                    401
+                ) {
+                    message =
+                        "You are not authenticated. Please log in again.";
+                } else if (
+                    error?.response?.status ===
+                    403
+                ) {
+                    message =
+                        "You do not have permission to access your assigned tasks.";
+                } else if (
+                    error?.response?.data
+                        ?.message
+                ) {
+                    message =
+                        error.response.data.message;
+                } else if (
+                    error?.message
+                ) {
+                    message =
+                        error.message;
+                }
+
+                setError(message);
+                setTasks([]);
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadMyWork();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    // ========================================================
     // STATISTICS
-    // --------------------------------------------------------
+    // ========================================================
 
     const statistics = useMemo(() => {
-        const total = tasks.length;
+        const total =
+            tasks.length;
 
-        const completed = tasks.filter(
-            (task) => task.status === "Done"
-        ).length;
+        const completed =
+            tasks.filter(
+                (task) =>
+                    task.status ===
+                    "Done"
+            ).length;
 
-        const inProgress = tasks.filter(
-            (task) => task.status === "In Progress"
-        ).length;
+        const inProgress =
+            tasks.filter(
+                (task) =>
+                    task.status ===
+                    "In Progress"
+            ).length;
 
-        const blocked = tasks.filter(
-            (task) => task.status === "Blocked"
-        ).length;
+        const blocked =
+            tasks.filter(
+                (task) =>
+                    task.status ===
+                    "Blocked"
+            ).length;
 
-        const review = tasks.filter(
-            (task) => task.status === "Review"
-        ).length;
+        const review =
+            tasks.filter(
+                (task) =>
+                    task.status ===
+                    "Review"
+            ).length;
 
         const progress =
             total === 0
                 ? 0
                 : Math.round(
                       tasks.reduce(
-                          (sum, task) =>
-                              sum + task.progress,
+                          (
+                              sum,
+                              task
+                          ) =>
+                              sum +
+                              (
+                                  Number(
+                                      task.progress
+                                  ) ||
+                                  0
+                              ),
                           0
                       ) / total
                   );
@@ -918,106 +1314,171 @@ const currentUser = (() => {
         };
     }, [tasks]);
 
-    // --------------------------------------------------------
+    // ========================================================
     // FILTER TASKS
-    // --------------------------------------------------------
+    // ========================================================
 
-    const filteredTasks = useMemo(() => {
-        return tasks.filter((task) => {
-            const matchesSearch =
-                task.title
+    const filteredTasks =
+        useMemo(() => {
+            const normalizedSearch =
+                search
                     .toLowerCase()
-                    .includes(search.toLowerCase()) ||
-                task.project
-                    .toLowerCase()
-                    .includes(search.toLowerCase()) ||
-                task.id
-                    .toLowerCase()
-                    .includes(search.toLowerCase());
+                    .trim();
 
-            const matchesStatus =
-                statusFilter === "All" ||
-                task.status === statusFilter;
+            return tasks.filter(
+                (task) => {
+                    const matchesSearch =
+                        task.title
+                            .toLowerCase()
+                            .includes(
+                                normalizedSearch
+                            ) ||
+                        task.project
+                            .toLowerCase()
+                            .includes(
+                                normalizedSearch
+                            ) ||
+                        task.id
+                            .toLowerCase()
+                            .includes(
+                                normalizedSearch
+                            );
 
-            return matchesSearch && matchesStatus;
-        });
-    }, [tasks, search, statusFilter]);
+                    const matchesStatus =
+                        statusFilter ===
+                            "All" ||
+                        task.status ===
+                            statusFilter;
 
-    // --------------------------------------------------------
+                    return (
+                        matchesSearch &&
+                        matchesStatus
+                    );
+                }
+            );
+        }, [
+            tasks,
+            search,
+            statusFilter,
+        ]);
+
+    // ========================================================
     // UPDATE STATUS
-    // --------------------------------------------------------
+    // ========================================================
+    //
+    // NOTE:
+    // This is still local UI state for now.
+    //
+    // Backend connection will be added later using:
+    //
+    // PUT /api/tasks/{id}/status
+    //
+    // ========================================================
 
-    const handleUpdateStatus = (taskId, newStatus) => {
-        setTasks((previousTasks) =>
-            previousTasks.map((task) =>
-                task.id === taskId
+    const handleUpdateStatus = (
+        taskId,
+        newStatus
+    ) => {
+        setTasks(
+            (previousTasks) =>
+                previousTasks.map(
+                    (task) =>
+                        task.id ===
+                        taskId
+                            ? {
+                                  ...task,
+                                  status:
+                                      newStatus,
+                                  progress:
+                                      newStatus ===
+                                      "Done"
+                                          ? 100
+                                          : task.progress,
+                              }
+                            : task
+                )
+        );
+
+        setSelectedTask(
+            (previousTask) =>
+                previousTask
                     ? {
-                          ...task,
-                          status: newStatus,
+                          ...previousTask,
+                          status:
+                              newStatus,
                           progress:
-                              newStatus === "Done"
+                              newStatus ===
+                              "Done"
                                   ? 100
-                                  : task.progress,
+                                  : previousTask.progress,
                       }
-                    : task
-            )
+                    : previousTask
         );
 
-        setSelectedTask((previousTask) =>
-            previousTask
-                ? {
-                      ...previousTask,
-                      status: newStatus,
-                      progress:
-                          newStatus === "Done"
-                              ? 100
-                              : previousTask.progress,
-                  }
-                : previousTask
+        alert(
+            "Task status updated successfully."
         );
-
-        alert("Task status updated successfully.");
     };
 
-    // --------------------------------------------------------
+    // ========================================================
     // ADD COMMENT
-    // --------------------------------------------------------
+    // ========================================================
 
-    const handleAddComment = (taskId, comment) => {
-        console.log("Comment:", {
-            taskId,
-            comment,
-        });
+    const handleAddComment = (
+        taskId,
+        comment
+    ) => {
+        console.log(
+            "Comment:",
+            {
+                taskId,
+                comment,
+            }
+        );
 
-        alert("Comment added successfully.");
+        alert(
+            "Comment added successfully."
+        );
     };
 
-    // --------------------------------------------------------
+    // ========================================================
     // UPLOAD
-    // --------------------------------------------------------
+    // ========================================================
 
-    const handleUpload = (taskId) => {
-        console.log("Upload file for:", taskId);
+    const handleUpload = (
+        taskId
+    ) => {
+        console.log(
+            "Upload file for:",
+            taskId
+        );
 
         alert(
             "File upload interface will be connected to the backend here."
         );
     };
 
-    // --------------------------------------------------------
+    // ========================================================
     // SUBMIT COMPLETED WORK
-    // --------------------------------------------------------
+    // ========================================================
 
-    const handleSubmit = (taskId) => {
-        const task = tasks.find(
-            (item) => item.id === taskId
-        );
+    const handleSubmit = (
+        taskId
+    ) => {
+        const task =
+            tasks.find(
+                (item) =>
+                    item.id ===
+                    taskId
+            );
 
         if (!task) {
             return;
         }
 
-        if (task.progress < 100) {
+        if (
+            task.progress < 100
+        ) {
             alert(
                 "Please complete the task before submitting it for review."
             );
@@ -1025,24 +1486,30 @@ const currentUser = (() => {
             return;
         }
 
-        setTasks((previousTasks) =>
-            previousTasks.map((item) =>
-                item.id === taskId
-                    ? {
-                          ...item,
-                          status: "Review",
-                      }
-                    : item
-            )
+        setTasks(
+            (previousTasks) =>
+                previousTasks.map(
+                    (item) =>
+                        item.id ===
+                        taskId
+                            ? {
+                                  ...item,
+                                  status:
+                                      "Review",
+                              }
+                            : item
+                )
         );
 
-        setSelectedTask((previousTask) =>
-            previousTask
-                ? {
-                      ...previousTask,
-                      status: "Review",
-                  }
-                : previousTask
+        setSelectedTask(
+            (previousTask) =>
+                previousTask
+                    ? {
+                          ...previousTask,
+                          status:
+                              "Review",
+                      }
+                    : previousTask
         );
 
         alert(
@@ -1050,11 +1517,13 @@ const currentUser = (() => {
         );
     };
 
-    // --------------------------------------------------------
+    // ========================================================
     // OPEN TASK
-    // --------------------------------------------------------
+    // ========================================================
 
-    const handleOpenTask = (task) => {
+    const handleOpenTask = (
+        task
+    ) => {
         setSelectedTask(task);
     };
 
@@ -1198,7 +1667,8 @@ const currentUser = (() => {
                                     dark:text-white
                                 "
                             >
-                                {currentUser.name ||
+                                {currentUser?.name ||
+                                    currentUser?.fullName ||
                                     "Staff Member"}
                             </p>
 
@@ -1209,7 +1679,7 @@ const currentUser = (() => {
                                     dark:text-slate-400
                                 "
                             >
-                                {currentUser.specialization ||
+                                {currentUser?.specialization ||
                                     "Staff"}
                             </p>
                         </div>
@@ -1461,7 +1931,7 @@ const currentUser = (() => {
                                         dark:text-white
                                     "
                                 >
-                                    {currentUser.specialization ||
+                                    {currentUser?.specialization ||
                                         "Not specified"}
                                 </p>
                             </div>
@@ -1517,7 +1987,8 @@ const currentUser = (() => {
                                             "my-work"
                                         )
                                         ?.scrollIntoView({
-                                            behavior: "smooth",
+                                            behavior:
+                                                "smooth",
                                         })
                                 }
                                 className="
@@ -1666,9 +2137,13 @@ const currentUser = (() => {
 
                                     <input
                                         value={search}
-                                        onChange={(event) =>
+                                        onChange={(
+                                            event
+                                        ) =>
                                             setSearch(
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             )
                                         }
                                         placeholder="Search work..."
@@ -1711,10 +2186,16 @@ const currentUser = (() => {
                                     />
 
                                     <select
-                                        value={statusFilter}
-                                        onChange={(event) =>
+                                        value={
+                                            statusFilter
+                                        }
+                                        onChange={(
+                                            event
+                                        ) =>
                                             setStatusFilter(
-                                                event.target.value
+                                                event
+                                                    .target
+                                                    .value
                                             )
                                         }
                                         className="
@@ -1770,7 +2251,107 @@ const currentUser = (() => {
                     {/* TASK LIST */}
 
                     <div className="p-5">
-                        {filteredTasks.length === 0 ? (
+
+                        {/* LOADING */}
+
+                        {loading ? (
+                            <div
+                                className="
+                                    rounded-xl
+                                    border
+                                    border-dashed
+                                    border-slate-300
+                                    p-10
+                                    text-center
+
+                                    dark:border-blue-900/60
+                                "
+                            >
+                                <ClipboardList
+                                    className="
+                                        mx-auto
+                                        h-10
+                                        w-10
+                                        animate-pulse
+                                        text-blue-500
+                                    "
+                                />
+
+                                <h3
+                                    className="
+                                        mt-3
+                                        text-sm
+                                        font-semibold
+                                        text-slate-700
+                                        dark:text-slate-200
+                                    "
+                                >
+                                    Loading your assigned work...
+                                </h3>
+
+                                <p
+                                    className="
+                                        mt-1
+                                        text-xs
+                                        text-slate-400
+                                    "
+                                >
+                                    Please wait while we load your tasks.
+                                </p>
+                            </div>
+                        ) : error ? (
+
+                            /* ERROR */
+
+                            <div
+                                className="
+                                    rounded-xl
+                                    border
+                                    border-red-200
+                                    bg-red-50
+                                    p-10
+                                    text-center
+
+                                    dark:border-red-900/60
+                                    dark:bg-red-950/20
+                                "
+                            >
+                                <AlertCircle
+                                    className="
+                                        mx-auto
+                                        h-10
+                                        w-10
+                                        text-red-500
+                                    "
+                                />
+
+                                <h3
+                                    className="
+                                        mt-3
+                                        text-sm
+                                        font-semibold
+                                        text-red-700
+                                        dark:text-red-300
+                                    "
+                                >
+                                    Unable to load your work
+                                </h3>
+
+                                <p
+                                    className="
+                                        mt-1
+                                        text-xs
+                                        text-red-500
+                                        dark:text-red-400
+                                    "
+                                >
+                                    {error}
+                                </p>
+                            </div>
+                        ) : filteredTasks.length === 0 ? (
+
+                            /* EMPTY */
+
                             <div
                                 className="
                                     rounded-xl
@@ -1817,259 +2398,274 @@ const currentUser = (() => {
                                 </p>
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                {filteredTasks.map((task) => (
-                                    <div
-                                        key={task.id}
-                                        className="
-                                            rounded-2xl
-                                            border
-                                            border-slate-200
-                                            p-4
-                                            transition
-                                            hover:border-blue-200
-                                            hover:shadow-sm
 
-                                            dark:border-blue-900/60
-                                            dark:hover:border-blue-700
-                                        "
-                                    >
+                            /* TASKS */
+
+                            <div className="space-y-3">
+                                {filteredTasks.map(
+                                    (task) => (
                                         <div
+                                            key={
+                                                task.id
+                                            }
                                             className="
-                                                flex
-                                                flex-col
-                                                gap-4
-                                                xl:flex-row
-                                                xl:items-center
-                                                xl:justify-between
+                                                rounded-2xl
+                                                border
+                                                border-slate-200
+                                                p-4
+                                                transition
+                                                hover:border-blue-200
+                                                hover:shadow-sm
+
+                                                dark:border-blue-900/60
+                                                dark:hover:border-blue-700
                                             "
                                         >
-                                            {/* TASK INFO */}
-
-                                            <div className="min-w-0 flex-1">
-                                                <div
-                                                    className="
-                                                        flex
-                                                        flex-wrap
-                                                        items-center
-                                                        gap-2
-                                                    "
-                                                >
-                                                    <span
-                                                        className="
-                                                            text-[10px]
-                                                            font-bold
-                                                            uppercase
-                                                            tracking-wider
-                                                            text-slate-400
-                                                        "
-                                                    >
-                                                        {task.id}
-                                                    </span>
-
-                                                    <StatusBadge
-                                                        status={
-                                                            task.status
-                                                        }
-                                                    />
-                                                </div>
-
-                                                <h3
-                                                    className="
-                                                        mt-2
-                                                        text-sm
-                                                        font-bold
-                                                        text-slate-900
-                                                        dark:text-white
-                                                    "
-                                                >
-                                                    {task.title}
-                                                </h3>
-
-                                                <p
-                                                    className="
-                                                        mt-1
-                                                        line-clamp-2
-                                                        text-xs
-                                                        leading-5
-                                                        text-slate-500
-                                                        dark:text-slate-400
-                                                    "
-                                                >
-                                                    {
-                                                        task.description
-                                                    }
-                                                </p>
-
-                                                {/* META */}
-
-                                                <div
-                                                    className="
-                                                        mt-3
-                                                        flex
-                                                        flex-wrap
-                                                        gap-x-5
-                                                        gap-y-2
-                                                    "
-                                                >
-                                                    <span
-                                                        className="
-                                                            inline-flex
-                                                            items-center
-                                                            gap-1.5
-                                                            text-xs
-                                                            text-slate-500
-                                                            dark:text-slate-400
-                                                        "
-                                                    >
-                                                        <FolderKanban className="h-3.5 w-3.5" />
-
-                                                        {task.project}
-                                                    </span>
-
-                                                    <span
-                                                        className="
-                                                            inline-flex
-                                                            items-center
-                                                            gap-1.5
-                                                            text-xs
-                                                            text-slate-500
-                                                            dark:text-slate-400
-                                                        "
-                                                    >
-                                                        <CalendarDays className="h-3.5 w-3.5" />
-
-                                                        {formatDate(
-                                                            task.dueDate
-                                                        )}
-                                                    </span>
-
-                                                    <span
-                                                        className="
-                                                            inline-flex
-                                                            items-center
-                                                            gap-1.5
-                                                            text-xs
-                                                        "
-                                                    >
-                                                        <span className="text-slate-400">
-                                                            Priority:
-                                                        </span>
-
-                                                        <PriorityBadge
-                                                            priority={
-                                                                task.priority
-                                                            }
-                                                        />
-                                                    </span>
-
-                                                    <span
-                                                        className="
-                                                            inline-flex
-                                                            items-center
-                                                            gap-1.5
-                                                            text-xs
-                                                            text-slate-500
-                                                            dark:text-slate-400
-                                                        "
-                                                    >
-                                                        <Award className="h-3.5 w-3.5" />
-
-                                                        {
-                                                            task.specialization
-                                                        }
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* PROGRESS */}
-
                                             <div
                                                 className="
-                                                    w-full
-                                                    xl:w-48
+                                                    flex
+                                                    flex-col
+                                                    gap-4
+                                                    xl:flex-row
+                                                    xl:items-center
+                                                    xl:justify-between
                                                 "
                                             >
-                                                <div className="flex items-center justify-between">
-                                                    <span
-                                                        className="
-                                                            text-xs
-                                                            font-medium
-                                                            text-slate-500
-                                                        "
-                                                    >
-                                                        Progress
-                                                    </span>
+                                                {/* TASK INFO */}
 
-                                                    <span
+                                                <div className="min-w-0 flex-1">
+                                                    <div
                                                         className="
-                                                            text-xs
-                                                            font-bold
-                                                            text-blue-600
-                                                            dark:text-blue-400
+                                                            flex
+                                                            flex-wrap
+                                                            items-center
+                                                            gap-2
                                                         "
                                                     >
-                                                        {task.progress}%
-                                                    </span>
+                                                        <span
+                                                            className="
+                                                                text-[10px]
+                                                                font-bold
+                                                                uppercase
+                                                                tracking-wider
+                                                                text-slate-400
+                                                            "
+                                                        >
+                                                            {
+                                                                task.id
+                                                            }
+                                                        </span>
+
+                                                        <StatusBadge
+                                                            status={
+                                                                task.status
+                                                            }
+                                                        />
+                                                    </div>
+
+                                                    <h3
+                                                        className="
+                                                            mt-2
+                                                            text-sm
+                                                            font-bold
+                                                            text-slate-900
+                                                            dark:text-white
+                                                        "
+                                                    >
+                                                        {
+                                                            task.title
+                                                        }
+                                                    </h3>
+
+                                                    <p
+                                                        className="
+                                                            mt-1
+                                                            line-clamp-2
+                                                            text-xs
+                                                            leading-5
+                                                            text-slate-500
+                                                            dark:text-slate-400
+                                                        "
+                                                    >
+                                                        {
+                                                            task.description
+                                                        }
+                                                    </p>
+
+                                                    {/* META */}
+
+                                                    <div
+                                                        className="
+                                                            mt-3
+                                                            flex
+                                                            flex-wrap
+                                                            gap-x-5
+                                                            gap-y-2
+                                                        "
+                                                    >
+                                                        <span
+                                                            className="
+                                                                inline-flex
+                                                                items-center
+                                                                gap-1.5
+                                                                text-xs
+                                                                text-slate-500
+                                                                dark:text-slate-400
+                                                            "
+                                                        >
+                                                            <FolderKanban className="h-3.5 w-3.5" />
+
+                                                            {
+                                                                task.project
+                                                            }
+                                                        </span>
+
+                                                        <span
+                                                            className="
+                                                                inline-flex
+                                                                items-center
+                                                                gap-1.5
+                                                                text-xs
+                                                                text-slate-500
+                                                                dark:text-slate-400
+                                                            "
+                                                        >
+                                                            <CalendarDays className="h-3.5 w-3.5" />
+
+                                                            {formatDate(
+                                                                task.dueDate
+                                                            )}
+                                                        </span>
+
+                                                        <span
+                                                            className="
+                                                                inline-flex
+                                                                items-center
+                                                                gap-1.5
+                                                                text-xs
+                                                            "
+                                                        >
+                                                            <span className="text-slate-400">
+                                                                Priority:
+                                                            </span>
+
+                                                            <PriorityBadge
+                                                                priority={
+                                                                    task.priority
+                                                                }
+                                                            />
+                                                        </span>
+
+                                                        <span
+                                                            className="
+                                                                inline-flex
+                                                                items-center
+                                                                gap-1.5
+                                                                text-xs
+                                                                text-slate-500
+                                                                dark:text-slate-400
+                                                            "
+                                                        >
+                                                            <Award className="h-3.5 w-3.5" />
+
+                                                            {
+                                                                task.specialization
+                                                            }
+                                                        </span>
+                                                    </div>
                                                 </div>
+
+                                                {/* PROGRESS */}
 
                                                 <div
                                                     className="
-                                                        mt-2
-                                                        h-2
-                                                        overflow-hidden
-                                                        rounded-full
-                                                        bg-slate-100
-                                                        dark:bg-slate-800
+                                                        w-full
+                                                        xl:w-48
                                                     "
                                                 >
+                                                    <div className="flex items-center justify-between">
+                                                        <span
+                                                            className="
+                                                                text-xs
+                                                                font-medium
+                                                                text-slate-500
+                                                            "
+                                                        >
+                                                            Progress
+                                                        </span>
+
+                                                        <span
+                                                            className="
+                                                                text-xs
+                                                                font-bold
+                                                                text-blue-600
+                                                                dark:text-blue-400
+                                                            "
+                                                        >
+                                                            {
+                                                                task.progress
+                                                            }%
+                                                        </span>
+                                                    </div>
+
                                                     <div
                                                         className="
-                                                            h-full
+                                                            mt-2
+                                                            h-2
+                                                            overflow-hidden
                                                             rounded-full
-                                                            bg-blue-600
-                                                            transition-all
+                                                            bg-slate-100
+                                                            dark:bg-slate-800
                                                         "
-                                                        style={{
-                                                            width: `${task.progress}%`,
-                                                        }}
-                                                    />
+                                                    >
+                                                        <div
+                                                            className="
+                                                                h-full
+                                                                rounded-full
+                                                                bg-blue-600
+                                                                transition-all
+                                                            "
+                                                            style={{
+                                                                width: `${task.progress}%`,
+                                                            }}
+                                                        />
+                                                    </div>
                                                 </div>
+
+                                                {/* VIEW */}
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleOpenTask(
+                                                            task
+                                                        )
+                                                    }
+                                                    className="
+                                                        inline-flex
+                                                        items-center
+                                                        justify-center
+                                                        gap-2
+                                                        rounded-xl
+                                                        bg-blue-600
+                                                        px-4
+                                                        py-2.5
+                                                        text-sm
+                                                        font-semibold
+                                                        text-white
+                                                        transition
+                                                        hover:bg-blue-700
+                                                        xl:w-auto
+                                                    "
+                                                >
+                                                    View Task
+
+                                                    <ArrowRight className="h-4 w-4" />
+                                                </button>
                                             </div>
-
-                                            {/* VIEW */}
-
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    handleOpenTask(
-                                                        task
-                                                    )
-                                                }
-                                                className="
-                                                    inline-flex
-                                                    items-center
-                                                    justify-center
-                                                    gap-2
-                                                    rounded-xl
-                                                    bg-blue-600
-                                                    px-4
-                                                    py-2.5
-                                                    text-sm
-                                                    font-semibold
-                                                    text-white
-                                                    transition
-                                                    hover:bg-blue-700
-                                                    xl:w-auto
-                                                "
-                                            >
-                                                View Task
-
-                                                <ArrowRight className="h-4 w-4" />
-                                            </button>
                                         </div>
-                                    </div>
-                                ))}
+                                    )
+                                )}
                             </div>
                         )}
                     </div>
@@ -2150,11 +2746,21 @@ const currentUser = (() => {
             {selectedTask && (
                 <TaskDetailsModal
                     task={selectedTask}
-                    onClose={() => setSelectedTask(null)}
-                    onUpdateStatus={handleUpdateStatus}
-                    onAddComment={handleAddComment}
-                    onUpload={handleUpload}
-                    onSubmit={handleSubmit}
+                    onClose={() =>
+                        setSelectedTask(null)
+                    }
+                    onUpdateStatus={
+                        handleUpdateStatus
+                    }
+                    onAddComment={
+                        handleAddComment
+                    }
+                    onUpload={
+                        handleUpload
+                    }
+                    onSubmit={
+                        handleSubmit
+                    }
                 />
             )}
         </div>

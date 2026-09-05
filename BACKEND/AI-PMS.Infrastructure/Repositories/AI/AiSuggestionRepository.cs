@@ -147,7 +147,8 @@ namespace AI_PMS.Infrastructure.Repositories.AI
                 CompletedTasks = completedTasks,
                 BlockedTasks = blockedTasks,
                 OverdueTasks = overdueTasks,
-                TotalTeamMembers = teamMembersCount
+                TotalTeamMembers = teamMembersCount,
+                ProgressPercentage = tasks.Any() ? (int)((double)completedTasks / tasks.Count * 100) : 0
             };
         }
     }}

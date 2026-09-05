@@ -363,8 +363,164 @@ Do not include markdown formatting. Just raw JSON.";
 
 
 
+        // =========================================================
+        // AI-006: AI DEADLINE PREDICTION AND DELAY WARNING
+        // =========================================================
+        public async Task<AiDeadlinePredictionDto> PredictDeadlineAsync(Guid projectId, Guid managerId)
+        {
+            var context = await _repository.GetProjectContextAsync(projectId, managerId);
+
+            string prompt = $@"
+You are an expert AI Project Scheduler. Analyze this project data to predict if the project will meet its deadline.
+
+Project Data:
+- Current Status: {context.CurrentStatus}
+- Official Deadline: {context.Deadline}
+- Total Tasks: {context.TotalTasks}
+- Completed Tasks: {context.CompletedTasks}
+- Blocked Tasks: {context.BlockedTasks}
+- Overdue Tasks: {context.OverdueTasks}
+- Team Size: {context.TotalTeamMembers}
+
+Rules for Prediction:
+- Calculate the completion rate (Completed / Total). 
+- If Overdue or Blocked tasks > 0, or completion rate is very low relative to the deadline, flag as High/Critical Risk.
+- If team size is 1 and tasks are high, factor in resource constraints.
+- Estimate a realistic completion date based on the current velocity and remaining work.
+- DO NOT invent tasks or dates. Base your estimate strictly on the provided data.
+
+Respond ONLY in valid JSON format with these exact keys:
+{{
+  ""PredictedStatus"": ""On Track"" | ""At Risk"" | ""Delayed"",
+  ""RiskLevel"": ""Low"" | ""Medium"" | ""High"" | ""Critical"",
+  ""EstimatedCompletionDate"": ""Month DD, YYYY"",
+  ""DaysVariance"": ""e.g., 'On schedule', '5 days late', '2 weeks early'"",
+  ""WarningMessage"": ""A concise, urgent 1-2 sentence warning if at risk, or a positive note if on track."",
+  ""ContributingFactors"": ""1-2 sentences explaining the data points leading to this prediction."",
+  ""RecommendedAction"": ""One specific, actionable step the manager should take immediately.""
+}}
+Do not include markdown formatting. Just raw JSON.";
+
+            return await ExecuteAiJsonRequestAsync<AiDeadlinePredictionDto>(prompt, "DeadlinePrediction", projectId);
+        }
+        // =========================================================
+        // AI-004: ANALYZE TEAM PERFORMANCE
+        // =========================================================
+        public async Task<AiTeamPerformanceDto> AnalyzeTeamPerformanceAsync(Guid projectId, Guid managerId)
+        {
+            var context = await _repository.GetProjectContextAsync(projectId, managerId);
+            int uncompletedTasks = context.TotalTasks - context.CompletedTasks;
+
+            string prompt = $@"
+You are an expert AI Team Performance Analyst. Analyze this project's team metrics. Focus strictly on work/project metrics, NOT personal judgments.
+
+Project Data:
+- Team Size: {context.TotalTeamMembers}
+- Total Tasks: {context.TotalTasks} | Completed: {context.CompletedTasks} | Uncompleted: {uncompletedTasks}
+- Blocked Tasks: {context.BlockedTasks} | Overdue Tasks: {context.OverdueTasks}
+- Active Sprints: {context.ActiveSprints}
+
+Rules:
+- Base analysis ONLY on these numbers.
+- If blocked/overdue tasks are high relative to team size, flag workload issues.
+- Do not fabricate performance data.
+
+Respond ONLY in valid JSON format:
+{{
+  ""OverallProductivity"": ""High"" | ""Moderate"" | ""Low"",
+  ""WorkloadAssessment"": ""1-2 sentences on current team capacity vs. workload."",
+  ""KeyStrengths"": ""1 sentence on what the team is doing well based on data."",
+  ""AreasForImprovement"": ""1 sentence on where the team is struggling (e.g., blockers)."",
+  ""RecommendedAction"": ""One specific, actionable step for the manager to support the team.""
+}}
+Do not include markdown formatting. Just raw JSON.";
+
+            return await ExecuteAiJsonRequestAsync<AiTeamPerformanceDto>(prompt, "TeamPerformance", projectId);
+        }
 
 
+
+
+
+
+        // =========================================================
+        // AI-005: PREDICT PROJECT PROGRESS
+        // =========================================================
+        public async Task<AiProgressPredictionDto> PredictProjectProgressAsync(Guid projectId, Guid managerId)
+        {
+            var context = await _repository.GetProjectContextAsync(projectId, managerId);
+            int uncompletedTasks = context.TotalTasks - context.CompletedTasks;
+
+            string prompt = $@"
+You are an expert AI Project Scheduler. Predict future project progress based on current trajectory.
+
+Project Data:
+- Current Progress: {context.ProgressPercentage}%
+- Total Tasks: {context.TotalTasks} | Completed: {context.CompletedTasks} | Uncompleted: {uncompletedTasks}
+- Deadline: {context.Deadline}
+- Blocked Tasks: {context.BlockedTasks} | Overdue Tasks: {context.OverdueTasks}
+
+Rules:
+- Calculate completion rate and extrapolate based on remaining work and blockers.
+- Clearly distinguish this prediction from actual current progress.
+- Do not overwrite or change actual project data.
+
+Respond ONLY in valid JSON format:
+{{
+  ""PredictedCompletionPercentage"": ""e.g., '75%' or '100%' based on trajectory"",
+  ""Trajectory"": ""Ahead of Schedule"" | ""On Track"" | ""Behind Schedule"",
+  ""VelocityAnalysis"": ""1-2 sentences explaining the calculated pace."",
+  ""RiskToDeadline"": ""1 sentence on the likelihood of meeting the deadline."",
+  ""RecommendedAction"": ""One specific step to improve velocity or protect the deadline.""
+}}
+Do not include markdown formatting. Just raw JSON.";
+
+            return await ExecuteAiJsonRequestAsync<AiProgressPredictionDto>(prompt, "ProgressPrediction", projectId);
+        }
+
+
+
+
+
+
+
+
+
+        // =========================================================
+        // AI-007: GENERATE SPRINT PLANNING SUGGESTIONS
+        // =========================================================
+        public async Task<AiSprintPlanningDto> GenerateSprintPlanningSuggestionsAsync(Guid projectId, Guid managerId)
+        {
+            var context = await _repository.GetProjectContextAsync(projectId, managerId);
+            int uncompletedTasks = context.TotalTasks - context.CompletedTasks;
+
+            string prompt = $@"
+You are an expert Agile Scrum Master. Provide sprint planning suggestions for this project.
+
+Project Data:
+- Team Size: {context.TotalTeamMembers}
+- Current Active Sprints: {context.ActiveSprints}
+- Uncompleted/Backlog Tasks: {uncompletedTasks}
+- Blocked Tasks: {context.BlockedTasks}
+- Deadline: {context.Deadline}
+
+Rules:
+- Suggestions must respect the project timeline and current team capacity.
+- AI does not automatically create sprints; these are advisory suggestions.
+- Base suggestions strictly on the provided data.
+
+Respond ONLY in valid JSON format:
+{{
+  ""RecommendedSprintCapacity"": ""e.g., '4-6 tasks' based on team size and current velocity"",
+  ""PriorityFocus"": ""What type of work should be pulled into the next sprint (e.g., clearing blockers, core features)."",
+  ""PotentialBlockers"": ""1 sentence on what might slow down the next sprint based on current data."",
+  ""SprintGoalSuggestion"": ""A concise, 1-sentence suggested goal for the next sprint."",
+  ""RecommendedAction"": ""One immediate step the manager should take before starting the next sprint.""
+}}
+Do not include markdown formatting. Just raw JSON.";
+
+            return await ExecuteAiJsonRequestAsync<AiSprintPlanningDto>(prompt, "SprintPlanning", projectId);
+        }
 
 
 

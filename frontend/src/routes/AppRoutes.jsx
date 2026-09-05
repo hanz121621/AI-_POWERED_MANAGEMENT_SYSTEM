@@ -17,7 +17,7 @@ import LandingPage from "../pages/Auth/LandingPage";
 import Login from "../pages/Auth/Login";
 import Logout from "../pages/Auth/Logout";
 import ChangePassword from "../pages/Auth/ChangePassword";
-
+import AIFeatures from "../pages/manager/AIFeatures";
 // ============================================================
 // PROTECTION
 // ============================================================
@@ -108,36 +108,7 @@ import ManagerProfile
 import ManagerSettings
     from "../pages/manager/ManagerSettings";
 
-// ============================================================
-// MANAGER - AI
-// ============================================================
 
-import AIFeatures
-    from "../pages/manager/AIFeatures";
-
-import AIPredictRisk
-    from "../components/manager/ai/AIPredictRisk";
-
-import AIGenerateRecommendations
-    from "../components/manager/ai/AIGenerateRecommendations";
-
-import AITeamPerformance
-    from "../components/manager/ai/AITeamPerformance";
-
-import AIPredictProgress
-    from "../components/manager/ai/AIPredictProgress";
-
-import AIDeadlinePrediction
-    from "../components/manager/ai/AIDeadlinePrediction";
-
-import AISprintPlanning
-    from "../components/manager/ai/AISprintPlanning";
-
-import AIAutomatedProjectSummary
-    from "../components/manager/ai/AIAutomatedProjectSummary";
-
-import AIDetectBottlenecks
-    from "../components/manager/ai/AIDetectBottlenecks";
 
 // ============================================================
 // STAFF
@@ -733,6 +704,18 @@ function AppRoutes() {
                             element={<SprintManagement />}
                         />
 
+                        {/* 🌟 ADD IT HERE, INSIDE THE MANAGER LAYOUT 🌟 */}
+                        <Route
+                            path="ai-features"
+                            element={<AIFeatures />}
+                        />
+
+                        <Route
+                            path="team"
+                            element={<ManagerTeamManagement />}
+                        />
+   
+
                         <Route
                             path="team"
                             element={<ManagerTeamManagement />}
@@ -758,66 +741,7 @@ function AppRoutes() {
                             element={
                                 <SendProjectAnnouncement />
                             }
-                        />
-
-                        <Route
-                            path="ai-features"
-                            element={<AIFeatures />}
-                        />
-
-                        <Route
-                            path="ai-risk"
-                            element={<AIPredictRisk />}
-                        />
-
-                        <Route
-                            path="ai-recommendations"
-                            element={
-                                <AIGenerateRecommendations />
-                            }
-                        />
-
-                        <Route
-                            path="ai-team-performance"
-                            element={
-                                <AITeamPerformance />
-                            }
-                        />
-
-                        <Route
-                            path="ai-progress"
-                            element={
-                                <AIPredictProgress />
-                            }
-                        />
-
-                        <Route
-                            path="ai-deadline"
-                            element={
-                                <AIDeadlinePrediction />
-                            }
-                        />
-
-                        <Route
-                            path="ai-sprint-planning"
-                            element={
-                                <AISprintPlanning />
-                            }
-                        />
-
-                        <Route
-                            path="ai-project-summary"
-                            element={
-                                <AIAutomatedProjectSummary />
-                            }
-                        />
-
-                        <Route
-                            path="ai-bottlenecks"
-                            element={
-                                <AIDetectBottlenecks />
-                            }
-                        />
+                        />                     
 
                         <Route
                             path="reports"

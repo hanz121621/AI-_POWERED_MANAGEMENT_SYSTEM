@@ -205,10 +205,9 @@ namespace AI_PMS.Application.Services.Sprints
                 Goal = string.IsNullOrWhiteSpace(dto.Goal)
                     ? string.Empty
                     : dto.Goal.Trim(),
-
-                StartDate = dto.StartDate,
-
-                EndDate = dto.EndDate,
+StartDate = dto.StartDate.ToUniversalTime(),
+    EndDate = dto.EndDate.ToUniversalTime(),
+    
 
                 Priority = dto.Priority,
 

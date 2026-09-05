@@ -24,13 +24,8 @@ import axios from "axios";
 // false = use real .NET backend APIs
 // ============================================================
 
-const AI_FRONTEND_MOCK_MODE = true;
-
-// ============================================================
-// API CONFIGURATION
-// ============================================================
-
-const API_BASE_URL = "http://localhost:5024/api";
+const AI_FRONTEND_MOCK_MODE = false; // 🌟 Turn off mock data
+const API_BASE_URL = "http://localhost:5043/api"; // 🌟 Match your actual backend port
 
 // ============================================================
 // AXIOS CLIENT

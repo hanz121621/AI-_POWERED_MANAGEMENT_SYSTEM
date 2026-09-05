@@ -21,6 +21,7 @@ namespace AI_PMS.Application.DTOs.AI
         public int CompletedTasks { get; set; }
         public int BlockedTasks { get; set; }
         public int OverdueTasks { get; set; }
+        public int ProgressPercentage { get; set; }
 
         // Team Metrics
         public int TotalTeamMembers { get; set; }

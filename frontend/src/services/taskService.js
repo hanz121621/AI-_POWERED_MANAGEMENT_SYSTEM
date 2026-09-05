@@ -13,6 +13,18 @@ export const getMyWork = async () => {
     return response.data;
 };
 
+// ========================================================
+// AI-TASK-001: AI Subtask Breakdown
+// ========================================================
+export const getAiSubtaskBreakdown = async (subtaskId) => {
+  try {
+    const response = await api.post(`/tasks/${subtaskId}/ai-breakdown`);
+    return response.data;
+  } catch (error) {
+    console.error("GET AI SUBTASK BREAKDOWN ERROR:", error);
+    throw error;
+  }
+};
 /**
  * Get a single task.
  *
