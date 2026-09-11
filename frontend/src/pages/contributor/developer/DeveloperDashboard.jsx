@@ -8,7 +8,6 @@ import {
     BrainCircuit,
     CalendarDays,
     CheckCircle2,
-    ChevronDown,
     Clock3,
     Code2,
     FileText,
