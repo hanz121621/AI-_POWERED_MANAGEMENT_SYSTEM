@@ -1,6 +1,9 @@
+
 using System.Security.Claims;
+
 using AI_PMS.Application.DTOs.SubTasks;
 using AI_PMS.Application.Interfaces.SubTasks;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,13 +21,8 @@ namespace AI_PMS.API.Controllers.SubTasks
             _subTaskService = subTaskService;
         }
 
-        // =========================================================
-        // GET ALL SUBTASKS
-        // GET: api/subtasks
-        // Manager / TeamLeader
-        // =========================================================
         [HttpGet]
-        [Authorize(Roles = "Manager,TeamLeader")]
+        [Authorize(Roles = "Manager,Contributor")]
         public async Task<IActionResult> GetAll()
         {
             var subtasks = await _subTaskService.GetAllSubTasksAsync();
@@ -32,15 +30,8 @@ namespace AI_PMS.API.Controllers.SubTasks
             return Ok(subtasks);
         }
 
-        // =========================================================
-        // GET SUBTASK BY ID
-        // GET: api/subtasks/{id}
-        // Manager / TeamLeader / Contributor
-        //
-        // Contributor access must be ownership-checked.
-        // =========================================================
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Manager,TeamLeader,Contributor")]
+        [Authorize(Roles = "Manager,Contributor")]
         public async Task<IActionResult> GetById(Guid id)
         {
             var subtask = await _subTaskService.GetSubTaskByIdAsync(id);
@@ -53,8 +44,6 @@ namespace AI_PMS.API.Controllers.SubTasks
                 });
             }
 
-            // Contributors may only access subtasks belonging
-            // to their assigned parent task.
             if (User.IsInRole("Contributor"))
             {
                 var userIdClaim =
@@ -82,17 +71,8 @@ namespace AI_PMS.API.Controllers.SubTasks
             return Ok(subtask);
         }
 
-        // =========================================================
-        // GET SUBTASKS BY TASK
-        // GET: api/subtasks/task/{taskId}
-        //
-        // Manager / TeamLeader / Contributor
-        //
-        // Contributor can ONLY see subtasks of a task assigned
-        // to them.
-        // =========================================================
         [HttpGet("task/{taskId:guid}")]
-        [Authorize(Roles = "Manager,TeamLeader,Contributor")]
+        [Authorize(Roles = "Manager,Contributor")]
         public async Task<IActionResult> GetByTask(Guid taskId)
         {
             if (User.IsInRole("Contributor"))
@@ -156,13 +136,8 @@ namespace AI_PMS.API.Controllers.SubTasks
             return Ok(subtasks);
         }
 
-        // =========================================================
-        // CREATE SUBTASK
-        // POST: api/subtasks
-        // TeamLeader
-        // =========================================================
         [HttpPost]
-        [Authorize(Roles = "TeamLeader")]
+        [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> Create(
             [FromBody] CreateSubTaskDto dto)
         {
@@ -194,15 +169,8 @@ namespace AI_PMS.API.Controllers.SubTasks
             }
         }
 
-        // =========================================================
-        // UPDATE SUBTASK DEFINITION
-        // PUT: api/subtasks/{id}
-        // TeamLeader
-        //
-        // Contributor CANNOT use this endpoint.
-        // =========================================================
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "TeamLeader")]
+        [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> Update(
             Guid id,
             [FromBody] UpdateSubTaskDto dto)
@@ -236,11 +204,6 @@ namespace AI_PMS.API.Controllers.SubTasks
             });
         }
 
-        // =========================================================
-        // UPDATE AI SUBTASK STATUS / PROGRESS
-        // PUT: api/subtasks/{id}/status
-        // Contributor ONLY
-        // =========================================================
         [HttpPut("{id:guid}/status")]
         [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> UpdateMyAISubTaskStatus(
@@ -330,15 +293,8 @@ namespace AI_PMS.API.Controllers.SubTasks
             });
         }
 
-        // =========================================================
-        // DELETE / ARCHIVE SUBTASK
-        // DELETE: api/subtasks/{id}
-        // TeamLeader
-        //
-        // Contributor CANNOT delete.
-        // =========================================================
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "TeamLeader")]
+        [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result =

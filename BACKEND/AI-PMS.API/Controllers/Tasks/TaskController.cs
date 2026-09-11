@@ -1,3 +1,4 @@
+
 using AI_PMS.Application.DTOs.Tasks;
 using AI_PMS.Application.Interfaces.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -22,13 +23,8 @@ namespace AI_PMS.API.Controllers.Tasks
             _teamLeaderTaskService = teamLeaderTaskService;
         }
 
-        // =====================================================
-        // CREATE TASK
-        // Manager only
-        // =====================================================
-
         [HttpPost]
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Manager,Contributor")]
         public async Task<IActionResult> CreateTask(
             [FromBody] CreateTaskDto dto)
         {
@@ -36,7 +32,7 @@ namespace AI_PMS.API.Controllers.Tasks
                 User.FindFirst(ClaimTypes.NameIdentifier);
 
             if (userIdClaim == null ||
-                !Guid.TryParse(userIdClaim.Value, out var managerId))
+                !Guid.TryParse(userIdClaim.Value, out var userId))
             {
                 return Unauthorized(new
                 {
@@ -48,7 +44,7 @@ namespace AI_PMS.API.Controllers.Tasks
             {
                 var success =
                     await _taskService.CreateTaskAsync(
-                        managerId,
+                        userId,
                         dto);
 
                 if (!success)
@@ -73,10 +69,6 @@ namespace AI_PMS.API.Controllers.Tasks
             }
         }
 
-        // =====================================================
-        // GET ALL TASKS
-        // =====================================================
-
         [HttpGet]
         public async Task<IActionResult> GetAllTasks()
         {
@@ -85,11 +77,6 @@ namespace AI_PMS.API.Controllers.Tasks
 
             return Ok(tasks);
         }
-
-        // =====================================================
-        // MY WORK
-        // Contributor
-        // =====================================================
 
         [HttpGet("my-work")]
         [Authorize(Roles = "Contributor")]
@@ -125,11 +112,6 @@ namespace AI_PMS.API.Controllers.Tasks
                 });
             }
         }
-
-        // =====================================================
-        // VIEW MY SPRINT TASKS
-        // Contributor
-        // =====================================================
 
         [HttpGet("my-sprint/{sprintId:guid}")]
         [Authorize(Roles = "Contributor")]
@@ -178,11 +160,6 @@ namespace AI_PMS.API.Controllers.Tasks
             }
         }
 
-        // =====================================================
-        // UPDATE MY TASK STATUS
-        // Contributor
-        // =====================================================
-
         [HttpPut("{id:guid}/status")]
         [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> UpdateMyTaskStatus(
@@ -221,60 +198,78 @@ namespace AI_PMS.API.Controllers.Tasks
                         dto);
 
                 if (result.Message == "Task not found.")
+                {
                     return NotFound(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message == "Contributor not found.")
+                {
                     return Unauthorized(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "Contributor account is inactive.")
+                {
                     return Forbid();
+                }
 
                 if (result.Message ==
                     "You cannot update this task.")
+                {
                     return Forbid();
+                }
 
                 if (result.Message ==
                     "This task cannot be modified.")
+                {
                     return Conflict(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "Invalid task status.")
+                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "This status change is not allowed.")
+                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "The task already has this status.")
+                {
                     return Ok(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
+                }
 
                 if (result.Task != null)
+                {
                     return Ok(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
+                }
 
                 return BadRequest(new
                 {
@@ -290,11 +285,6 @@ namespace AI_PMS.API.Controllers.Tasks
                 });
             }
         }
-
-        // =====================================================
-        // AI-001
-        // GET TASK AI SUGGESTION
-        // =====================================================
 
         [HttpGet("{id:guid}/ai-suggestion")]
         public async Task<IActionResult> GetTaskAiSuggestion(Guid id)
@@ -344,10 +334,6 @@ namespace AI_PMS.API.Controllers.Tasks
             }
         }
 
-        // =====================================================
-        // GET SPRINT TASKS
-        // =====================================================
-
         [HttpGet("sprint/{sprintId:guid}")]
         public async Task<IActionResult> GetSprintTasks(
             Guid sprintId)
@@ -357,10 +343,6 @@ namespace AI_PMS.API.Controllers.Tasks
 
             return Ok(tasks);
         }
-
-        // =====================================================
-        // VIEW TASK BY ID
-        // =====================================================
 
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetTaskById(Guid id)
@@ -402,11 +384,6 @@ namespace AI_PMS.API.Controllers.Tasks
             return Ok(task);
         }
 
-        // =====================================================
-        // GET CONTRIBUTOR TASKS
-        // Supports both contributor and developer routes
-        // =====================================================
-
         [HttpGet("contributor/{contributorId:guid}")]
         [HttpGet("developer/{contributorId:guid}")]
         public async Task<IActionResult> GetContributorTasks(
@@ -419,13 +396,8 @@ namespace AI_PMS.API.Controllers.Tasks
             return Ok(tasks);
         }
 
-        // =====================================================
-        // UPDATE TASK
-        // Manager only
-        // =====================================================
-
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Manager,Contributor")]
         public async Task<IActionResult> UpdateTask(
             Guid id,
             [FromBody] UpdateTaskDto dto)
@@ -458,11 +430,6 @@ namespace AI_PMS.API.Controllers.Tasks
             });
         }
 
-        // =====================================================
-        // DELETE TASK
-        // Manager only
-        // =====================================================
-
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> DeleteTask(Guid id)
@@ -484,10 +451,6 @@ namespace AI_PMS.API.Controllers.Tasks
             });
         }
 
-        // =====================================================
-        // GET ASSIGNABLE USERS
-        // =====================================================
-
         [HttpGet("assignable-users")]
         [Authorize(Roles = "Manager,Contributor")]
         public async Task<IActionResult> GetAssignableUsers()
@@ -498,14 +461,8 @@ namespace AI_PMS.API.Controllers.Tasks
             return Ok(users);
         }
 
-        // =====================================================
-        // TASK-003
-        // DELETE TASK
-        // TEAM LEADER
-        // =====================================================
-
         [HttpDelete("team-leader/{taskId:guid}")]
-        [Authorize(Roles = "TeamLeader")]
+        [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> TeamLeaderDeleteTask(
             Guid taskId)
         {
@@ -533,27 +490,35 @@ namespace AI_PMS.API.Controllers.Tasks
                             taskId);
 
                 if (result.Message == "Task not found.")
+                {
                     return NotFound(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "Completed tasks cannot be deleted. Archive the task instead.")
+                {
                     return Conflict(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "You are not authorised to delete this task.")
+                {
                     return Forbid();
+                }
 
                 if (result.Success)
+                {
                     return Ok(new
                     {
                         message = result.Message
                     });
+                }
 
                 return BadRequest(new
                 {
@@ -570,14 +535,8 @@ namespace AI_PMS.API.Controllers.Tasks
             }
         }
 
-        // =====================================================
-        // TASK-005
-        // SET TASK PRIORITY
-        // TEAM LEADER
-        // =====================================================
-
         [HttpPut("{taskId:guid}/priority")]
-        [Authorize(Roles = "TeamLeader")]
+        [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> SetTaskPriority(
             Guid taskId,
             [FromBody] SetTaskPriorityDto dto)
@@ -614,36 +573,46 @@ namespace AI_PMS.API.Controllers.Tasks
                             dto);
 
                 if (result.Message == "Task not found.")
+                {
                     return NotFound(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message == "Invalid priority value.")
+                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "You are not authorised to change this task priority.")
+                {
                     return Forbid();
+                }
 
                 if (result.Message ==
                     "The task already has this priority.")
+                {
                     return Ok(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
+                }
 
                 if (result.Success &&
                     result.Task != null)
+                {
                     return Ok(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
+                }
 
                 return BadRequest(new
                 {
@@ -660,14 +629,8 @@ namespace AI_PMS.API.Controllers.Tasks
             }
         }
 
-        // =====================================================
-        // TASK-006
-        // SET TASK DEADLINE
-        // TEAM LEADER
-        // =====================================================
-
         [HttpPut("team-leader/{taskId:guid}/deadline")]
-        [Authorize(Roles = "TeamLeader")]
+        [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> SetTaskDeadline(
             Guid taskId,
             [FromBody] SetTaskDeadlineDto dto)
@@ -704,43 +667,55 @@ namespace AI_PMS.API.Controllers.Tasks
                             dto);
 
                 if (result.Message == "Task not found.")
+                {
                     return NotFound(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message == "Invalid deadline date.")
+                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "Task deadline conflicts with sprint schedule.")
+                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "You are not authorised to update this task deadline.")
+                {
                     return Forbid();
+                }
 
                 if (result.Message ==
                     "The task already has this deadline.")
+                {
                     return Ok(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
+                }
 
                 if (result.Success &&
                     result.Task != null)
+                {
                     return Ok(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
+                }
 
                 return BadRequest(new
                 {
@@ -757,14 +732,8 @@ namespace AI_PMS.API.Controllers.Tasks
             }
         }
 
-        // =====================================================
-        // TASK-007
-        // VIEW TASKS
-        // TEAM LEADER
-        // =====================================================
-
         [HttpGet("team-leader/sprint/{sprintId:guid}")]
-        [Authorize(Roles = "TeamLeader")]
+        [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> GetTeamLeaderTasks(
             Guid sprintId)
         {
@@ -791,21 +760,27 @@ namespace AI_PMS.API.Controllers.Tasks
                             sprintId);
 
                 if (result.Message == "Access denied.")
+                {
                     return Forbid();
+                }
 
                 if (result.Message == "No tasks found.")
+                {
                     return Ok(new
                     {
                         message = result.Message,
                         tasks = result.Tasks
                     });
+                }
 
                 if (result.Success)
+                {
                     return Ok(new
                     {
                         message = result.Message,
                         tasks = result.Tasks
                     });
+                }
 
                 return BadRequest(new
                 {
@@ -822,14 +797,8 @@ namespace AI_PMS.API.Controllers.Tasks
             }
         }
 
-        // =====================================================
-        // TASK-008
-        // UPDATE TASK STATUS
-        // TEAM LEADER
-        // =====================================================
-
         [HttpPut("team-leader/{taskId:guid}/status")]
-        [Authorize(Roles = "TeamLeader")]
+        [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> UpdateTaskStatus(
             Guid taskId,
             [FromBody] UpdateTaskStatusDto dto)
@@ -867,37 +836,47 @@ namespace AI_PMS.API.Controllers.Tasks
                             dto);
 
                 if (result.Message == "Task not found.")
+                {
                     return NotFound(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "This status change is not allowed.")
+                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "You are not authorised to update this task status.")
+                {
                     return Forbid();
+                }
 
                 if (result.Message ==
                     "The task already has this status.")
+                {
                     return Ok(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
+                }
 
                 if (result.Success &&
                     result.Task != null)
+                {
                     return Ok(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
+                }
 
                 return BadRequest(new
                 {
@@ -914,15 +893,9 @@ namespace AI_PMS.API.Controllers.Tasks
             }
         }
 
-        // =====================================================
-        // TASK-004
-        // ASSIGN TASK TO CONTRIBUTOR
-        // TEAM LEADER
-        // =====================================================
-
         [HttpPut(
             "team-leader/{taskId:guid}/assign/{contributorId:guid}")]
-        [Authorize(Roles = "TeamLeader")]
+        [Authorize(Roles = "Contributor")]
         public async Task<IActionResult> TeamLeaderAssignTask(
             Guid taskId,
             Guid contributorId)
@@ -952,57 +925,73 @@ namespace AI_PMS.API.Controllers.Tasks
                             contributorId);
 
                 if (result.Message == "Task not found.")
+                {
                     return NotFound(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message == "Team member not found.")
+                {
                     return NotFound(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "The selected team member is inactive.")
+                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "The selected user must be a contributor.")
+                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "Contributor is not assigned to your team.")
+                {
                     return BadRequest(new
                     {
                         message = result.Message
                     });
+                }
 
                 if (result.Message ==
                     "You are not authorised to assign this task.")
+                {
                     return Forbid();
+                }
 
                 if (result.Message ==
                     "This task is already assigned to this contributor.")
+                {
                     return Conflict(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
+                }
 
                 if (result.Success &&
                     result.Task != null)
+                {
                     return Ok(new
                     {
                         message = result.Message,
                         task = result.Task
                     });
+                }
 
                 return BadRequest(new
                 {

@@ -1,36 +1,6 @@
-// ============================================================
-// AIPMS — TEAM LEADER SET TASK PRIORITY
-//
-// Use Case:
-// TASK-005 — Set Task Priority
-//
-// Primary Actor:
-// Team Leader
-//
-// Goal:
-// Allow a Team Leader to set or change the priority of a task
-// that belongs to the Team Leader's responsibility.
-//
-// Supported priorities:
-// - Low
-// - Medium
-// - High
-// - Critical
-//
-// IMPORTANT:
-// - Backend MUST perform the final authorization check.
-// - Backend MUST verify that the task belongs to the
-//   Team Leader's responsibility.
-// - Backend MUST validate the task/project/sprint relationship.
-// - Priority changes should be recorded in activity history.
-// - No localStorage is used.
-// ============================================================
 
 import React, { useEffect, useMemo, useState } from "react";
-
-// ============================================================
-// PRIORITY OPTIONS
-// ============================================================
+import api from "@/services/api";
 
 const PRIORITY_OPTIONS = [
     {
@@ -58,10 +28,6 @@ const PRIORITY_OPTIONS = [
             "Urgent task requiring immediate attention.",
     },
 ];
-
-// ============================================================
-// HELPERS
-// ============================================================
 
 const getTaskId = (task) => {
     if (!task) return null;
@@ -151,56 +117,42 @@ const normalizePriority = (value) => {
 
     const match = PRIORITY_OPTIONS.find(
         (option) =>
-            option.value.toLowerCase() ===
-            normalized
+            option.value.toLowerCase() === normalized
     );
 
     return match ? match.value : "";
 };
 
-// ============================================================
-// COMPONENT
-// ============================================================
+const getApiErrorMessage = (error) => {
+    return (
+        error?.response?.data?.message ??
+        error?.response?.data?.error ??
+        error?.response?.data?.title ??
+        error?.message ??
+        "Unable to update task priority. Please try again."
+    );
+};
 
 export default function SetTaskPriority({
     task = null,
-
     isOpen = true,
-
     onClose,
-
-    // Parent callback responsible for persistence.
     onPriorityChange,
-
-    // Alternative callback name supported for flexibility.
     onUpdate,
-
-    // Optional success callback.
     onSuccess,
-
-    // Frontend authorization guard.
     canSetPriority = true,
 }) {
     const [selectedPriority, setSelectedPriority] =
         useState("");
-
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [isSaving, setIsSaving] = useState(false);
-
-    // --------------------------------------------------------
-    // Determine current priority.
-    // --------------------------------------------------------
 
     const currentPriority = useMemo(() => {
         return normalizePriority(
             getTaskPriority(task)
         );
     }, [task]);
-
-    // --------------------------------------------------------
-    // Reset when task changes.
-    // --------------------------------------------------------
 
     useEffect(() => {
         setSelectedPriority(currentPriority);
@@ -209,19 +161,11 @@ export default function SetTaskPriority({
         setIsSaving(false);
     }, [currentPriority, task]);
 
-    // ========================================================
-    // CHANGE HANDLER
-    // ========================================================
-
     const handlePriorityChange = (event) => {
         setSelectedPriority(event.target.value);
         setError("");
         setSuccess("");
     };
-
-    // ========================================================
-    // SAVE HANDLER
-    // ========================================================
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -231,10 +175,6 @@ export default function SetTaskPriority({
 
         const taskId = getTaskId(task);
 
-        // ----------------------------------------------------
-        // Validate task.
-        // ----------------------------------------------------
-
         if (!taskId) {
             setError(
                 "The selected task does not have a valid task ID."
@@ -242,20 +182,12 @@ export default function SetTaskPriority({
             return;
         }
 
-        // ----------------------------------------------------
-        // Validate authorization.
-        // ----------------------------------------------------
-
         if (!canSetPriority) {
             setError(
                 "You are not authorized to change this task's priority."
             );
             return;
         }
-
-        // ----------------------------------------------------
-        // Validate priority.
-        // ----------------------------------------------------
 
         if (!selectedPriority) {
             setError(
@@ -267,8 +199,7 @@ export default function SetTaskPriority({
         const validPriority =
             PRIORITY_OPTIONS.some(
                 (option) =>
-                    option.value ===
-                    selectedPriority
+                    option.value === selectedPriority
             );
 
         if (!validPriority) {
@@ -277,10 +208,6 @@ export default function SetTaskPriority({
             );
             return;
         }
-
-        // ----------------------------------------------------
-        // Prevent unnecessary update.
-        // ----------------------------------------------------
 
         if (
             currentPriority &&
@@ -292,20 +219,6 @@ export default function SetTaskPriority({
             return;
         }
 
-        const callback =
-            onPriorityChange ?? onUpdate;
-
-        if (!callback) {
-            setError(
-                "Task priority update is not connected to the task management service."
-            );
-            return;
-        }
-
-        // ----------------------------------------------------
-        // Payload.
-        // ----------------------------------------------------
-
         const priorityUpdate = {
             taskId,
             priority: selectedPriority,
@@ -313,49 +226,52 @@ export default function SetTaskPriority({
                 currentPriority || null,
         };
 
-        // ----------------------------------------------------
-        // Persist change.
-        // ----------------------------------------------------
-
         try {
             setIsSaving(true);
 
-            // The parent/backend should perform:
-            //
-            // 1. Authentication
-            // 2. Team Leader authorization
-            // 3. Task existence validation
-            // 4. Project relationship validation
-            // 5. Sprint relationship validation
-            // 6. Team responsibility validation
-            // 7. Priority validation
-            // 8. Database update
-            // 9. Activity/audit logging
-            // 10. Notification where applicable
-
-            await Promise.resolve(
-                callback(
-                    task,
-                    selectedPriority,
-                    priorityUpdate
-                )
+            const response = await api.put(
+                `/tasks/team-leader/${taskId}/priority`,
+                {
+                    priority: selectedPriority,
+                }
             );
+
+            const updatedTask =
+                response?.data?.task ??
+                response?.data?.data ??
+                response?.data ??
+                {
+                    ...task,
+                    priority: selectedPriority,
+                };
 
             setSuccess(
                 `Task priority updated to ${selectedPriority}.`
             );
 
-            if (onSuccess) {
+            const callback =
+                onPriorityChange ?? onUpdate;
+
+            if (callback) {
                 await Promise.resolve(
-                    onSuccess(
-                        task,
+                    callback(
+                        updatedTask,
                         selectedPriority,
                         priorityUpdate
                     )
                 );
             }
 
-            // Close after successful update.
+            if (onSuccess) {
+                await Promise.resolve(
+                    onSuccess(
+                        updatedTask,
+                        selectedPriority,
+                        priorityUpdate
+                    )
+                );
+            }
+
             if (onClose) {
                 setTimeout(() => {
                     onClose();
@@ -367,31 +283,15 @@ export default function SetTaskPriority({
                 err
             );
 
-            const responseMessage =
-                err?.response?.data?.message ??
-                err?.response?.data?.error ??
-                err?.message;
-
-            setError(
-                responseMessage ||
-                    "Unable to update task priority. Please try again."
-            );
+            setError(getApiErrorMessage(err));
         } finally {
             setIsSaving(false);
         }
     };
 
-    // ========================================================
-    // CLOSED STATE
-    // ========================================================
-
     if (!isOpen) {
         return null;
     }
-
-    // ========================================================
-    // NO TASK SELECTED
-    // ========================================================
 
     if (!task) {
         return (
@@ -435,16 +335,8 @@ export default function SetTaskPriority({
     const taskStatus = getTaskStatus(task);
     const taskSprint = getTaskSprint(task);
 
-    // ========================================================
-    // UI
-    // ========================================================
-
     return (
         <div className="w-full rounded-xl border border-gray-200 bg-white shadow-sm">
-            {/* =================================================
-                HEADER
-            ================================================= */}
-
             <div className="border-b border-gray-200 px-6 py-5">
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
@@ -504,10 +396,6 @@ export default function SetTaskPriority({
                 </div>
             </div>
 
-            {/* =================================================
-                TASK INFORMATION
-            ================================================= */}
-
             <div className="px-6 pt-6">
                 <div className="rounded-lg border border-gray-200 bg-gray-50">
                     <div className="border-b border-gray-200 px-5 py-4">
@@ -517,7 +405,6 @@ export default function SetTaskPriority({
                     </div>
 
                     <div className="space-y-4 p-5">
-                        {/* Task title */}
                         <div>
                             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                                 Task
@@ -528,7 +415,6 @@ export default function SetTaskPriority({
                             </p>
                         </div>
 
-                        {/* Description */}
                         {taskDescription && (
                             <div>
                                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -541,7 +427,6 @@ export default function SetTaskPriority({
                             </div>
                         )}
 
-                        {/* Metadata */}
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                             <div>
                                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -598,10 +483,6 @@ export default function SetTaskPriority({
                 </div>
             </div>
 
-            {/* =================================================
-                FORM
-            ================================================= */}
-
             <form
                 onSubmit={handleSubmit}
                 className="px-6 py-6"
@@ -644,10 +525,6 @@ export default function SetTaskPriority({
                     </select>
                 </div>
 
-                {/* =================================================
-                    PRIORITY OPTIONS
-                ================================================= */}
-
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {PRIORITY_OPTIONS.map(
                         (option) => {
@@ -657,9 +534,7 @@ export default function SetTaskPriority({
 
                             return (
                                 <button
-                                    key={
-                                        option.value
-                                    }
+                                    key={option.value}
                                     type="button"
                                     onClick={() => {
                                         setSelectedPriority(
@@ -668,7 +543,10 @@ export default function SetTaskPriority({
                                         setError("");
                                         setSuccess("");
                                     }}
-                                    disabled={isSaving}
+                                    disabled={
+                                        isSaving ||
+                                        !canSetPriority
+                                    }
                                     className={`rounded-lg border p-4 text-left transition ${
                                         isSelected
                                             ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500"
@@ -722,10 +600,6 @@ export default function SetTaskPriority({
                     )}
                 </div>
 
-                {/* =================================================
-                    CHANGE PREVIEW
-                ================================================= */}
-
                 {selectedPriority &&
                     selectedPriority !==
                         currentPriority && (
@@ -762,10 +636,6 @@ export default function SetTaskPriority({
                         </div>
                     )}
 
-                {/* =================================================
-                    ERROR
-                ================================================= */}
-
                 {error && (
                     <div
                         role="alert"
@@ -794,10 +664,6 @@ export default function SetTaskPriority({
                     </div>
                 )}
 
-                {/* =================================================
-                    SUCCESS
-                ================================================= */}
-
                 {success && (
                     <div
                         role="status"
@@ -808,10 +674,6 @@ export default function SetTaskPriority({
                         </p>
                     </div>
                 )}
-
-                {/* =================================================
-                    ACTIONS
-                ================================================= */}
 
                 <div className="mt-6 flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-end">
                     {onClose && (

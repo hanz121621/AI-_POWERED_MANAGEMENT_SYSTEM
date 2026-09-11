@@ -1,37 +1,11 @@
-// ============================================================
-// AIPMS — TEAM LEADER CREATE TASK
-//
-// Use Case:
-// TASK-001 — Create Task
-//
-// Primary Actor:
-// Team Leader
-//
-// Goal:
-// Allow a Team Leader to create a team-level task or subtask
-// from Manager-assigned work and assign it to an eligible
-// Developer or Staff contributor.
-//
-// Important:
-// - Only Team Leaders with permission may create tasks.
-// - Only Developer and Staff contributors may be selected.
-// - Backend MUST verify authorization.
-// - Backend MUST verify project membership.
-// - Backend MUST verify sprint/project relationships.
-// - Backend MUST verify contributor team membership.
-// - Parent task is optional for team-level tasks.
-// - Task dependencies are optional.
-// - Project is inherited from the parent/assigned work.
-// - No project selection is exposed to the Team Leader.
-// - No localStorage is used.
-// - Activity logging and notification are handled by backend.
-// ============================================================
 
 import React, {
     useEffect,
     useMemo,
     useState,
 } from "react";
+
+import api from "@/services/api";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,10 +33,6 @@ import {
     Users,
     X,
 } from "lucide-react";
-
-// ============================================================
-// HELPERS
-// ============================================================
 
 const getTaskId = (task) => {
     if (!task) return null;
@@ -165,22 +135,6 @@ const getErrorMessage = (error) => {
     );
 };
 
-// ============================================================
-// PROJECT ID INHERITANCE
-//
-// The Team Leader does NOT select the project.
-//
-// The project should come from:
-// 1. parentTask.projectId
-// 2. parentTask.ProjectId
-// 3. parentTask.project.id
-// 4. parentTask.project.projectId
-// 5. parentTask.project
-//
-// This keeps project ownership controlled by the Manager/
-// backend context.
-// ============================================================
-
 const getInheritedProjectId = (parentTask) => {
     if (!parentTask) {
         return null;
@@ -197,56 +151,19 @@ const getInheritedProjectId = (parentTask) => {
     );
 };
 
-// ============================================================
-// COMPONENT
-// ============================================================
-
 function CreateTask({
     isOpen = true,
     onClose,
-
-    // --------------------------------------------------------
-    // Optional parent task.
-    //
-    // When supplied:
-    // - new task becomes a subtask
-    // - project is inherited from this task
-    // --------------------------------------------------------
     parentTask = null,
-
-    // --------------------------------------------------------
-    // Data supplied by parent/container.
-    // --------------------------------------------------------
     sprints = [],
     tasks = [],
     teamMembers = [],
     contributors = [],
-
-    // --------------------------------------------------------
-    // Optional initial sprint.
-    // --------------------------------------------------------
     initialSprintId = "",
-
-    // --------------------------------------------------------
-    // Authorization.
-    // Backend MUST still enforce this.
-    // --------------------------------------------------------
     canCreate = true,
-
-    // --------------------------------------------------------
-    // Parent handles actual API operation.
-    // --------------------------------------------------------
     onCreateTask,
-
-    // --------------------------------------------------------
-    // Optional callback after successful creation.
-    // --------------------------------------------------------
     onSuccess,
 }) {
-    // ========================================================
-    // INHERITED PROJECT
-    // ========================================================
-
     const inheritedProjectId = useMemo(
         () =>
             getInheritedProjectId(
@@ -254,10 +171,6 @@ function CreateTask({
             ),
         [parentTask]
     );
-
-    // ========================================================
-    // FORM STATE
-    // ========================================================
 
     const [title, setTitle] =
         useState("");
@@ -294,10 +207,6 @@ function CreateTask({
     const [dependencyIds, setDependencyIds] =
         useState([]);
 
-    // ========================================================
-    // UI STATE
-    // ========================================================
-
     const [dependencyOpen, setDependencyOpen] =
         useState(false);
 
@@ -309,10 +218,6 @@ function CreateTask({
 
     const [isCreating, setIsCreating] =
         useState(false);
-
-    // ========================================================
-    // AVAILABLE CONTRIBUTORS
-    // ========================================================
 
     const availableContributors = useMemo(() => {
         const source =
@@ -342,14 +247,6 @@ function CreateTask({
         contributors,
     ]);
 
-    // ========================================================
-    // AVAILABLE SPRINTS
-    //
-    // Sprints are filtered using the inherited project.
-    //
-    // The Team Leader does not select a project.
-    // ========================================================
-
     const availableSprints = useMemo(() => {
         if (!Array.isArray(sprints)) {
             return [];
@@ -368,8 +265,6 @@ function CreateTask({
                 sprint.project?.Id ??
                 sprint.project?.ProjectId;
 
-            // If the API does not expose the relationship,
-            // allow the sprint to remain available.
             if (!sprintProjectId) {
                 return true;
             }
@@ -383,15 +278,6 @@ function CreateTask({
         sprints,
         inheritedProjectId,
     ]);
-
-    // ========================================================
-    // AVAILABLE DEPENDENCIES
-    //
-    // Exclude:
-    // - Parent task itself
-    // - Tasks belonging to another project when project
-    //   information is available
-    // ========================================================
 
     const availableDependencies = useMemo(() => {
         if (!Array.isArray(tasks)) {
@@ -409,7 +295,6 @@ function CreateTask({
                 return false;
             }
 
-            // Cannot depend on itself / parent task.
             if (
                 parentTaskId &&
                 String(taskId) ===
@@ -418,8 +303,6 @@ function CreateTask({
                 return false;
             }
 
-            // If project information exists, keep
-            // dependencies inside the inherited project.
             if (inheritedProjectId) {
                 const taskProjectId =
                     task.projectId ??
@@ -444,10 +327,6 @@ function CreateTask({
         inheritedProjectId,
     ]);
 
-    // ========================================================
-    // SELECTED CONTRIBUTOR
-    // ========================================================
-
     const selectedContributor =
         useMemo(() => {
             return availableContributors.find(
@@ -466,13 +345,6 @@ function CreateTask({
             assignedContributorId,
         ]);
 
-    // ========================================================
-    // INHERITED PROJECT NAME
-    //
-    // This is display-only information.
-    // It is NOT selectable/editable.
-    // ========================================================
-
     const inheritedProjectName =
         useMemo(() => {
             if (!parentTask) {
@@ -489,10 +361,6 @@ function CreateTask({
                 null
             );
         }, [parentTask]);
-
-    // ========================================================
-    // RESET FORM
-    // ========================================================
 
     useEffect(() => {
         if (!isOpen) {
@@ -533,10 +401,6 @@ function CreateTask({
         initialSprintId,
     ]);
 
-    // ========================================================
-    // DEPENDENCY TOGGLE
-    // ========================================================
-
     const toggleDependency = (
         taskId
     ) => {
@@ -570,10 +434,6 @@ function CreateTask({
         setError("");
     };
 
-    // ========================================================
-    // CREATE TASK
-    // ========================================================
-
     const handleSubmit = async (
         event
     ) => {
@@ -582,25 +442,12 @@ function CreateTask({
         setError("");
         setSuccess("");
 
-        // ----------------------------------------------------
-        // AUTHORIZATION
-        // ----------------------------------------------------
-
         if (!canCreate) {
             setError(
                 "You are not authorised to create tasks for this project."
             );
             return;
         }
-
-        // ----------------------------------------------------
-        // PROJECT CONTEXT VALIDATION
-        //
-        // Project is no longer selected.
-        //
-        // If creating a subtask, project MUST be inherited
-        // from the parent task.
-        // ----------------------------------------------------
 
         if (
             parentTask &&
@@ -611,10 +458,6 @@ function CreateTask({
             );
             return;
         }
-
-        // ----------------------------------------------------
-        // REQUIRED FIELD VALIDATION
-        // ----------------------------------------------------
 
         if (
             !title.trim() ||
@@ -632,10 +475,6 @@ function CreateTask({
             return;
         }
 
-        // ----------------------------------------------------
-        // EFFORT VALIDATION
-        // ----------------------------------------------------
-
         const effort =
             Number(estimatedEffort);
 
@@ -648,10 +487,6 @@ function CreateTask({
             );
             return;
         }
-
-        // ----------------------------------------------------
-        // DEADLINE VALIDATION
-        // ----------------------------------------------------
 
         const deadlineDate =
             new Date(deadline);
@@ -666,10 +501,6 @@ function CreateTask({
             );
             return;
         }
-
-        // ----------------------------------------------------
-        // CONTRIBUTOR VALIDATION
-        // ----------------------------------------------------
 
         const contributor =
             availableContributors.find(
@@ -709,82 +540,52 @@ function CreateTask({
             return;
         }
 
-        // ----------------------------------------------------
-        // API CONNECTION VALIDATION
-        // ----------------------------------------------------
-
-        if (!onCreateTask) {
-            setError(
-                "Task creation is not connected to the task management service."
-            );
-            return;
-        }
-
-        // ====================================================
-        // CREATE PAYLOAD
-        //
-        // IMPORTANT:
-        // projectId is NOT entered by the Team Leader.
-        //
-        // It is inherited from the parent task.
-        // ====================================================
+        const taskId =
+            getTaskId(parentTask);
 
         const payload = {
             title: title.trim(),
-
             description:
                 description.trim(),
-
             taskType,
-
             priority,
-
             projectId:
                 inheritedProjectId || null,
-
             sprintId,
-
             parentTaskId:
-                getTaskId(parentTask) ||
-                null,
-
+                taskId || null,
             assignedContributorId:
                 getContributorId(
                     contributor
                 ),
-
             estimatedEffort:
                 effort,
-
             deadline,
-
             dependencyIds,
         };
 
         try {
             setIsCreating(true);
 
-            // ------------------------------------------------
-            // Backend MUST perform:
-            //
-            // - Team Leader authorization
-            // - Project membership verification
-            // - Parent task verification
-            // - Sprint/project relationship verification
-            // - Contributor existence verification
-            // - Contributor team membership verification
-            // - Developer/Staff role verification
-            // - Task creation
-            // - Notification
-            // - Activity/audit logging
-            // ------------------------------------------------
+            const response =
+                await api.post(
+                    "/tasks/team-leader",
+                    payload
+                );
 
             const createdTask =
+                response?.data?.task ??
+                response?.data ??
+                null;
+
+            if (onCreateTask) {
                 await Promise.resolve(
                     onCreateTask(
+                        createdTask,
                         payload
                     )
                 );
+            }
 
             setSuccess(
                 "Task created successfully."
@@ -799,8 +600,6 @@ function CreateTask({
                 );
             }
 
-            // Give the user time to see
-            // the success state.
             if (onClose) {
                 setTimeout(() => {
                     onClose();
@@ -808,7 +607,7 @@ function CreateTask({
             }
         } catch (err) {
             console.error(
-                "Create Task Error:",
+                "Create Team Leader Task Error:",
                 err
             );
 
@@ -820,30 +619,15 @@ function CreateTask({
         }
     };
 
-    // ========================================================
-    // CLOSED STATE
-    // ========================================================
-
     if (!isOpen) {
         return null;
     }
 
-    // ========================================================
-    // RENDER
-    // ========================================================
-
     return (
         <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-
-            {/* =================================================
-                HEADER
-            ================================================= */}
-
             <div className="border-b border-slate-200 bg-slate-50 px-6 py-5">
                 <div className="flex items-start justify-between gap-4">
-
                     <div className="flex items-start gap-4">
-
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
                             {parentTask ? (
                                 <GitBranch className="h-5 w-5" />
@@ -877,7 +661,6 @@ function CreateTask({
                             className="shrink-0 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
                         >
                             <X className="h-5 w-5" />
-
                             <span className="sr-only">
                                 Close
                             </span>
@@ -886,20 +669,13 @@ function CreateTask({
                 </div>
             </div>
 
-            {/* =================================================
-                PARENT TASK
-            ================================================= */}
-
             {parentTask && (
                 <div className="border-b border-slate-200 px-6 py-4">
                     <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
-
                         <div className="flex items-start gap-3">
-
                             <GitBranch className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
 
                             <div className="min-w-0">
-
                                 <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
                                     Parent Task
                                 </p>
@@ -916,30 +692,19 @@ function CreateTask({
                                     a subtask of the selected
                                     parent task.
                                 </p>
-
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* =================================================
-                FORM
-            ================================================= */}
-
             <form
                 onSubmit={handleSubmit}
                 className="px-6 py-6"
             >
                 <div className="space-y-7">
-
-                    {/* =================================================
-                        BASIC INFORMATION
-                    ================================================= */}
-
                     <section>
                         <div className="mb-4">
-
                             <h3 className="text-sm font-semibold text-slate-900">
                                 Task Information
                             </h3>
@@ -948,18 +713,12 @@ function CreateTask({
                                 Provide the core information for
                                 the new task.
                             </p>
-
                         </div>
 
                         <div className="grid grid-cols-1 gap-5">
-
-                            {/* TITLE */}
-
                             <div className="space-y-2">
-
                                 <Label htmlFor="task-title">
                                     Task Title
-
                                     <span className="ml-1 text-red-500">
                                         *
                                     </span>
@@ -978,16 +737,11 @@ function CreateTask({
                                     disabled={isCreating}
                                     maxLength={200}
                                 />
-
                             </div>
 
-                            {/* DESCRIPTION */}
-
                             <div className="space-y-2">
-
                                 <Label htmlFor="task-description">
                                     Description
-
                                     <span className="ml-1 text-red-500">
                                         *
                                     </span>
@@ -1012,18 +766,12 @@ function CreateTask({
                                     Clearly describe the expected
                                     work and outcome.
                                 </p>
-
                             </div>
 
-                            {/* TYPE + PRIORITY */}
-
                             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-
                                 <div className="space-y-2">
-
                                     <Label>
                                         Task Type
-
                                         <span className="ml-1 text-red-500">
                                             *
                                         </span>
@@ -1046,7 +794,6 @@ function CreateTask({
                                         </SelectTrigger>
 
                                         <SelectContent>
-
                                             <SelectItem value="Task">
                                                 Team Task
                                             </SelectItem>
@@ -1054,17 +801,13 @@ function CreateTask({
                                             <SelectItem value="Subtask">
                                                 Subtask
                                             </SelectItem>
-
                                         </SelectContent>
                                     </Select>
-
                                 </div>
 
                                 <div className="space-y-2">
-
                                     <Label>
                                         Priority
-
                                         <span className="ml-1 text-red-500">
                                             *
                                         </span>
@@ -1084,7 +827,6 @@ function CreateTask({
                                         </SelectTrigger>
 
                                         <SelectContent>
-
                                             <SelectItem value="Low">
                                                 Low
                                             </SelectItem>
@@ -1100,24 +842,15 @@ function CreateTask({
                                             <SelectItem value="Critical">
                                                 Critical
                                             </SelectItem>
-
                                         </SelectContent>
                                     </Select>
-
                                 </div>
-
                             </div>
                         </div>
                     </section>
 
-                    {/* =================================================
-                        PROJECT / SPRINT
-                    ================================================= */}
-
                     <section className="border-t border-slate-200 pt-7">
-
                         <div className="mb-4">
-
                             <h3 className="text-sm font-semibold text-slate-900">
                                 Project & Sprint
                             </h3>
@@ -1127,25 +860,16 @@ function CreateTask({
                                 Manager-assigned work. Select the
                                 related sprint.
                             </p>
-
                         </div>
 
                         <div className="space-y-5">
-
-                            {/* =================================================
-                                INHERITED PROJECT
-                            ================================================= */}
-
                             <div className="space-y-2">
-
                                 <Label>
                                     Project
                                 </Label>
 
                                 <div className="flex min-h-10 items-center rounded-lg border border-slate-200 bg-slate-50 px-3">
-
                                     <div className="flex items-center gap-2">
-
                                         <ClipboardList className="h-4 w-4 text-slate-400" />
 
                                         <span className="text-sm font-medium text-slate-700">
@@ -1154,9 +878,7 @@ function CreateTask({
                                                     ? "Assigned Project"
                                                     : "Project inherited from assigned work")}
                                         </span>
-
                                     </div>
-
                                 </div>
 
                                 <p className="text-xs text-slate-400">
@@ -1164,18 +886,11 @@ function CreateTask({
                                     automatically and cannot be changed
                                     by the Team Leader.
                                 </p>
-
                             </div>
 
-                            {/* =================================================
-                                SPRINT
-                            ================================================= */}
-
                             <div className="space-y-2">
-
                                 <Label>
                                     Sprint
-
                                     <span className="ml-1 text-red-500">
                                         *
                                     </span>
@@ -1198,7 +913,6 @@ function CreateTask({
                                     </SelectTrigger>
 
                                     <SelectContent>
-
                                         {availableSprints.length ===
                                         0 ? (
                                             <SelectItem
@@ -1235,23 +949,14 @@ function CreateTask({
                                                 }
                                             )
                                         )}
-
                                     </SelectContent>
                                 </Select>
-
                             </div>
-
                         </div>
                     </section>
 
-                    {/* =================================================
-                        ASSIGNMENT
-                    ================================================= */}
-
                     <section className="border-t border-slate-200 pt-7">
-
                         <div className="mb-4">
-
                             <h3 className="text-sm font-semibold text-slate-900">
                                 Assignment
                             </h3>
@@ -1260,18 +965,12 @@ function CreateTask({
                                 Assign the task to a Developer or
                                 Staff member from your team.
                             </p>
-
                         </div>
 
                         <div className="space-y-4">
-
-                            {/* ASSIGN TO */}
-
                             <div className="space-y-2">
-
                                 <Label>
                                     Assign To
-
                                     <span className="ml-1 text-red-500">
                                         *
                                     </span>
@@ -1298,7 +997,6 @@ function CreateTask({
                                     </SelectTrigger>
 
                                     <SelectContent>
-
                                         {availableContributors.map(
                                             (member) => {
                                                 const id =
@@ -1318,7 +1016,6 @@ function CreateTask({
                                                         )}
                                                     >
                                                         <div className="flex items-center gap-2">
-
                                                             <Users className="h-4 w-4 text-slate-400" />
 
                                                             <span>
@@ -1337,22 +1034,18 @@ function CreateTask({
                                                                     member
                                                                 )}
                                                             </span>
-
                                                         </div>
                                                     </SelectItem>
                                                 );
                                             }
                                         )}
-
                                     </SelectContent>
                                 </Select>
 
                                 {availableContributors.length ===
                                     0 && (
                                     <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-
                                         <div className="flex gap-2">
-
                                             <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
 
                                             <p className="text-xs text-amber-700">
@@ -1362,20 +1055,14 @@ function CreateTask({
                                                 available on your
                                                 team.
                                             </p>
-
                                         </div>
                                     </div>
                                 )}
-
                             </div>
-
-                            {/* SELECTED CONTRIBUTOR */}
 
                             {selectedContributor && (
                                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-
                                     <div className="flex items-center gap-3">
-
                                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
                                             {getName(
                                                 selectedContributor,
@@ -1386,7 +1073,6 @@ function CreateTask({
                                         </div>
 
                                         <div className="min-w-0">
-
                                             <p className="text-sm font-semibold text-slate-900">
                                                 {getName(
                                                     selectedContributor,
@@ -1399,26 +1085,17 @@ function CreateTask({
                                                     selectedContributor
                                                 )}
                                             </p>
-
                                         </div>
 
                                         <CheckCircle2 className="ml-auto h-5 w-5 text-emerald-500" />
-
                                     </div>
                                 </div>
                             )}
-
                         </div>
                     </section>
 
-                    {/* =================================================
-                        ESTIMATION & DEADLINE
-                    ================================================= */}
-
                     <section className="border-t border-slate-200 pt-7">
-
                         <div className="mb-4">
-
                             <h3 className="text-sm font-semibold text-slate-900">
                                 Schedule & Effort
                             </h3>
@@ -1427,25 +1104,18 @@ function CreateTask({
                                 Define the expected effort and
                                 completion deadline.
                             </p>
-
                         </div>
 
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-
-                            {/* ESTIMATED EFFORT */}
-
                             <div className="space-y-2">
-
                                 <Label htmlFor="estimated-effort">
                                     Estimated Effort
-
                                     <span className="ml-1 text-red-500">
                                         *
                                     </span>
                                 </Label>
 
                                 <div className="relative">
-
                                     <Clock3 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
                                     <Input
@@ -1472,24 +1142,18 @@ function CreateTask({
                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
                                         hours
                                     </span>
-
                                 </div>
                             </div>
 
-                            {/* DEADLINE */}
-
                             <div className="space-y-2">
-
                                 <Label htmlFor="task-deadline">
                                     Deadline
-
                                     <span className="ml-1 text-red-500">
                                         *
                                     </span>
                                 </Label>
 
                                 <div className="relative">
-
                                     <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
                                     <Input
@@ -1509,24 +1173,15 @@ function CreateTask({
                                         }
                                         className="pl-9"
                                     />
-
                                 </div>
                             </div>
-
                         </div>
                     </section>
 
-                    {/* =================================================
-                        DEPENDENCIES
-                    ================================================= */}
-
                     <section className="border-t border-slate-200 pt-7">
-
                         <div className="mb-4">
-
                             <h3 className="text-sm font-semibold text-slate-900">
                                 Dependencies
-
                                 <span className="ml-2 text-xs font-normal text-slate-400">
                                     Optional
                                 </span>
@@ -1536,11 +1191,9 @@ function CreateTask({
                                 Select tasks that should be completed
                                 before this task can proceed.
                             </p>
-
                         </div>
 
                         <div className="relative">
-
                             <button
                                 type="button"
                                 onClick={() =>
@@ -1582,7 +1235,6 @@ function CreateTask({
                                 availableDependencies.length >
                                     0 && (
                                     <div className="absolute z-20 mt-2 max-h-60 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
-
                                         {availableDependencies.map(
                                             (dependency) => {
                                                 const id =
@@ -1618,7 +1270,6 @@ function CreateTask({
                                                                 : "hover:bg-slate-50"
                                                         }`}
                                                     >
-
                                                         <div
                                                             className={`flex h-4 w-4 items-center justify-center rounded border ${
                                                                 selected
@@ -1637,21 +1288,17 @@ function CreateTask({
                                                                 "Untitled Task"
                                                             )}
                                                         </span>
-
                                                     </button>
                                                 );
                                             }
                                         )}
-
                                     </div>
                                 )}
-
                         </div>
 
                         {dependencyIds.length >
                             0 && (
                             <div className="mt-3 flex flex-wrap gap-2">
-
                                 {dependencyIds.map(
                                     (
                                         dependencyId
@@ -1678,7 +1325,6 @@ function CreateTask({
                                                 }
                                                 className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
                                             >
-
                                                 {getName(
                                                     dependency,
                                                     "Task"
@@ -1695,20 +1341,13 @@ function CreateTask({
                                                 >
                                                     <X className="h-3 w-3" />
                                                 </button>
-
                                             </span>
                                         );
                                     }
                                 )}
-
                             </div>
                         )}
-
                     </section>
-
-                    {/* =================================================
-                        ERROR
-                    ================================================= */}
 
                     {error && (
                         <div
@@ -1716,11 +1355,9 @@ function CreateTask({
                             className="rounded-xl border border-red-200 bg-red-50 p-4"
                         >
                             <div className="flex items-start gap-3">
-
                                 <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
 
                                 <div>
-
                                     <p className="text-sm font-semibold text-red-800">
                                         Unable to create task
                                     </p>
@@ -1728,15 +1365,10 @@ function CreateTask({
                                     <p className="mt-1 text-sm text-red-700">
                                         {error}
                                     </p>
-
                                 </div>
                             </div>
                         </div>
                     )}
-
-                    {/* =================================================
-                        SUCCESS
-                    ================================================= */}
 
                     {success && (
                         <div
@@ -1744,25 +1376,17 @@ function CreateTask({
                             className="rounded-xl border border-emerald-200 bg-emerald-50 p-4"
                         >
                             <div className="flex items-center gap-3">
-
                                 <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
 
                                 <p className="text-sm font-medium text-emerald-700">
                                     {success}
                                 </p>
-
                             </div>
                         </div>
                     )}
-
                 </div>
 
-                {/* =================================================
-                    ACTIONS
-                ================================================= */}
-
                 <div className="mt-8 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
-
                     {onClose && (
                         <Button
                             type="button"
@@ -1803,15 +1427,10 @@ function CreateTask({
                             </>
                         )}
                     </Button>
-
                 </div>
             </form>
         </div>
     );
 }
-
-// ============================================================
-// EXPORT
-// ============================================================
 
 export default CreateTask;

@@ -1,5 +1,5 @@
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -17,10 +17,11 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import api from "@/services/api";
 
-/* ============================================================
-   STORAGE HELPERS
-============================================================ */
+// ============================================================
+// STORAGE HELPERS
+// ============================================================
 
 const USER_STORAGE_KEYS = [
     "user",
@@ -54,25 +55,23 @@ function getStoredUser() {
     return null;
 }
 
-/* ============================================================
-   DEFAULT TEAM LEADER
-   ------------------------------------------------------------
-   Used only when no authenticated user exists in localStorage.
-============================================================ */
+// ============================================================
+// DEFAULT USER
+// ============================================================
 
 const DEFAULT_USER = {
     id: null,
     fullName: "Team Leader",
     name: "Team Leader",
-    email: "teamleader@example.com",
-    role: "TeamLeader",
-    accountCategory: "TeamLeader",
+    email: "No email available",
+    role: "Contributor",
+    accountCategory: "Team Leader",
     avatar: null,
 };
 
-/* ============================================================
-   HELPER FUNCTIONS
-============================================================ */
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
 
 function getUserName(user) {
     return (
@@ -97,7 +96,7 @@ function getUserRole(user) {
         user?.role ||
         user?.accountCategory ||
         user?.userRole ||
-        "TeamLeader"
+        "Contributor"
     );
 }
 
@@ -112,7 +111,9 @@ function getInitials(name) {
         .filter(Boolean);
 
     if (parts.length === 1) {
-        return parts[0].substring(0, 2).toUpperCase();
+        return parts[0]
+            .substring(0, 2)
+            .toUpperCase();
     }
 
     return (
@@ -121,9 +122,101 @@ function getInitials(name) {
     ).toUpperCase();
 }
 
-/* ============================================================
-   COMPONENT
-============================================================ */
+// ============================================================
+// NOTIFICATION NORMALIZER
+// ============================================================
+
+function normalizeNotification(item, index) {
+    if (!item || typeof item !== "object") {
+        return null;
+    }
+
+    const id =
+        item.id ??
+        item.Id ??
+        item.notificationId ??
+        item.NotificationId ??
+        index;
+
+    const title =
+        item.title ??
+        item.Title ??
+        item.subject ??
+        item.Subject ??
+        item.type ??
+        item.Type ??
+        "Notification";
+
+    const message =
+        item.message ??
+        item.Message ??
+        item.content ??
+        item.Content ??
+        item.description ??
+        item.Description ??
+        "You have a new notification.";
+
+    const isRead =
+        item.isRead ??
+        item.IsRead ??
+        item.read ??
+        item.Read ??
+        false;
+
+    const createdAt =
+        item.createdAt ??
+        item.CreatedAt ??
+        item.createdDate ??
+        item.CreatedDate ??
+        item.timestamp ??
+        item.Timestamp;
+
+    let time = "Recently";
+
+    if (createdAt) {
+        const date = new Date(createdAt);
+
+        if (!Number.isNaN(date.getTime())) {
+            time = date.toLocaleString([], {
+                dateStyle: "short",
+                timeStyle: "short",
+            });
+        }
+    }
+
+    return {
+        id,
+        title: String(title),
+        message: String(message),
+        time,
+        unread: !Boolean(isRead),
+        raw: item,
+    };
+}
+
+function extractNotifications(response) {
+    const responseData = response?.data;
+
+    const candidates = [
+        responseData?.data,
+        responseData?.Data,
+        responseData?.notifications,
+        responseData?.Notifications,
+        responseData,
+    ];
+
+    for (const candidate of candidates) {
+        if (Array.isArray(candidate)) {
+            return candidate;
+        }
+    }
+
+    return [];
+}
+
+// ============================================================
+// COMPONENT
+// ============================================================
 
 function TeamLeaderNavbar({
     onMenuClick,
@@ -132,23 +225,34 @@ function TeamLeaderNavbar({
 }) {
     const navigate = useNavigate();
 
-    /* ========================================================
-       USER
-    ======================================================== */
+    // ========================================================
+    // USER
+    // ========================================================
 
     const [user, setUser] = useState(
         () => getStoredUser() || DEFAULT_USER
     );
 
     const [searchValue, setSearchValue] = useState("");
-
     const [notificationsOpen, setNotificationsOpen] =
         useState(false);
-
     const [profileOpen, setProfileOpen] = useState(false);
-
     const [mobileSearchOpen, setMobileSearchOpen] =
         useState(false);
+
+    // ========================================================
+    // NOTIFICATIONS
+    // ========================================================
+
+    const [notifications, setNotifications] = useState([]);
+    const [notificationsLoading, setNotificationsLoading] =
+        useState(false);
+    const [notificationsError, setNotificationsError] =
+        useState("");
+
+    // ========================================================
+    // THEME
+    // ========================================================
 
     const [isDarkMode, setIsDarkMode] = useState(() => {
         try {
@@ -161,9 +265,9 @@ function TeamLeaderNavbar({
         }
     });
 
-    /* ========================================================
-       USER INFORMATION
-    ======================================================== */
+    // ========================================================
+    // USER INFORMATION
+    // ========================================================
 
     const userName = useMemo(
         () => getUserName(user),
@@ -185,9 +289,75 @@ function TeamLeaderNavbar({
         [userName]
     );
 
-    /* ========================================================
-       NAVIGATION
-    ======================================================== */
+    // ========================================================
+    // LOAD USER FROM STORAGE
+    // ========================================================
+
+    useEffect(() => {
+        const storedUser = getStoredUser();
+
+        if (storedUser) {
+            setUser(storedUser);
+        }
+    }, []);
+
+    // ========================================================
+    // LOAD NOTIFICATIONS
+    // ========================================================
+
+    const loadNotifications = async () => {
+        try {
+            setNotificationsLoading(true);
+            setNotificationsError("");
+
+            const response = await api.get(
+                "/notifications"
+            );
+
+            const items = extractNotifications(response);
+
+            const normalized = items
+                .map(normalizeNotification)
+                .filter(Boolean);
+
+            setNotifications(normalized);
+        } catch (error) {
+            console.error(
+                "Failed to load notifications:",
+                error
+            );
+
+            setNotificationsError(
+                error?.response?.data?.message ||
+                    error?.response?.data?.Message ||
+                    "Unable to load notifications."
+            );
+        } finally {
+            setNotificationsLoading(false);
+        }
+    };
+
+    // Load notifications when navbar mounts.
+    useEffect(() => {
+        loadNotifications();
+    }, []);
+
+    // ========================================================
+    // UNREAD COUNT
+    // ========================================================
+
+    const unreadNotificationCount = useMemo(
+        () =>
+            notifications.filter(
+                (notification) =>
+                    notification.unread
+            ).length,
+        [notifications]
+    );
+
+    // ========================================================
+    // NAVIGATION
+    // ========================================================
 
     const handleProfile = () => {
         setProfileOpen(false);
@@ -199,11 +369,17 @@ function TeamLeaderNavbar({
         navigate("/settings");
     };
 
+    // ========================================================
+    // LOGOUT
+    // ========================================================
+
     const handleLogout = () => {
         const keysToRemove = [
             "user",
             "token",
             "refreshToken",
+            "accessToken",
+            "aipms_access_token",
             "aipms_user",
             "currentUser",
             "authUser",
@@ -222,15 +398,16 @@ function TeamLeaderNavbar({
 
         setUser(DEFAULT_USER);
         setProfileOpen(false);
+        setNotificationsOpen(false);
 
         navigate("/login", {
             replace: true,
         });
     };
 
-    /* ========================================================
-       SEARCH
-    ======================================================== */
+    // ========================================================
+    // SEARCH
+    // ========================================================
 
     const handleSearchSubmit = (event) => {
         event.preventDefault();
@@ -247,9 +424,9 @@ function TeamLeaderNavbar({
         );
     };
 
-    /* ========================================================
-       DARK MODE
-    ======================================================== */
+    // ========================================================
+    // DARK MODE
+    // ========================================================
 
     const handleThemeToggle = () => {
         const nextTheme = !isDarkMode;
@@ -279,46 +456,56 @@ function TeamLeaderNavbar({
         }
     };
 
-    /* ========================================================
-       NOTIFICATIONS
-    ======================================================== */
+    // ========================================================
+    // MARK NOTIFICATION AS READ
+    // ========================================================
 
-    const notifications = [
-        {
-            id: 1,
-            title: "Team activity",
-            message:
-                "Your team has new activity to review.",
-            time: "Recently",
-            unread: true,
-        },
-        {
-            id: 2,
-            title: "Task reminder",
-            message:
-                "A team task is approaching its deadline.",
-            time: "Today",
-            unread: true,
-        },
-        {
-            id: 3,
-            title: "Project update",
-            message:
-                "There are project updates available for your team.",
-            time: "Today",
-            unread: false,
-        },
-    ];
+    const handleNotificationClick = async (
+        notification
+    ) => {
+        if (!notification?.id) {
+            return;
+        }
 
-    const unreadNotificationCount =
-        notifications.filter(
-            (notification) =>
-                notification.unread
-        ).length;
+        if (!notification.unread) {
+            return;
+        }
 
-    /* ========================================================
-       RENDER
-    ======================================================== */
+        try {
+            await api.patch(
+                `/notifications/${notification.id}/read`
+            );
+
+            setNotifications((current) =>
+                current.map((item) =>
+                    item.id === notification.id
+                        ? {
+                              ...item,
+                              unread: false,
+                          }
+                        : item
+                )
+            );
+        } catch (error) {
+            console.error(
+                "Failed to mark notification as read:",
+                error
+            );
+        }
+    };
+
+    // ========================================================
+    // OPEN NOTIFICATIONS
+    // ========================================================
+
+    const handleNotificationsToggle = () => {
+        setNotificationsOpen((current) => !current);
+        setProfileOpen(false);
+    };
+
+    // ========================================================
+    // RENDER
+    // ========================================================
 
     return (
         <>
@@ -359,10 +546,10 @@ function TeamLeaderNavbar({
                         }
                         className="
                             shrink-0
-                            text-slate-600
+                            text-slate-700
                             hover:bg-slate-100
-                            hover:text-slate-900
-                            dark:text-slate-300
+                            hover:text-slate-950
+                            dark:text-slate-200
                             dark:hover:bg-blue-950/60
                             dark:hover:text-white
                             lg:hidden
@@ -443,9 +630,7 @@ function TeamLeaderNavbar({
                     ================================================== */}
 
                     <form
-                        onSubmit={
-                            handleSearchSubmit
-                        }
+                        onSubmit={handleSearchSubmit}
                         className="
                             ml-4
                             hidden
@@ -464,7 +649,8 @@ function TeamLeaderNavbar({
                                     h-4
                                     w-4
                                     -translate-y-1/2
-                                    text-slate-400
+                                    text-slate-500
+                                    dark:text-slate-400
                                 "
                             />
 
@@ -530,10 +716,12 @@ function TeamLeaderNavbar({
                                 )
                             }
                             className="
-                                text-slate-600
+                                text-slate-700
                                 hover:bg-slate-100
-                                dark:text-slate-300
+                                hover:text-slate-950
+                                dark:text-slate-200
                                 dark:hover:bg-blue-950/60
+                                dark:hover:text-white
                                 md:hidden
                             "
                             aria-label="Search"
@@ -552,10 +740,12 @@ function TeamLeaderNavbar({
                             }
                             className="
                                 hidden
-                                text-slate-600
+                                text-slate-700
                                 hover:bg-slate-100
-                                dark:text-slate-300
+                                hover:text-slate-950
+                                dark:text-slate-200
                                 dark:hover:bg-blue-950/60
+                                dark:hover:text-white
                                 sm:inline-flex
                             "
                             aria-label={
@@ -565,9 +755,9 @@ function TeamLeaderNavbar({
                             }
                         >
                             {isDarkMode ? (
-                                <Sun className="h-5 w-5" />
+                                <Sun className="h-5 w-5 text-amber-500" />
                             ) : (
-                                <Moon className="h-5 w-5" />
+                                <Moon className="h-5 w-5 text-slate-700 dark:text-slate-200" />
                             )}
                         </Button>
 
@@ -580,23 +770,21 @@ function TeamLeaderNavbar({
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => {
-                                    setNotificationsOpen(
-                                        (current) =>
-                                            !current
-                                    );
-                                    setProfileOpen(false);
-                                }}
+                                onClick={
+                                    handleNotificationsToggle
+                                }
                                 className="
                                     relative
-                                    text-slate-600
+                                    text-slate-700
                                     hover:bg-slate-100
-                                    dark:text-slate-300
+                                    hover:text-slate-950
+                                    dark:text-slate-200
                                     dark:hover:bg-blue-950/60
+                                    dark:hover:text-white
                                 "
                                 aria-label="Notifications"
                             >
-                                <Bell className="h-5 w-5" />
+                                <Bell className="h-5 w-5 text-slate-700 dark:text-slate-200" />
 
                                 {unreadNotificationCount >
                                     0 && (
@@ -645,6 +833,8 @@ function TeamLeaderNavbar({
                                         dark:bg-[#0f2747]
                                     "
                                 >
+                                    {/* NOTIFICATION HEADER */}
+
                                     <div
                                         className="
                                             flex
@@ -702,86 +892,187 @@ function TeamLeaderNavbar({
                                         </span>
                                     </div>
 
+                                    {/* NOTIFICATION BODY */}
+
                                     <div className="max-h-[350px] overflow-y-auto">
-                                        {notifications.map(
-                                            (
-                                                notification
-                                            ) => (
-                                                <button
-                                                    type="button"
-                                                    key={
-                                                        notification.id
-                                                    }
+                                        {notificationsLoading ? (
+                                            <div
+                                                className="
+                                                    px-4
+                                                    py-8
+                                                    text-center
+                                                    text-xs
+                                                    text-slate-500
+                                                    dark:text-slate-400
+                                                "
+                                            >
+                                                Loading notifications...
+                                            </div>
+                                        ) : notificationsError ? (
+                                            <div className="px-4 py-6">
+                                                <p
                                                     className="
-                                                        flex
-                                                        w-full
-                                                        gap-3
-                                                        border-b
-                                                        border-slate-100
-                                                        px-4
-                                                        py-3
-                                                        text-left
-                                                        hover:bg-slate-50
-                                                        dark:border-blue-900/40
-                                                        dark:hover:bg-blue-950/30
+                                                        text-center
+                                                        text-xs
+                                                        text-red-500
                                                     "
                                                 >
-                                                    <div
-                                                        className={`
-                                                            mt-1
-                                                            h-2
-                                                            w-2
-                                                            shrink-0
-                                                            rounded-full
-                                                            ${
-                                                                notification.unread
-                                                                    ? "bg-blue-500"
-                                                                    : "bg-slate-300 dark:bg-slate-600"
-                                                            }
-                                                        `}
-                                                    />
+                                                    {
+                                                        notificationsError
+                                                    }
+                                                </p>
 
-                                                    <div className="min-w-0">
-                                                        <p
-                                                            className="
-                                                                text-xs
-                                                                font-semibold
-                                                                text-slate-800
-                                                                dark:text-white
-                                                            "
-                                                        >
-                                                            {
-                                                                notification.title
-                                                            }
-                                                        </p>
-
-                                                        <p
-                                                            className="
-                                                                mt-1
-                                                                text-xs
-                                                                leading-5
-                                                                text-slate-500
-                                                                dark:text-slate-400
-                                                            "
-                                                        >
-                                                            {
-                                                                notification.message
-                                                            }
-                                                        </p>
-
-                                                        <p
-                                                            className="
-                                                                mt-1
-                                                                text-[10px]
-                                                                text-slate-400
-                                                            "
-                                                        >
-                                                            {
-                                                                notification.time
-                                                            }
-                                                        </p>
-                                                    </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={
+                                                        loadNotifications
+                                                    }
+                                                    className="
+                                                        mx-auto
+                                                        mt-3
+                                                        block
+                                                        rounded-lg
+                                                        bg-blue-600
+                                                        px-3
+                                                        py-2
+                                                        text-xs
+                                                        font-medium
+                                                        text-white
+                                                        hover:bg-blue-700
+                                                    "
+                                                >
+                                                    Retry
                                                 </button>
+                                            </div>
+                                        ) : notifications.length ===
+                                          0 ? (
+                                            <div
+                                                className="
+                                                    px-4
+                                                    py-8
+                                                    text-center
+                                                "
+                                            >
+                                                <Bell
+                                                    className="
+                                                        mx-auto
+                                                        mb-2
+                                                        h-6
+                                                        w-6
+                                                        text-slate-400
+                                                        dark:text-slate-500
+                                                    "
+                                                />
+
+                                                <p
+                                                    className="
+                                                        text-xs
+                                                        font-medium
+                                                        text-slate-600
+                                                        dark:text-slate-300
+                                                    "
+                                                >
+                                                    No notifications
+                                                </p>
+
+                                                <p
+                                                    className="
+                                                        mt-1
+                                                        text-[11px]
+                                                        text-slate-400
+                                                    "
+                                                >
+                                                    You're all caught up.
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            notifications.map(
+                                                (
+                                                    notification
+                                                ) => (
+                                                    <button
+                                                        type="button"
+                                                        key={
+                                                            notification.id
+                                                        }
+                                                        onClick={() =>
+                                                            handleNotificationClick(
+                                                                notification
+                                                            )
+                                                        }
+                                                        className="
+                                                            flex
+                                                            w-full
+                                                            gap-3
+                                                            border-b
+                                                            border-slate-100
+                                                            px-4
+                                                            py-3
+                                                            text-left
+                                                            transition
+                                                            hover:bg-slate-50
+                                                            dark:border-blue-900/40
+                                                            dark:hover:bg-blue-950/30
+                                                        "
+                                                    >
+                                                        <div
+                                                            className={`
+                                                                mt-1
+                                                                h-2
+                                                                w-2
+                                                                shrink-0
+                                                                rounded-full
+                                                                ${
+                                                                    notification.unread
+                                                                        ? "bg-blue-500"
+                                                                        : "bg-slate-300 dark:bg-slate-600"
+                                                                }
+                                                            `}
+                                                        />
+
+                                                        <div className="min-w-0">
+                                                            <p
+                                                                className="
+                                                                    text-xs
+                                                                    font-semibold
+                                                                    text-slate-800
+                                                                    dark:text-white
+                                                                "
+                                                            >
+                                                                {
+                                                                    notification.title
+                                                                }
+                                                            </p>
+
+                                                            <p
+                                                                className="
+                                                                    mt-1
+                                                                    text-xs
+                                                                    leading-5
+                                                                    text-slate-500
+                                                                    dark:text-slate-400
+                                                                "
+                                                            >
+                                                                {
+                                                                    notification.message
+                                                                }
+                                                            </p>
+
+                                                            <p
+                                                                className="
+                                                                    mt-1
+                                                                    text-[10px]
+                                                                    text-slate-400
+                                                                    dark:text-slate-500
+                                                                "
+                                                            >
+                                                                {
+                                                                    notification.time
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    </button>
+                                                )
                                             )
                                         )}
                                     </div>
@@ -801,6 +1092,7 @@ function TeamLeaderNavbar({
                                         (current) =>
                                             !current
                                     );
+
                                     setNotificationsOpen(
                                         false
                                     );
@@ -879,7 +1171,8 @@ function TeamLeaderNavbar({
                                         hidden
                                         h-4
                                         w-4
-                                        text-slate-400
+                                        text-slate-500
+                                        dark:text-slate-400
                                         lg:block
                                     "
                                 />
@@ -918,9 +1211,7 @@ function TeamLeaderNavbar({
                                         <div className="flex items-center gap-3">
                                             {user?.avatar ? (
                                                 <img
-                                                    src={
-                                                        user.avatar
-                                                    }
+                                                    src={user.avatar}
                                                     alt={
                                                         userName
                                                     }
@@ -946,9 +1237,7 @@ function TeamLeaderNavbar({
                                                         text-white
                                                     "
                                                 >
-                                                    {
-                                                        initials
-                                                    }
+                                                    {initials}
                                                 </div>
                                             )}
 
@@ -962,9 +1251,7 @@ function TeamLeaderNavbar({
                                                         dark:text-white
                                                     "
                                                 >
-                                                    {
-                                                        userName
-                                                    }
+                                                    {userName}
                                                 </p>
 
                                                 <p
@@ -976,9 +1263,7 @@ function TeamLeaderNavbar({
                                                         dark:text-slate-400
                                                     "
                                                 >
-                                                    {
-                                                        userEmail
-                                                    }
+                                                    {userEmail}
                                                 </p>
                                             </div>
                                         </div>
@@ -1004,9 +1289,7 @@ function TeamLeaderNavbar({
                                                     dark:text-blue-300
                                                 "
                                             >
-                                                {
-                                                    userRole
-                                                }
+                                                {userRole}
                                             </span>
 
                                             <span
@@ -1051,7 +1334,7 @@ function TeamLeaderNavbar({
                                                 dark:hover:bg-blue-950/50
                                             "
                                         >
-                                            <UserRound className="h-4 w-4" />
+                                            <UserRound className="h-4 w-4 text-slate-600 dark:text-slate-300" />
 
                                             <span>
                                                 My Profile
@@ -1079,7 +1362,7 @@ function TeamLeaderNavbar({
                                                 dark:hover:bg-blue-950/50
                                             "
                                         >
-                                            <Settings className="h-4 w-4" />
+                                            <Settings className="h-4 w-4 text-slate-600 dark:text-slate-300" />
 
                                             <span>
                                                 Settings
@@ -1109,9 +1392,9 @@ function TeamLeaderNavbar({
                                             "
                                         >
                                             {isDarkMode ? (
-                                                <Sun className="h-4 w-4" />
+                                                <Sun className="h-4 w-4 text-amber-500" />
                                             ) : (
-                                                <Moon className="h-4 w-4" />
+                                                <Moon className="h-4 w-4 text-slate-600 dark:text-slate-300" />
                                             )}
 
                                             <span>
@@ -1195,20 +1478,18 @@ function TeamLeaderNavbar({
                                         h-4
                                         w-4
                                         -translate-y-1/2
-                                        text-slate-400
+                                        text-slate-500
+                                        dark:text-slate-400
                                     "
                                 />
 
                                 <input
                                     autoFocus
                                     type="search"
-                                    value={
-                                        searchValue
-                                    }
+                                    value={searchValue}
                                     onChange={(event) =>
                                         setSearchValue(
-                                            event.target
-                                                .value
+                                            event.target.value
                                         )
                                     }
                                     placeholder="Search..."
@@ -1222,6 +1503,7 @@ function TeamLeaderNavbar({
                                         pl-9
                                         pr-3
                                         text-sm
+                                        text-slate-800
                                         outline-none
                                         focus:border-blue-400
                                         focus:ring-2
@@ -1238,7 +1520,7 @@ function TeamLeaderNavbar({
             </header>
 
             {/* ========================================================
-               BACKDROP FOR DROPDOWN MENUS
+                BACKDROP FOR DROPDOWN MENUS
             ======================================================== */}
 
             {(notificationsOpen ||
@@ -1250,6 +1532,7 @@ function TeamLeaderNavbar({
                         setNotificationsOpen(
                             false
                         );
+
                         setProfileOpen(false);
                     }}
                     className="

@@ -1,178 +1,330 @@
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 import {
-    Palette,
-    Sun,
-    Moon,
-    Monitor,
     Check,
+    Monitor,
+    Moon,
     Save,
+    Sun,
 } from "lucide-react";
+import api from "@/services/api";
 
 const STORAGE_KEY = "aipms_teamleader_theme";
 
 const THEMES = [
     {
-        value: "light",
-        label: "Light Mode",
-        description: "Use a bright interface.",
+        id: "light",
+        name: "Light Mode",
+        description: "Use a clean and bright interface.",
         icon: Sun,
     },
     {
-        value: "dark",
-        label: "Dark Mode",
-        description: "Use a darker interface.",
+        id: "dark",
+        name: "Dark Mode",
+        description: "Use a darker interface for reduced eye strain.",
         icon: Moon,
     },
     {
-        value: "system",
-        label: "System Default",
-        description: "Follow your device appearance.",
+        id: "system",
+        name: "System Default",
+        description: "Follow your device's appearance setting.",
         icon: Monitor,
     },
 ];
 
-function getInitialTheme() {
-    return localStorage.getItem(STORAGE_KEY) || "system";
-}
+const normalizeTheme = (value) => {
+    const theme = String(value || "").trim().toLowerCase();
 
-function applyTheme(theme) {
+    if (theme === "dark") return "dark";
+    if (theme === "system" || theme === "system default") return "system";
+
+    return "light";
+};
+
+const getStoredTheme = () => {
+    return normalizeTheme(localStorage.getItem(STORAGE_KEY));
+};
+
+const applyTheme = (theme) => {
     const root = document.documentElement;
 
-    if (theme === "dark") {
-        root.classList.add("dark");
-    } else if (theme === "light") {
-        root.classList.remove("dark");
-    } else {
+    root.classList.remove("light", "dark");
+
+    if (theme === "system") {
         const prefersDark = window.matchMedia(
             "(prefers-color-scheme: dark)"
         ).matches;
 
-        root.classList.toggle("dark", prefersDark);
+        root.classList.add(prefersDark ? "dark" : "light");
+        return;
     }
-}
+
+    root.classList.add(theme);
+};
+
+const extractPreferences = (response) => {
+    const source =
+        response?.data?.data ??
+        response?.data?.Data ??
+        response?.data ??
+        response;
+
+    return source || {};
+};
 
 export default function ThemePreferences() {
-    const [theme, setTheme] = useState(getInitialTheme);
-    const [saved, setSaved] = useState(false);
+    const [theme, setTheme] = useState(getStoredTheme);
+    const [savedTheme, setSavedTheme] = useState(getStoredTheme);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState(false);
 
-    const handleSelect = (value) => {
-        setTheme(value);
-        setSaved(false);
+    useEffect(() => {
+        let mounted = true;
+
+        const loadPreferences = async () => {
+            try {
+                setLoading(true);
+                setError("");
+
+                const response = await api.get("/user-preferences");
+                const preferences = extractPreferences(response);
+
+                const backendTheme = normalizeTheme(
+                    preferences?.themePreference ??
+                    preferences?.ThemePreference
+                );
+
+                if (!mounted) return;
+
+                setTheme(backendTheme);
+                setSavedTheme(backendTheme);
+
+                localStorage.setItem(
+                    STORAGE_KEY,
+                    backendTheme
+                );
+
+                localStorage.setItem(
+                    "aipms_theme",
+                    backendTheme
+                );
+
+                applyTheme(backendTheme);
+            } catch (err) {
+                if (!mounted) return;
+
+                const cachedTheme = getStoredTheme();
+
+                setTheme(cachedTheme);
+                setSavedTheme(cachedTheme);
+                applyTheme(cachedTheme);
+
+                setError(
+                    err?.response?.data?.message ||
+                    err?.response?.data?.Message ||
+                    "Unable to load your theme preference. Your saved local theme is being used."
+                );
+            } finally {
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadPreferences();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    const handleThemeChange = (selectedTheme) => {
+        setTheme(selectedTheme);
+        setSuccess(false);
+        setError("");
+
+        applyTheme(selectedTheme);
     };
 
-    const handleSave = () => {
-        localStorage.setItem(STORAGE_KEY, theme);
+    const handleCancel = () => {
+        setTheme(savedTheme);
+        setSuccess(false);
+        setError("");
 
-        applyTheme(theme);
+        applyTheme(savedTheme);
+    };
 
-        // Keep the application's general theme key synchronized.
-        localStorage.setItem("aipms_theme", theme);
+    const handleSave = async () => {
+        try {
+            setSaving(true);
+            setSuccess(false);
+            setError("");
 
-        setSaved(true);
+            const response = await api.get("/user-preferences");
 
-        window.dispatchEvent(
-            new CustomEvent("aipms-theme-change", {
-                detail: { theme },
-            })
-        );
+            const currentPreferences = extractPreferences(response);
 
-        window.setTimeout(() => {
-            setSaved(false);
-        }, 3000);
+            const payload = {
+                languagePreference:
+                    currentPreferences?.languagePreference ??
+                    currentPreferences?.LanguagePreference ??
+                    null,
+
+                themePreference: theme,
+
+                customThemeId:
+                    currentPreferences?.customThemeId ??
+                    currentPreferences?.CustomThemeId ??
+                    null,
+            };
+
+            await api.put("/user-preferences", payload);
+
+            setSavedTheme(theme);
+
+            localStorage.setItem(
+                STORAGE_KEY,
+                theme
+            );
+
+            localStorage.setItem(
+                "aipms_theme",
+                theme
+            );
+
+            applyTheme(theme);
+
+            window.dispatchEvent(
+                new CustomEvent("aipms-theme-change", {
+                    detail: {
+                        theme,
+                    },
+                })
+            );
+
+            setSuccess(true);
+        } catch (err) {
+            setError(
+                err?.response?.data?.message ||
+                err?.response?.data?.Message ||
+                "Failed to save your theme preference."
+            );
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
         <div className="space-y-6">
+            <div>
+                <h2 className="text-xl font-semibold text-foreground">
+                    Theme Preferences
+                </h2>
 
-            <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
-                <div className="flex gap-3">
-                    <Palette className="mt-0.5 h-5 w-5 text-purple-600" />
-
-                    <div>
-                        <h3 className="text-sm font-semibold text-purple-900">
-                            Theme preferences
-                        </h3>
-
-                        <p className="mt-1 text-sm text-purple-700">
-                            Customize the appearance of your AI-PMS workspace.
-                        </p>
-                    </div>
-                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    Choose how the AI-PMS interface should appear.
+                </p>
             </div>
 
-            <div>
-                <h3 className="mb-3 text-sm font-semibold text-slate-900">
-                    Choose your appearance
-                </h3>
+            {error && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                    {error}
+                </div>
+            )}
 
-                <div className="grid gap-4 md:grid-cols-3">
-                    {THEMES.map((item) => {
-                        const Icon = item.icon;
-                        const selected = theme === item.value;
+            {success && (
+                <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-600">
+                    <Check className="h-4 w-4" />
+                    Theme preference updated successfully.
+                </div>
+            )}
 
-                        return (
-                            <button
-                                key={item.value}
-                                type="button"
-                                onClick={() => handleSelect(item.value)}
-                                className={`relative rounded-xl border p-5 text-left transition ${
-                                    selected
-                                        ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500"
-                                        : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                                }`}
-                            >
-                                {selected && (
-                                    <div className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600">
-                                        <Check className="h-4 w-4 text-white" />
-                                    </div>
-                                )}
+            <div className="rounded-xl border border-border/70 bg-card p-6 shadow-sm">
+                <div className="mb-6">
+                    <h3 className="text-base font-semibold text-foreground">
+                        Appearance
+                    </h3>
 
-                                <div
-                                    className={`mb-4 flex h-10 w-10 items-center justify-center rounded-lg ${
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Select your preferred application theme.
+                    </p>
+                </div>
+
+                {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
+                    </div>
+                ) : (
+                    <div className="grid gap-4 md:grid-cols-3">
+                        {THEMES.map((item) => {
+                            const Icon = item.icon;
+                            const selected = theme === item.id;
+
+                            return (
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() =>
+                                        handleThemeChange(item.id)
+                                    }
+                                    className={`group relative rounded-xl border p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${
                                         selected
-                                            ? "bg-blue-100"
-                                            : "bg-slate-100"
+                                            ? "border-primary bg-primary/5 shadow-sm"
+                                            : "border-border/70 bg-background hover:border-primary/40"
                                     }`}
                                 >
-                                    <Icon
-                                        className={`h-5 w-5 ${
+                                    {selected && (
+                                        <div className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                            <Check className="h-4 w-4" />
+                                        </div>
+                                    )}
+
+                                    <div
+                                        className={`mb-4 flex h-11 w-11 items-center justify-center rounded-lg ${
                                             selected
-                                                ? "text-blue-600"
-                                                : "text-slate-600"
+                                                ? "bg-primary/10 text-primary"
+                                                : "bg-muted text-muted-foreground"
                                         }`}
-                                    />
-                                </div>
+                                    >
+                                        <Icon className="h-5 w-5" />
+                                    </div>
 
-                                <h4 className="text-sm font-semibold text-slate-900">
-                                    {item.label}
-                                </h4>
+                                    <h4 className="font-semibold text-foreground">
+                                        {item.name}
+                                    </h4>
 
-                                <p className="mt-1 text-xs leading-5 text-slate-500">
-                                    {item.description}
-                                </p>
-                            </button>
-                        );
-                    })}
+                                    <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                                        {item.description}
+                                    </p>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                <div className="mt-6 flex items-center justify-end gap-3 border-t border-border/70 pt-6">
+                    <button
+                        type="button"
+                        onClick={handleCancel}
+                        disabled={saving || loading || theme === savedTheme}
+                        className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={saving || loading || theme === savedTheme}
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <Save className="h-4 w-4" />
+
+                        {saving ? "Saving..." : "Save Theme"}
+                    </button>
                 </div>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-slate-200 pt-5">
-                <div>
-                    {saved && (
-                        <p className="text-sm font-medium text-emerald-600">
-                            Theme preference updated successfully.
-                        </p>
-                    )}
-                </div>
-
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
-                >
-                    <Save className="h-4 w-4" />
-                    Save Theme
-                </button>
             </div>
         </div>
     );

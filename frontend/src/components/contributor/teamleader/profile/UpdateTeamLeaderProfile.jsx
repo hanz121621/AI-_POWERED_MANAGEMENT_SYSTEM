@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+
 import {
     UserRound,
     Mail,
@@ -15,6 +16,8 @@ import {
     AlertCircle,
     CheckCircle2,
 } from "lucide-react";
+
+import api from "@/services/api";
 
 // ============================================================
 // STORAGE
@@ -42,15 +45,55 @@ const getInitialFormData = () => {
     return {
         fullName: user?.fullName || user?.name || "",
         email: user?.email || "",
-        phone: user?.phone || "",
-        department: user?.department || "",
-        team: user?.team || "",
-        skills: user?.skills || "",
+        phone:
+            user?.phoneNumber ||
+            user?.phone ||
+            "",
+        department:
+            user?.department ||
+            user?.Department ||
+            "",
+        team:
+            user?.team ||
+            user?.Team ||
+            "",
+        skills:
+            user?.skills ||
+            user?.Skills ||
+            "",
         bio: user?.bio || "",
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
     };
+};
+
+// ============================================================
+// RESPONSE USER EXTRACTION
+// ============================================================
+
+const extractUser = (response, fallbackUser) => {
+    const data = response?.data;
+
+    const candidate =
+        data?.user ||
+        data?.User ||
+        data?.data ||
+        data?.Data ||
+        data;
+
+    if (
+        candidate &&
+        typeof candidate === "object" &&
+        !Array.isArray(candidate)
+    ) {
+        return {
+            ...fallbackUser,
+            ...candidate,
+        };
+    }
+
+    return fallbackUser;
 };
 
 // ============================================================
@@ -65,7 +108,7 @@ export default function UpdateTeamLeaderProfile({
 
     const [formData, setFormData] = useState(getInitialFormData);
 
-    const [loading] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const [error, setError] = useState(
         initialUser ? "" : "Profile not found."
@@ -123,6 +166,8 @@ export default function UpdateTeamLeaderProfile({
             if (formData.newPassword !== formData.confirmPassword) {
                 return "New password and confirmation password do not match.";
             }
+
+            return "Password changes must be completed through the Change Password feature.";
         }
 
         return "";
@@ -132,7 +177,7 @@ export default function UpdateTeamLeaderProfile({
     // SAVE PROFILE
     // ============================================================
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         setError("");
@@ -148,101 +193,191 @@ export default function UpdateTeamLeaderProfile({
         const storedUser = getStoredUser();
 
         if (!storedUser) {
-            setError("Profile not found.");
+            setError("Profile not found. Please log in again.");
             return;
         }
 
-        // --------------------------------------------------------
-        // Create updated user
-        // --------------------------------------------------------
-
-        const updatedUser = {
-            ...storedUser,
-
-            name: formData.fullName,
-            fullName: formData.fullName,
-            email: formData.email,
-            phone: formData.phone,
-            department: formData.department,
-            team: formData.team,
-            skills: formData.skills,
-            bio: formData.bio,
-
-            updatedAt: new Date().toISOString(),
-        };
-
-        // --------------------------------------------------------
-        // Update password only when requested
-        // --------------------------------------------------------
-
-        if (formData.newPassword) {
-            updatedUser.password = formData.newPassword;
-        }
-
-        // --------------------------------------------------------
-        // Save current user
-        // --------------------------------------------------------
-
-        localStorage.setItem(
-            "user",
-            JSON.stringify(updatedUser)
-        );
-
-        // --------------------------------------------------------
-        // Also update users collection if it exists
-        // --------------------------------------------------------
+        setLoading(true);
 
         try {
-            const users = JSON.parse(
-                localStorage.getItem("users") || "[]"
+            // ====================================================
+            // BACKEND PROFILE DTO
+            // ====================================================
+
+            const payload = {
+                fullName: formData.fullName.trim(),
+                email: formData.email.trim(),
+                phoneNumber: formData.phone.trim(),
+                bio: formData.bio.trim(),
+            };
+
+            const response = await api.put(
+                "/Users/profile",
+                payload
             );
 
-            if (Array.isArray(users)) {
-                const updatedUsers = users.map((user) => {
-                    if (
-                        user.id === storedUser.id ||
-                        user.userId === storedUser.userId ||
-                        user.email === storedUser.email
-                    ) {
+            // ====================================================
+            // UPDATE LOCAL USER CACHE
+            // ====================================================
+
+            const backendUser = extractUser(
+                response,
+                storedUser
+            );
+
+            const updatedUser = {
+                ...storedUser,
+                ...backendUser,
+
+                fullName:
+                    backendUser.fullName ||
+                    formData.fullName,
+
+                name:
+                    backendUser.fullName ||
+                    formData.fullName,
+
+                email:
+                    backendUser.email ||
+                    formData.email,
+
+                phoneNumber:
+                    backendUser.phoneNumber ||
+                    formData.phone,
+
+                phone:
+                    backendUser.phoneNumber ||
+                    backendUser.phone ||
+                    formData.phone,
+
+                bio:
+                    backendUser.bio ??
+                    formData.bio,
+
+                updatedAt: new Date().toISOString(),
+            };
+
+            localStorage.setItem(
+                "user",
+                JSON.stringify(updatedUser)
+            );
+
+            // Keep currentUser synchronized if it exists.
+            if (localStorage.getItem("currentUser")) {
+                localStorage.setItem(
+                    "currentUser",
+                    JSON.stringify(updatedUser)
+                );
+            }
+
+            // ====================================================
+            // UPDATE USERS CACHE IF IT EXISTS
+            // ====================================================
+
+            try {
+                const users = JSON.parse(
+                    localStorage.getItem("users") || "[]"
+                );
+
+                if (Array.isArray(users)) {
+                    const updatedUsers = users.map((user) => {
+                        const sameUser =
+                            user.id === storedUser.id ||
+                            user.userId === storedUser.userId ||
+                            user.email === storedUser.email;
+
+                        if (!sameUser) {
+                            return user;
+                        }
+
                         return {
                             ...user,
                             ...updatedUser,
                         };
-                    }
+                    });
 
-                    return user;
-                });
-
-                localStorage.setItem(
-                    "users",
-                    JSON.stringify(updatedUsers)
-                );
+                    localStorage.setItem(
+                        "users",
+                        JSON.stringify(updatedUsers)
+                    );
+                }
+            } catch {
+                // Ignore local users-cache errors.
             }
-        } catch {
-            // Ignore users collection errors.
-        }
 
-        // --------------------------------------------------------
-        // Success
-        // --------------------------------------------------------
+            // ====================================================
+            // UPDATE FORM WITH SAVED VALUES
+            // ====================================================
 
-        setFormData((previous) => ({
-            ...previous,
-            currentPassword: "",
-            newPassword: "",
-            confirmPassword: "",
-        }));
+            setFormData((previous) => ({
+                ...previous,
+                fullName:
+                    updatedUser.fullName ||
+                    formData.fullName,
 
-        setSuccess("Profile updated successfully.");
+                email:
+                    updatedUser.email ||
+                    formData.email,
 
-        // --------------------------------------------------------
-        // Notify parent after successful update
-        // --------------------------------------------------------
+                phone:
+                    updatedUser.phoneNumber ||
+                    formData.phone,
 
-        if (onSuccess) {
-            setTimeout(() => {
-                onSuccess(updatedUser);
-            }, 700);
+                bio:
+                    updatedUser.bio ??
+                    formData.bio,
+
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
+            }));
+
+            setSuccess(
+                response?.data?.message ||
+                response?.data?.Message ||
+                "Profile updated successfully."
+            );
+
+            // ====================================================
+            // NOTIFY PARENT
+            // ====================================================
+
+            if (onSuccess) {
+                setTimeout(() => {
+                    onSuccess(updatedUser);
+                }, 700);
+            }
+        } catch (requestError) {
+            const responseData = requestError?.response?.data;
+
+            const backendMessage =
+                responseData?.message ||
+                responseData?.Message ||
+                responseData?.error ||
+                responseData?.title;
+
+            if (
+                responseData?.errors &&
+                typeof responseData.errors === "object"
+            ) {
+                const validationMessages = Object.values(
+                    responseData.errors
+                )
+                    .flat()
+                    .filter(Boolean);
+
+                if (validationMessages.length > 0) {
+                    setError(validationMessages.join(" "));
+                    return;
+                }
+            }
+
+            setError(
+                backendMessage ||
+                "Failed to update your profile. Please try again."
+            );
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -448,7 +583,7 @@ export default function UpdateTeamLeaderProfile({
                         </div>
                     </div>
 
-                    {/* Role - Read Only */}
+                    {/* Role */}
 
                     <div>
                         <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -707,7 +842,6 @@ export default function UpdateTeamLeaderProfile({
             {error && (
                 <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-
                     <span>{error}</span>
                 </div>
             )}
@@ -715,7 +849,6 @@ export default function UpdateTeamLeaderProfile({
             {success && (
                 <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-
                     <span>{success}</span>
                 </div>
             )}
@@ -729,7 +862,8 @@ export default function UpdateTeamLeaderProfile({
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        disabled={loading}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <X className="h-4 w-4" />
                         Cancel

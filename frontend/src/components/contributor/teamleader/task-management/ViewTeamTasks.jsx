@@ -1,45 +1,3 @@
-// ============================================================
-// AIPMS — TEAM LEADER VIEW TASKS
-//
-// Use Case:
-// TASK-007 — View Tasks
-//
-// Primary Actor:
-// Team Leader
-//
-// Goal:
-// Allow a Team Leader to view tasks belonging to the projects,
-// sprints, and team responsibilities available to them.
-//
-// Displays:
-// - Task title
-// - Description
-// - Project
-// - Sprint
-// - Priority
-// - Status
-// - Assigned contributor
-// - Deadline
-// - Estimated effort
-// - Task type
-// - AI-generated indicator
-//
-// Features:
-// - Search
-// - Project filtering
-// - Sprint filtering
-// - Status filtering
-// - Priority filtering
-// - Sorting
-// - Task details
-// - Refresh
-// - Empty/loading/error states
-//
-// IMPORTANT:
-// - Backend MUST enforce Team Leader authorization.
-// - Backend MUST return only permitted tasks.
-// - No localStorage is used.
-// ============================================================
 
 import React, {
     useEffect,
@@ -47,9 +5,7 @@ import React, {
     useState,
 } from "react";
 
-// ============================================================
-// HELPERS
-// ============================================================
+import api from "@/services/api";
 
 const getTaskId = (task) => {
     if (!task) return null;
@@ -232,10 +188,10 @@ const getTaskType = (task) => {
 const isAiGenerated = (task) => {
     return Boolean(
         task?.isAiGenerated ??
-            task?.aiGenerated ??
-            task?.isAIgenerated ??
-            task?.IsAiGenerated ??
-            false
+        task?.aiGenerated ??
+        task?.isAIgenerated ??
+        task?.IsAiGenerated ??
+        false
     );
 };
 
@@ -309,10 +265,6 @@ const isOverdue = (task) => {
     return deadlineDate < new Date();
 };
 
-// ============================================================
-// NORMALIZATION
-// ============================================================
-
 const normalizeTasks = (value) => {
     if (Array.isArray(value)) {
         return value;
@@ -330,20 +282,26 @@ const normalizeTasks = (value) => {
         return value.tasks;
     }
 
+    if (Array.isArray(value?.data?.tasks)) {
+        return value.data.tasks;
+    }
+
     return [];
 };
 
-// ============================================================
-// COMPONENT
-// ============================================================
+const getBackendError = (error) => {
+    return (
+        error?.response?.data?.message ??
+        error?.response?.data?.error ??
+        error?.response?.data?.title ??
+        error?.message ??
+        "Unable to load tasks."
+    );
+};
 
 export default function ViewTeamTasks({
     tasks: initialTasks = [],
-
-    // Optional loader supplied by parent.
     loadTasks,
-
-    // Optional callbacks.
     onRefresh,
     onTaskSelect,
     onCreateTask,
@@ -352,13 +310,10 @@ export default function ViewTeamTasks({
     onAssignTask,
     onSetPriority,
     onSetDeadline,
-
-    // Authorization guard.
     canViewTasks = true,
-
-    // Optional initial filters.
     initialProject = "all",
     initialSprint = "all",
+    sprintId = "",
 }) {
     const [tasks, setTasks] = useState(
         normalizeTasks(initialTasks)
@@ -400,10 +355,6 @@ export default function ViewTeamTasks({
     const [success, setSuccess] =
         useState("");
 
-    // ========================================================
-    // SYNC TASKS FROM PARENT
-    // ========================================================
-
     useEffect(() => {
         setTasks(
             normalizeTasks(
@@ -412,16 +363,75 @@ export default function ViewTeamTasks({
         );
     }, [initialTasks]);
 
-    // ========================================================
-    // LOAD TASKS
-    // ========================================================
+    useEffect(() => {
+        if (
+            sprintId &&
+            !loadTasks &&
+            canViewTasks
+        ) {
+            loadTeamLeaderTasks();
+        }
+    }, [
+        sprintId,
+        loadTasks,
+        canViewTasks,
+    ]);
 
-    const refreshTasks = async () => {
+    const loadTeamLeaderTasks = async () => {
+        if (!sprintId) {
+            setTasks([]);
+            return;
+        }
+
+        setIsLoading(true);
         setError("");
         setSuccess("");
 
         try {
-            setIsLoading(true);
+            const response =
+                await api.get(
+                    `/tasks/team-leader/sprint/${sprintId}`
+                );
+
+            setTasks(
+                normalizeTasks(
+                    response.data
+                )
+            );
+        } catch (err) {
+            console.error(
+                "Load Team Leader Tasks Error:",
+                err
+            );
+
+            const status =
+                err?.response?.status;
+
+            if (status === 403) {
+                setError(
+                    "You are not authorized to view these team tasks."
+                );
+            } else if (status === 404) {
+                setError(
+                    "No tasks were found for this sprint."
+                );
+            } else {
+                setError(
+                    getBackendError(err)
+                );
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const refreshTasks = async () => {
+        setError("");
+        setSuccess("");
+        setIsLoading(true);
+
+        try {
+            let loaded = false;
 
             if (loadTasks) {
                 const result =
@@ -429,28 +439,51 @@ export default function ViewTeamTasks({
                         loadTasks()
                     );
 
-                if (result) {
+                if (result !== undefined) {
                     setTasks(
                         normalizeTasks(
                             result
                         )
                     );
+
+                    loaded = true;
                 }
             }
 
-            if (onRefresh) {
+            if (
+                onRefresh &&
+                !loaded
+            ) {
                 const result =
                     await Promise.resolve(
                         onRefresh()
                     );
 
-                if (result) {
+                if (result !== undefined) {
                     setTasks(
                         normalizeTasks(
                             result
                         )
                     );
+
+                    loaded = true;
                 }
+            }
+
+            if (
+                !loaded &&
+                sprintId
+            ) {
+                const response =
+                    await api.get(
+                        `/tasks/team-leader/sprint/${sprintId}`
+                    );
+
+                setTasks(
+                    normalizeTasks(
+                        response.data
+                    )
+                );
             }
 
             setSuccess(
@@ -466,19 +499,22 @@ export default function ViewTeamTasks({
                 err
             );
 
-            setError(
-                err?.response?.data?.message ??
-                    err?.message ??
-                    "Unable to load tasks."
-            );
+            const status =
+                err?.response?.status;
+
+            if (status === 403) {
+                setError(
+                    "You are not authorized to view these team tasks."
+                );
+            } else {
+                setError(
+                    getBackendError(err)
+                );
+            }
         } finally {
             setIsLoading(false);
         }
     };
-
-    // ========================================================
-    // FILTER OPTIONS
-    // ========================================================
 
     const projectOptions = useMemo(() => {
         const values = tasks
@@ -523,10 +559,6 @@ export default function ViewTeamTasks({
             ...new Set(values),
         ].sort();
     }, [tasks]);
-
-    // ========================================================
-    // FILTERED AND SORTED TASKS
-    // ========================================================
 
     const filteredTasks = useMemo(() => {
         const search =
@@ -577,46 +609,29 @@ export default function ViewTeamTasks({
 
                 const matchesSearch =
                     !search ||
-                    title.includes(
-                        search
-                    ) ||
-                    description.includes(
-                        search
-                    ) ||
-                    project.includes(
-                        search
-                    ) ||
-                    sprint.includes(
-                        search
-                    ) ||
-                    assignee.includes(
-                        search
-                    );
+                    title.includes(search) ||
+                    description.includes(search) ||
+                    project.includes(search) ||
+                    sprint.includes(search) ||
+                    assignee.includes(search);
 
                 const matchesProject =
-                    projectFilter ===
-                        "all" ||
-                    getTaskProject(
-                        task
-                    ) === projectFilter;
+                    projectFilter === "all" ||
+                    getTaskProject(task) ===
+                        projectFilter;
 
                 const matchesSprint =
-                    sprintFilter ===
-                        "all" ||
-                    getTaskSprint(
-                        task
-                    ) === sprintFilter;
+                    sprintFilter === "all" ||
+                    getTaskSprint(task) ===
+                        sprintFilter;
 
                 const matchesStatus =
-                    statusFilter ===
-                        "all" ||
+                    statusFilter === "all" ||
                     status ===
-                        statusFilter
-                            .toLowerCase();
+                        statusFilter.toLowerCase();
 
                 const matchesPriority =
-                    priorityFilter ===
-                        "all" ||
+                    priorityFilter === "all" ||
                     priority ===
                         priorityFilter.toLowerCase();
 
@@ -680,38 +695,30 @@ export default function ViewTeamTasks({
 
                     case "progress":
                         valueA =
-                            getProgress(
-                                a
-                            );
+                            getProgress(a);
 
                         valueB =
-                            getProgress(
-                                b
-                            );
+                            getProgress(b);
 
                         break;
 
                     case "deadline": {
                         const dateA =
-                            getTaskDeadline(
-                                a
-                            );
+                            getTaskDeadline(a);
 
                         const dateB =
-                            getTaskDeadline(
-                                b
-                            );
+                            getTaskDeadline(b);
 
                         valueA = dateA
                             ? new Date(
-                                  dateA
-                              ).getTime()
+                                dateA
+                            ).getTime()
                             : Number.MAX_SAFE_INTEGER;
 
                         valueB = dateB
                             ? new Date(
-                                  dateB
-                              ).getTime()
+                                dateB
+                            ).getTime()
                             : Number.MAX_SAFE_INTEGER;
 
                         break;
@@ -722,20 +729,14 @@ export default function ViewTeamTasks({
                         valueB = 0;
                 }
 
-                if (
-                    valueA <
-                    valueB
-                ) {
+                if (valueA < valueB) {
                     return sortDirection ===
                         "asc"
                         ? -1
                         : 1;
                 }
 
-                if (
-                    valueA >
-                    valueB
-                ) {
+                if (valueA > valueB) {
                     return sortDirection ===
                         "asc"
                         ? 1
@@ -755,10 +756,6 @@ export default function ViewTeamTasks({
         sortBy,
         sortDirection,
     ]);
-
-    // ========================================================
-    // STATISTICS
-    // ========================================================
 
     const statistics = useMemo(() => {
         const total =
@@ -802,9 +799,7 @@ export default function ViewTeamTasks({
         const overdue =
             tasks.filter(
                 (task) =>
-                    isOverdue(
-                        task
-                    )
+                    isOverdue(task)
             ).length;
 
         const unassigned =
@@ -819,9 +814,7 @@ export default function ViewTeamTasks({
         const aiGenerated =
             tasks.filter(
                 (task) =>
-                    isAiGenerated(
-                        task
-                    )
+                    isAiGenerated(task)
             ).length;
 
         return {
@@ -834,31 +827,14 @@ export default function ViewTeamTasks({
         };
     }, [tasks]);
 
-    // ========================================================
-    // TASK SELECTION
-    // ========================================================
-
-    const handleViewTask = (
-        task
-    ) => {
-        setSelectedTask(
-            task
-        );
-
-        setShowDetails(
-            true
-        );
+    const handleViewTask = (task) => {
+        setSelectedTask(task);
+        setShowDetails(true);
 
         if (onTaskSelect) {
-            onTaskSelect(
-                task
-            );
+            onTaskSelect(task);
         }
     };
-
-    // ========================================================
-    // CLEAR FILTERS
-    // ========================================================
 
     const clearFilters = () => {
         setSearchTerm("");
@@ -867,10 +843,6 @@ export default function ViewTeamTasks({
         setStatusFilter("all");
         setPriorityFilter("all");
     };
-
-    // ========================================================
-    // PRIORITY BADGE
-    // ========================================================
 
     const PriorityBadge = ({
         priority,
@@ -883,28 +855,16 @@ export default function ViewTeamTasks({
         let classes =
             "bg-gray-100 text-gray-700";
 
-        if (
-            value ===
-            "critical"
-        ) {
+        if (value === "critical") {
             classes =
                 "bg-red-100 text-red-700";
-        } else if (
-            value ===
-            "high"
-        ) {
+        } else if (value === "high") {
             classes =
                 "bg-orange-100 text-orange-700";
-        } else if (
-            value ===
-            "medium"
-        ) {
+        } else if (value === "medium") {
             classes =
                 "bg-yellow-100 text-yellow-700";
-        } else if (
-            value ===
-            "low"
-        ) {
+        } else if (value === "low") {
             classes =
                 "bg-green-100 text-green-700";
         }
@@ -918,10 +878,6 @@ export default function ViewTeamTasks({
         );
     };
 
-    // ========================================================
-    // STATUS BADGE
-    // ========================================================
-
     const StatusBadge = ({
         status,
     }) => {
@@ -934,36 +890,24 @@ export default function ViewTeamTasks({
             "bg-gray-100 text-gray-700";
 
         if (
-            value.includes(
-                "completed"
-            ) ||
-            value.includes(
-                "done"
-            )
+            value.includes("completed") ||
+            value.includes("done")
         ) {
             classes =
                 "bg-green-100 text-green-700";
         } else if (
-            value.includes(
-                "progress"
-            ) ||
-            value.includes(
-                "active"
-            )
+            value.includes("progress") ||
+            value.includes("active")
         ) {
             classes =
                 "bg-blue-100 text-blue-700";
         } else if (
-            value.includes(
-                "blocked"
-            )
+            value.includes("blocked")
         ) {
             classes =
                 "bg-red-100 text-red-700";
         } else if (
-            value.includes(
-                "review"
-            )
+            value.includes("review")
         ) {
             classes =
                 "bg-purple-100 text-purple-700";
@@ -977,10 +921,6 @@ export default function ViewTeamTasks({
             </span>
         );
     };
-
-    // ========================================================
-    // AUTHORIZATION STATE
-    // ========================================================
 
     if (!canViewTasks) {
         return (
@@ -1005,16 +945,8 @@ export default function ViewTeamTasks({
         );
     }
 
-    // ========================================================
-    // UI
-    // ========================================================
-
     return (
         <div className="space-y-6">
-            {/* =================================================
-                HEADER
-            ================================================= */}
-
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">
@@ -1031,12 +963,8 @@ export default function ViewTeamTasks({
                 <div className="flex flex-wrap gap-2">
                     <button
                         type="button"
-                        onClick={
-                            refreshTasks
-                        }
-                        disabled={
-                            isLoading
-                        }
+                        onClick={refreshTasks}
+                        disabled={isLoading}
                         className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <svg
@@ -1066,9 +994,7 @@ export default function ViewTeamTasks({
                     {onCreateTask && (
                         <button
                             type="button"
-                            onClick={
-                                onCreateTask
-                            }
+                            onClick={onCreateTask}
                             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
                         >
                             <svg
@@ -1092,10 +1018,6 @@ export default function ViewTeamTasks({
                 </div>
             </div>
 
-            {/* =================================================
-                SUCCESS
-            ================================================= */}
-
             {success && (
                 <div
                     role="status"
@@ -1106,10 +1028,6 @@ export default function ViewTeamTasks({
                     </p>
                 </div>
             )}
-
-            {/* =================================================
-                ERROR
-            ================================================= */}
 
             {error && (
                 <div
@@ -1134,10 +1052,6 @@ export default function ViewTeamTasks({
                 </div>
             )}
 
-            {/* =================================================
-                STATISTICS
-            ================================================= */}
-
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
                 <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                     <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -1155,9 +1069,7 @@ export default function ViewTeamTasks({
                     </p>
 
                     <p className="mt-2 text-2xl font-bold text-green-600">
-                        {
-                            statistics.completed
-                        }
+                        {statistics.completed}
                     </p>
                 </div>
 
@@ -1167,9 +1079,7 @@ export default function ViewTeamTasks({
                     </p>
 
                     <p className="mt-2 text-2xl font-bold text-blue-600">
-                        {
-                            statistics.inProgress
-                        }
+                        {statistics.inProgress}
                     </p>
                 </div>
 
@@ -1179,9 +1089,7 @@ export default function ViewTeamTasks({
                     </p>
 
                     <p className="mt-2 text-2xl font-bold text-red-600">
-                        {
-                            statistics.overdue
-                        }
+                        {statistics.overdue}
                     </p>
                 </div>
 
@@ -1191,9 +1099,7 @@ export default function ViewTeamTasks({
                     </p>
 
                     <p className="mt-2 text-2xl font-bold text-amber-600">
-                        {
-                            statistics.unassigned
-                        }
+                        {statistics.unassigned}
                     </p>
                 </div>
 
@@ -1203,20 +1109,13 @@ export default function ViewTeamTasks({
                     </p>
 
                     <p className="mt-2 text-2xl font-bold text-purple-600">
-                        {
-                            statistics.aiGenerated
-                        }
+                        {statistics.aiGenerated}
                     </p>
                 </div>
             </div>
 
-            {/* =================================================
-                FILTERS
-            ================================================= */}
-
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-                    {/* Search */}
                     <div className="lg:col-span-2">
                         <label
                             htmlFor="team-task-search"
@@ -1244,16 +1143,10 @@ export default function ViewTeamTasks({
                             <input
                                 id="team-task-search"
                                 type="text"
-                                value={
-                                    searchTerm
-                                }
-                                onChange={(
-                                    event
-                                ) =>
+                                value={searchTerm}
+                                onChange={(event) =>
                                     setSearchTerm(
-                                        event
-                                            .target
-                                            .value
+                                        event.target.value
                                     )
                                 }
                                 placeholder="Search tasks, projects, sprints..."
@@ -1262,7 +1155,6 @@ export default function ViewTeamTasks({
                         </div>
                     </div>
 
-                    {/* Project */}
                     <div>
                         <label
                             htmlFor="task-project-filter"
@@ -1273,16 +1165,10 @@ export default function ViewTeamTasks({
 
                         <select
                             id="task-project-filter"
-                            value={
-                                projectFilter
-                            }
-                            onChange={(
-                                event
-                            ) =>
+                            value={projectFilter}
+                            onChange={(event) =>
                                 setProjectFilter(
-                                    event
-                                        .target
-                                        .value
+                                    event.target.value
                                 )
                             }
                             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -1294,12 +1180,8 @@ export default function ViewTeamTasks({
                             {projectOptions.map(
                                 (project) => (
                                     <option
-                                        key={
-                                            project
-                                        }
-                                        value={
-                                            project
-                                        }
+                                        key={project}
+                                        value={project}
                                     >
                                         {project}
                                     </option>
@@ -1308,7 +1190,6 @@ export default function ViewTeamTasks({
                         </select>
                     </div>
 
-                    {/* Sprint */}
                     <div>
                         <label
                             htmlFor="task-sprint-filter"
@@ -1319,16 +1200,10 @@ export default function ViewTeamTasks({
 
                         <select
                             id="task-sprint-filter"
-                            value={
-                                sprintFilter
-                            }
-                            onChange={(
-                                event
-                            ) =>
+                            value={sprintFilter}
+                            onChange={(event) =>
                                 setSprintFilter(
-                                    event
-                                        .target
-                                        .value
+                                    event.target.value
                                 )
                             }
                             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -1340,12 +1215,8 @@ export default function ViewTeamTasks({
                             {sprintOptions.map(
                                 (sprint) => (
                                     <option
-                                        key={
-                                            sprint
-                                        }
-                                        value={
-                                            sprint
-                                        }
+                                        key={sprint}
+                                        value={sprint}
                                     >
                                         {sprint}
                                     </option>
@@ -1354,7 +1225,6 @@ export default function ViewTeamTasks({
                         </select>
                     </div>
 
-                    {/* Status */}
                     <div>
                         <label
                             htmlFor="task-status-filter"
@@ -1365,16 +1235,10 @@ export default function ViewTeamTasks({
 
                         <select
                             id="task-status-filter"
-                            value={
-                                statusFilter
-                            }
-                            onChange={(
-                                event
-                            ) =>
+                            value={statusFilter}
+                            onChange={(event) =>
                                 setStatusFilter(
-                                    event
-                                        .target
-                                        .value
+                                    event.target.value
                                 )
                             }
                             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -1386,12 +1250,8 @@ export default function ViewTeamTasks({
                             {statusOptions.map(
                                 (status) => (
                                     <option
-                                        key={
-                                            status
-                                        }
-                                        value={
-                                            status
-                                        }
+                                        key={status}
+                                        value={status}
                                     >
                                         {status}
                                     </option>
@@ -1400,7 +1260,6 @@ export default function ViewTeamTasks({
                         </select>
                     </div>
 
-                    {/* Priority */}
                     <div>
                         <label
                             htmlFor="task-priority-filter"
@@ -1411,16 +1270,10 @@ export default function ViewTeamTasks({
 
                         <select
                             id="task-priority-filter"
-                            value={
-                                priorityFilter
-                            }
-                            onChange={(
-                                event
-                            ) =>
+                            value={priorityFilter}
+                            onChange={(event) =>
                                 setPriorityFilter(
-                                    event
-                                        .target
-                                        .value
+                                    event.target.value
                                 )
                             }
                             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -1447,7 +1300,6 @@ export default function ViewTeamTasks({
                         </select>
                     </div>
 
-                    {/* Sort */}
                     <div>
                         <label
                             htmlFor="task-sort"
@@ -1458,16 +1310,10 @@ export default function ViewTeamTasks({
 
                         <select
                             id="task-sort"
-                            value={
-                                sortBy
-                            }
-                            onChange={(
-                                event
-                            ) =>
+                            value={sortBy}
+                            onChange={(event) =>
                                 setSortBy(
-                                    event
-                                        .target
-                                        .value
+                                    event.target.value
                                 )
                             }
                             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -1490,7 +1336,6 @@ export default function ViewTeamTasks({
                         </select>
                     </div>
 
-                    {/* Sort direction */}
                     <div>
                         <label
                             htmlFor="task-sort-direction"
@@ -1501,16 +1346,10 @@ export default function ViewTeamTasks({
 
                         <select
                             id="task-sort-direction"
-                            value={
-                                sortDirection
-                            }
-                            onChange={(
-                                event
-                            ) =>
+                            value={sortDirection}
+                            onChange={(event) =>
                                 setSortDirection(
-                                    event
-                                        .target
-                                        .value
+                                    event.target.value
                                 )
                             }
                             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -1525,13 +1364,10 @@ export default function ViewTeamTasks({
                         </select>
                     </div>
 
-                    {/* Clear */}
                     <div className="flex items-end">
                         <button
                             type="button"
-                            onClick={
-                                clearFilters
-                            }
+                            onClick={clearFilters}
                             className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                         >
                             Clear Filters
@@ -1540,17 +1376,11 @@ export default function ViewTeamTasks({
                 </div>
             </div>
 
-            {/* =================================================
-                RESULTS SUMMARY
-            ================================================= */}
-
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-gray-600">
                     Showing{" "}
                     <strong className="text-gray-900">
-                        {
-                            filteredTasks.length
-                        }
+                        {filteredTasks.length}
                     </strong>{" "}
                     of{" "}
                     <strong className="text-gray-900">
@@ -1559,10 +1389,6 @@ export default function ViewTeamTasks({
                     tasks
                 </p>
             </div>
-
-            {/* =================================================
-                TASK LIST
-            ================================================= */}
 
             {isLoading ? (
                 <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
@@ -1592,8 +1418,7 @@ export default function ViewTeamTasks({
                         Loading team tasks...
                     </p>
                 </div>
-            ) : filteredTasks.length ===
-              0 ? (
+            ) : filteredTasks.length === 0 ? (
                 <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
                     <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-500">
                         <svg
@@ -1630,9 +1455,7 @@ export default function ViewTeamTasks({
 
                     <button
                         type="button"
-                        onClick={
-                            clearFilters
-                        }
+                        onClick={clearFilters}
                         className="mt-5 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
                         Clear Filters
@@ -1640,7 +1463,6 @@ export default function ViewTeamTasks({
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                    {/* Desktop table */}
                     <div className="hidden overflow-x-auto lg:block">
                         <table className="w-full">
                             <thead className="border-b border-gray-200 bg-gray-50">
@@ -1677,26 +1499,21 @@ export default function ViewTeamTasks({
 
                             <tbody className="divide-y divide-gray-100">
                                 {filteredTasks.map(
-                                    (task) => {
+                                    (task, index) => {
                                         const taskId =
-                                            getTaskId(
-                                                task
-                                            );
+                                            getTaskId(task);
 
                                         const overdue =
-                                            isOverdue(
-                                                task
-                                            );
+                                            isOverdue(task);
 
                                         return (
                                             <tr
                                                 key={
                                                     taskId ??
-                                                    Math.random()
+                                                    `task-${index}`
                                                 }
                                                 className="transition hover:bg-gray-50"
                                             >
-                                                {/* Task */}
                                                 <td className="px-5 py-4">
                                                     <div className="max-w-xs">
                                                         <div className="flex items-center gap-2">
@@ -1732,7 +1549,6 @@ export default function ViewTeamTasks({
                                                     </div>
                                                 </td>
 
-                                                {/* Project / Sprint */}
                                                 <td className="px-5 py-4">
                                                     <div>
                                                         <p className="text-sm font-medium text-gray-900">
@@ -1749,7 +1565,6 @@ export default function ViewTeamTasks({
                                                     </div>
                                                 </td>
 
-                                                {/* Priority */}
                                                 <td className="px-5 py-4">
                                                     <PriorityBadge
                                                         priority={getTaskPriority(
@@ -1758,7 +1573,6 @@ export default function ViewTeamTasks({
                                                     />
                                                 </td>
 
-                                                {/* Status */}
                                                 <td className="px-5 py-4">
                                                     <StatusBadge
                                                         status={getTaskStatus(
@@ -1767,7 +1581,6 @@ export default function ViewTeamTasks({
                                                     />
                                                 </td>
 
-                                                {/* Assignee */}
                                                 <td className="px-5 py-4">
                                                     <div>
                                                         <p className="text-sm font-medium text-gray-900">
@@ -1788,7 +1601,6 @@ export default function ViewTeamTasks({
                                                     </div>
                                                 </td>
 
-                                                {/* Deadline */}
                                                 <td className="px-5 py-4">
                                                     <p
                                                         className={`text-sm font-medium ${
@@ -1811,7 +1623,6 @@ export default function ViewTeamTasks({
                                                     )}
                                                 </td>
 
-                                                {/* Action */}
                                                 <td className="px-5 py-4 text-right">
                                                     <button
                                                         type="button"
@@ -1833,33 +1644,23 @@ export default function ViewTeamTasks({
                         </table>
                     </div>
 
-                    {/* =================================================
-                        MOBILE CARDS
-                    ================================================= */}
-
                     <div className="divide-y divide-gray-200 lg:hidden">
                         {filteredTasks.map(
-                            (task) => {
+                            (task, index) => {
                                 const taskId =
-                                    getTaskId(
-                                        task
-                                    );
+                                    getTaskId(task);
 
                                 const overdue =
-                                    isOverdue(
-                                        task
-                                    );
+                                    isOverdue(task);
 
                                 const progress =
-                                    getProgress(
-                                        task
-                                    );
+                                    getProgress(task);
 
                                 return (
                                     <div
                                         key={
                                             taskId ??
-                                            Math.random()
+                                            `mobile-task-${index}`
                                         }
                                         className="p-5"
                                     >
@@ -1974,7 +1775,6 @@ export default function ViewTeamTasks({
                                             </div>
                                         </div>
 
-                                        {/* Progress */}
                                         <div className="mt-4">
                                             <div className="flex items-center justify-between text-xs">
                                                 <span className="text-gray-500">
@@ -1982,8 +1782,7 @@ export default function ViewTeamTasks({
                                                 </span>
 
                                                 <span className="font-semibold text-gray-700">
-                                                    {progress}
-                                                    %
+                                                    {progress}%
                                                 </span>
                                             </div>
 
@@ -2016,15 +1815,10 @@ export default function ViewTeamTasks({
                 </div>
             )}
 
-            {/* =================================================
-                TASK DETAILS
-            ================================================= */}
-
             {showDetails &&
                 selectedTask && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                         <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-2xl">
-                            {/* Header */}
                             <div className="flex items-start justify-between border-b border-gray-200 px-6 py-5">
                                 <div>
                                     <div className="flex flex-wrap items-center gap-2">
@@ -2081,9 +1875,7 @@ export default function ViewTeamTasks({
                                 </button>
                             </div>
 
-                            {/* Details */}
                             <div className="space-y-6 p-6">
-                                {/* Description */}
                                 <div>
                                     <h3 className="text-sm font-semibold text-gray-900">
                                         Description
@@ -2097,7 +1889,6 @@ export default function ViewTeamTasks({
                                     </p>
                                 </div>
 
-                                {/* Main details */}
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="rounded-lg border border-gray-200 p-4">
                                         <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -2228,7 +2019,6 @@ export default function ViewTeamTasks({
                                     </div>
                                 </div>
 
-                                {/* Progress */}
                                 <div>
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-sm font-semibold text-gray-900">
@@ -2255,7 +2045,6 @@ export default function ViewTeamTasks({
                                     </div>
                                 </div>
 
-                                {/* AI information */}
                                 {isAiGenerated(
                                     selectedTask
                                 ) && (
@@ -2289,10 +2078,6 @@ export default function ViewTeamTasks({
                                     </div>
                                 )}
                             </div>
-
-                            {/* =================================================
-                                ACTIONS
-                            ================================================= */}
 
                             <div className="flex flex-wrap justify-end gap-2 border-t border-gray-200 px-6 py-5">
                                 {onUpdateTask && (

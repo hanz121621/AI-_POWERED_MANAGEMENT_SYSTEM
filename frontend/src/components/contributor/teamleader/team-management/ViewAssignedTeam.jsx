@@ -1,3 +1,4 @@
+
 import { useMemo, useState } from "react";
 import {
     UsersRound,
@@ -14,46 +15,9 @@ import {
 
 const initialTeam = {
     id: null,
-    name: "AIPMS Development Team",
+    name: "Assigned Team",
     projectName: "AI-Powered Project Management System",
-    members: [
-        {
-            id: 1,
-            name: "Developer 1",
-            role: "Developer",
-            specialization: "Frontend Development",
-            status: "Active",
-            workload: 0,
-            avatar: "D1",
-        },
-        {
-            id: 2,
-            name: "Developer 2",
-            role: "Developer",
-            specialization: "Backend Development",
-            status: "Active",
-            workload: 2,
-            avatar: "D2",
-        },
-        {
-            id: 3,
-            name: "Developer 3",
-            role: "Developer",
-            specialization: "Full Stack Development",
-            status: "Active",
-            workload: 2,
-            avatar: "D3",
-        },
-        {
-            id: 4,
-            name: "Staff 1",
-            role: "Staff",
-            specialization: "QA / Testing",
-            status: "Active",
-            workload: 1,
-            avatar: "S1",
-        },
-    ],
+    members: [],
 };
 
 function StatCard({ icon: Icon, label, value, description }) {
@@ -64,11 +28,9 @@ function StatCard({ icon: Icon, label, value, description }) {
                     <p className="text-sm font-medium text-slate-500">
                         {label}
                     </p>
-
                     <h3 className="mt-2 text-2xl font-bold text-slate-900">
                         {value}
                     </h3>
-
                     <p className="mt-1 text-xs text-slate-500">
                         {description}
                     </p>
@@ -82,6 +44,90 @@ function StatCard({ icon: Icon, label, value, description }) {
     );
 }
 
+function normalizeMember(member) {
+    const name =
+        member?.name ??
+        member?.Name ??
+        member?.fullName ??
+        member?.FullName ??
+        "Contributor";
+
+    return {
+        id:
+            member?.id ??
+            member?.Id ??
+            member?.userId ??
+            member?.UserId ??
+            member?.contributorId ??
+            member?.ContributorId,
+        name,
+        role:
+            member?.role ??
+            member?.Role ??
+            member?.contributorType ??
+            member?.ContributorType ??
+            "Contributor",
+        specialization:
+            member?.specialization ??
+            member?.Specialization ??
+            member?.skill ??
+            member?.Skill ??
+            "Not specified",
+        status:
+            member?.status ??
+            member?.Status ??
+            "Active",
+        workload: Number(
+            member?.workload ??
+                member?.Workload ??
+                member?.activeTasks ??
+                member?.ActiveTasks ??
+                0
+        ),
+        avatar:
+            member?.avatar ??
+            member?.Avatar ??
+            name
+                .slice(0, 2)
+                .toUpperCase(),
+    };
+}
+
+function normalizeTeam(team) {
+    const source = team?.data ?? team?.team ?? team ?? {};
+
+    const rawMembers =
+        source?.members ??
+        source?.Members ??
+        source?.teamMembers ??
+        source?.TeamMembers ??
+        [];
+
+    return {
+        id:
+            source?.id ??
+            source?.Id ??
+            source?.teamId ??
+            source?.TeamId ??
+            null,
+        name:
+            source?.name ??
+            source?.Name ??
+            source?.teamName ??
+            source?.TeamName ??
+            "Assigned Team",
+        projectName:
+            source?.projectName ??
+            source?.ProjectName ??
+            source?.project?.name ??
+            source?.Project?.Name ??
+            "AI-Powered Project Management System",
+        members: Array.isArray(rawMembers)
+            ? rawMembers.map(normalizeMember)
+            : [],
+    };
+}
+
 export default function ViewAssignedTeam({
     team = initialTeam,
     onAddMember,
@@ -89,7 +135,12 @@ export default function ViewAssignedTeam({
     const [search, setSearch] = useState("");
     const [selectedMember, setSelectedMember] = useState(null);
 
-    const members = team?.members ?? [];
+    const normalizedTeam = useMemo(
+        () => normalizeTeam(team),
+        [team]
+    );
+
+    const members = normalizedTeam.members ?? [];
 
     const filteredMembers = useMemo(() => {
         const term = search.trim().toLowerCase();
@@ -112,18 +163,19 @@ export default function ViewAssignedTeam({
     }, [members, search]);
 
     const activeMembers = members.filter(
-        (member) => member.status === "Active"
+        (member) =>
+            String(member.status).toLowerCase() === "active"
     ).length;
 
     const totalWorkload = members.reduce(
-        (total, member) => total + Number(member.workload || 0),
+        (total, member) =>
+            total + Number(member.workload || 0),
         0
     );
 
     return (
         <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
             <div className="mx-auto max-w-7xl space-y-6">
-                {/* Header */}
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
@@ -151,7 +203,6 @@ export default function ViewAssignedTeam({
                     </button>
                 </div>
 
-                {/* Project */}
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="flex items-center gap-3">
                         <div className="rounded-xl bg-slate-100 p-3">
@@ -164,14 +215,12 @@ export default function ViewAssignedTeam({
                             </p>
 
                             <h2 className="mt-1 font-semibold text-slate-900">
-                                {team?.projectName ||
-                                    "AI-Powered Project Management System"}
+                                {normalizedTeam.projectName}
                             </h2>
                         </div>
                     </div>
                 </div>
 
-                {/* Stats */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard
                         icon={UsersRound}
@@ -197,18 +246,17 @@ export default function ViewAssignedTeam({
                     <StatCard
                         icon={ShieldCheck}
                         label="Team Status"
-                        value="Active"
+                        value={members.length > 0 ? "Active" : "No Team"}
                         description="Current assignment"
                     />
                 </div>
 
-                {/* Team */}
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div className="border-b border-slate-200 p-5">
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div>
                                 <h2 className="text-lg font-bold text-slate-900">
-                                    {team?.name}
+                                    {normalizedTeam.name}
                                 </h2>
 
                                 <p className="mt-1 text-sm text-slate-500">
@@ -237,21 +285,36 @@ export default function ViewAssignedTeam({
                         <table className="min-w-[850px] w-full">
                             <thead className="bg-slate-50">
                                 <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    <th className="px-5 py-4">Member</th>
-                                    <th className="px-5 py-4">Type</th>
+                                    <th className="px-5 py-4">
+                                        Member
+                                    </th>
+
+                                    <th className="px-5 py-4">
+                                        Type
+                                    </th>
+
                                     <th className="px-5 py-4">
                                         Specialization
                                     </th>
-                                    <th className="px-5 py-4">Workload</th>
-                                    <th className="px-5 py-4">Status</th>
-                                    <th className="px-5 py-4">Action</th>
+
+                                    <th className="px-5 py-4">
+                                        Workload
+                                    </th>
+
+                                    <th className="px-5 py-4">
+                                        Status
+                                    </th>
+
+                                    <th className="px-5 py-4">
+                                        Action
+                                    </th>
                                 </tr>
                             </thead>
 
                             <tbody className="divide-y divide-slate-100">
                                 {filteredMembers.map((member) => (
                                     <tr
-                                        key={member.id}
+                                        key={member.id ?? member.name}
                                         className="transition hover:bg-slate-50"
                                     >
                                         <td className="px-5 py-4">
@@ -326,14 +389,19 @@ export default function ViewAssignedTeam({
                     {filteredMembers.length === 0 && (
                         <div className="p-10 text-center">
                             <UserRound className="mx-auto h-8 w-8 text-slate-300" />
+
                             <p className="mt-3 text-sm font-medium text-slate-700">
                                 No team members found
+                            </p>
+
+                            <p className="mt-1 text-xs text-slate-500">
+                                No assigned contributors are currently
+                                available.
                             </p>
                         </div>
                     )}
                 </div>
 
-                {/* Member modal */}
                 {selectedMember && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
                         <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
@@ -356,7 +424,9 @@ export default function ViewAssignedTeam({
 
                                 <button
                                     type="button"
-                                    onClick={() => setSelectedMember(null)}
+                                    onClick={() =>
+                                        setSelectedMember(null)
+                                    }
                                     className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                                 >
                                     <X className="h-5 w-5" />
@@ -368,6 +438,7 @@ export default function ViewAssignedTeam({
                                     <p className="text-xs text-slate-500">
                                         Specialization
                                     </p>
+
                                     <p className="mt-1 text-sm font-semibold text-slate-900">
                                         {selectedMember.specialization}
                                     </p>
@@ -377,6 +448,7 @@ export default function ViewAssignedTeam({
                                     <p className="text-xs text-slate-500">
                                         Workload
                                     </p>
+
                                     <p className="mt-1 text-sm font-semibold text-slate-900">
                                         {selectedMember.workload} active tasks
                                     </p>

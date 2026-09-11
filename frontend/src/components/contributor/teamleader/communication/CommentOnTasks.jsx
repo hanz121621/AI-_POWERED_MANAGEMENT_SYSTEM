@@ -1,218 +1,44 @@
 
-import { useMemo, useRef, useState } from "react";
-
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
     AlertCircle,
     AtSign,
     CheckCircle2,
     File,
     FileText,
+    Loader2,
     MessageSquare,
     Paperclip,
     Send,
     Trash2,
-    UserRound,
     UsersRound,
-    
 } from "lucide-react";
 
-// ============================================================
-// STORAGE KEYS
-// ============================================================
+import api from "@/services/api";
 
-const TASKS_KEY = "aipms_tasks";
-const COMMENTS_KEY = "aipms_task_comments";
-const NOTIFICATIONS_KEY = "aipms_notifications";
-const ACTIVITIES_KEY = "aipms_activities";
-const USER_KEY = "user";
-
-// ============================================================
-// DEFAULT DATA
-// ============================================================
-
-const DEFAULT_TASKS = [
-    {
-        id: "task-001",
-        title: "Implement authentication module",
-        description:
-            "Implement login, registration, password validation, and authentication flow.",
-        projectName: "AI-Powered Management System",
-        status: "In Progress",
-        priority: "High",
-        assignedTo: "Developer",
-        assignedUserId: "developer-001",
-    },
-    {
-        id: "task-002",
-        title: "Create dashboard interface",
-        description:
-            "Develop the main dashboard interface for the management system.",
-        projectName: "AI-Powered Management System",
-        status: "Review",
-        priority: "Medium",
-        assignedTo: "Frontend Developer",
-        assignedUserId: "developer-002",
-    },
-    {
-        id: "task-003",
-        title: "Fix project progress calculation",
-        description:
-            "Review project progress calculations and correct inaccurate values.",
-        projectName: "AI-Powered Management System",
-        status: "To Do",
-        priority: "High",
-        assignedTo: "Backend Developer",
-        assignedUserId: "developer-003",
-    },
-];
-
-const DEFAULT_TEAM_MEMBERS = [
-    {
-        id: "manager-001",
-        name: "Project Manager",
-        username: "manager",
-        role: "Manager",
-        active: true,
-    },
-    {
-        id: "developer-001",
-        name: "Frontend Developer",
-        username: "frontenddev",
-        role: "Developer",
-        active: true,
-    },
-    {
-        id: "developer-002",
-        name: "Backend Developer",
-        username: "backenddev",
-        role: "Developer",
-        active: true,
-    },
-    {
-        id: "staff-001",
-        name: "Project Staff",
-        username: "projectstaff",
-        role: "Staff",
-        active: true,
-    },
-];
-
-// ============================================================
-// SAFE STORAGE HELPERS
-// ============================================================
-
-function readStorage(key, fallback = []) {
-    try {
-        const value = localStorage.getItem(key);
-
-        if (!value) {
-            return fallback;
+function getValue(object, ...keys) {
+    for (const key of keys) {
+        if (
+            object &&
+            object[key] !== undefined &&
+            object[key] !== null
+        ) {
+            return object[key];
         }
-
-        const parsed = JSON.parse(value);
-
-        return parsed ?? fallback;
-    } catch {
-        return fallback;
-    }
-}
-
-function writeStorage(key, value) {
-    try {
-        localStorage.setItem(key, JSON.stringify(value));
-    } catch {
-        // Ignore storage errors.
-    }
-}
-
-// ============================================================
-// ID HELPER
-// ============================================================
-
-function createId(prefix) {
-    if (
-        typeof crypto !== "undefined" &&
-        typeof crypto.randomUUID === "function"
-    ) {
-        return `${prefix}-${crypto.randomUUID()}`;
     }
 
-    return `${prefix}-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 9)}`;
+    return undefined;
 }
 
-// ============================================================
-// CURRENT USER
-// ============================================================
-
-function getCurrentUser() {
-    const storedUser = readStorage(USER_KEY, null);
-
-    if (storedUser && typeof storedUser === "object") {
-        return storedUser;
-    }
-
-    return {
-        id: "team-leader-001",
-        name: "Team Leader",
-        fullName: "Team Leader",
-        username: "teamleader",
-        role: "Team Leader",
-    };
+function getErrorMessage(error, fallback) {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data?.Message ||
+        error?.response?.data?.error ||
+        error?.response?.data?.title ||
+        fallback
+    );
 }
-
-// ============================================================
-// ACTIVITY
-// ============================================================
-
-function saveActivity(activity) {
-    const activities = readStorage(ACTIVITIES_KEY, []);
-
-    activities.unshift(activity);
-
-    writeStorage(ACTIVITIES_KEY, activities);
-}
-
-// ============================================================
-// NOTIFICATION
-// ============================================================
-
-function saveNotification(notification) {
-    const notifications = readStorage(NOTIFICATIONS_KEY, []);
-
-    notifications.unshift(notification);
-
-    writeStorage(NOTIFICATIONS_KEY, notifications);
-}
-
-// ============================================================
-// COMMENTS
-// ============================================================
-
-function getCommentsForTask(taskId) {
-    const comments = readStorage(COMMENTS_KEY, []);
-
-    return comments
-        .filter((comment) => comment.taskId === taskId)
-        .sort(
-            (a, b) =>
-                new Date(a.createdAt).getTime() -
-                new Date(b.createdAt).getTime()
-        );
-}
-
-function saveComment(comment) {
-    const comments = readStorage(COMMENTS_KEY, []);
-
-    comments.push(comment);
-
-    writeStorage(COMMENTS_KEY, comments);
-}
-
-// ============================================================
-// FORMAT DATE
-// ============================================================
 
 function formatDate(dateValue) {
     if (!dateValue) {
@@ -228,13 +54,140 @@ function formatDate(dateValue) {
     return date.toLocaleString();
 }
 
-// ============================================================
-// INITIAL COMMENTS
-// ============================================================
+function normalizeTask(task) {
+    return {
+        id: getValue(task, "id", "Id"),
+        title:
+            getValue(task, "title", "Title") ||
+            "Untitled Task",
+        description:
+            getValue(task, "description", "Description") ||
+            "",
+        projectName:
+            getValue(
+                task,
+                "projectName",
+                "ProjectName"
+            ) || "",
+        status:
+            getValue(task, "status", "Status") ||
+            "",
+        priority:
+            getValue(task, "priority", "Priority") ||
+            "",
+        assignedTo:
+            getValue(
+                task,
+                "assignedTo",
+                "AssignedTo",
+                "assignedContributorName",
+                "AssignedContributorName"
+            ) || "",
+        assignedUserId:
+            getValue(
+                task,
+                "assignedUserId",
+                "AssignedUserId",
+                "assignedContributorSDId",
+                "AssignedContributorSDId"
+            ) || null,
+    };
+}
 
-// ============================================================
-// COMMENT CARD
-// ============================================================
+function normalizeComment(comment) {
+    const author = getValue(
+        comment,
+        "author",
+        "Author"
+    );
+
+    const authorName =
+        getValue(
+            comment,
+            "authorName",
+            "AuthorName",
+            "userName",
+            "UserName",
+            "createdByName",
+            "CreatedByName"
+        ) ||
+        getValue(author, "fullName", "FullName", "name", "Name") ||
+        "User";
+
+    const authorRole =
+        getValue(
+            comment,
+            "authorRole",
+            "AuthorRole",
+            "role",
+            "Role"
+        ) ||
+        getValue(author, "role", "Role") ||
+        "";
+
+    const content =
+        getValue(
+            comment,
+            "content",
+            "Content",
+            "comment",
+            "Comment",
+            "text",
+            "Text"
+        ) || "";
+
+    const createdAt =
+        getValue(
+            comment,
+            "createdAt",
+            "CreatedAt",
+            "createdDate",
+            "CreatedDate"
+        );
+
+    const id =
+        getValue(comment, "id", "Id") ||
+        `${createdAt || ""}-${content}`;
+
+    return {
+        ...comment,
+        id,
+        authorName,
+        authorRole,
+        content,
+        createdAt,
+        attachments:
+            getValue(
+                comment,
+                "attachments",
+                "Attachments"
+            ) || [],
+        mentions:
+            getValue(
+                comment,
+                "mentions",
+                "Mentions"
+            ) || [],
+    };
+}
+
+function extractResponseData(response) {
+    const data = response?.data;
+
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+    return (
+        data?.data ||
+        data?.Data ||
+        data?.tasks ||
+        data?.Tasks ||
+        data?.comments ||
+        data?.Comments ||
+        data
+    );
+}
 
 function CommentCard({ comment }) {
     const initials = comment.authorName
@@ -274,38 +227,77 @@ function CommentCard({ comment }) {
                         {comment.content}
                     </p>
 
-                    {/* ATTACHMENTS */}
-
                     {comment.attachments?.length > 0 && (
                         <div className="mt-3 space-y-2">
-                            {comment.attachments.map((attachment) => (
-                                <div
-                                    key={attachment.id}
-                                    className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-blue-900/60 dark:bg-[#071a2d]"
-                                >
-                                    <FileText className="h-4 w-4 text-blue-500" />
+                            {comment.attachments.map(
+                                (attachment, index) => {
+                                    const attachmentId =
+                                        getValue(
+                                            attachment,
+                                            "id",
+                                            "Id"
+                                        ) || index;
 
-                                    <span className="truncate text-xs text-slate-600 dark:text-slate-300">
-                                        {attachment.name}
-                                    </span>
-                                </div>
-                            ))}
+                                    const attachmentName =
+                                        getValue(
+                                            attachment,
+                                            "name",
+                                            "Name",
+                                            "fileName",
+                                            "FileName"
+                                        ) ||
+                                        "Attachment";
+
+                                    return (
+                                        <div
+                                            key={attachmentId}
+                                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-blue-900/60 dark:bg-[#071a2d]"
+                                        >
+                                            <FileText className="h-4 w-4 text-blue-500" />
+
+                                            <span className="truncate text-xs text-slate-600 dark:text-slate-300">
+                                                {attachmentName}
+                                            </span>
+                                        </div>
+                                    );
+                                }
+                            )}
                         </div>
                     )}
 
-                    {/* MENTIONS */}
-
                     {comment.mentions?.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-1.5">
-                            {comment.mentions.map((mention) => (
-                                <span
-                                    key={mention.id}
-                                    className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400"
-                                >
-                                    <AtSign className="h-3 w-3" />
-                                    {mention.username}
-                                </span>
-                            ))}
+                            {comment.mentions.map(
+                                (mention, index) => {
+                                    const mentionId =
+                                        getValue(
+                                            mention,
+                                            "id",
+                                            "Id",
+                                            "userId",
+                                            "UserId"
+                                        ) || index;
+
+                                    const username =
+                                        getValue(
+                                            mention,
+                                            "username",
+                                            "Username",
+                                            "userName",
+                                            "UserName"
+                                        ) || "user";
+
+                                    return (
+                                        <span
+                                            key={mentionId}
+                                            className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400"
+                                        >
+                                            <AtSign className="h-3 w-3" />
+                                            {username}
+                                        </span>
+                                    );
+                                }
+                            )}
                         </div>
                     )}
                 </div>
@@ -314,208 +306,232 @@ function CommentCard({ comment }) {
     );
 }
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
-
-function CommentOnTasks() {
-    const currentUser = useMemo(() => getCurrentUser(), []);
-
+function CommentOnTasks({ tasks: providedTasks = [], sprintId }) {
     const fileInputRef = useRef(null);
 
-    const [tasks] = useState(() => {
-        const storedTasks = readStorage(TASKS_KEY, []);
-
-        return storedTasks.length > 0 ? storedTasks : DEFAULT_TASKS;
-    });
-
-    const [teamMembers] = useState(() => DEFAULT_TEAM_MEMBERS);
-
-    const [selectedTaskId, setSelectedTaskId] = useState(
-        tasks[0]?.id || ""
+    const [tasks, setTasks] = useState(() =>
+        Array.isArray(providedTasks)
+            ? providedTasks.map(normalizeTask)
+            : []
     );
 
-    const [commentText, setCommentText] = useState("");
+    const [selectedTaskId, setSelectedTaskId] = useState("");
 
-    const [commentsVersion, setCommentsVersion] = useState(0);
+    const [comments, setComments] = useState([]);
+    const [commentText, setCommentText] = useState("");
 
     const [attachments, setAttachments] = useState([]);
 
-    const [mentionSearch, setMentionSearch] = useState("");
-
-    const [showMentionList, setShowMentionList] = useState(false);
-
     const [status, setStatus] = useState("idle");
-
     const [errorMessage, setErrorMessage] = useState("");
-
     const [successMessage, setSuccessMessage] = useState("");
 
-    const [loading, setLoading] = useState(false);
+    const [loadingTasks, setLoadingTasks] = useState(false);
+    const [loadingComments, setLoadingComments] = useState(false);
+    const [posting, setPosting] = useState(false);
 
-    // ========================================================
-    // SELECTED TASK
-    // ========================================================
+    useEffect(() => {
+        if (Array.isArray(providedTasks) && providedTasks.length > 0) {
+            const normalized = providedTasks.map(normalizeTask);
+
+            setTasks(normalized);
+
+            setSelectedTaskId((current) => {
+                if (
+                    current &&
+                    normalized.some(
+                        (task) =>
+                            String(task.id) === String(current)
+                    )
+                ) {
+                    return current;
+                }
+
+                return normalized[0]?.id || "";
+            });
+
+            return;
+        }
+
+        if (!sprintId) {
+            setTasks([]);
+            setSelectedTaskId("");
+        }
+    }, [providedTasks, sprintId]);
+
+    useEffect(() => {
+        if (
+            Array.isArray(providedTasks) &&
+            providedTasks.length > 0
+        ) {
+            return;
+        }
+
+        if (!sprintId) {
+            return;
+        }
+
+        let cancelled = false;
+
+        const loadTasks = async () => {
+            setLoadingTasks(true);
+            setErrorMessage("");
+
+            try {
+                const response = await api.get(
+                    `/tasks/team-leader/sprint/${sprintId}`
+                );
+
+                const rawTasks = extractResponseData(response);
+
+                const normalizedTasks = Array.isArray(rawTasks)
+                    ? rawTasks.map(normalizeTask)
+                    : [];
+
+                if (!cancelled) {
+                    setTasks(normalizedTasks);
+
+                    setSelectedTaskId(
+                        normalizedTasks[0]?.id || ""
+                    );
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    setTasks([]);
+                    setSelectedTaskId("");
+                    setStatus("error");
+                    setErrorMessage(
+                        getErrorMessage(
+                            error,
+                            "Unable to load tasks."
+                        )
+                    );
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoadingTasks(false);
+                }
+            }
+        };
+
+        loadTasks();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [providedTasks, sprintId]);
 
     const selectedTask = useMemo(
         () =>
             tasks.find(
-                (task) => String(task.id) === String(selectedTaskId)
+                (task) =>
+                    String(task.id) ===
+                    String(selectedTaskId)
             ) || null,
         [tasks, selectedTaskId]
     );
 
-    // ========================================================
-    // COMMENTS
-    // ========================================================
-
-    const selectedTaskComments = useMemo(() => {
-        void commentsVersion;
-
-        if (!selectedTask) {
-            return [];
+    useEffect(() => {
+        if (!selectedTask?.id) {
+            setComments([]);
+            return;
         }
 
-        return getCommentsForTask(selectedTask.id);
-    }, [selectedTask, commentsVersion]);
+        let cancelled = false;
 
-    // ========================================================
-    // MENTION SEARCH
-    // ========================================================
+        const loadComments = async () => {
+            setLoadingComments(true);
+            setErrorMessage("");
 
-    const filteredMembers = useMemo(() => {
-        const query = mentionSearch.trim().toLowerCase();
+            try {
+                const response = await api.get(
+                    `/tasks/${selectedTask.id}/comments`
+                );
 
-        if (!query) {
-            return teamMembers;
-        }
+                const rawComments =
+                    extractResponseData(response);
 
-        return teamMembers.filter((member) => {
-            return (
-                member.name.toLowerCase().includes(query) ||
-                member.username.toLowerCase().includes(query)
-            );
-        });
-    }, [mentionSearch, teamMembers]);
+                const normalizedComments =
+                    Array.isArray(rawComments)
+                        ? rawComments
+                              .map(normalizeComment)
+                              .sort(
+                                  (a, b) =>
+                                      new Date(
+                                          a.createdAt
+                                      ).getTime() -
+                                      new Date(
+                                          b.createdAt
+                                      ).getTime()
+                              )
+                        : [];
 
-    // ========================================================
-    // EXTRACT MENTIONS
-    // ========================================================
+                if (!cancelled) {
+                    setComments(normalizedComments);
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    setComments([]);
 
-    const extractMentions = (text) => {
-        const matches = text.match(/@([a-zA-Z0-9_.-]+)/g) || [];
+                    setStatus("error");
+                    setErrorMessage(
+                        getErrorMessage(
+                            error,
+                            "Unable to load task comments."
+                        )
+                    );
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoadingComments(false);
+                }
+            }
+        };
 
-        const uniqueUsernames = [
-            ...new Set(
-                matches.map((match) => match.substring(1).toLowerCase())
-            ),
-        ];
+        loadComments();
 
-        return uniqueUsernames
-            .map((username) =>
-                teamMembers.find(
-                    (member) =>
-                        member.username.toLowerCase() === username
-                )
-            )
-            .filter(Boolean);
-    };
-
-    // ========================================================
-    // TASK SELECTION
-    // ========================================================
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedTask?.id]);
 
     const handleTaskChange = (event) => {
         setSelectedTaskId(event.target.value);
-
         setCommentText("");
-
         setAttachments([]);
-
-        setMentionSearch("");
-
-        setShowMentionList(false);
-
         setErrorMessage("");
-
         setSuccessMessage("");
+        setStatus("idle");
     };
-
-    // ========================================================
-    // COMMENT CHANGE
-    // ========================================================
 
     const handleCommentChange = (event) => {
         const value = event.target.value;
 
         setCommentText(value);
-
         setErrorMessage("");
-
         setSuccessMessage("");
-
-        const lastAtPosition = value.lastIndexOf("@");
-
-        if (lastAtPosition >= 0) {
-            const afterAt = value.slice(lastAtPosition + 1);
-
-            if (
-                !afterAt.includes(" ") &&
-                !afterAt.includes("\n")
-            ) {
-                setMentionSearch(afterAt);
-
-                setShowMentionList(true);
-
-                return;
-            }
-        }
-
-        setMentionSearch("");
-
-        setShowMentionList(false);
+        setStatus("idle");
     };
-
-    // ========================================================
-    // SELECT MENTION
-    // ========================================================
-
-    const handleMentionSelect = (member) => {
-        const lastAtPosition = commentText.lastIndexOf("@");
-
-        if (lastAtPosition === -1) {
-            return;
-        }
-
-        const beforeAt = commentText.slice(0, lastAtPosition);
-
-        const updatedText = `${beforeAt}@${member.username} `;
-
-        setCommentText(updatedText);
-
-        setMentionSearch("");
-
-        setShowMentionList(false);
-
-        setErrorMessage("");
-    };
-
-    // ========================================================
-    // FILE SELECTION
-    // ========================================================
 
     const handleFileSelection = (event) => {
-        const files = Array.from(event.target.files || []);
+        const files = Array.from(
+            event.target.files || []
+        );
 
         if (files.length === 0) {
             return;
         }
 
         const mappedFiles = files.map((file) => ({
-            id: createId("attachment"),
+            id:
+                typeof crypto !== "undefined" &&
+                typeof crypto.randomUUID === "function"
+                    ? crypto.randomUUID()
+                    : `${Date.now()}-${Math.random()}`,
             name: file.name,
             size: file.size,
             type: file.type,
+            file,
         }));
 
         setAttachments((current) => [
@@ -526,10 +542,6 @@ function CommentOnTasks() {
         event.target.value = "";
     };
 
-    // ========================================================
-    // REMOVE ATTACHMENT
-    // ========================================================
-
     const removeAttachment = (attachmentId) => {
         setAttachments((current) =>
             current.filter(
@@ -539,212 +551,102 @@ function CommentOnTasks() {
         );
     };
 
-    // ========================================================
-    // POST COMMENT
-    // ========================================================
-
     const handlePostComment = async () => {
         setErrorMessage("");
-
         setSuccessMessage("");
-
-        // ----------------------------------------------------
-        // A1: EMPTY COMMENT
-        // ----------------------------------------------------
+        setStatus("idle");
 
         if (!commentText.trim()) {
             setStatus("error");
-
             setErrorMessage("Comment cannot be empty.");
-
             return;
         }
-
-        // ----------------------------------------------------
-        // A2: TASK NOT FOUND
-        // ----------------------------------------------------
 
         if (!selectedTask) {
             setStatus("error");
-
             setErrorMessage("Task not found.");
-
             return;
         }
-
-        // ----------------------------------------------------
-        // A3: ACCESS DENIED
-        // ----------------------------------------------------
-
-        if (
-            selectedTask.accessDenied === true ||
-            selectedTask.canComment === false
-        ) {
-            setStatus("error");
-
-            setErrorMessage("Access denied.");
-
-            return;
-        }
-
-        // ----------------------------------------------------
-        // VALIDATION
-        // ----------------------------------------------------
 
         if (commentText.trim().length > 5000) {
             setStatus("error");
-
             setErrorMessage(
                 "Comment cannot contain more than 5000 characters."
             );
-
             return;
         }
 
-        setLoading(true);
+        setPosting(true);
 
         try {
-            const mentions = extractMentions(commentText);
-
-            // ------------------------------------------------
-            // CREATE COMMENT
-            // ------------------------------------------------
-
-            const comment = {
-                id: createId("comment"),
-                taskId: selectedTask.id,
-                authorId:
-                    currentUser.id ||
-                    currentUser.userId ||
-                    "team-leader-001",
-                authorName:
-                    currentUser.fullName ||
-                    currentUser.name ||
-                    "Team Leader",
-                authorRole: "Team Leader",
-                content: commentText.trim(),
-                mentions,
-                attachments,
-                createdAt: new Date().toISOString(),
-            };
-
-            // ------------------------------------------------
-            // SAVE COMMENT
-            // ------------------------------------------------
-
-            saveComment(comment);
-
-            // ------------------------------------------------
-            // NOTIFY MANAGER
-            // ------------------------------------------------
-
-            const manager = teamMembers.find(
-                (member) =>
-                    member.role === "Manager" &&
-                    member.active === true
+            const response = await api.post(
+                `/tasks/${selectedTask.id}/comments`,
+                {
+                    content: commentText.trim(),
+                }
             );
 
-            if (manager) {
-                saveNotification({
-                    id: createId("notification"),
-                    userId: manager.id,
-                    type: "TASK_COMMENT",
-                    title: "New task comment",
-                    message: `${comment.authorName} commented on "${selectedTask.title}".`,
-                    taskId: selectedTask.id,
-                    projectName: selectedTask.projectName,
-                    read: false,
-                    createdAt: new Date().toISOString(),
-                });
+            const responseData = response?.data || {};
+
+            const createdComment =
+                responseData.comment ||
+                responseData.Comment ||
+                responseData.data ||
+                responseData.Data;
+
+            if (createdComment) {
+                const normalizedComment =
+                    normalizeComment(createdComment);
+
+                setComments((current) => [
+                    ...current,
+                    normalizedComment,
+                ]);
+            } else {
+                const refreshResponse = await api.get(
+                    `/tasks/${selectedTask.id}/comments`
+                );
+
+                const refreshedComments =
+                    extractResponseData(
+                        refreshResponse
+                    );
+
+                setComments(
+                    Array.isArray(refreshedComments)
+                        ? refreshedComments
+                              .map(normalizeComment)
+                              .sort(
+                                  (a, b) =>
+                                      new Date(
+                                          a.createdAt
+                                      ).getTime() -
+                                      new Date(
+                                          b.createdAt
+                                      ).getTime()
+                              )
+                        : []
+                );
             }
 
-            // ------------------------------------------------
-            // NOTIFY MENTIONED USERS
-            // ------------------------------------------------
-
-            mentions.forEach((member) => {
-                if (!member.active) {
-                    return;
-                }
-
-                saveNotification({
-                    id: createId("notification"),
-                    userId: member.id,
-                    type: "TASK_MENTION",
-                    title: "You were mentioned",
-                    message: `${comment.authorName} mentioned you in a task comment.`,
-                    taskId: selectedTask.id,
-                    projectName: selectedTask.projectName,
-                    commentId: comment.id,
-                    read: false,
-                    createdAt: new Date().toISOString(),
-                });
-            });
-
-            // ------------------------------------------------
-            // RECORD ACTIVITY
-            // IMPORTANT:
-            // ID is generated here, not during render.
-            // ------------------------------------------------
-
-            saveActivity({
-                id: createId("activity"),
-                type: "TASK_COMMENT_POSTED",
-                action: "Comment posted",
-                taskId: selectedTask.id,
-                taskTitle: selectedTask.title,
-                projectName: selectedTask.projectName,
-                userId:
-                    currentUser.id ||
-                    currentUser.userId ||
-                    "team-leader-001",
-                userName:
-                    currentUser.fullName ||
-                    currentUser.name ||
-                    "Team Leader",
-                mentions: mentions.map(
-                    (member) => member.username
-                ),
-                createdAt: new Date().toISOString(),
-            });
-
-            // ------------------------------------------------
-            // SUCCESS
-            // ------------------------------------------------
-
             setCommentText("");
-
             setAttachments([]);
-
-            setMentionSearch("");
-
-            setShowMentionList(false);
-
             setStatus("success");
-
             setSuccessMessage(
                 "Comment posted successfully."
             );
-
-            setCommentsVersion((current) => current + 1);
-        } catch {
-            // ------------------------------------------------
-            // A4: SAVE FAILURE
-            // ------------------------------------------------
-
-            setStatus("error");
-
-            setErrorMessage(
+        } catch (error) {
+            const message = getErrorMessage(
+                error,
                 "Unable to post comment. Please try again."
             );
+
+            setStatus("error");
+            setErrorMessage(message);
         } finally {
-            setLoading(false);
+            setPosting(false);
         }
     };
-
-    // ========================================================
-    // KEYBOARD SHORTCUT
-    // ========================================================
 
     const handleCommentKeyDown = (event) => {
         if (
@@ -752,21 +654,12 @@ function CommentOnTasks() {
             (event.ctrlKey || event.metaKey)
         ) {
             event.preventDefault();
-
             handlePostComment();
         }
     };
 
-    // ========================================================
-    // RENDER
-    // ========================================================
-
     return (
         <div className="space-y-6">
-            {/* ==================================================
-                HEADER
-            ================================================== */}
-
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-blue-900/60 dark:bg-[#0b2038]">
                 <div className="flex items-start gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/20">
@@ -798,41 +691,25 @@ function CommentOnTasks() {
                 </div>
             </div>
 
-            {/* ==================================================
-                SUCCESS MESSAGE
-            ================================================== */}
-
             {status === "success" && successMessage && (
                 <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/60 dark:bg-emerald-950/20">
                     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
 
-                    <div>
-                        <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-                            {successMessage}
-                        </p>
-                    </div>
+                    <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                        {successMessage}
+                    </p>
                 </div>
             )}
-
-            {/* ==================================================
-                ERROR MESSAGE
-            ================================================== */}
 
             {status === "error" && errorMessage && (
                 <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/60 dark:bg-red-950/20">
                     <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
 
-                    <div>
-                        <p className="text-sm font-semibold text-red-800 dark:text-red-300">
-                            {errorMessage}
-                        </p>
-                    </div>
+                    <p className="text-sm font-semibold text-red-800 dark:text-red-300">
+                        {errorMessage}
+                    </p>
                 </div>
             )}
-
-            {/* ==================================================
-                TASK SELECTOR
-            ================================================== */}
 
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-blue-900/60 dark:bg-[#0b2038]">
                 <div className="mb-4 flex items-center gap-3">
@@ -851,10 +728,15 @@ function CommentOnTasks() {
                     </div>
                 </div>
 
-                {tasks.length === 0 ? (
+                {loadingTasks ? (
+                    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-blue-900/60 dark:bg-[#071a2d] dark:text-slate-400">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading tasks...
+                    </div>
+                ) : tasks.length === 0 ? (
                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
                         <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                            Task not found.
+                            No tasks found.
                         </p>
                     </div>
                 ) : (
@@ -884,8 +766,6 @@ function CommentOnTasks() {
                     </div>
                 )}
 
-                {/* SELECTED TASK SUMMARY */}
-
                 {selectedTask && (
                     <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/70 p-4 dark:border-blue-900/60 dark:bg-blue-950/20">
                         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -894,9 +774,11 @@ function CommentOnTasks() {
                                     {selectedTask.title}
                                 </h3>
 
-                                <p className="mt-1 text-xs leading-5 text-blue-800 dark:text-blue-400">
-                                    {selectedTask.description}
-                                </p>
+                                {selectedTask.description && (
+                                    <p className="mt-1 text-xs leading-5 text-blue-800 dark:text-blue-400">
+                                        {selectedTask.description}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="flex flex-wrap gap-2">
@@ -937,10 +819,6 @@ function CommentOnTasks() {
                 )}
             </section>
 
-            {/* ==================================================
-                PREVIOUS COMMENTS
-            ================================================== */}
-
             {selectedTask && (
                 <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-blue-900/60 dark:bg-[#071a2d]">
                     <div className="mb-5 flex items-center justify-between gap-3">
@@ -961,14 +839,19 @@ function CommentOnTasks() {
                         </div>
 
                         <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500 shadow-sm dark:bg-[#0b2038] dark:text-slate-400">
-                            {selectedTaskComments.length}{" "}
-                            {selectedTaskComments.length === 1
+                            {comments.length}{" "}
+                            {comments.length === 1
                                 ? "Comment"
                                 : "Comments"}
                         </span>
                     </div>
 
-                    {selectedTaskComments.length === 0 ? (
+                    {loadingComments ? (
+                        <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white p-8 text-sm text-slate-500 dark:border-blue-900/70 dark:bg-[#0b2038] dark:text-slate-400">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading comments...
+                        </div>
+                    ) : comments.length === 0 ? (
                         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-blue-900/70 dark:bg-[#0b2038]">
                             <MessageSquare className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-600" />
 
@@ -982,28 +865,22 @@ function CommentOnTasks() {
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {selectedTaskComments.map(
-                                (comment) => (
-                                    <CommentCard
-                                        key={comment.id}
-                                        comment={comment}
-                                    />
-                                )
-                            )}
+                            {comments.map((comment) => (
+                                <CommentCard
+                                    key={comment.id}
+                                    comment={comment}
+                                />
+                            ))}
                         </div>
                     )}
                 </section>
             )}
 
-            {/* ==================================================
-                ADD COMMENT
-            ================================================== */}
-
             {selectedTask && (
                 <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-blue-900/60 dark:bg-[#0b2038]">
                     <div className="mb-5 flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
-                            <UserRound className="h-5 w-5" />
+                            <UsersRound className="h-5 w-5" />
                         </div>
 
                         <div>
@@ -1018,9 +895,7 @@ function CommentOnTasks() {
                         </div>
                     </div>
 
-                    {/* COMMENT TEXTAREA */}
-
-                    <div className="relative">
+                    <div>
                         <label
                             htmlFor="task-comment"
                             className="mb-2 block text-xs font-semibold text-slate-700 dark:text-slate-300"
@@ -1041,80 +916,15 @@ function CommentOnTasks() {
 
                         <div className="mt-2 flex items-center justify-between">
                             <p className="text-[11px] text-slate-400">
-                                Type @ to mention a project
-                                member.
+                                Type @ to reference a member in your
+                                comment.
                             </p>
 
                             <p className="text-[11px] text-slate-400">
                                 {commentText.length}/5000
                             </p>
                         </div>
-
-                        {/* MENTION DROPDOWN */}
-
-                        {showMentionList && (
-                            <div className="absolute left-0 right-0 top-full z-30 mt-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-blue-900/70 dark:bg-[#0b2038]">
-                                <div className="mb-2 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                    Project Members
-                                </div>
-
-                                {filteredMembers.length === 0 ? (
-                                    <div className="rounded-lg px-3 py-3 text-xs text-slate-500">
-                                        No matching project members.
-                                    </div>
-                                ) : (
-                                    filteredMembers.map(
-                                        (member) => (
-                                            <button
-                                                key={member.id}
-                                                type="button"
-                                                disabled={!member.active}
-                                                onClick={() =>
-                                                    handleMentionSelect(
-                                                        member
-                                                    )
-                                                }
-                                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-blue-950/60"
-                                            >
-                                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
-                                                    <UsersRound className="h-4 w-4" />
-                                                </div>
-
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="truncate text-xs font-semibold text-slate-800 dark:text-white">
-                                                        {
-                                                            member.name
-                                                        }
-                                                    </p>
-
-                                                    <p className="truncate text-[10px] text-slate-400">
-                                                        @
-                                                        {
-                                                            member.username
-                                                        }{" "}
-                                                        ·{" "}
-                                                        {
-                                                            member.role
-                                                        }
-                                                    </p>
-                                                </div>
-
-                                                {!member.active && (
-                                                    <span className="text-[10px] text-red-400">
-                                                        Inactive
-                                                    </span>
-                                                )}
-                                            </button>
-                                        )
-                                    )
-                                )}
-                            </div>
-                        )}
                     </div>
-
-                    {/* ==================================================
-                        ATTACHMENTS
-                    ================================================== */}
 
                     <input
                         ref={fileInputRef}
@@ -1133,7 +943,6 @@ function CommentOnTasks() {
                             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-blue-900/70 dark:bg-[#071a2d] dark:text-slate-300 dark:hover:bg-blue-950/50 dark:hover:text-blue-400"
                         >
                             <Paperclip className="h-4 w-4" />
-
                             Attach Files
                         </button>
                     </div>
@@ -1165,12 +974,13 @@ function CommentOnTasks() {
                                     </button>
                                 </div>
                             ))}
+
+                            <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                                File uploads are not persisted by the
+                                current Task Comments API.
+                            </p>
                         </div>
                     )}
-
-                    {/* ==================================================
-                        ACTIONS
-                    ================================================== */}
 
                     <div className="mt-5 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between dark:border-blue-900/60">
                         <p className="text-[11px] leading-5 text-slate-400">
@@ -1182,24 +992,24 @@ function CommentOnTasks() {
                             type="button"
                             onClick={handlePostComment}
                             disabled={
-                                loading ||
+                                posting ||
                                 !commentText.trim()
                             }
                             className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            <Send className="h-4 w-4" />
+                            {posting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Send className="h-4 w-4" />
+                            )}
 
-                            {loading
+                            {posting
                                 ? "Posting..."
                                 : "Post Comment"}
                         </button>
                     </div>
                 </section>
             )}
-
-            {/* ==================================================
-                USE CASE INFORMATION
-            ================================================== */}
 
             <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-900/60 dark:bg-blue-950/20">
                 <div className="flex items-start gap-3">
@@ -1211,12 +1021,11 @@ function CommentOnTasks() {
                         </h2>
 
                         <p className="mt-2 text-xs leading-5 text-blue-800 dark:text-blue-400">
-                            The Team Leader can post task comments,
-                            mention authorized team members, attach
-                            files, and provide coordination or
-                            progress updates. Comments are stored in
-                            communication history and relevant users
-                            receive notifications.
+                            The Team Leader can post task comments
+                            and provide coordination or progress
+                            updates. Comments are now loaded from
+                            and saved to the backend Task Comments
+                            API.
                         </p>
                     </div>
                 </div>

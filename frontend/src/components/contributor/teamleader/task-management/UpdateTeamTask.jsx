@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
 
 import {
     AlertCircle,
@@ -9,11 +8,12 @@ import {
     X,
 } from "lucide-react";
 
+import api from "@/services/api";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-
 import {
     Select,
     SelectContent,
@@ -21,57 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-
 import { Checkbox } from "@/components/ui/checkbox";
-
-// ============================================================
-// AIPMS — TEAM LEADER
-// TASK-002 — UPDATE TASK
-//
-// Primary Actor:
-// Team Leader
-//
-// Purpose:
-// Allow the Team Leader to modify an existing team task.
-//
-// Editable information:
-// - Task title
-// - Task description
-// - Task priority
-// - Assigned Staff / Developer
-// - Estimated effort
-// - Deadline
-// - Task dependencies
-// - Related sprint
-//
-// Business rules:
-// - Task must exist.
-// - Team Leader must have access.
-// - Task must belong to the Team Leader's team
-//   or have been created by the Team Leader.
-// - Assigned contributor must be valid.
-// - Project is inherited from the existing task.
-// - Sprint must belong to the task's project.
-// - Backend remains the final authority for authorization.
-// ============================================================
-
-// ============================================================
-// API CLIENT
-// ============================================================
-
-const API_BASE_URL = "http://localhost:5043/api";
-
-const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-    },
-});
-
-// ============================================================
-// CONSTANTS
-// ============================================================
 
 const PRIORITIES = [
     "Low",
@@ -79,10 +29,6 @@ const PRIORITIES = [
     "High",
     "Critical",
 ];
-
-// ============================================================
-// EMPTY FORM
-// ============================================================
 
 const EMPTY_FORM = {
     sprintId: "",
@@ -96,43 +42,6 @@ const EMPTY_FORM = {
     dependencyIds: [],
 };
 
-// ============================================================
-// TOKEN
-// ============================================================
-
-const getStoredToken = () => {
-    const keys = [
-        "token",
-        "accessToken",
-        "access_token",
-        "jwt",
-    ];
-
-    for (const key of keys) {
-        const value = localStorage.getItem(key);
-
-        if (value) {
-            return value;
-        }
-    }
-
-    return null;
-};
-
-const getAuthHeaders = () => {
-    const token = getStoredToken();
-
-    return token
-        ? {
-              Authorization: `Bearer ${token}`,
-          }
-        : {};
-};
-
-// ============================================================
-// RESPONSE NORMALIZATION
-// ============================================================
-
 const getArray = (data) => {
     if (Array.isArray(data)) {
         return data;
@@ -145,10 +54,6 @@ const getArray = (data) => {
         []
     );
 };
-
-// ============================================================
-// ENTITY HELPERS
-// ============================================================
 
 const getEntityId = (item) => {
     return item?.id ?? item?.Id ?? "";
@@ -218,10 +123,6 @@ const getContributorName = (item) => {
     );
 };
 
-// ============================================================
-// DATE HELPERS
-// ============================================================
-
 const formatDateTimeLocal = (value) => {
     if (!value) {
         return "";
@@ -234,29 +135,13 @@ const formatDateTimeLocal = (value) => {
     }
 
     const year = date.getFullYear();
-
-    const month = String(
-        date.getMonth() + 1
-    ).padStart(2, "0");
-
-    const day = String(
-        date.getDate()
-    ).padStart(2, "0");
-
-    const hours = String(
-        date.getHours()
-    ).padStart(2, "0");
-
-    const minutes = String(
-        date.getMinutes()
-    ).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
 
     return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
-
-// ============================================================
-// ERROR MESSAGE
-// ============================================================
 
 const getBackendErrorMessage = (error) => {
     return (
@@ -267,10 +152,6 @@ const getBackendErrorMessage = (error) => {
     );
 };
 
-// ============================================================
-// COMPONENT
-// ============================================================
-
 export default function UpdateTask({
     taskId,
     task,
@@ -278,61 +159,38 @@ export default function UpdateTask({
     onCancel,
 }) {
     const [form, setForm] = useState(EMPTY_FORM);
-
     const [sprints, setSprints] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [contributors, setContributors] = useState([]);
 
     const [loading, setLoading] = useState(false);
-    const [loadingSprints, setLoadingSprints] =
-        useState(false);
-    const [loadingTasks, setLoadingTasks] =
-        useState(false);
-    const [loadingContributors, setLoadingContributors] =
-        useState(false);
-
+    const [loadingSprints, setLoadingSprints] = useState(false);
+    const [loadingTasks, setLoadingTasks] = useState(false);
+    const [loadingContributors, setLoadingContributors] = useState(false);
     const [saving, setSaving] = useState(false);
 
     const [errors, setErrors] = useState({});
     const [serverError, setServerError] = useState("");
-    const [successMessage, setSuccessMessage] =
-        useState("");
-
-    // ========================================================
-    // CURRENT TASK ID
-    // ========================================================
+    const [successMessage, setSuccessMessage] = useState("");
 
     const currentTaskId = useMemo(
-        () =>
-            taskId ??
-            getTaskId(task),
+        () => taskId ?? getTaskId(task),
         [taskId, task]
     );
-
-    // ========================================================
-    // INHERITED PROJECT
-    // ========================================================
 
     const inheritedProjectId = useMemo(
         () => getProjectId(task),
         [task]
     );
 
-    // ========================================================
-    // INITIAL LOAD
-    // ========================================================
-
     useEffect(() => {
         initialize();
     }, [currentTaskId]);
 
-    // ========================================================
-    // INITIALIZE
-    // ========================================================
-
     const initialize = async () => {
         setLoading(true);
         setServerError("");
+        setSuccessMessage("");
 
         try {
             if (task) {
@@ -340,9 +198,7 @@ export default function UpdateTask({
             } else if (currentTaskId) {
                 await loadTask(currentTaskId);
             } else {
-                setServerError(
-                    "Task not found."
-                );
+                setServerError("Task not found.");
             }
 
             await loadContributors();
@@ -360,28 +216,17 @@ export default function UpdateTask({
         }
     };
 
-    // ========================================================
-    // LOAD TASK
-    // ========================================================
-
     const loadTask = async (id) => {
         try {
-            const response = await api.get(
-                `/tasks/${id}`,
-                {
-                    headers: getAuthHeaders(),
-                }
-            );
+            const response = await api.get(`/tasks/${id}`);
 
             const loadedTask =
                 response.data?.data ??
+                response.data?.task ??
                 response.data;
 
             if (!loadedTask) {
-                setServerError(
-                    "Task not found."
-                );
-
+                setServerError("Task not found.");
                 return;
             }
 
@@ -392,17 +237,9 @@ export default function UpdateTask({
                 error
             );
 
-            if (
-                error.response?.status ===
-                404
-            ) {
-                setServerError(
-                    "Task not found."
-                );
-            } else if (
-                error.response?.status ===
-                403
-            ) {
+            if (error.response?.status === 404) {
+                setServerError("Task not found.");
+            } else if (error.response?.status === 403) {
                 setServerError(
                     "You are not authorised to update this task."
                 );
@@ -414,24 +251,14 @@ export default function UpdateTask({
         }
     };
 
-    // ========================================================
-    // POPULATE FORM
-    // ========================================================
-
     const populateTask = async (data) => {
         if (!data) {
-            setServerError(
-                "Task not found."
-            );
-
+            setServerError("Task not found.");
             return;
         }
 
-        const projectId =
-            getProjectId(data);
-
-        const sprintId =
-            getSprintId(data);
+        const projectId = getProjectId(data);
+        const sprintId = getSprintId(data);
 
         const parentTaskId =
             data?.parentTaskId ??
@@ -441,6 +268,10 @@ export default function UpdateTask({
         const assignedTo =
             data?.assignedTo ??
             data?.AssignedTo ??
+            data?.assignedContributorSDId ??
+            data?.AssignedContributorSDId ??
+            data?.assignedContributorId ??
+            data?.AssignedContributorId ??
             data?.assignedUserId ??
             data?.AssignedUserId ??
             data?.assigneeId ??
@@ -450,9 +281,8 @@ export default function UpdateTask({
         const dependencyIds =
             data?.dependencyIds ??
             data?.DependencyIds ??
-            data?.dependencies?.map(
-                (dependency) =>
-                    getTaskId(dependency)
+            data?.dependencies?.map((dependency) =>
+                getTaskId(dependency)
             ) ??
             [];
 
@@ -478,12 +308,10 @@ export default function UpdateTask({
                 "",
             deadline: formatDateTimeLocal(
                 data?.deadline ??
-                    data?.Deadline
+                data?.Deadline
             ),
             dependencyIds:
-                Array.isArray(
-                    dependencyIds
-                )
+                Array.isArray(dependencyIds)
                     ? dependencyIds
                     : [],
         });
@@ -491,20 +319,13 @@ export default function UpdateTask({
         if (projectId) {
             await Promise.all([
                 loadSprints(projectId),
-                loadTasks(
-                    projectId,
-                    sprintId
-                ),
+                loadTasks(projectId, sprintId),
             ]);
         } else {
             setSprints([]);
             setTasks([]);
         }
     };
-
-    // ========================================================
-    // LOAD SPRINTS
-    // ========================================================
 
     const loadSprints = async (projectId) => {
         if (!projectId) {
@@ -515,19 +336,12 @@ export default function UpdateTask({
         setLoadingSprints(true);
 
         try {
-            const response =
-                await api.get(
-                    `/projects/${projectId}/sprints`,
-                    {
-                        headers:
-                            getAuthHeaders(),
-                    }
-                );
+            const response = await api.get(
+                `/projects/${projectId}/sprints`
+            );
 
             setSprints(
-                getArray(
-                    response.data
-                )
+                getArray(response.data)
             );
         } catch (error) {
             console.error(
@@ -545,10 +359,6 @@ export default function UpdateTask({
         }
     };
 
-    // ========================================================
-    // LOAD TASKS
-    // ========================================================
-
     const loadTasks = async (
         projectId,
         sprintId
@@ -561,24 +371,16 @@ export default function UpdateTask({
         setLoadingTasks(true);
 
         try {
-            let url =
-                `/projects/${projectId}/tasks`;
+            let url = `/projects/${projectId}/tasks`;
 
             if (sprintId) {
-                url =
-                    `/projects/${projectId}/sprints/${sprintId}/tasks`;
+                url = `/projects/${projectId}/sprints/${sprintId}/tasks`;
             }
 
-            const response =
-                await api.get(url, {
-                    headers:
-                        getAuthHeaders(),
-                });
+            const response = await api.get(url);
 
             setTasks(
-                getArray(
-                    response.data
-                )
+                getArray(response.data)
             );
         } catch (error) {
             console.error(
@@ -592,53 +394,34 @@ export default function UpdateTask({
         }
     };
 
-    // ========================================================
-    // LOAD CONTRIBUTORS
-    // ========================================================
-
     const loadContributors = async () => {
         setLoadingContributors(true);
 
         try {
-            const response =
-                await api.get(
-                    "/contributors/team-members",
-                    {
-                        headers:
-                            getAuthHeaders(),
-                    }
-                );
-
-            const members =
-                getArray(
-                    response.data
-                );
-
-            // Only Staff and Developer
-            const eligibleMembers =
-                members.filter(
-                    (member) => {
-                        const role =
-                            String(
-                                member?.role ??
-                                    member?.Role ??
-                                    member?.contributorType ??
-                                    member?.ContributorType ??
-                                    ""
-                            ).toLowerCase();
-
-                        return (
-                            role ===
-                                "developer" ||
-                            role ===
-                                "staff"
-                        );
-                    }
-                );
-
-            setContributors(
-                eligibleMembers
+            const response = await api.get(
+                "/contributors/team-members"
             );
+
+            const members = getArray(response.data);
+
+            const eligibleMembers = members.filter(
+                (member) => {
+                    const role = String(
+                        member?.role ??
+                        member?.Role ??
+                        member?.contributorType ??
+                        member?.ContributorType ??
+                        ""
+                    ).toLowerCase();
+
+                    return (
+                        role === "developer" ||
+                        role === "staff"
+                    );
+                }
+            );
+
+            setContributors(eligibleMembers);
         } catch (error) {
             console.error(
                 "Unable to load contributors:",
@@ -650,10 +433,6 @@ export default function UpdateTask({
             setLoadingContributors(false);
         }
     };
-
-    // ========================================================
-    // HANDLE INPUT CHANGE
-    // ========================================================
 
     const handleChange = (event) => {
         const {
@@ -675,19 +454,15 @@ export default function UpdateTask({
         setSuccessMessage("");
     };
 
-    // ========================================================
-    // SPRINT CHANGE
-    // ========================================================
+    const handleSprintChange = async (value) => {
+        const selectedSprint =
+            value === "none"
+                ? ""
+                : value;
 
-    const handleSprintChange = async (
-        value
-    ) => {
         setForm((previous) => ({
             ...previous,
-            sprintId:
-                value === "none"
-                    ? ""
-                    : value,
+            sprintId: selectedSprint,
             parentTaskId: "",
             dependencyIds: [],
         }));
@@ -703,16 +478,10 @@ export default function UpdateTask({
         if (inheritedProjectId) {
             await loadTasks(
                 inheritedProjectId,
-                value === "none"
-                    ? ""
-                    : value
+                selectedSprint
             );
         }
     };
-
-    // ========================================================
-    // SELECT CHANGE
-    // ========================================================
 
     const handleSelectChange = (
         name,
@@ -735,28 +504,22 @@ export default function UpdateTask({
         setSuccessMessage("");
     };
 
-    // ========================================================
-    // DEPENDENCY CHANGE
-    // ========================================================
-
     const handleDependencyChange = (
         dependencyId,
         checked
     ) => {
         setForm((previous) => {
-            const dependencyIds =
-                checked
-                    ? [
-                          ...new Set([
-                              ...previous.dependencyIds,
-                              dependencyId,
-                          ]),
-                      ]
-                    : previous.dependencyIds.filter(
-                          (id) =>
-                              id !==
-                              dependencyId
-                      );
+            const dependencyIds = checked
+                ? [
+                    ...new Set([
+                        ...previous.dependencyIds,
+                        dependencyId,
+                    ]),
+                ]
+                : previous.dependencyIds.filter(
+                    (id) =>
+                        id !== dependencyId
+                );
 
             return {
                 ...previous,
@@ -767,10 +530,6 @@ export default function UpdateTask({
         setServerError("");
         setSuccessMessage("");
     };
-
-    // ========================================================
-    // VALIDATION
-    // ========================================================
 
     const validateForm = () => {
         const validationErrors = {};
@@ -794,8 +553,7 @@ export default function UpdateTask({
             validationErrors.title =
                 "Please complete all required fields.";
         } else if (
-            form.title.trim().length >
-            200
+            form.title.trim().length > 200
         ) {
             validationErrors.title =
                 "Task title cannot exceed 200 characters.";
@@ -812,17 +570,12 @@ export default function UpdateTask({
         }
 
         if (
-            form.estimatedEffort !==
-                "" &&
+            form.estimatedEffort !== "" &&
             (
                 Number.isNaN(
-                    Number(
-                        form.estimatedEffort
-                    )
+                    Number(form.estimatedEffort)
                 ) ||
-                Number(
-                    form.estimatedEffort
-                ) <= 0
+                Number(form.estimatedEffort) <= 0
             )
         ) {
             validationErrors.estimatedEffort =
@@ -831,9 +584,7 @@ export default function UpdateTask({
 
         if (form.deadline) {
             const deadline =
-                new Date(
-                    form.deadline
-                );
+                new Date(form.deadline);
 
             if (
                 Number.isNaN(
@@ -850,22 +601,16 @@ export default function UpdateTask({
             !contributors.some(
                 (member) =>
                     String(
-                        getContributorId(
-                            member
-                        )
+                        getContributorId(member)
                     ) ===
-                    String(
-                        form.assignedTo
-                    )
+                    String(form.assignedTo)
             )
         ) {
             validationErrors.assignedTo =
                 "Team member not found.";
         }
 
-        setErrors(
-            validationErrors
-        );
+        setErrors(validationErrors);
 
         return (
             Object.keys(
@@ -874,13 +619,7 @@ export default function UpdateTask({
         );
     };
 
-    // ========================================================
-    // UPDATE TASK
-    // ========================================================
-
-    const handleSubmit = async (
-        event
-    ) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         setServerError("");
@@ -894,62 +633,35 @@ export default function UpdateTask({
 
         try {
             const payload = {
-                // Project is inherited from
-                // the existing task.
-                projectId:
-                    inheritedProjectId,
-
-                sprintId:
-                    form.sprintId,
-
+                projectId: inheritedProjectId,
+                sprintId: form.sprintId,
                 parentTaskId:
-                    form.parentTaskId ||
-                    null,
-
-                title:
-                    form.title.trim(),
-
+                    form.parentTaskId || null,
+                title: form.title.trim(),
                 description:
                     form.description.trim(),
-
-                priority:
-                    form.priority,
-
+                priority: form.priority,
                 assignedTo:
-                    form.assignedTo ||
-                    null,
-
+                    form.assignedTo || null,
                 estimatedEffort:
-                    form.estimatedEffort ===
-                    ""
+                    form.estimatedEffort === ""
                         ? null
                         : Number(
-                              form.estimatedEffort
-                          ),
-
+                            form.estimatedEffort
+                        ),
                 deadline:
-                    form.deadline ||
-                    null,
-
+                    form.deadline || null,
                 dependencyIds:
                     form.dependencyIds,
             };
 
-            // =================================================
-            // TASK-002 API
-            // =================================================
-
-            const response =
-                await api.put(
-                    `/tasks/team/${currentTaskId}`,
-                    payload,
-                    {
-                        headers:
-                            getAuthHeaders(),
-                    }
-                );
+            const response = await api.put(
+                `/tasks/${currentTaskId}`,
+                payload
+            );
 
             const updatedTask =
+                response.data?.task ??
                 response.data?.data ??
                 response.data;
 
@@ -958,9 +670,7 @@ export default function UpdateTask({
             );
 
             if (onTaskUpdated) {
-                onTaskUpdated(
-                    updatedTask
-                );
+                onTaskUpdated(updatedTask);
             }
         } catch (error) {
             console.error(
@@ -972,29 +682,24 @@ export default function UpdateTask({
                 error.response?.status;
 
             const backendMessage =
-                getBackendErrorMessage(
-                    error
-                );
+                getBackendErrorMessage(error);
 
             if (status === 404) {
                 setServerError(
                     "Task not found."
                 );
-            } else if (
-                status === 403
-            ) {
+            } else if (status === 403) {
                 setServerError(
                     "You are not authorised to update this task."
                 );
-            } else if (
-                status === 400
-            ) {
+            } else if (status === 400) {
                 setServerError(
                     backendMessage ||
-                        "Please complete all required fields."
+                    "Please complete all required fields."
                 );
             } else {
                 setServerError(
+                    backendMessage ||
                     "Unable to update task. Please try again."
                 );
             }
@@ -1003,19 +708,11 @@ export default function UpdateTask({
         }
     };
 
-    // ========================================================
-    // CANCEL
-    // ========================================================
-
     const handleCancel = () => {
         if (onCancel) {
             onCancel();
         }
     };
-
-    // ========================================================
-    // LOADING STATE
-    // ========================================================
 
     if (loading) {
         return (
@@ -1023,7 +720,6 @@ export default function UpdateTask({
                 <div className="flex min-h-[420px] items-center justify-center">
                     <div className="flex flex-col items-center gap-3">
                         <Loader2 className="h-7 w-7 animate-spin text-gray-500" />
-
                         <p className="text-sm text-muted-foreground">
                             Loading task...
                         </p>
@@ -1033,16 +729,8 @@ export default function UpdateTask({
         );
     }
 
-    // ========================================================
-    // RENDER
-    // ========================================================
-
     return (
         <div className="mx-auto w-full max-w-4xl rounded-xl border bg-white shadow-sm">
-            {/* ==================================================
-                HEADER
-            ================================================== */}
-
             <div className="border-b px-6 py-5">
                 <div className="flex items-start justify-between gap-4">
                     <div>
@@ -1069,10 +757,6 @@ export default function UpdateTask({
                 </div>
             </div>
 
-            {/* ==================================================
-                ERROR MESSAGE
-            ================================================== */}
-
             {serverError && (
                 <div className="mx-6 mt-5 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1082,10 +766,6 @@ export default function UpdateTask({
                     </span>
                 </div>
             )}
-
-            {/* ==================================================
-                SUCCESS MESSAGE
-            ================================================== */}
 
             {successMessage && (
                 <div className="mx-6 mt-5 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
@@ -1097,19 +777,10 @@ export default function UpdateTask({
                 </div>
             )}
 
-            {/* ==================================================
-                FORM
-            ================================================== */}
-
             <form
                 onSubmit={handleSubmit}
                 className="space-y-6 p-6"
             >
-                {/* ==================================================
-                    PROJECT CONTEXT
-                    Project is inherited, NOT SELECTABLE.
-                ================================================== */}
-
                 <div className="rounded-lg border bg-muted/30 p-4">
                     <div className="flex items-center justify-between gap-4">
                         <div>
@@ -1134,13 +805,7 @@ export default function UpdateTask({
                     </div>
                 </div>
 
-                {/* ==================================================
-                    SPRINT / PARENT TASK
-                ================================================== */}
-
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    {/* SPRINT */}
-
                     <div className="space-y-2">
                         <Label htmlFor="sprintId">
                             Related Sprint
@@ -1193,12 +858,8 @@ export default function UpdateTask({
 
                                         return (
                                             <SelectItem
-                                                key={
-                                                    id
-                                                }
-                                                value={String(
-                                                    id
-                                                )}
+                                                key={id}
+                                                value={String(id)}
                                             >
                                                 {getDisplayName(
                                                     sprint
@@ -1220,8 +881,6 @@ export default function UpdateTask({
                         )}
                     </div>
 
-                    {/* PARENT TASK */}
-
                     <div className="space-y-2">
                         <Label htmlFor="parentTaskId">
                             Parent Task
@@ -1232,9 +891,7 @@ export default function UpdateTask({
                                 form.parentTaskId ||
                                 "none"
                             }
-                            onValueChange={(
-                                value
-                            ) =>
+                            onValueChange={(value) =>
                                 handleSelectChange(
                                     "parentTaskId",
                                     value
@@ -1262,9 +919,7 @@ export default function UpdateTask({
                                             );
 
                                         if (
-                                            String(
-                                                id
-                                            ) ===
+                                            String(id) ===
                                             String(
                                                 currentTaskId
                                             )
@@ -1274,12 +929,8 @@ export default function UpdateTask({
 
                                         return (
                                             <SelectItem
-                                                key={
-                                                    id
-                                                }
-                                                value={String(
-                                                    id
-                                                )}
+                                                key={id}
+                                                value={String(id)}
                                             >
                                                 {getDisplayName(
                                                     item
@@ -1294,10 +945,6 @@ export default function UpdateTask({
                     </div>
                 </div>
 
-                {/* ==================================================
-                    TITLE
-                ================================================== */}
-
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
                         <Label htmlFor="title">
@@ -1308,10 +955,7 @@ export default function UpdateTask({
                         </Label>
 
                         <span className="text-xs text-muted-foreground">
-                            {
-                                form.title.length
-                            }
-                            /200
+                            {form.title.length}/200
                         </span>
                     </div>
 
@@ -1319,9 +963,7 @@ export default function UpdateTask({
                         id="title"
                         name="title"
                         value={form.title}
-                        onChange={
-                            handleChange
-                        }
+                        onChange={handleChange}
                         maxLength={200}
                         placeholder="Enter task title"
                         className={
@@ -1338,10 +980,6 @@ export default function UpdateTask({
                     )}
                 </div>
 
-                {/* ==================================================
-                    DESCRIPTION
-                ================================================== */}
-
                 <div className="space-y-2">
                     <Label htmlFor="description">
                         Task Description
@@ -1353,12 +991,8 @@ export default function UpdateTask({
                     <Textarea
                         id="description"
                         name="description"
-                        value={
-                            form.description
-                        }
-                        onChange={
-                            handleChange
-                        }
+                        value={form.description}
+                        onChange={handleChange}
                         rows={5}
                         placeholder="Describe the task requirements..."
                         className={
@@ -1377,13 +1011,7 @@ export default function UpdateTask({
                     )}
                 </div>
 
-                {/* ==================================================
-                    PRIORITY / EFFORT
-                ================================================== */}
-
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    {/* PRIORITY */}
-
                     <div className="space-y-2">
                         <Label htmlFor="priority">
                             Priority
@@ -1393,12 +1021,8 @@ export default function UpdateTask({
                         </Label>
 
                         <Select
-                            value={
-                                form.priority
-                            }
-                            onValueChange={(
-                                value
-                            ) =>
+                            value={form.priority}
+                            onValueChange={(value) =>
                                 handleSelectChange(
                                     "priority",
                                     value
@@ -1413,16 +1037,10 @@ export default function UpdateTask({
                                 {PRIORITIES.map(
                                     (priority) => (
                                         <SelectItem
-                                            key={
-                                                priority
-                                            }
-                                            value={
-                                                priority
-                                            }
+                                            key={priority}
+                                            value={priority}
                                         >
-                                            {
-                                                priority
-                                            }
+                                            {priority}
                                         </SelectItem>
                                     )
                                 )}
@@ -1438,8 +1056,6 @@ export default function UpdateTask({
                         )}
                     </div>
 
-                    {/* EFFORT */}
-
                     <div className="space-y-2">
                         <Label htmlFor="estimatedEffort">
                             Estimated Effort
@@ -1454,9 +1070,7 @@ export default function UpdateTask({
                             value={
                                 form.estimatedEffort
                             }
-                            onChange={
-                                handleChange
-                            }
+                            onChange={handleChange}
                             placeholder="e.g. 8"
                             className={
                                 errors.estimatedEffort
@@ -1481,10 +1095,6 @@ export default function UpdateTask({
                     </div>
                 </div>
 
-                {/* ==================================================
-                    ASSIGNED CONTRIBUTOR
-                ================================================== */}
-
                 <div className="space-y-2">
                     <Label htmlFor="assignedTo">
                         Assigned Staff / Developer
@@ -1495,9 +1105,7 @@ export default function UpdateTask({
                             form.assignedTo ||
                             "none"
                         }
-                        onValueChange={(
-                            value
-                        ) =>
+                        onValueChange={(value) =>
                             handleSelectChange(
                                 "assignedTo",
                                 value
@@ -1523,9 +1131,7 @@ export default function UpdateTask({
                             </SelectItem>
 
                             {contributors.map(
-                                (
-                                    contributor
-                                ) => {
+                                (contributor) => {
                                     const id =
                                         getContributorId(
                                             contributor
@@ -1533,12 +1139,8 @@ export default function UpdateTask({
 
                                     return (
                                         <SelectItem
-                                            key={
-                                                id
-                                            }
-                                            value={String(
-                                                id
-                                            )}
+                                            key={id}
+                                            value={String(id)}
                                         >
                                             {getContributorName(
                                                 contributor
@@ -1554,9 +1156,7 @@ export default function UpdateTask({
                         Only Staff and Developers
                         from the Team Leader's
                         available team members are
-                        shown. The backend must
-                        perform the final team-membership
-                        validation.
+                        shown.
                     </p>
 
                     {errors.assignedTo && (
@@ -1568,10 +1168,6 @@ export default function UpdateTask({
                     )}
                 </div>
 
-                {/* ==================================================
-                    DEADLINE
-                ================================================== */}
-
                 <div className="space-y-2">
                     <Label htmlFor="deadline">
                         Deadline
@@ -1581,12 +1177,8 @@ export default function UpdateTask({
                         id="deadline"
                         name="deadline"
                         type="datetime-local"
-                        value={
-                            form.deadline
-                        }
-                        onChange={
-                            handleChange
-                        }
+                        value={form.deadline}
+                        onChange={handleChange}
                         className={
                             errors.deadline
                                 ? "border-red-400"
@@ -1596,16 +1188,10 @@ export default function UpdateTask({
 
                     {errors.deadline && (
                         <p className="text-xs text-red-500">
-                            {
-                                errors.deadline
-                            }
+                            {errors.deadline}
                         </p>
                     )}
                 </div>
-
-                {/* ==================================================
-                    DEPENDENCIES
-                ================================================== */}
 
                 <div className="space-y-3">
                     <div>
@@ -1630,8 +1216,7 @@ export default function UpdateTask({
                             <Loader2 className="h-4 w-4 animate-spin" />
                             Loading available tasks...
                         </div>
-                    ) : tasks.length ===
-                      0 ? (
+                    ) : tasks.length === 0 ? (
                         <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
                             No other tasks are
                             available.
@@ -1640,18 +1225,14 @@ export default function UpdateTask({
                         <div className="max-h-52 overflow-y-auto rounded-lg border p-3">
                             <div className="space-y-2">
                                 {tasks.map(
-                                    (
-                                        item
-                                    ) => {
+                                    (item) => {
                                         const id =
                                             getTaskId(
                                                 item
                                             );
 
                                         if (
-                                            String(
-                                                id
-                                            ) ===
+                                            String(id) ===
                                             String(
                                                 currentTaskId
                                             )
@@ -1660,9 +1241,7 @@ export default function UpdateTask({
                                         }
 
                                         if (
-                                            String(
-                                                id
-                                            ) ===
+                                            String(id) ===
                                             String(
                                                 form.parentTaskId
                                             )
@@ -1672,9 +1251,7 @@ export default function UpdateTask({
 
                                         return (
                                             <label
-                                                key={
-                                                    id
-                                                }
+                                                key={id}
                                                 className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition hover:bg-muted/50"
                                             >
                                                 <Checkbox
@@ -1687,7 +1264,7 @@ export default function UpdateTask({
                                                         handleDependencyChange(
                                                             id,
                                                             checked ===
-                                                                true
+                                                            true
                                                         )
                                                     }
                                                 />
@@ -1707,17 +1284,11 @@ export default function UpdateTask({
                     )}
                 </div>
 
-                {/* ==================================================
-                    ACTIONS
-                ================================================== */}
-
                 <div className="flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:justify-end">
                     <Button
                         type="button"
                         variant="outline"
-                        onClick={
-                            handleCancel
-                        }
+                        onClick={handleCancel}
                         disabled={saving}
                         className="gap-2"
                     >

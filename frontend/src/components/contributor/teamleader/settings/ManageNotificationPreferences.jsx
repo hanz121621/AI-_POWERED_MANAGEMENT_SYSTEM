@@ -1,6 +1,5 @@
 
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
 import {
     Bell,
     Check,
@@ -11,135 +10,134 @@ import {
     AlertCircle,
     CheckCircle2,
 } from "lucide-react";
-
-// ============================================================
-// STORAGE
-// ============================================================
-
-const STORAGE_KEY = "aipms_teamleader_notification_preferences";
-
-// ============================================================
-// DEFAULT NOTIFICATION PREFERENCES
-// ============================================================
+import api from "@/services/api";
 
 const DEFAULT_PREFERENCES = {
-    taskAssignment: true,
-    taskStatusUpdate: true,
-    commentsMentions: true,
-    managerMessages: true,
-    teamMemberUpdates: true,
-    sprintUpdates: true,
-    deadlineReminders: true,
-    reviewRequests: true,
-    projectAnnouncements: true,
-    emailNotifications: true,
-    inAppNotifications: true,
+    notificationsEnabled: true,
+    emailNotificationsEnabled: true,
+    inSystemNotificationsEnabled: true,
+    taskAssignmentAlertsEnabled: true,
+    projectDeadlineRemindersEnabled: true,
+    sprintUpdateNotificationsEnabled: true,
+    aiRecommendationAlertsEnabled: true,
+    userActivityNotificationsEnabled: true,
 };
-
-// ============================================================
-// NOTIFICATION OPTIONS
-// ============================================================
 
 const NOTIFICATION_OPTIONS = [
     {
-        key: "taskAssignment",
+        key: "taskAssignmentAlertsEnabled",
         title: "Task Assignment Notifications",
         description:
             "Receive notifications when a task is assigned or reassigned to you or your team.",
     },
     {
-        key: "taskStatusUpdate",
-        title: "Task Status Updates",
+        key: "userActivityNotificationsEnabled",
+        title: "Task Status and Team Updates",
         description:
-            "Receive notifications when task statuses change.",
+            "Receive notifications about task status changes and important team member activity.",
     },
     {
-        key: "commentsMentions",
+        key: "userActivityNotificationsEnabled",
         title: "Comments and Mentions",
         description:
             "Receive notifications when someone comments on a task or mentions you.",
     },
     {
-        key: "managerMessages",
+        key: "userActivityNotificationsEnabled",
         title: "Manager Messages",
         description:
-            "Receive notifications when the Project Manager sends you a message.",
+            "Receive notifications about important communication and updates from the Project Manager.",
     },
     {
-        key: "teamMemberUpdates",
+        key: "userActivityNotificationsEnabled",
         title: "Team Member Updates",
         description:
-            "Receive notifications about important updates from your team members.",
+            "Receive notifications about important activity and updates from your team members.",
     },
     {
-        key: "sprintUpdates",
+        key: "sprintUpdateNotificationsEnabled",
         title: "Sprint Updates",
         description:
             "Receive notifications about sprint changes, progress, and updates.",
     },
     {
-        key: "deadlineReminders",
+        key: "projectDeadlineRemindersEnabled",
         title: "Deadline Reminders",
         description:
             "Receive reminders about approaching task and project deadlines.",
     },
     {
-        key: "reviewRequests",
-        title: "Review Requests",
+        key: "aiRecommendationAlertsEnabled",
+        title: "AI Recommendations",
         description:
-            "Receive notifications when work requires your review.",
+            "Receive AI-powered recommendations and important AI-generated alerts.",
     },
     {
-        key: "projectAnnouncements",
+        key: "userActivityNotificationsEnabled",
         title: "Project Announcements",
         description:
-            "Receive important announcements related to assigned projects.",
+            "Receive important project and team announcements through your notification system.",
     },
 ];
 
-// ============================================================
-// LOAD PREFERENCES
-// ============================================================
+function extractSettings(response) {
+    const data = response?.data;
 
-function loadPreferences() {
-    try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-
-        if (!stored) {
-            return { ...DEFAULT_PREFERENCES };
-        }
-
-        const parsed = JSON.parse(stored);
-
-        if (!parsed || typeof parsed !== "object") {
-            return { ...DEFAULT_PREFERENCES };
-        }
-
-        return {
-            ...DEFAULT_PREFERENCES,
-            ...parsed,
-        };
-    } catch {
-        return { ...DEFAULT_PREFERENCES };
-    }
-}
-
-// ============================================================
-// SAVE PREFERENCES
-// ============================================================
-
-function savePreferences(preferences) {
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(preferences)
+    return (
+        data?.data ??
+        data?.Data ??
+        data?.notificationSettings ??
+        data?.NotificationSettings ??
+        data ??
+        {}
     );
 }
 
-// ============================================================
-// TOGGLE COMPONENT
-// ============================================================
+function normalizePreferences(settings) {
+    return {
+        notificationsEnabled:
+            settings?.notificationsEnabled ??
+            settings?.NotificationsEnabled ??
+            DEFAULT_PREFERENCES.notificationsEnabled,
 
-function PreferenceToggle({ enabled, onChange }) {
+        emailNotificationsEnabled:
+            settings?.emailNotificationsEnabled ??
+            settings?.EmailNotificationsEnabled ??
+            DEFAULT_PREFERENCES.emailNotificationsEnabled,
+
+        inSystemNotificationsEnabled:
+            settings?.inSystemNotificationsEnabled ??
+            settings?.InSystemNotificationsEnabled ??
+            DEFAULT_PREFERENCES.inSystemNotificationsEnabled,
+
+        taskAssignmentAlertsEnabled:
+            settings?.taskAssignmentAlertsEnabled ??
+            settings?.TaskAssignmentAlertsEnabled ??
+            DEFAULT_PREFERENCES.taskAssignmentAlertsEnabled,
+
+        projectDeadlineRemindersEnabled:
+            settings?.projectDeadlineRemindersEnabled ??
+            settings?.ProjectDeadlineRemindersEnabled ??
+            DEFAULT_PREFERENCES.projectDeadlineRemindersEnabled,
+
+        sprintUpdateNotificationsEnabled:
+            settings?.sprintUpdateNotificationsEnabled ??
+            settings?.SprintUpdateNotificationsEnabled ??
+            DEFAULT_PREFERENCES.sprintUpdateNotificationsEnabled,
+
+        aiRecommendationAlertsEnabled:
+            settings?.aiRecommendationAlertsEnabled ??
+            settings?.AiRecommendationAlertsEnabled ??
+            DEFAULT_PREFERENCES.aiRecommendationAlertsEnabled,
+
+        userActivityNotificationsEnabled:
+            settings?.userActivityNotificationsEnabled ??
+            settings?.UserActivityNotificationsEnabled ??
+            DEFAULT_PREFERENCES.userActivityNotificationsEnabled,
+    };
+}
+
+function PreferenceToggle({ enabled, onChange, disabled }) {
     return (
         <button
             type="button"
@@ -147,6 +145,7 @@ function PreferenceToggle({ enabled, onChange }) {
             aria-checked={enabled}
             aria-label={enabled ? "Disable setting" : "Enable setting"}
             onClick={() => onChange(!enabled)}
+            disabled={disabled}
             className={`
                 relative
                 inline-flex
@@ -162,7 +161,8 @@ function PreferenceToggle({ enabled, onChange }) {
                 focus:ring-2
                 focus:ring-blue-500
                 focus:ring-offset-2
-
+                disabled:cursor-not-allowed
+                disabled:opacity-60
                 ${
                     enabled
                         ? "bg-blue-600"
@@ -181,45 +181,50 @@ function PreferenceToggle({ enabled, onChange }) {
                     shadow
                     transition-transform
                     duration-200
-
-                    ${
-                        enabled
-                            ? "translate-x-5"
-                            : "translate-x-0.5"
-                    }
+                    ${enabled ? "translate-x-5" : "translate-x-0.5"}
                 `}
             />
         </button>
     );
 }
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
-
 function ManageNotificationPreferences() {
-    // ========================================================
-    // INITIAL STATE
-    // ========================================================
-
-    // Lazy initialization avoids useEffect + setState.
     const [preferences, setPreferences] = useState(
-        () => loadPreferences()
+        DEFAULT_PREFERENCES
     );
-
     const [savedPreferences, setSavedPreferences] = useState(
-        () => loadPreferences()
+        DEFAULT_PREFERENCES
     );
-
     const [message, setMessage] = useState("");
-
     const [error, setError] = useState("");
-
+    const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
-    // ========================================================
-    // UPDATE ONE PREFERENCE
-    // ========================================================
+    const loadSettings = async () => {
+        setIsLoading(true);
+        setError("");
+
+        try {
+            const response = await api.get("/notification-settings");
+            const normalized = normalizePreferences(
+                extractSettings(response)
+            );
+
+            setPreferences(normalized);
+            setSavedPreferences(normalized);
+        } catch (err) {
+            setError(
+                err?.response?.data?.message ||
+                    "Unable to load notification preferences. Please try again."
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadSettings();
+    }, []);
 
     const handleToggle = (key) => {
         setPreferences((current) => ({
@@ -231,54 +236,37 @@ function ManageNotificationPreferences() {
         setError("");
     };
 
-    // ========================================================
-    // ENABLE ALL
-    // ========================================================
-
     const handleEnableAll = () => {
-        const enabledPreferences = Object.keys(
-            DEFAULT_PREFERENCES
-        ).reduce((result, key) => {
-            result[key] = true;
-            return result;
-        }, {});
-
-        setPreferences(enabledPreferences);
+        setPreferences({
+            ...DEFAULT_PREFERENCES,
+        });
 
         setMessage("");
         setError("");
     };
-
-    // ========================================================
-    // DISABLE ALL
-    // ========================================================
 
     const handleDisableAll = () => {
-        const disabledPreferences = Object.keys(
-            DEFAULT_PREFERENCES
-        ).reduce((result, key) => {
-            result[key] = false;
-            return result;
-        }, {});
-
-        setPreferences(disabledPreferences);
+        setPreferences({
+            notificationsEnabled: false,
+            emailNotificationsEnabled: false,
+            inSystemNotificationsEnabled: false,
+            taskAssignmentAlertsEnabled: false,
+            projectDeadlineRemindersEnabled: false,
+            sprintUpdateNotificationsEnabled: false,
+            aiRecommendationAlertsEnabled: false,
+            userActivityNotificationsEnabled: false,
+        });
 
         setMessage("");
         setError("");
     };
-
-    // ========================================================
-    // VALIDATION
-    // ========================================================
 
     const validatePreferences = () => {
         if (!preferences) {
             return "Invalid notification preferences.";
         }
 
-        const requiredKeys = Object.keys(
-            DEFAULT_PREFERENCES
-        );
+        const requiredKeys = Object.keys(DEFAULT_PREFERENCES);
 
         for (const key of requiredKeys) {
             if (typeof preferences[key] !== "boolean") {
@@ -287,23 +275,18 @@ function ManageNotificationPreferences() {
         }
 
         if (
-            !preferences.emailNotifications &&
-            !preferences.inAppNotifications
+            !preferences.emailNotificationsEnabled &&
+            !preferences.inSystemNotificationsEnabled
         ) {
             return (
-                "Invalid notification preferences. " +
-                "Enable at least one delivery method."
+                "Enable at least one notification delivery method."
             );
         }
 
         return "";
     };
 
-    // ========================================================
-    // SAVE
-    // ========================================================
-
-    const handleSave = () => {
+    const handleSave = async () => {
         setMessage("");
         setError("");
 
@@ -317,30 +300,56 @@ function ManageNotificationPreferences() {
         setIsSaving(true);
 
         try {
-            const preferencesToSave = {
-                ...preferences,
+            const payload = {
+                notificationsEnabled:
+                    preferences.notificationsEnabled,
+
+                emailNotificationsEnabled:
+                    preferences.emailNotificationsEnabled,
+
+                inSystemNotificationsEnabled:
+                    preferences.inSystemNotificationsEnabled,
+
+                taskAssignmentAlertsEnabled:
+                    preferences.taskAssignmentAlertsEnabled,
+
+                projectDeadlineRemindersEnabled:
+                    preferences.projectDeadlineRemindersEnabled,
+
+                sprintUpdateNotificationsEnabled:
+                    preferences.sprintUpdateNotificationsEnabled,
+
+                aiRecommendationAlertsEnabled:
+                    preferences.aiRecommendationAlertsEnabled,
+
+                userActivityNotificationsEnabled:
+                    preferences.userActivityNotificationsEnabled,
             };
 
-            savePreferences(preferencesToSave);
+            const response = await api.put(
+                "/notification-settings",
+                payload
+            );
 
-            setSavedPreferences(preferencesToSave);
+            const updatedPreferences = normalizePreferences(
+                extractSettings(response)
+            );
+
+            setPreferences(updatedPreferences);
+            setSavedPreferences(updatedPreferences);
 
             setMessage(
                 "Notification preferences updated successfully."
             );
-        } catch {
+        } catch (err) {
             setError(
-                "Unable to update notification preferences. " +
-                "Please try again."
+                err?.response?.data?.message ||
+                    "Unable to update notification preferences. Please try again."
             );
         } finally {
             setIsSaving(false);
         }
     };
-
-    // ========================================================
-    // CANCEL
-    // ========================================================
 
     const handleCancel = () => {
         setPreferences({
@@ -348,13 +357,8 @@ function ManageNotificationPreferences() {
         });
 
         setMessage("");
-
         setError("");
     };
-
-    // ========================================================
-    // RESET TO DEFAULT
-    // ========================================================
 
     const handleReset = () => {
         setPreferences({
@@ -362,30 +366,34 @@ function ManageNotificationPreferences() {
         });
 
         setMessage("");
-
         setError("");
     };
 
-    // ========================================================
-    // COUNT ENABLED
-    // ========================================================
-
     const enabledCount = NOTIFICATION_OPTIONS.filter(
-        (option) => preferences[option.key]
-    ).length;
+        (option, index) => {
+            if (index === 0) {
+                return preferences.taskAssignmentAlertsEnabled;
+            }
 
-    // ========================================================
-    // RENDER
-    // ========================================================
+            if (index === 5) {
+                return preferences.sprintUpdateNotificationsEnabled;
+            }
+
+            if (index === 6) {
+                return preferences.projectDeadlineRemindersEnabled;
+            }
+
+            if (index === 7) {
+                return preferences.aiRecommendationAlertsEnabled;
+            }
+
+            return preferences.userActivityNotificationsEnabled;
+        }
+    ).length;
 
     return (
         <div className="w-full">
             <div className="mx-auto max-w-5xl space-y-6">
-
-                {/* ==================================================
-                    HEADER
-                ================================================== */}
-
                 <section
                     className="
                         rounded-2xl
@@ -394,15 +402,11 @@ function ManageNotificationPreferences() {
                         bg-white
                         p-6
                         shadow-sm
-
                         dark:border-blue-900/60
                         dark:bg-[#0b2038]
                     "
                 >
                     <div className="flex items-start gap-4">
-
-                        {/* ICON */}
-
                         <div
                             className="
                                 flex
@@ -414,7 +418,6 @@ function ManageNotificationPreferences() {
                                 rounded-xl
                                 bg-blue-100
                                 text-blue-600
-
                                 dark:bg-blue-950/60
                                 dark:text-blue-400
                             "
@@ -422,18 +425,13 @@ function ManageNotificationPreferences() {
                             <Bell className="h-6 w-6" />
                         </div>
 
-                        {/* HEADER TEXT */}
-
                         <div className="min-w-0 flex-1">
-
                             <div className="flex flex-wrap items-center gap-2">
-
                                 <h1
                                     className="
                                         text-xl
                                         font-bold
                                         text-slate-900
-
                                         dark:text-white
                                     "
                                 >
@@ -449,14 +447,12 @@ function ManageNotificationPreferences() {
                                         text-[10px]
                                         font-bold
                                         text-blue-600
-
                                         dark:bg-blue-950/50
                                         dark:text-blue-400
                                     "
                                 >
                                     TL-SETTING-001
                                 </span>
-
                             </div>
 
                             <p
@@ -466,7 +462,6 @@ function ManageNotificationPreferences() {
                                     text-sm
                                     leading-6
                                     text-slate-500
-
                                     dark:text-slate-400
                                 "
                             >
@@ -474,14 +469,9 @@ function ManageNotificationPreferences() {
                                 and communication notifications you receive
                                 from the AI-PMS.
                             </p>
-
                         </div>
                     </div>
                 </section>
-
-                {/* ==================================================
-                    SUCCESS MESSAGE
-                ================================================== */}
 
                 {message && (
                     <div
@@ -494,7 +484,6 @@ function ManageNotificationPreferences() {
                             border-emerald-200
                             bg-emerald-50
                             p-4
-
                             dark:border-emerald-900/60
                             dark:bg-emerald-950/30
                         "
@@ -506,7 +495,6 @@ function ManageNotificationPreferences() {
                                 w-5
                                 shrink-0
                                 text-emerald-600
-
                                 dark:text-emerald-400
                             "
                         />
@@ -516,7 +504,6 @@ function ManageNotificationPreferences() {
                                 text-sm
                                 font-medium
                                 text-emerald-700
-
                                 dark:text-emerald-400
                             "
                         >
@@ -524,10 +511,6 @@ function ManageNotificationPreferences() {
                         </p>
                     </div>
                 )}
-
-                {/* ==================================================
-                    ERROR MESSAGE
-                ================================================== */}
 
                 {error && (
                     <div
@@ -540,7 +523,6 @@ function ManageNotificationPreferences() {
                             border-red-200
                             bg-red-50
                             p-4
-
                             dark:border-red-900/60
                             dark:bg-red-950/30
                         "
@@ -552,7 +534,6 @@ function ManageNotificationPreferences() {
                                 w-5
                                 shrink-0
                                 text-red-600
-
                                 dark:text-red-400
                             "
                         />
@@ -562,7 +543,6 @@ function ManageNotificationPreferences() {
                                 text-sm
                                 font-medium
                                 text-red-700
-
                                 dark:text-red-400
                             "
                         >
@@ -571,10 +551,6 @@ function ManageNotificationPreferences() {
                     </div>
                 )}
 
-                {/* ==================================================
-                    OVERVIEW
-                ================================================== */}
-
                 <section
                     className="
                         rounded-2xl
@@ -582,7 +558,6 @@ function ManageNotificationPreferences() {
                         border-blue-200
                         bg-blue-50
                         p-5
-
                         dark:border-blue-900/60
                         dark:bg-blue-950/25
                     "
@@ -592,20 +567,17 @@ function ManageNotificationPreferences() {
                             flex
                             flex-col
                             gap-4
-
                             sm:flex-row
                             sm:items-center
                             sm:justify-between
                         "
                     >
                         <div>
-
                             <h2
                                 className="
                                     text-sm
                                     font-bold
                                     text-blue-900
-
                                     dark:text-blue-300
                                 "
                             >
@@ -618,24 +590,19 @@ function ManageNotificationPreferences() {
                                     text-xs
                                     leading-5
                                     text-blue-800
-
                                     dark:text-blue-400
                                 "
                             >
-                                {enabledCount} of{" "}
-                                {NOTIFICATION_OPTIONS.length} notification
-                                categories are enabled.
+                                {enabledCount} notification categories are
+                                currently enabled.
                             </p>
-
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-
-                            {/* ENABLE ALL */}
-
                             <button
                                 type="button"
                                 onClick={handleEnableAll}
+                                disabled={isLoading || isSaving}
                                 className="
                                     rounded-lg
                                     border
@@ -648,7 +615,8 @@ function ManageNotificationPreferences() {
                                     text-blue-600
                                     transition
                                     hover:bg-blue-100
-
+                                    disabled:cursor-not-allowed
+                                    disabled:opacity-60
                                     dark:border-blue-800
                                     dark:bg-[#0b2038]
                                     dark:text-blue-400
@@ -658,11 +626,10 @@ function ManageNotificationPreferences() {
                                 Enable All
                             </button>
 
-                            {/* DISABLE ALL */}
-
                             <button
                                 type="button"
                                 onClick={handleDisableAll}
+                                disabled={isLoading || isSaving}
                                 className="
                                     rounded-lg
                                     border
@@ -675,7 +642,8 @@ function ManageNotificationPreferences() {
                                     text-slate-600
                                     transition
                                     hover:bg-slate-100
-
+                                    disabled:cursor-not-allowed
+                                    disabled:opacity-60
                                     dark:border-blue-800
                                     dark:bg-[#0b2038]
                                     dark:text-slate-300
@@ -684,14 +652,9 @@ function ManageNotificationPreferences() {
                             >
                                 Disable All
                             </button>
-
                         </div>
                     </div>
                 </section>
-
-                {/* ==================================================
-                    NOTIFICATION CATEGORIES
-                ================================================== */}
 
                 <section
                     className="
@@ -701,21 +664,16 @@ function ManageNotificationPreferences() {
                         border-slate-200
                         bg-white
                         shadow-sm
-
                         dark:border-blue-900/60
                         dark:bg-[#0b2038]
                     "
                 >
-
-                    {/* SECTION HEADER */}
-
                     <div
                         className="
                             border-b
                             border-slate-200
                             px-5
                             py-4
-
                             dark:border-blue-900/60
                         "
                     >
@@ -724,7 +682,6 @@ function ManageNotificationPreferences() {
                                 text-base
                                 font-bold
                                 text-slate-900
-
                                 dark:text-white
                             "
                         >
@@ -736,7 +693,6 @@ function ManageNotificationPreferences() {
                                 mt-1
                                 text-xs
                                 text-slate-500
-
                                 dark:text-slate-400
                             "
                         >
@@ -745,8 +701,6 @@ function ManageNotificationPreferences() {
                         </p>
                     </div>
 
-                    {/* OPTIONS */}
-
                     <div
                         className="
                             divide-y
@@ -754,68 +708,127 @@ function ManageNotificationPreferences() {
                             dark:divide-blue-900/50
                         "
                     >
-                        {NOTIFICATION_OPTIONS.map((option) => (
-                            <div
-                                key={option.key}
-                                className="
-                                    flex
-                                    items-center
-                                    justify-between
-                                    gap-5
-                                    px-5
-                                    py-5
-                                    transition
-                                    hover:bg-slate-50
-
-                                    dark:hover:bg-blue-950/20
-                                "
-                            >
-                                <div className="min-w-0 flex-1">
-
-                                    <h3
-                                        className="
-                                            text-sm
-                                            font-semibold
-                                            text-slate-900
-
-                                            dark:text-white
-                                        "
-                                    >
-                                        {option.title}
-                                    </h3>
-
-                                    <p
-                                        className="
-                                            mt-1
-                                            max-w-3xl
-                                            text-xs
-                                            leading-5
-                                            text-slate-500
-
-                                            dark:text-slate-400
-                                        "
-                                    >
-                                        {option.description}
-                                    </p>
-
-                                </div>
-
-                                <PreferenceToggle
-                                    enabled={
-                                        preferences[option.key]
-                                    }
-                                    onChange={() =>
-                                        handleToggle(option.key)
-                                    }
+                        {isLoading ? (
+                            <div className="px-5 py-10 text-center">
+                                <div
+                                    className="
+                                        mx-auto
+                                        h-6
+                                        w-6
+                                        animate-spin
+                                        rounded-full
+                                        border-2
+                                        border-blue-200
+                                        border-t-blue-600
+                                    "
                                 />
+
+                                <p
+                                    className="
+                                        mt-3
+                                        text-sm
+                                        text-slate-500
+                                        dark:text-slate-400
+                                    "
+                                >
+                                    Loading notification preferences...
+                                </p>
                             </div>
-                        ))}
+                        ) : (
+                            NOTIFICATION_OPTIONS.map((option, index) => {
+                                let enabled = false;
+
+                                if (index === 0) {
+                                    enabled =
+                                        preferences.taskAssignmentAlertsEnabled;
+                                } else if (index === 5) {
+                                    enabled =
+                                        preferences.sprintUpdateNotificationsEnabled;
+                                } else if (index === 6) {
+                                    enabled =
+                                        preferences.projectDeadlineRemindersEnabled;
+                                } else if (index === 7) {
+                                    enabled =
+                                        preferences.aiRecommendationAlertsEnabled;
+                                } else {
+                                    enabled =
+                                        preferences.userActivityNotificationsEnabled;
+                                }
+
+                                return (
+                                    <div
+                                        key={`${option.key}-${index}`}
+                                        className="
+                                            flex
+                                            items-center
+                                            justify-between
+                                            gap-5
+                                            px-5
+                                            py-5
+                                            transition
+                                            hover:bg-slate-50
+                                            dark:hover:bg-blue-950/20
+                                        "
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <h3
+                                                className="
+                                                    text-sm
+                                                    font-semibold
+                                                    text-slate-900
+                                                    dark:text-white
+                                                "
+                                            >
+                                                {option.title}
+                                            </h3>
+
+                                            <p
+                                                className="
+                                                    mt-1
+                                                    max-w-3xl
+                                                    text-xs
+                                                    leading-5
+                                                    text-slate-500
+                                                    dark:text-slate-400
+                                                "
+                                            >
+                                                {option.description}
+                                            </p>
+                                        </div>
+
+                                        <PreferenceToggle
+                                            enabled={enabled}
+                                            disabled={isSaving}
+                                            onChange={() => {
+                                                if (index === 0) {
+                                                    handleToggle(
+                                                        "taskAssignmentAlertsEnabled"
+                                                    );
+                                                } else if (index === 5) {
+                                                    handleToggle(
+                                                        "sprintUpdateNotificationsEnabled"
+                                                    );
+                                                } else if (index === 6) {
+                                                    handleToggle(
+                                                        "projectDeadlineRemindersEnabled"
+                                                    );
+                                                } else if (index === 7) {
+                                                    handleToggle(
+                                                        "aiRecommendationAlertsEnabled"
+                                                    );
+                                                } else {
+                                                    handleToggle(
+                                                        "userActivityNotificationsEnabled"
+                                                    );
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
                 </section>
-
-                {/* ==================================================
-                    DELIVERY METHODS
-                ================================================== */}
 
                 <section
                     className="
@@ -825,21 +838,16 @@ function ManageNotificationPreferences() {
                         border-slate-200
                         bg-white
                         shadow-sm
-
                         dark:border-blue-900/60
                         dark:bg-[#0b2038]
                     "
                 >
-
-                    {/* SECTION HEADER */}
-
                     <div
                         className="
                             border-b
                             border-slate-200
                             px-5
                             py-4
-
                             dark:border-blue-900/60
                         "
                     >
@@ -848,7 +856,6 @@ function ManageNotificationPreferences() {
                                 text-base
                                 font-bold
                                 text-slate-900
-
                                 dark:text-white
                             "
                         >
@@ -860,7 +867,6 @@ function ManageNotificationPreferences() {
                                 mt-1
                                 text-xs
                                 text-slate-500
-
                                 dark:text-slate-400
                             "
                         >
@@ -875,11 +881,6 @@ function ManageNotificationPreferences() {
                             dark:divide-blue-900/50
                         "
                     >
-
-                        {/* ==================================================
-                            EMAIL
-                        ================================================== */}
-
                         <div
                             className="
                                 flex
@@ -891,7 +892,6 @@ function ManageNotificationPreferences() {
                             "
                         >
                             <div className="flex items-start gap-3">
-
                                 <div
                                     className="
                                         flex
@@ -903,7 +903,6 @@ function ManageNotificationPreferences() {
                                         rounded-lg
                                         bg-purple-100
                                         text-purple-600
-
                                         dark:bg-purple-950/50
                                         dark:text-purple-400
                                     "
@@ -912,13 +911,11 @@ function ManageNotificationPreferences() {
                                 </div>
 
                                 <div>
-
                                     <h3
                                         className="
                                             text-sm
                                             font-semibold
                                             text-slate-900
-
                                             dark:text-white
                                         "
                                     >
@@ -930,33 +927,27 @@ function ManageNotificationPreferences() {
                                             mt-1
                                             text-xs
                                             text-slate-500
-
                                             dark:text-slate-400
                                         "
                                     >
                                         Receive selected notifications by
                                         email.
                                     </p>
-
                                 </div>
-
                             </div>
 
                             <PreferenceToggle
                                 enabled={
-                                    preferences.emailNotifications
+                                    preferences.emailNotificationsEnabled
                                 }
+                                disabled={isSaving}
                                 onChange={() =>
                                     handleToggle(
-                                        "emailNotifications"
+                                        "emailNotificationsEnabled"
                                     )
                                 }
                             />
                         </div>
-
-                        {/* ==================================================
-                            IN-APP
-                        ================================================== */}
 
                         <div
                             className="
@@ -969,7 +960,6 @@ function ManageNotificationPreferences() {
                             "
                         >
                             <div className="flex items-start gap-3">
-
                                 <div
                                     className="
                                         flex
@@ -981,7 +971,6 @@ function ManageNotificationPreferences() {
                                         rounded-lg
                                         bg-blue-100
                                         text-blue-600
-
                                         dark:bg-blue-950/50
                                         dark:text-blue-400
                                     "
@@ -990,13 +979,11 @@ function ManageNotificationPreferences() {
                                 </div>
 
                                 <div>
-
                                     <h3
                                         className="
                                             text-sm
                                             font-semibold
                                             text-slate-900
-
                                             dark:text-white
                                         "
                                     >
@@ -1008,35 +995,29 @@ function ManageNotificationPreferences() {
                                             mt-1
                                             text-xs
                                             text-slate-500
-
                                             dark:text-slate-400
                                         "
                                     >
                                         Receive notifications inside the
                                         AI-PMS application.
                                     </p>
-
                                 </div>
-
                             </div>
 
                             <PreferenceToggle
                                 enabled={
-                                    preferences.inAppNotifications
+                                    preferences.inSystemNotificationsEnabled
                                 }
+                                disabled={isSaving}
                                 onChange={() =>
                                     handleToggle(
-                                        "inAppNotifications"
+                                        "inSystemNotificationsEnabled"
                                     )
                                 }
                             />
                         </div>
                     </div>
                 </section>
-
-                {/* ==================================================
-                    ACTIONS
-                ================================================== */}
 
                 <section
                     className="
@@ -1049,23 +1030,19 @@ function ManageNotificationPreferences() {
                         bg-white
                         p-5
                         shadow-sm
-
                         sm:flex-row
                         sm:items-center
                         sm:justify-between
-
                         dark:border-blue-900/60
                         dark:bg-[#0b2038]
                     "
                 >
-
                     <div>
                         <p
                             className="
                                 text-xs
                                 font-medium
                                 text-slate-500
-
                                 dark:text-slate-400
                             "
                         >
@@ -1074,14 +1051,10 @@ function ManageNotificationPreferences() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-
-                        {/* ==================================================
-                            RESET
-                        ================================================== */}
-
                         <button
                             type="button"
                             onClick={handleReset}
+                            disabled={isLoading || isSaving}
                             className="
                                 inline-flex
                                 items-center
@@ -1098,7 +1071,8 @@ function ManageNotificationPreferences() {
                                 text-slate-600
                                 transition
                                 hover:bg-slate-100
-
+                                disabled:cursor-not-allowed
+                                disabled:opacity-60
                                 dark:border-blue-800
                                 dark:bg-[#0b2038]
                                 dark:text-slate-300
@@ -1106,17 +1080,13 @@ function ManageNotificationPreferences() {
                             "
                         >
                             <RotateCcw className="h-4 w-4" />
-
                             Reset
                         </button>
-
-                        {/* ==================================================
-                            CANCEL
-                        ================================================== */}
 
                         <button
                             type="button"
                             onClick={handleCancel}
+                            disabled={isLoading || isSaving}
                             className="
                                 inline-flex
                                 items-center
@@ -1133,7 +1103,8 @@ function ManageNotificationPreferences() {
                                 text-slate-600
                                 transition
                                 hover:bg-slate-100
-
+                                disabled:cursor-not-allowed
+                                disabled:opacity-60
                                 dark:border-blue-800
                                 dark:bg-[#0b2038]
                                 dark:text-slate-300
@@ -1143,14 +1114,10 @@ function ManageNotificationPreferences() {
                             Cancel
                         </button>
 
-                        {/* ==================================================
-                            SAVE
-                        ================================================== */}
-
                         <button
                             type="button"
                             onClick={handleSave}
-                            disabled={isSaving}
+                            disabled={isLoading || isSaving}
                             className="
                                 inline-flex
                                 items-center
@@ -1183,24 +1150,17 @@ function ManageNotificationPreferences() {
                                             border-t-white
                                         "
                                     />
-
                                     Saving...
                                 </>
                             ) : (
                                 <>
                                     <Save className="h-4 w-4" />
-
                                     Save Changes
                                 </>
                             )}
                         </button>
-
                     </div>
                 </section>
-
-                {/* ==================================================
-                    USE CASE INFORMATION
-                ================================================== */}
 
                 <section
                     className="
@@ -1209,13 +1169,11 @@ function ManageNotificationPreferences() {
                         border-slate-200
                         bg-slate-50
                         p-5
-
                         dark:border-blue-900/50
                         dark:bg-[#071a2d]
                     "
                 >
                     <div className="flex items-start gap-3">
-
                         <Check
                             className="
                                 mt-0.5
@@ -1223,19 +1181,16 @@ function ManageNotificationPreferences() {
                                 w-5
                                 shrink-0
                                 text-blue-600
-
                                 dark:text-blue-400
                             "
                         />
 
                         <div>
-
                             <h2
                                 className="
                                     text-sm
                                     font-bold
                                     text-slate-800
-
                                     dark:text-slate-200
                                 "
                             >
@@ -1248,20 +1203,16 @@ function ManageNotificationPreferences() {
                                     text-xs
                                     leading-5
                                     text-slate-500
-
                                     dark:text-slate-400
                                 "
                             >
                                 Your notification preferences determine
                                 which AI-PMS project, team, task, sprint,
-                                and communication notifications you
-                                receive.
+                                and communication notifications you receive.
                             </p>
-
                         </div>
                     </div>
                 </section>
-
             </div>
         </div>
     );

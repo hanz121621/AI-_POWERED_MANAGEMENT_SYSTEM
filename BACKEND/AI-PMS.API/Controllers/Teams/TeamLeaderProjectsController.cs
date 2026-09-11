@@ -1,3 +1,4 @@
+
 using AI_PMS.Application.Interfaces.Teams;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,11 +8,10 @@ namespace AI_PMS.API.Controllers.Teams
 {
     [ApiController]
     [Route("api/team-leader/projects")]
-    [Authorize(Roles = "TeamLeader")]
+    [Authorize(Roles = "Contributor")]
     public class TeamLeaderProjectsController : ControllerBase
     {
-        private readonly ITeamLeaderProjectService
-            _service;
+        private readonly ITeamLeaderProjectService _service;
 
         public TeamLeaderProjectsController(
             ITeamLeaderProjectService service)
@@ -19,40 +19,29 @@ namespace AI_PMS.API.Controllers.Teams
             _service = service;
         }
 
-        // =========================================================
-        // TL-PROJECT-001
-        // VIEW ASSIGNED PROJECTS
-        // =========================================================
-
         [HttpGet]
-        public async Task<IActionResult>
-            GetAssignedProjects()
+        public async Task<IActionResult> GetAssignedProjects()
         {
             try
             {
-                var teamLeaderId =
-                    GetCurrentUserId();
+                var teamLeaderId = GetCurrentUserId();
 
                 if (teamLeaderId == null)
                 {
                     return Unauthorized(new
                     {
-                        message =
-                            "Unable to identify current user."
+                        message = "Unable to identify current user."
                     });
                 }
 
-                var projects =
-                    await _service
-                        .GetAssignedProjectsAsync(
-                            teamLeaderId.Value);
+                var projects = await _service.GetAssignedProjectsAsync(
+                    teamLeaderId.Value);
 
                 if (!projects.Any())
                 {
                     return Ok(new
                     {
-                        message =
-                            "No assigned projects available.",
+                        message = "No assigned projects available.",
                         data = projects
                     });
                 }
@@ -77,48 +66,36 @@ namespace AI_PMS.API.Controllers.Teams
                     StatusCodes.Status500InternalServerError,
                     new
                     {
-                        message =
-                            "Unable to load projects. Please try again."
+                        message = "Unable to load projects. Please try again."
                     });
             }
         }
 
-        // =========================================================
-        // TL-PROJECT-002
-        // VIEW PROJECT DETAILS
-        // =========================================================
-
         [HttpGet("{projectId:guid}")]
-        public async Task<IActionResult>
-            GetProjectDetails(
-                Guid projectId)
+        public async Task<IActionResult> GetProjectDetails(
+            Guid projectId)
         {
             try
             {
-                var teamLeaderId =
-                    GetCurrentUserId();
+                var teamLeaderId = GetCurrentUserId();
 
                 if (teamLeaderId == null)
                 {
                     return Unauthorized(new
                     {
-                        message =
-                            "Unable to identify current user."
+                        message = "Unable to identify current user."
                     });
                 }
 
-                var project =
-                    await _service
-                        .GetProjectDetailsAsync(
-                            teamLeaderId.Value,
-                            projectId);
+                var project = await _service.GetProjectDetailsAsync(
+                    teamLeaderId.Value,
+                    projectId);
 
                 if (project == null)
                 {
                     return NotFound(new
                     {
-                        message =
-                            "Project not found."
+                        message = "Project not found."
                     });
                 }
 
@@ -133,8 +110,7 @@ namespace AI_PMS.API.Controllers.Teams
                     StatusCodes.Status403Forbidden,
                     new
                     {
-                        message =
-                            "Access denied."
+                        message = "Access denied."
                     });
             }
             catch (InvalidOperationException ex)
@@ -152,30 +128,23 @@ namespace AI_PMS.API.Controllers.Teams
                     StatusCodes.Status500InternalServerError,
                     new
                     {
-                        message =
-                            "Unable to load project details. Please try again."
+                        message = "Unable to load project details. Please try again."
                     });
             }
         }
 
-        // =========================================================
-        // CURRENT AUTHENTICATED USER
-        // =========================================================
-
         private Guid? GetCurrentUserId()
         {
             var userId =
-                User.FindFirstValue(
-                    ClaimTypes.NameIdentifier);
+                User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub");
 
             if (string.IsNullOrWhiteSpace(userId))
             {
                 return null;
             }
 
-            return Guid.TryParse(
-                userId,
-                out var id)
+            return Guid.TryParse(userId, out var id)
                 ? id
                 : null;
         }

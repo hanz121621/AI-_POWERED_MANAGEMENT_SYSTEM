@@ -1,23 +1,84 @@
-﻿import React, { useEffect, useState } from "react";
-import { UserRound, Mail, Phone, BriefcaseBusiness, UsersRound } from "lucide-react";
+﻿
+import React, { useEffect, useState } from "react";
+import {
+    UserRound,
+    Mail,
+    Phone,
+    BriefcaseBusiness,
+    UsersRound,
+} from "lucide-react";
+
+import api from "@/services/api";
 
 const ViewTeamLeaderProfile = () => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     useEffect(() => {
-        const loadProfile = () => {
+        const loadProfile = async () => {
             try {
-                const storedUser =
-                    localStorage.getItem("aipms_current_user") ||
-                    localStorage.getItem("currentUser") ||
-                    localStorage.getItem("user");
+                setLoading(true);
+                setError("");
 
-                if (storedUser) {
-                    setProfile(JSON.parse(storedUser));
+                const response = await api.get("/Users/profile");
+
+                const responseData = response?.data;
+
+                const user =
+                    responseData?.user ||
+                    responseData?.User ||
+                    responseData?.data ||
+                    responseData?.Data ||
+                    responseData;
+
+                if (user && typeof user === "object") {
+                    setProfile(user);
+
+                    localStorage.setItem(
+                        "aipms_current_user",
+                        JSON.stringify(user)
+                    );
+
+                    localStorage.setItem(
+                        "currentUser",
+                        JSON.stringify(user)
+                    );
+                } else {
+                    throw new Error("Profile information was not returned.");
                 }
-            } catch (error) {
-                console.error("Failed to load Team Leader profile:", error);
+            } catch (apiError) {
+                console.error(
+                    "Failed to load Team Leader profile:",
+                    apiError
+                );
+
+                // Fallback to cached profile if the API request fails.
+                try {
+                    const storedUser =
+                        localStorage.getItem("aipms_current_user") ||
+                        localStorage.getItem("currentUser") ||
+                        localStorage.getItem("user");
+
+                    if (storedUser) {
+                        setProfile(JSON.parse(storedUser));
+                    } else {
+                        setError(
+                            apiError?.response?.data?.message ||
+                                apiError?.response?.data?.Message ||
+                                "Your profile information could not be loaded."
+                        );
+                    }
+                } catch (storageError) {
+                    console.error(
+                        "Failed to load cached profile:",
+                        storageError
+                    );
+
+                    setError(
+                        "Your profile information could not be loaded."
+                    );
+                }
             } finally {
                 setLoading(false);
             }
@@ -38,11 +99,14 @@ const ViewTeamLeaderProfile = () => {
         return (
             <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
                 <UserRound className="mx-auto mb-3 h-10 w-10 text-slate-400" />
+
                 <h3 className="text-lg font-semibold text-slate-800">
                     Profile Not Available
                 </h3>
+
                 <p className="mt-1 text-sm text-slate-500">
-                    Your profile information could not be loaded.
+                    {error ||
+                        "Your profile information could not be loaded."}
                 </p>
             </div>
         );
@@ -61,6 +125,8 @@ const ViewTeamLeaderProfile = () => {
         "Not provided";
 
     const phone =
+        profile.phoneNumber ||
+        profile.PhoneNumber ||
         profile.phone ||
         profile.Phone ||
         "Not provided";
@@ -85,6 +151,7 @@ const ViewTeamLeaderProfile = () => {
                 <h2 className="text-2xl font-bold text-slate-900">
                     View Team Leader Profile
                 </h2>
+
                 <p className="mt-1 text-sm text-slate-500">
                     View your personal and role information.
                 </p>
@@ -100,6 +167,7 @@ const ViewTeamLeaderProfile = () => {
                         <h3 className="text-xl font-semibold text-slate-900">
                             {fullName}
                         </h3>
+
                         <p className="text-sm text-slate-500">
                             Team Leader
                         </p>
@@ -110,10 +178,12 @@ const ViewTeamLeaderProfile = () => {
                     <div className="rounded-xl bg-slate-50 p-4">
                         <div className="flex items-center gap-3">
                             <Mail className="h-5 w-5 text-blue-600" />
+
                             <div>
                                 <p className="text-xs font-medium uppercase text-slate-500">
                                     Email
                                 </p>
+
                                 <p className="mt-1 text-sm font-medium text-slate-800">
                                     {email}
                                 </p>
@@ -124,10 +194,12 @@ const ViewTeamLeaderProfile = () => {
                     <div className="rounded-xl bg-slate-50 p-4">
                         <div className="flex items-center gap-3">
                             <Phone className="h-5 w-5 text-blue-600" />
+
                             <div>
                                 <p className="text-xs font-medium uppercase text-slate-500">
                                     Phone
                                 </p>
+
                                 <p className="mt-1 text-sm font-medium text-slate-800">
                                     {phone}
                                 </p>
@@ -138,10 +210,12 @@ const ViewTeamLeaderProfile = () => {
                     <div className="rounded-xl bg-slate-50 p-4">
                         <div className="flex items-center gap-3">
                             <BriefcaseBusiness className="h-5 w-5 text-blue-600" />
+
                             <div>
                                 <p className="text-xs font-medium uppercase text-slate-500">
                                     Contributor Type
                                 </p>
+
                                 <p className="mt-1 text-sm font-medium text-slate-800">
                                     {contributorType}
                                 </p>
@@ -152,10 +226,12 @@ const ViewTeamLeaderProfile = () => {
                     <div className="rounded-xl bg-slate-50 p-4">
                         <div className="flex items-center gap-3">
                             <UsersRound className="h-5 w-5 text-blue-600" />
+
                             <div>
                                 <p className="text-xs font-medium uppercase text-slate-500">
                                     Contributor Sub-Type
                                 </p>
+
                                 <p className="mt-1 text-sm font-medium text-slate-800">
                                     {contributorSubType}
                                 </p>

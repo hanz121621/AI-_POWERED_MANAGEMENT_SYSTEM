@@ -1,30 +1,5 @@
-// ============================================================
-// AIPMS — TEAM LEADER ASSIGN TASK TO CONTRIBUTOR
-//
-// Use Case:
-// TASK-004 — Assign Task to Contributor
-//
-// Primary Actor:
-// Team Leader
-//
-// Goal:
-// Allow a Team Leader to assign an existing team task to an
-// eligible Developer or Staff contributor.
-//
-// Important:
-// - Only Developer and Staff contributors should be assignable.
-// - Backend MUST verify authorization.
-// - Backend MUST verify contributor team membership.
-// - Backend MUST verify project/sprint/task relationships.
-// - Assignment changes should be recorded in activity history.
-// - No localStorage is used.
-// ============================================================
-
 import React, { useEffect, useMemo, useState } from "react";
-
-// ============================================================
-// HELPERS
-// ============================================================
+import api from "@/services/api";
 
 const getTaskId = (task) => {
     if (!task) return null;
@@ -133,10 +108,7 @@ const getContributorName = (contributor) => {
         return contributor.user.fullName;
     }
 
-    return (
-        contributor.email ??
-        "Unnamed Contributor"
-    );
+    return contributor.email ?? "Unnamed Contributor";
 };
 
 const getContributorRole = (contributor) => {
@@ -152,41 +124,21 @@ const getContributorRole = (contributor) => {
     );
 };
 
-// ============================================================
-// COMPONENT
-// ============================================================
-
 export default function AssignTaskToContributor({
     task = null,
-
-    // Contributors can be supplied by the parent after
-    // loading the Team Leader's team.
     teamMembers = [],
     contributors = [],
-
     isOpen = true,
-
     onClose,
-
-    // Parent should perform the actual API/service operation.
     onAssign,
-
-    // Optional callback after successful assignment.
     onSuccess,
-
-    // Frontend authorization guard.
     canAssign = true,
 }) {
     const [selectedContributorId, setSelectedContributorId] =
         useState("");
-
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [isAssigning, setIsAssigning] = useState(false);
-
-    // --------------------------------------------------------
-    // Use either teamMembers or contributors.
-    // --------------------------------------------------------
 
     const availableMembers = useMemo(() => {
         const source =
@@ -198,25 +150,14 @@ export default function AssignTaskToContributor({
             return [];
         }
 
-        // Only Developer and Staff are valid assignees
-        // for this use case.
         return source.filter((member) => {
-            const role = String(
-                getContributorRole(member)
-            )
+            const role = String(getContributorRole(member))
                 .trim()
                 .toLowerCase();
 
-            return (
-                role === "developer" ||
-                role === "staff"
-            );
+            return role === "developer" || role === "staff";
         });
     }, [teamMembers, contributors]);
-
-    // --------------------------------------------------------
-    // Existing assignment.
-    // --------------------------------------------------------
 
     const existingAssigneeId = useMemo(() => {
         if (!task) return "";
@@ -232,36 +173,25 @@ export default function AssignTaskToContributor({
         }
 
         if (assigned && typeof assigned === "object") {
-            return String(
-                getContributorId(assigned) ?? ""
-            );
+            return String(getContributorId(assigned) ?? "");
         }
 
         return String(
             task.assignedToId ??
-                task.assigneeId ??
-                task.assignedUserId ??
-                ""
+            task.assigneeId ??
+            task.assignedUserId ??
+            task.assignedContributorId ??
+            task.assignedContributorSDId ??
+            ""
         );
     }, [task]);
-
-    // --------------------------------------------------------
-    // Reset when task changes.
-    // --------------------------------------------------------
 
     useEffect(() => {
         setError("");
         setSuccess("");
         setIsAssigning(false);
-
-        setSelectedContributorId(
-            existingAssigneeId
-        );
+        setSelectedContributorId(existingAssigneeId);
     }, [task, existingAssigneeId]);
-
-    // ========================================================
-    // ASSIGN HANDLER
-    // ========================================================
 
     const handleAssign = async (event) => {
         event.preventDefault();
@@ -271,10 +201,6 @@ export default function AssignTaskToContributor({
 
         const taskId = getTaskId(task);
 
-        // ----------------------------------------------------
-        // Task validation.
-        // ----------------------------------------------------
-
         if (!taskId) {
             setError(
                 "The selected task does not have a valid task ID."
@@ -282,20 +208,12 @@ export default function AssignTaskToContributor({
             return;
         }
 
-        // ----------------------------------------------------
-        // Authorization validation.
-        // ----------------------------------------------------
-
         if (!canAssign) {
             setError(
                 "You are not authorized to assign this task."
             );
             return;
         }
-
-        // ----------------------------------------------------
-        // Contributor validation.
-        // ----------------------------------------------------
 
         if (!selectedContributorId) {
             setError(
@@ -317,6 +235,15 @@ export default function AssignTaskToContributor({
             return;
         }
 
+        const contributorId = getContributorId(contributor);
+
+        if (!contributorId) {
+            setError(
+                "The selected contributor does not have a valid user ID."
+            );
+            return;
+        }
+
         const contributorRole = String(
             getContributorRole(contributor)
         )
@@ -333,50 +260,34 @@ export default function AssignTaskToContributor({
             return;
         }
 
-        if (!onAssign) {
-            setError(
-                "Task assignment is not connected to the task management service."
-            );
-            return;
-        }
-
-        // ----------------------------------------------------
-        // Assignment payload.
-        // ----------------------------------------------------
-
-        const assignment = {
-            taskId,
-            contributorId: getContributorId(
-                contributor
-            ),
-            contributorRole:
-                getContributorRole(contributor),
-            contributorName:
-                getContributorName(contributor),
-        };
-
         try {
             setIsAssigning(true);
 
-            // Parent/backend should perform:
-            // - Team Leader authorization
-            // - task existence validation
-            // - project validation
-            // - sprint validation
-            // - contributor existence validation
-            // - team membership validation
-            // - Developer/Staff role validation
-            // - assignment persistence
-            // - notification
-            // - activity/audit logging
-
-            await Promise.resolve(
-                onAssign(
-                    task,
-                    contributor,
-                    assignment
-                )
+            const response = await api.put(
+                `/tasks/team-leader/${taskId}/assign/${contributorId}`
             );
+
+            const responseTask =
+                response?.data?.task ??
+                response?.data ??
+                task;
+
+            const assignment = {
+                taskId,
+                contributorId,
+                contributorRole: getContributorRole(contributor),
+                contributorName: getContributorName(contributor),
+            };
+
+            if (onAssign) {
+                await Promise.resolve(
+                    onAssign(
+                        responseTask,
+                        contributor,
+                        assignment
+                    )
+                );
+            }
 
             setSuccess(
                 `Task assigned successfully to ${getContributorName(
@@ -387,14 +298,13 @@ export default function AssignTaskToContributor({
             if (onSuccess) {
                 await Promise.resolve(
                     onSuccess(
-                        task,
+                        responseTask,
                         contributor,
                         assignment
                     )
                 );
             }
 
-            // Close after successful assignment.
             if (onClose) {
                 setTimeout(() => {
                     onClose();
@@ -409,28 +319,21 @@ export default function AssignTaskToContributor({
             const responseMessage =
                 err?.response?.data?.message ??
                 err?.response?.data?.error ??
+                err?.response?.data?.title ??
                 err?.message;
 
             setError(
                 responseMessage ||
-                    "Unable to assign the task. Please try again."
+                "Unable to assign the task. Please try again."
             );
         } finally {
             setIsAssigning(false);
         }
     };
 
-    // ========================================================
-    // CLOSED STATE
-    // ========================================================
-
     if (!isOpen) {
         return null;
     }
-
-    // ========================================================
-    // NO TASK SELECTED
-    // ========================================================
 
     if (!task) {
         return (
@@ -474,16 +377,8 @@ export default function AssignTaskToContributor({
     const taskStatus = getTaskStatus(task);
     const taskSprint = getTaskSprint(task);
 
-    // ========================================================
-    // UI
-    // ========================================================
-
     return (
         <div className="w-full rounded-xl border border-gray-200 bg-white shadow-sm">
-            {/* =================================================
-                HEADER
-            ================================================= */}
-
             <div className="border-b border-gray-200 px-6 py-5">
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
@@ -501,13 +396,11 @@ export default function AssignTaskToContributor({
                                     strokeLinejoin="round"
                                     d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"
                                 />
-
                                 <circle
                                     cx="9"
                                     cy="7"
                                     r="4"
                                 />
-
                                 <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
@@ -554,10 +447,6 @@ export default function AssignTaskToContributor({
                     )}
                 </div>
             </div>
-
-            {/* =================================================
-                TASK INFORMATION
-            ================================================= */}
 
             <div className="px-6 pt-6">
                 <div className="rounded-lg border border-gray-200 bg-gray-50">
@@ -625,16 +514,11 @@ export default function AssignTaskToContributor({
                 </div>
             </div>
 
-            {/* =================================================
-                ASSIGNMENT FORM
-            ================================================= */}
-
             <form
                 onSubmit={handleAssign}
                 className="px-6 py-6"
             >
                 <div className="space-y-5">
-                    {/* Contributor */}
                     <div>
                         <label
                             htmlFor="task-contributor"
@@ -667,35 +551,25 @@ export default function AssignTaskToContributor({
                                 Select Developer or Staff
                             </option>
 
-                            {availableMembers.map(
-                                (member) => {
-                                    const memberId =
-                                        getContributorId(
-                                            member
-                                        );
+                            {availableMembers.map((member) => {
+                                const memberId =
+                                    getContributorId(member);
 
-                                    if (!memberId) {
-                                        return null;
-                                    }
-
-                                    return (
-                                        <option
-                                            key={memberId}
-                                            value={memberId}
-                                        >
-                                            {getContributorName(
-                                                member
-                                            )}{" "}
-                                            —{" "}
-                                            {
-                                                getContributorRole(
-                                                    member
-                                                )
-                                            }
-                                        </option>
-                                    );
+                                if (!memberId) {
+                                    return null;
                                 }
-                            )}
+
+                                return (
+                                    <option
+                                        key={memberId}
+                                        value={memberId}
+                                    >
+                                        {getContributorName(member)}{" "}
+                                        —{" "}
+                                        {getContributorRole(member)}
+                                    </option>
+                                );
+                            })}
                         </select>
 
                         {availableMembers.length === 0 && (
@@ -713,7 +587,6 @@ export default function AssignTaskToContributor({
                         </p>
                     </div>
 
-                    {/* Selected contributor preview */}
                     {selectedContributorId && (
                         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
                             {(() => {
@@ -763,10 +636,6 @@ export default function AssignTaskToContributor({
                         </div>
                     )}
 
-                    {/* =================================================
-                        ERROR
-                    ================================================= */}
-
                     {error && (
                         <div
                             role="alert"
@@ -795,10 +664,6 @@ export default function AssignTaskToContributor({
                         </div>
                     )}
 
-                    {/* =================================================
-                        SUCCESS
-                    ================================================= */}
-
                     {success && (
                         <div
                             role="status"
@@ -810,10 +675,6 @@ export default function AssignTaskToContributor({
                         </div>
                     )}
                 </div>
-
-                {/* =================================================
-                    ACTIONS
-                ================================================= */}
 
                 <div className="mt-6 flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-end">
                     {onClose && (

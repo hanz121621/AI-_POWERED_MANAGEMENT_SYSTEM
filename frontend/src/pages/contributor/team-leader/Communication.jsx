@@ -1,3 +1,4 @@
+
 import {
     AtSign,
     Bell,
@@ -14,7 +15,6 @@ export default function Communication() {
     return (
         <div className="min-h-screen bg-slate-50 p-6">
             <div className="mx-auto max-w-7xl">
-                {/* PAGE HEADER */}
                 <div className="mb-8">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-4">
@@ -44,7 +44,6 @@ export default function Communication() {
                     </div>
                 </div>
 
-                {/* COMMUNICATION OVERVIEW */}
                 <div className="mb-8 grid gap-4 md:grid-cols-3">
                     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                         <div className="flex items-center gap-3">
@@ -101,22 +100,18 @@ export default function Communication() {
                     </div>
                 </div>
 
-                {/* USE CASE: TL-COMM-001 */}
                 <div className="mb-8">
                     <ReceiveMessages />
                 </div>
 
-                {/* USE CASE: TL-COMM-002 */}
                 <div className="mb-8">
                     <TaskComments />
                 </div>
 
-                {/* USE CASE: TL-COMM-003 */}
                 <div className="mb-8">
                     <MentionTeamMembers />
                 </div>
 
-                {/* USE CASE: TL-COMM-004 */}
                 <div>
                     <ViewNotifications />
                 </div>

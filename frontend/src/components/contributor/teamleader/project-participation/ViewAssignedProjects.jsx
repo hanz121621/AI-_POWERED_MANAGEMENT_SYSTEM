@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+
+import React, { useEffect, useMemo, useState } from "react";
+
 import {
     CalendarDays,
     CheckCircle2,
@@ -9,55 +11,18 @@ import {
     UsersRound,
 } from "lucide-react";
 
-const SAMPLE_PROJECTS = [
-    {
-        id: 1,
-        name: "AI-Powered Management System",
-        description:
-            "A project management platform that helps organizations manage projects, tasks, teams, sprints, reports, and AI-powered insights.",
-        status: "In Progress",
-        progress: 68,
-        role: "Team Leader",
-        manager: "Project Manager",
-        currentSprint: "Sprint 4",
-        startDate: "2026-08-01",
-        endDate: "2026-10-15",
-        members: 8,
-    },
-    {
-        id: 2,
-        name: "FieldSync Platform",
-        description:
-            "An offline-first field management platform for tracking activities, synchronization, and project operations.",
-        status: "In Progress",
-        progress: 45,
-        role: "Team Leader",
-        manager: "Project Manager",
-        currentSprint: "Sprint 2",
-        startDate: "2026-08-15",
-        endDate: "2026-11-01",
-        members: 6,
-    },
-    {
-        id: 3,
-        name: "HR Management System",
-        description:
-            "A centralized human resource management system for managing employees, teams, activities, and reports.",
-        status: "Planning",
-        progress: 15,
-        role: "Team Leader",
-        manager: "Project Manager",
-        currentSprint: "Sprint 1",
-        startDate: "2026-09-01",
-        endDate: "2026-12-10",
-        members: 5,
-    },
-];
+import api from "@/services/api";
 
 function formatDate(date) {
     if (!date) return "Not set";
 
-    return new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return "Not set";
+    }
+
+    return parsedDate.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -83,19 +48,280 @@ function getStatusStyle(status) {
     }
 }
 
-export default function ViewAssignedProjects({ onSelectProject }) {
+function normalizeStatus(value) {
+    if (value === null || value === undefined) {
+        return "Planning";
+    }
+
+    const normalized = String(value).trim().toLowerCase();
+
+    if (
+        normalized === "completed" ||
+        normalized === "complete" ||
+        normalized === "done" ||
+        normalized === "4"
+    ) {
+        return "Completed";
+    }
+
+    if (
+        normalized === "in progress" ||
+        normalized === "inprogress" ||
+        normalized === "active" ||
+        normalized === "2"
+    ) {
+        return "In Progress";
+    }
+
+    if (
+        normalized === "planning" ||
+        normalized === "planned" ||
+        normalized === "pending" ||
+        normalized === "1"
+    ) {
+        return "Planning";
+    }
+
+    if (
+        normalized === "on hold" ||
+        normalized === "onhold" ||
+        normalized === "hold"
+    ) {
+        return "On Hold";
+    }
+
+    return String(value);
+}
+
+function normalizeProject(project) {
+    const source =
+        project?.project ||
+        project?.Project ||
+        project?.data ||
+        project?.Data ||
+        project ||
+        {};
+
+    const progressValue =
+        source.progress ??
+        source.Progress ??
+        source.completionPercentage ??
+        source.CompletionPercentage ??
+        source.progressPercentage ??
+        source.ProgressPercentage ??
+        0;
+
+    const numericProgress = Number(progressValue);
+
+    return {
+        id:
+            source.id ??
+            source.Id ??
+            source.projectId ??
+            source.ProjectId,
+
+        name:
+            source.name ??
+            source.Name ??
+            source.projectName ??
+            source.ProjectName ??
+            "Unnamed Project",
+
+        description:
+            source.description ??
+            source.Description ??
+            "",
+
+        status: normalizeStatus(
+            source.status ??
+                source.Status ??
+                source.projectStatus ??
+                source.ProjectStatus
+        ),
+
+        progress: Math.max(
+            0,
+            Math.min(
+                100,
+                Number.isFinite(numericProgress)
+                    ? numericProgress
+                    : 0
+            )
+        ),
+
+        role:
+            source.role ??
+            source.Role ??
+            source.teamLeaderRole ??
+            source.TeamLeaderRole ??
+            "Team Leader",
+
+        manager:
+            source.managerName ??
+            source.ManagerName ??
+            source.manager?.fullName ??
+            source.manager?.FullName ??
+            source.Manager?.FullName ??
+            source.projectManagerName ??
+            source.ProjectManagerName ??
+            "Project Manager",
+
+        currentSprint:
+            source.currentSprintName ??
+            source.CurrentSprintName ??
+            source.sprintName ??
+            source.SprintName ??
+            source.currentSprint?.name ??
+            source.currentSprint?.Name ??
+            source.CurrentSprint?.Name ??
+            "No active sprint",
+
+        startDate:
+            source.startDate ??
+            source.StartDate ??
+            source.projectStartDate ??
+            source.ProjectStartDate,
+
+        endDate:
+            source.endDate ??
+            source.EndDate ??
+            source.projectEndDate ??
+            source.ProjectEndDate,
+
+        members:
+            source.membersCount ??
+            source.MembersCount ??
+            source.memberCount ??
+            source.MemberCount ??
+            source.teamMemberCount ??
+            source.TeamMemberCount ??
+            source.members?.length ??
+            source.Members?.length ??
+            0,
+
+        raw: source,
+    };
+}
+
+function extractProjects(response) {
+    const data = response?.data;
+
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+    if (Array.isArray(data?.projects)) {
+        return data.projects;
+    }
+
+    if (Array.isArray(data?.Projects)) {
+        return data.Projects;
+    }
+
+    if (Array.isArray(data?.data)) {
+        return data.data;
+    }
+
+    if (Array.isArray(data?.Data)) {
+        return data.Data;
+    }
+
+    if (Array.isArray(data?.items)) {
+        return data.items;
+    }
+
+    if (Array.isArray(data?.Items)) {
+        return data.Items;
+    }
+
+    return [];
+}
+
+export default function ViewAssignedProjects({
+    onSelectProject,
+    projects: providedProjects,
+    onRefresh,
+}) {
+    const [projects, setProjects] = useState(
+        Array.isArray(providedProjects)
+            ? providedProjects.map(normalizeProject)
+            : []
+    );
+
+    const [loading, setLoading] = useState(
+        !Array.isArray(providedProjects)
+    );
+
+    const [error, setError] = useState("");
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
 
+    const loadProjects = async () => {
+        try {
+            setLoading(true);
+            setError("");
+
+            const response = await api.get("/team-leader/projects");
+
+            const backendProjects = extractProjects(response);
+
+            const normalizedProjects =
+                backendProjects.map(normalizeProject);
+
+            setProjects(normalizedProjects);
+        } catch (apiError) {
+            console.error(
+                "Failed to load assigned Team Leader projects:",
+                apiError
+            );
+
+            setError(
+                apiError?.response?.data?.message ||
+                    apiError?.response?.data?.Message ||
+                    "Failed to load assigned projects."
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (Array.isArray(providedProjects)) {
+            setProjects(providedProjects.map(normalizeProject));
+            setLoading(false);
+            return;
+        }
+
+        loadProjects();
+    }, [providedProjects]);
+
+    const handleRefresh = async () => {
+        if (onRefresh) {
+            await onRefresh();
+            return;
+        }
+
+        await loadProjects();
+    };
+
     const filteredProjects = useMemo(() => {
-        return SAMPLE_PROJECTS.filter((project) => {
+        const searchValue = search.trim().toLowerCase();
+
+        return projects.filter((project) => {
             const matchesSearch =
+                !searchValue ||
                 project.name
                     .toLowerCase()
-                    .includes(search.toLowerCase()) ||
+                    .includes(searchValue) ||
                 project.description
                     .toLowerCase()
-                    .includes(search.toLowerCase());
+                    .includes(searchValue) ||
+                project.status
+                    .toLowerCase()
+                    .includes(searchValue) ||
+                project.manager
+                    .toLowerCase()
+                    .includes(searchValue);
 
             const matchesStatus =
                 statusFilter === "All" ||
@@ -103,11 +329,56 @@ export default function ViewAssignedProjects({ onSelectProject }) {
 
             return matchesSearch && matchesStatus;
         });
-    }, [search, statusFilter]);
+    }, [projects, search, statusFilter]);
+
+    if (loading) {
+        return (
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex items-center justify-center px-6 py-16">
+                    <div className="text-center">
+                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50">
+                            <FolderKanban className="h-6 w-6 animate-pulse text-indigo-600" />
+                        </div>
+
+                        <p className="text-sm font-medium text-slate-700">
+                            Loading assigned projects...
+                        </p>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    if (error && projects.length === 0) {
+        return (
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="px-6 py-16 text-center">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
+                        <FolderKanban className="h-6 w-6 text-red-500" />
+                    </div>
+
+                    <h3 className="font-semibold text-slate-800">
+                        Unable to load assigned projects
+                    </h3>
+
+                    <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+                        {error}
+                    </p>
+
+                    <button
+                        type="button"
+                        onClick={handleRefresh}
+                        className="mt-5 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            {/* Header */}
             <div className="border-b border-slate-200 px-6 py-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
@@ -132,7 +403,6 @@ export default function ViewAssignedProjects({ onSelectProject }) {
                 </div>
             </div>
 
-            {/* Filters */}
             <div className="border-b border-slate-200 bg-slate-50/70 px-6 py-4">
                 <div className="flex flex-col gap-3 md:flex-row">
                     <div className="relative flex-1">
@@ -165,7 +435,12 @@ export default function ViewAssignedProjects({ onSelectProject }) {
                 </div>
             </div>
 
-            {/* Project List */}
+            {error && projects.length > 0 && (
+                <div className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm text-amber-700">
+                    {error}
+                </div>
+            )}
+
             <div className="divide-y divide-slate-100">
                 {filteredProjects.length === 0 ? (
                     <div className="px-6 py-16 text-center">
@@ -178,7 +453,9 @@ export default function ViewAssignedProjects({ onSelectProject }) {
                         </h3>
 
                         <p className="mt-1 text-sm text-slate-500">
-                            Try changing your search or filter.
+                            {projects.length === 0
+                                ? "There are currently no projects assigned to your Team Leader account."
+                                : "Try changing your search or filter."}
                         </p>
                     </div>
                 ) : (
@@ -188,7 +465,6 @@ export default function ViewAssignedProjects({ onSelectProject }) {
                             className="group px-6 py-5 transition hover:bg-slate-50"
                         >
                             <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                                {/* Main Info */}
                                 <div className="min-w-0 flex-1">
                                     <div className="flex flex-wrap items-center gap-3">
                                         <h3 className="text-base font-semibold text-slate-900">
@@ -205,10 +481,10 @@ export default function ViewAssignedProjects({ onSelectProject }) {
                                     </div>
 
                                     <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-                                        {project.description}
+                                        {project.description ||
+                                            "No project description available."}
                                     </p>
 
-                                    {/* Metadata */}
                                     <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
                                         <div className="flex items-center gap-1.5">
                                             <UsersRound className="h-4 w-4" />
@@ -229,7 +505,6 @@ export default function ViewAssignedProjects({ onSelectProject }) {
                                     </div>
                                 </div>
 
-                                {/* Progress */}
                                 <div className="w-full xl:max-w-xs">
                                     <div className="mb-2 flex items-center justify-between">
                                         <span className="text-xs font-medium text-slate-500">
@@ -261,7 +536,6 @@ export default function ViewAssignedProjects({ onSelectProject }) {
                                     </div>
                                 </div>
 
-                                {/* Action */}
                                 <button
                                     type="button"
                                     onClick={() =>
@@ -278,7 +552,6 @@ export default function ViewAssignedProjects({ onSelectProject }) {
                 )}
             </div>
 
-            {/* Footer */}
             {filteredProjects.length > 0 && (
                 <div className="flex items-center gap-2 border-t border-slate-200 bg-slate-50 px-6 py-3 text-xs text-slate-500">
                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />

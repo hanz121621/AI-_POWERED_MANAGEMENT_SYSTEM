@@ -1,37 +1,6 @@
-// ============================================================
-// AIPMS — TEAM LEADER UPDATE TASK STATUS
-//
-// Use Case:
-// TASK-008 — Update Task Status
-//
-// Primary Actor:
-// Team Leader
-//
-// Goal:
-// Allow a Team Leader to update the status of a task
-// under their responsibility.
-//
-// Supported statuses:
-// - Not Started
-// - In Progress
-// - Blocked
-// - In Review
-// - Completed
-//
-// IMPORTANT:
-// - Backend MUST enforce Team Leader authorization.
-// - Backend MUST validate task/team/project/sprint relationships.
-// - Backend MUST persist the status change.
-// - Backend SHOULD create an activity/audit record.
-// - Backend SHOULD notify affected contributors where required.
-// - No localStorage is used.
-// ============================================================
 
 import React, { useEffect, useMemo, useState } from "react";
-
-// ============================================================
-// STATUS OPTIONS
-// ============================================================
+import api from "@/services/api";
 
 const STATUS_OPTIONS = [
     {
@@ -60,10 +29,6 @@ const STATUS_OPTIONS = [
             "The task has been completed.",
     },
 ];
-
-// ============================================================
-// HELPERS
-// ============================================================
 
 const getTaskId = (task) => {
     if (!task) return null;
@@ -177,20 +142,28 @@ const normalizeStatus = (status) => {
         .trim()
         .toLowerCase();
 
-    const match = STATUS_OPTIONS.find(
-        (option) =>
-            option.value.toLowerCase() ===
-            normalized
+    const aliases = {
+        todo: "Not Started",
+        "not started": "Not Started",
+        inprogress: "In Progress",
+        "in progress": "In Progress",
+        blocked: "Blocked",
+        inreview: "In Review",
+        "in review": "In Review",
+        completed: "Completed",
+        done: "Completed",
+    };
+
+    return (
+        aliases[normalized] ??
+        STATUS_OPTIONS.find(
+            (option) =>
+                option.value.toLowerCase() ===
+                normalized
+        )?.value ??
+        String(status)
     );
-
-    return match
-        ? match.value
-        : String(status);
 };
-
-// ============================================================
-// STATUS BADGE
-// ============================================================
 
 function StatusBadge({ status }) {
     const normalized = String(
@@ -232,27 +205,13 @@ function StatusBadge({ status }) {
     );
 }
 
-// ============================================================
-// COMPONENT
-// ============================================================
-
 export default function UpdateTaskStatus({
     task,
-
     isOpen = true,
-
     onClose,
-
-    // Preferred callback.
     onStatusChange,
-
-    // Generic compatibility callback.
     onUpdate,
-
-    // Optional success callback.
     onSuccess,
-
-    // Authorization state supplied by parent.
     canUpdateStatus = true,
 }) {
     const [selectedStatus, setSelectedStatus] =
@@ -273,10 +232,6 @@ export default function UpdateTaskStatus({
 
     const [isSaving, setIsSaving] =
         useState(false);
-
-    // ========================================================
-    // RESET WHEN TASK CHANGES
-    // ========================================================
 
     useEffect(() => {
         if (!task) {
@@ -300,10 +255,6 @@ export default function UpdateTaskStatus({
         setSuccess("");
     }, [task]);
 
-    // ========================================================
-    // CURRENT STATUS
-    // ========================================================
-
     const currentStatus = useMemo(
         () =>
             normalizeStatus(
@@ -312,17 +263,12 @@ export default function UpdateTaskStatus({
         [task]
     );
 
-    // ========================================================
-    // VALIDATION
-    // ========================================================
-
     const validate = () => {
         if (!task) {
             return "No task has been selected.";
         }
 
-        const taskId =
-            getTaskId(task);
+        const taskId = getTaskId(task);
 
         if (!taskId) {
             return "The selected task does not have a valid task ID.";
@@ -349,96 +295,84 @@ export default function UpdateTaskStatus({
 
         if (
             selectedStatus ===
-                currentStatus &&
-            !reason.trim()
+            currentStatus
         ) {
             return "Please select a different status.";
         }
 
-        if (
-            reason.trim().length >
-            1000
-        ) {
+        if (reason.trim().length > 1000) {
             return "The status change reason cannot exceed 1000 characters.";
         }
 
         return "";
     };
 
-    // ========================================================
-    // SAVE
-    // ========================================================
-
-    const handleSubmit = async (
-        event
-    ) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         setError("");
         setSuccess("");
 
-        const validationError =
-            validate();
+        const validationError = validate();
 
         if (validationError) {
-            setError(
-                validationError
-            );
+            setError(validationError);
             return;
         }
 
-        const taskId =
-            getTaskId(task);
+        const taskId = getTaskId(task);
 
         const statusUpdate = {
             taskId,
             status: selectedStatus,
-            previousStatus:
-                currentStatus,
-            reason:
-                reason.trim() || null,
+            previousStatus: currentStatus,
+            reason: reason.trim() || null,
         };
 
         try {
             setIsSaving(true);
 
-            // ------------------------------------------------
-            // Preferred callback
-            // ------------------------------------------------
+            const response = await api.put(
+                `/tasks/team-leader/${taskId}/status`,
+                {
+                    status: selectedStatus,
+                }
+            );
 
-            if (onStatusChange) {
-                await Promise.resolve(
-                    onStatusChange(
-                        task,
-                        selectedStatus,
-                        statusUpdate
-                    )
-                );
-            }
-            // ------------------------------------------------
-            // Generic compatibility callback
-            // ------------------------------------------------
-            else if (onUpdate) {
-                await Promise.resolve(
-                    onUpdate(
-                        task,
-                        statusUpdate
-                    )
-                );
-            } else {
-                throw new Error(
-                    "No task status update handler was provided."
-                );
-            }
+            const updatedTask =
+                response?.data?.task ??
+                response?.data?.data ??
+                response?.data ??
+                {
+                    ...task,
+                    status: selectedStatus,
+                };
 
             setSuccess(
                 `Task status changed to "${selectedStatus}".`
             );
 
+            if (onStatusChange) {
+                await Promise.resolve(
+                    onStatusChange(
+                        updatedTask,
+                        selectedStatus,
+                        statusUpdate
+                    )
+                );
+            } else if (onUpdate) {
+                await Promise.resolve(
+                    onUpdate(
+                        updatedTask,
+                        statusUpdate
+                    )
+                );
+            }
+
             if (onSuccess) {
                 await Promise.resolve(
                     onSuccess(
-                        task,
+                        updatedTask,
                         statusUpdate
                     )
                 );
@@ -455,19 +389,20 @@ export default function UpdateTaskStatus({
                 err
             );
 
-            setError(
+            const responseMessage =
                 err?.response?.data?.message ??
-                    err?.message ??
+                err?.response?.data?.error ??
+                err?.response?.data?.title ??
+                err?.message;
+
+            setError(
+                responseMessage ||
                     "Unable to update the task status. Please try again."
             );
         } finally {
             setIsSaving(false);
         }
     };
-
-    // ========================================================
-    // CLOSE
-    // ========================================================
 
     const handleClose = () => {
         if (isSaving) return;
@@ -481,17 +416,9 @@ export default function UpdateTaskStatus({
         }
     };
 
-    // ========================================================
-    // MODAL STATE
-    // ========================================================
-
     if (!isOpen) {
         return null;
     }
-
-    // ========================================================
-    // NO TASK
-    // ========================================================
 
     if (!task) {
         return (
@@ -504,9 +431,7 @@ export default function UpdateTaskStatus({
                     {onClose && (
                         <button
                             type="button"
-                            onClick={
-                                handleClose
-                            }
+                            onClick={handleClose}
                             className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                         >
                             ×
@@ -521,17 +446,9 @@ export default function UpdateTaskStatus({
         );
     }
 
-    // ========================================================
-    // UI
-    // ========================================================
-
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl">
-                {/* =================================================
-                    HEADER
-                ================================================= */}
-
                 <div className="flex items-start justify-between border-b border-gray-200 px-6 py-5">
                     <div>
                         <h2 className="text-xl font-bold text-gray-900">
@@ -547,12 +464,8 @@ export default function UpdateTaskStatus({
                     {onClose && (
                         <button
                             type="button"
-                            onClick={
-                                handleClose
-                            }
-                            disabled={
-                                isSaving
-                            }
+                            onClick={handleClose}
+                            disabled={isSaving}
                             aria-label="Close"
                             className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -574,10 +487,6 @@ export default function UpdateTaskStatus({
                     )}
                 </div>
 
-                {/* =================================================
-                    TASK INFORMATION
-                ================================================= */}
-
                 <div className="border-b border-gray-200 bg-gray-50 px-6 py-5">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
@@ -586,16 +495,12 @@ export default function UpdateTaskStatus({
                             </p>
 
                             <h3 className="mt-1 break-words text-lg font-semibold text-gray-900">
-                                {getTaskTitle(
-                                    task
-                                )}
+                                {getTaskTitle(task)}
                             </h3>
 
                             <p className="mt-1 text-xs text-gray-500">
                                 ID:{" "}
-                                {getTaskId(
-                                    task
-                                )}
+                                {getTaskId(task)}
                             </p>
                         </div>
 
@@ -651,17 +556,10 @@ export default function UpdateTaskStatus({
                     </div>
                 </div>
 
-                {/* =================================================
-                    FORM
-                ================================================= */}
-
                 <form
-                    onSubmit={
-                        handleSubmit
-                    }
+                    onSubmit={handleSubmit}
                     className="space-y-6 p-6"
                 >
-                    {/* Authorization */}
                     {!canUpdateStatus && (
                         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                             <p className="text-sm font-medium text-red-700">
@@ -671,7 +569,6 @@ export default function UpdateTaskStatus({
                         </div>
                     )}
 
-                    {/* Error */}
                     {error && (
                         <div
                             role="alert"
@@ -683,7 +580,6 @@ export default function UpdateTaskStatus({
                         </div>
                     )}
 
-                    {/* Success */}
                     {success && (
                         <div
                             role="status"
@@ -695,10 +591,6 @@ export default function UpdateTaskStatus({
                         </div>
                     )}
 
-                    {/* =================================================
-                        STATUS SELECT
-                    ================================================= */}
-
                     <div>
                         <label
                             htmlFor="task-status"
@@ -709,16 +601,10 @@ export default function UpdateTaskStatus({
 
                         <select
                             id="task-status"
-                            value={
-                                selectedStatus
-                            }
-                            onChange={(
-                                event
-                            ) => {
+                            value={selectedStatus}
+                            onChange={(event) => {
                                 setSelectedStatus(
-                                    event
-                                        .target
-                                        .value
+                                    event.target.value
                                 );
                                 setError("");
                             }}
@@ -747,10 +633,6 @@ export default function UpdateTaskStatus({
                         </select>
                     </div>
 
-                    {/* =================================================
-                        STATUS CARDS
-                    ================================================= */}
-
                     <div>
                         <p className="mb-3 text-sm font-semibold text-gray-900">
                             Select Status
@@ -777,9 +659,7 @@ export default function UpdateTaskStatus({
                                                 setSelectedStatus(
                                                     option.value
                                                 );
-                                                setError(
-                                                    ""
-                                                );
+                                                setError("");
                                             }}
                                             className={`rounded-lg border p-4 text-left transition ${
                                                 isSelected
@@ -826,10 +706,6 @@ export default function UpdateTaskStatus({
                         </div>
                     </div>
 
-                    {/* =================================================
-                        REASON
-                    ================================================= */}
-
                     <div>
                         <label
                             htmlFor="status-reason"
@@ -845,13 +721,9 @@ export default function UpdateTaskStatus({
                             id="status-reason"
                             rows={4}
                             value={reason}
-                            onChange={(
-                                event
-                            ) =>
+                            onChange={(event) =>
                                 setReason(
-                                    event
-                                        .target
-                                        .value
+                                    event.target.value
                                 )
                             }
                             maxLength={1000}
@@ -870,10 +742,6 @@ export default function UpdateTaskStatus({
                             </span>
                         </div>
                     </div>
-
-                    {/* =================================================
-                        CHANGE PREVIEW
-                    ================================================= */}
 
                     {selectedStatus !==
                         currentStatus && (
@@ -895,9 +763,7 @@ export default function UpdateTaskStatus({
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
-                                    strokeWidth={
-                                        2
-                                    }
+                                    strokeWidth={2}
                                 >
                                     <path
                                         strokeLinecap="round"
@@ -915,20 +781,12 @@ export default function UpdateTaskStatus({
                         </div>
                     )}
 
-                    {/* =================================================
-                        ACTIONS
-                    ================================================= */}
-
                     <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-end">
                         {onClose && (
                             <button
                                 type="button"
-                                onClick={
-                                    handleClose
-                                }
-                                disabled={
-                                    isSaving
-                                }
+                                onClick={handleClose}
+                                disabled={isSaving}
                                 className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 Cancel
@@ -979,3 +837,4 @@ export default function UpdateTaskStatus({
         </div>
     );
 }
+

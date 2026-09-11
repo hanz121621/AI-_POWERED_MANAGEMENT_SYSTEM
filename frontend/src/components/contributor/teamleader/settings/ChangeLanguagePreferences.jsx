@@ -1,19 +1,16 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Languages,
     CheckCircle2,
     AlertCircle,
     Save,
 } from "lucide-react";
-
-// ============================================================
-// STORAGE
-// ============================================================
+import api from "@/services/api";
 
 const LANGUAGE_STORAGE_KEY = "aipms_system_language";
 
-const SUPPORTED_LANGUAGES = [
+const DEFAULT_LANGUAGES = [
     {
         value: "en",
         label: "English",
@@ -26,83 +23,328 @@ const SUPPORTED_LANGUAGES = [
     },
 ];
 
-// ============================================================
-// GET INITIAL LANGUAGE
-// ============================================================
+function normalizeLanguage(value) {
+    if (value === null || value === undefined) {
+        return "";
+    }
 
-function getInitialLanguage() {
+    if (typeof value === "string") {
+        return value.trim().toLowerCase();
+    }
+
+    return String(value).trim().toLowerCase();
+}
+
+function normalizeLanguages(response) {
+    const source =
+        response?.data?.data ??
+        response?.data?.Data ??
+        response?.data?.languages ??
+        response?.data?.Languages ??
+        response?.data ??
+        response;
+
+    if (!Array.isArray(source)) {
+        return [];
+    }
+
+    return source
+        .map((item) => {
+            if (typeof item === "string") {
+                const value = normalizeLanguage(item);
+
+                const knownLanguage = DEFAULT_LANGUAGES.find(
+                    (language) => language.value === value
+                );
+
+                return (
+                    knownLanguage || {
+                        value,
+                        label: item,
+                        nativeLabel: item,
+                    }
+                );
+            }
+
+            const value = normalizeLanguage(
+                item?.value ??
+                    item?.Value ??
+                    item?.code ??
+                    item?.Code ??
+                    item?.languageCode ??
+                    item?.LanguageCode ??
+                    item?.language ??
+                    item?.Language
+            );
+
+            if (!value) {
+                return null;
+            }
+
+            const knownLanguage = DEFAULT_LANGUAGES.find(
+                (language) => language.value === value
+            );
+
+            return {
+                value,
+                label:
+                    item?.label ??
+                    item?.Label ??
+                    item?.name ??
+                    item?.Name ??
+                    knownLanguage?.label ??
+                    value,
+                nativeLabel:
+                    item?.nativeLabel ??
+                    item?.NativeLabel ??
+                    item?.nativeName ??
+                    item?.NativeName ??
+                    knownLanguage?.nativeLabel ??
+                    item?.label ??
+                    item?.Label ??
+                    value,
+            };
+        })
+        .filter(Boolean);
+}
+
+function extractPreference(response) {
+    return (
+        response?.data?.data ??
+        response?.data?.Data ??
+        response?.data?.preference ??
+        response?.data?.Preference ??
+        response?.data ??
+        response
+    );
+}
+
+function extractLanguage(preference) {
+    if (!preference) {
+        return "";
+    }
+
+    return normalizeLanguage(
+        preference?.language ??
+            preference?.Language ??
+            preference?.preferredLanguage ??
+            preference?.PreferredLanguage ??
+            preference?.languageCode ??
+            preference?.LanguageCode ??
+            preference?.locale ??
+            preference?.Locale
+    );
+}
+
+function getCachedLanguage() {
     try {
-        const storedLanguage = localStorage.getItem(
-            LANGUAGE_STORAGE_KEY
+        return normalizeLanguage(
+            localStorage.getItem(LANGUAGE_STORAGE_KEY)
         );
-
-        const isValidLanguage = SUPPORTED_LANGUAGES.some(
-            (language) => language.value === storedLanguage
-        );
-
-        return isValidLanguage ? storedLanguage : "en";
     } catch {
-        return "en";
+        return "";
     }
 }
 
-// ============================================================
-// CHANGE LANGUAGE PREFERENCES
-// ============================================================
+function saveCachedLanguage(language) {
+    try {
+        localStorage.setItem(
+            LANGUAGE_STORAGE_KEY,
+            language
+        );
+    } catch {
+        return;
+    }
+}
+
+function getErrorMessage(error, fallback) {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data?.Message ||
+        error?.response?.data?.error ||
+        error?.response?.data?.Error ||
+        fallback
+    );
+}
 
 function ChangeLanguagePreferences() {
-    const [language, setLanguage] = useState(getInitialLanguage);
-    const [savedLanguage, setSavedLanguage] = useState(getInitialLanguage);
+    const cachedLanguage = getCachedLanguage();
+
+    const [languages, setLanguages] = useState(
+        DEFAULT_LANGUAGES
+    );
+    const [language, setLanguage] = useState(
+        cachedLanguage || "en"
+    );
+    const [savedLanguage, setSavedLanguage] = useState(
+        cachedLanguage || "en"
+    );
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
-    // ========================================================
-    // SAVE LANGUAGE
-    // ========================================================
+    useEffect(() => {
+        let mounted = true;
 
-    const handleSave = () => {
+        const loadPreferences = async () => {
+            setLoading(true);
+            setError("");
+
+            try {
+                const [languagesResponse, preferenceResponse] =
+                    await Promise.all([
+                        api.get("/user-preferences/languages"),
+                        api.get("/user-preferences"),
+                    ]);
+
+                if (!mounted) {
+                    return;
+                }
+
+                const backendLanguages =
+                    normalizeLanguages(languagesResponse);
+
+                const availableLanguages =
+                    backendLanguages.length > 0
+                        ? backendLanguages
+                        : DEFAULT_LANGUAGES;
+
+                setLanguages(availableLanguages);
+
+                const backendLanguage =
+                    extractLanguage(
+                        extractPreference(preferenceResponse)
+                    );
+
+                const validBackendLanguage =
+                    availableLanguages.some(
+                        (item) =>
+                            item.value === backendLanguage
+                    );
+
+                const resolvedLanguage =
+                    validBackendLanguage
+                        ? backendLanguage
+                        : availableLanguages.some(
+                              (item) =>
+                                  item.value === cachedLanguage
+                          )
+                        ? cachedLanguage
+                        : availableLanguages[0]?.value ||
+                          "en";
+
+                setLanguage(resolvedLanguage);
+                setSavedLanguage(resolvedLanguage);
+
+                saveCachedLanguage(resolvedLanguage);
+            } catch (requestError) {
+                if (!mounted) {
+                    return;
+                }
+
+                setError(
+                    getErrorMessage(
+                        requestError,
+                        "Unable to retrieve language preferences. Using your saved local language."
+                    )
+                );
+
+                const fallbackLanguage =
+                    languages.some(
+                        (item) =>
+                            item.value === cachedLanguage
+                    )
+                        ? cachedLanguage
+                        : "en";
+
+                setLanguage(fallbackLanguage);
+                setSavedLanguage(fallbackLanguage);
+            } finally {
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadPreferences();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    const handleSave = async () => {
         setMessage("");
         setError("");
 
+        const selectedLanguage = languages.find(
+            (item) => item.value === language
+        );
+
+        if (!selectedLanguage) {
+            setError("Please select a valid language.");
+            return;
+        }
+
+        setSaving(true);
+
         try {
-            const selectedLanguage = SUPPORTED_LANGUAGES.find(
-                (item) => item.value === language
+            const response = await api.put(
+                "/user-preferences",
+                {
+                    language: selectedLanguage.value,
+                }
             );
 
-            if (!selectedLanguage) {
-                setError("Please select a valid language.");
-                return;
-            }
+            const updatedPreference =
+                extractPreference(response);
 
-            localStorage.setItem(
-                LANGUAGE_STORAGE_KEY,
-                selectedLanguage.value
-            );
+            const returnedLanguage =
+                extractLanguage(updatedPreference);
 
-            setSavedLanguage(selectedLanguage.value);
+            const finalLanguage =
+                returnedLanguage &&
+                languages.some(
+                    (item) =>
+                        item.value === returnedLanguage
+                )
+                    ? returnedLanguage
+                    : selectedLanguage.value;
+
+            saveCachedLanguage(finalLanguage);
+
+            setLanguage(finalLanguage);
+            setSavedLanguage(finalLanguage);
+
+            const finalLanguageInfo =
+                languages.find(
+                    (item) =>
+                        item.value === finalLanguage
+                ) || selectedLanguage;
 
             setMessage(
-                `Language changed to ${selectedLanguage.nativeLabel}.`
+                `Language changed to ${finalLanguageInfo.nativeLabel}.`
             );
 
-            // Notify the rest of the application that the language changed.
             window.dispatchEvent(
                 new CustomEvent("aipms-language-changed", {
                     detail: {
-                        language: selectedLanguage.value,
+                        language: finalLanguage,
                     },
                 })
             );
-        } catch {
+        } catch (requestError) {
             setError(
-                "Unable to save language preference. Please try again."
+                getErrorMessage(
+                    requestError,
+                    "Unable to save language preference. Please try again."
+                )
             );
+        } finally {
+            setSaving(false);
         }
     };
-
-    // ========================================================
-    // RESET
-    // ========================================================
 
     const handleReset = () => {
         setLanguage(savedLanguage);
@@ -110,30 +352,19 @@ function ChangeLanguagePreferences() {
         setError("");
     };
 
-    // ========================================================
-    // LANGUAGE CHANGE
-    // ========================================================
-
     const handleLanguageChange = (event) => {
         setLanguage(event.target.value);
         setMessage("");
         setError("");
     };
 
-    // ========================================================
-    // CURRENT LANGUAGE
-    // ========================================================
-
     const currentLanguage =
-        SUPPORTED_LANGUAGES.find(
+        languages.find(
             (item) => item.value === savedLanguage
-        ) || SUPPORTED_LANGUAGES[0];
+        ) || languages[0] || DEFAULT_LANGUAGES[0];
 
-    const hasChanges = language !== savedLanguage;
-
-    // ========================================================
-    // RENDER
-    // ========================================================
+    const hasChanges =
+        language !== savedLanguage;
 
     return (
         <div className="w-full">
@@ -148,10 +379,6 @@ function ChangeLanguagePreferences() {
                     dark:bg-[#0b2038]
                 "
             >
-                {/* ==================================================
-                    HEADER
-                ================================================== */}
-
                 <div
                     className="
                         flex
@@ -209,15 +436,7 @@ function ChangeLanguagePreferences() {
                     </div>
                 </div>
 
-                {/* ==================================================
-                    BODY
-                ================================================== */}
-
                 <div className="space-y-6 p-5">
-                    {/* ==================================================
-                        CURRENT LANGUAGE
-                    ================================================== */}
-
                     <div
                         className="
                             rounded-xl
@@ -267,10 +486,6 @@ function ChangeLanguagePreferences() {
                         </div>
                     </div>
 
-                    {/* ==================================================
-                        LANGUAGE SELECT
-                    ================================================== */}
-
                     <div>
                         <label
                             htmlFor="language"
@@ -290,6 +505,7 @@ function ChangeLanguagePreferences() {
                             id="language"
                             value={language}
                             onChange={handleLanguageChange}
+                            disabled={loading || saving}
                             className="
                                 w-full
                                 rounded-xl
@@ -305,12 +521,14 @@ function ChangeLanguagePreferences() {
                                 focus:border-blue-500
                                 focus:ring-2
                                 focus:ring-blue-500/20
+                                disabled:cursor-not-allowed
+                                disabled:opacity-60
                                 dark:border-blue-900/70
                                 dark:bg-[#071a2d]
                                 dark:text-white
                             "
                         >
-                            {SUPPORTED_LANGUAGES.map((item) => (
+                            {languages.map((item) => (
                                 <option
                                     key={item.value}
                                     value={item.value}
@@ -321,12 +539,8 @@ function ChangeLanguagePreferences() {
                         </select>
                     </div>
 
-                    {/* ==================================================
-                        LANGUAGE OPTIONS
-                    ================================================== */}
-
                     <div className="grid gap-3 sm:grid-cols-2">
-                        {SUPPORTED_LANGUAGES.map((item) => {
+                        {languages.map((item) => {
                             const selected =
                                 language === item.value;
 
@@ -334,6 +548,7 @@ function ChangeLanguagePreferences() {
                                 <button
                                     key={item.value}
                                     type="button"
+                                    disabled={loading || saving}
                                     onClick={() =>
                                         handleLanguageChange({
                                             target: {
@@ -347,6 +562,8 @@ function ChangeLanguagePreferences() {
                                         p-4
                                         text-left
                                         transition-all
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-60
                                         ${
                                             selected
                                                 ? `
@@ -414,10 +631,6 @@ function ChangeLanguagePreferences() {
                         })}
                     </div>
 
-                    {/* ==================================================
-                        SUCCESS MESSAGE
-                    ================================================== */}
-
                     {message && (
                         <div
                             className="
@@ -456,10 +669,6 @@ function ChangeLanguagePreferences() {
                             </p>
                         </div>
                     )}
-
-                    {/* ==================================================
-                        ERROR MESSAGE
-                    ================================================== */}
 
                     {error && (
                         <div
@@ -500,10 +709,6 @@ function ChangeLanguagePreferences() {
                         </div>
                     )}
 
-                    {/* ==================================================
-                        ACTIONS
-                    ================================================== */}
-
                     <div
                         className="
                             flex
@@ -520,7 +725,11 @@ function ChangeLanguagePreferences() {
                         <button
                             type="button"
                             onClick={handleReset}
-                            disabled={!hasChanges}
+                            disabled={
+                                !hasChanges ||
+                                loading ||
+                                saving
+                            }
                             className="
                                 rounded-xl
                                 border
@@ -545,7 +754,11 @@ function ChangeLanguagePreferences() {
                         <button
                             type="button"
                             onClick={handleSave}
-                            disabled={!hasChanges}
+                            disabled={
+                                !hasChanges ||
+                                loading ||
+                                saving
+                            }
                             className="
                                 inline-flex
                                 items-center
@@ -566,8 +779,9 @@ function ChangeLanguagePreferences() {
                             "
                         >
                             <Save className="h-4 w-4" />
-
-                            Save Language
+                            {saving
+                                ? "Saving..."
+                                : "Save Language"}
                         </button>
                     </div>
                 </div>

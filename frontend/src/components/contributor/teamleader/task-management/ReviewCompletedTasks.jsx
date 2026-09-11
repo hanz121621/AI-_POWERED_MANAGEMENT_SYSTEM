@@ -1,197 +1,111 @@
-// ============================================================
-// AIPMS — TEAM LEADER REVIEW COMPLETED TASKS
-//
-// Use Case:
-// TASK-009 — Review Completed Tasks
-//
-// Primary Actor:
-// Team Leader
-//
-// Goal:
-// Allow a Team Leader to review tasks marked as completed,
-// inspect completion information, and approve or request
-// changes when necessary.
-//
-// IMPORTANT:
-// - Backend MUST enforce Team Leader authorization.
-// - Backend MUST validate team/task relationships.
-// - Review decisions MUST be persisted by the backend.
-// - Review actions SHOULD be recorded in activity history.
-// - Notifications SHOULD be handled by the backend.
-// - No localStorage is used.
-// ============================================================
 
 import React, { useEffect, useMemo, useState } from "react";
+import {
+    AlertCircle,
+    CheckCircle2,
+    Eye,
+    Filter,
+    Loader2,
+    MessageSquare,
+    RefreshCw,
+    Search,
+    X,
+} from "lucide-react";
 
-// ============================================================
-// REVIEW STATUS
-// ============================================================
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import api from "@/services/api";
 
 const REVIEW_OPTIONS = [
-    {
-        value: "Approved",
-        description:
-            "The completed task has been reviewed and accepted.",
-    },
-    {
-        value: "Changes Requested",
-        description:
-            "The task requires additional work before it can be accepted.",
-    },
+    "Approved",
+    "Changes Requested",
 ];
 
-// ============================================================
-// HELPERS
-// ============================================================
-
-const getTaskId = (task) => {
-    if (!task) return null;
-
-    return (
-        task.id ??
-        task.taskId ??
-        task.Id ??
-        task.TaskId ??
-        null
-    );
-};
-
-const getTaskTitle = (task) => {
-    return (
-        task?.title ??
-        task?.taskTitle ??
-        task?.name ??
-        task?.Title ??
-        "Untitled Task"
-    );
-};
-
-const getDescription = (task) => {
-    return (
-        task?.description ??
-        task?.taskDescription ??
-        task?.Description ??
-        ""
-    );
-};
-
-const getStatus = (task) => {
-    return (
-        task?.status ??
-        task?.taskStatus ??
-        task?.Status ??
-        task?.TaskStatus ??
-        "Completed"
-    );
-};
-
-const getProjectName = (task) => {
-    if (!task) return "No Project";
-
-    if (typeof task.project === "string") {
-        return task.project;
+const normalizeValue = (value) => {
+    if (value === null || value === undefined) {
+        return "";
     }
 
-    if (task.project?.name) {
-        return task.project.name;
-    }
-
-    if (task.project?.title) {
-        return task.project.title;
-    }
-
-    return (
-        task.projectName ??
-        task.projectTitle ??
-        "No Project"
-    );
+    return String(value).trim();
 };
 
-const getSprintName = (task) => {
-    if (!task) return "No Sprint";
+const getTaskId = (task) =>
+    task?.id ??
+    task?.Id ??
+    task?.taskId ??
+    task?.TaskId ??
+    "";
 
-    if (typeof task.sprint === "string") {
-        return task.sprint;
-    }
+const getTaskTitle = (task) =>
+    task?.title ??
+    task?.Title ??
+    task?.taskTitle ??
+    task?.TaskTitle ??
+    "Untitled Task";
 
-    if (task.sprint?.name) {
-        return task.sprint.name;
-    }
+const getDescription = (task) =>
+    task?.description ??
+    task?.Description ??
+    "";
 
-    if (task.sprint?.title) {
-        return task.sprint.title;
-    }
+const getProjectName = (task) =>
+    task?.projectName ??
+    task?.ProjectName ??
+    task?.project?.name ??
+    task?.Project?.Name ??
+    task?.project ??
+    task?.Project ??
+    "No Project";
 
-    return (
-        task.sprintName ??
-        task.sprintTitle ??
-        "No Sprint"
-    );
-};
+const getSprintName = (task) =>
+    task?.sprintName ??
+    task?.SprintName ??
+    task?.sprint?.name ??
+    task?.Sprint?.Name ??
+    task?.sprint ??
+    task?.Sprint ??
+    "No Sprint";
 
-const getAssigneeName = (task) => {
-    if (!task) return "Unassigned";
+const getAssigneeName = (task) =>
+    task?.assignedContributorName ??
+    task?.AssignedContributorName ??
+    task?.contributorName ??
+    task?.ContributorName ??
+    task?.assignedContributor?.fullName ??
+    task?.AssignedContributor?.FullName ??
+    task?.assignedContributor?.name ??
+    task?.AssignedContributor?.Name ??
+    "Unassigned";
 
-    if (typeof task.assignedTo === "string") {
-        return task.assignedTo;
-    }
+const getPriority = (task) =>
+    task?.priority ??
+    task?.Priority ??
+    "Medium";
 
-    if (task.assignedTo?.fullName) {
-        return task.assignedTo.fullName;
-    }
+const getDeadline = (task) =>
+    task?.dueDate ??
+    task?.DueDate ??
+    task?.deadline ??
+    task?.Deadline ??
+    null;
 
-    if (task.assignee?.fullName) {
-        return task.assignee.fullName;
-    }
-
-    if (task.assignedUser?.fullName) {
-        return task.assignedUser.fullName;
-    }
-
-    return (
-        task.assignedToName ??
-        task.assigneeName ??
-        task.assignedUserName ??
-        "Unassigned"
-    );
-};
-
-const getPriority = (task) => {
-    return (
-        task?.priority ??
-        task?.priorityName ??
-        task?.Priority ??
-        "Medium"
-    );
-};
-
-const getDeadline = (task) => {
-    return (
-        task?.deadline ??
-        task?.dueDate ??
-        task?.Deadline ??
-        task?.DueDate ??
-        null
-    );
-};
-
-const getCompletedAt = (task) => {
-    return (
-        task?.completedAt ??
-        task?.completionDate ??
-        task?.completedDate ??
-        task?.CompletedAt ??
-        task?.CompletedDate ??
-        null
-    );
-};
+const getCompletedAt = (task) =>
+    task?.completedAt ??
+    task?.CompletedAt ??
+    task?.completionDate ??
+    task?.CompletionDate ??
+    task?.updatedAt ??
+    task?.UpdatedAt ??
+    null;
 
 const getProgress = (task) => {
     const value =
         task?.progress ??
-        task?.progressPercentage ??
-        task?.completionPercentage ??
         task?.Progress ??
+        task?.completionPercentage ??
+        task?.CompletionPercentage ??
         100;
 
     const number = Number(value);
@@ -200,79 +114,64 @@ const getProgress = (task) => {
         return 100;
     }
 
-    return Math.max(
-        0,
-        Math.min(100, number)
-    );
+    return Math.min(100, Math.max(0, number));
 };
 
-const getReviewStatus = (task) => {
-    return (
-        task?.reviewStatus ??
-        task?.ReviewStatus ??
-        task?.completionReviewStatus ??
-        task?.CompletionReviewStatus ??
-        "Pending Review"
-    );
-};
+const getReviewStatus = (task) =>
+    task?.reviewStatus ??
+    task?.ReviewStatus ??
+    "";
+
+const getReviewComment = (task) =>
+    task?.reviewComment ??
+    task?.ReviewComment ??
+    task?.comment ??
+    task?.Comment ??
+    "";
+
+const getStatus = (task) =>
+    task?.status ??
+    task?.Status ??
+    task?.taskStatus ??
+    task?.TaskStatus ??
+    "";
 
 const isCompleted = (task) => {
-    const status = String(
-        getStatus(task)
-    ).toLowerCase();
+    const status = getStatus(task);
 
-    return (
-        status.includes("completed") ||
-        status.includes("done")
-    );
+    if (typeof status === "number") {
+        return status === 4;
+    }
+
+    const normalized = normalizeValue(status).toLowerCase();
+
+    return [
+        "completed",
+        "complete",
+        "done",
+        "4",
+    ].includes(normalized);
 };
 
 const isApproved = (task) => {
-    const reviewStatus = String(
+    const status = normalizeValue(
         getReviewStatus(task)
     ).toLowerCase();
 
-    return reviewStatus ===
-        "approved";
+    return status === "approved";
 };
 
-const formatDate = (value) => {
-    if (!value) return "Not available";
+const isChangesRequested = (task) => {
+    const status = normalizeValue(
+        getReviewStatus(task)
+    ).toLowerCase();
 
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return "Not available";
-    }
-
-    return date.toLocaleDateString(
-        undefined,
-        {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-        }
-    );
-};
-
-const formatDateTime = (value) => {
-    if (!value) return "Not available";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return "Not available";
-    }
-
-    return date.toLocaleString(
-        undefined,
-        {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        }
+    return (
+        status === "changes requested" ||
+        status === "changesrequested" ||
+        status === "needs revision" ||
+        status === "needsrevision" ||
+        status === "rejected"
     );
 };
 
@@ -281,99 +180,104 @@ const normalizeTasks = (value) => {
         return value;
     }
 
-    if (Array.isArray(value?.items)) {
-        return value.items;
+    if (Array.isArray(value?.tasks)) {
+        return value.tasks;
+    }
+
+    if (Array.isArray(value?.Tasks)) {
+        return value.Tasks;
     }
 
     if (Array.isArray(value?.data)) {
         return value.data;
     }
 
-    if (Array.isArray(value?.tasks)) {
-        return value.tasks;
+    if (Array.isArray(value?.data?.tasks)) {
+        return value.data.tasks;
+    }
+
+    if (Array.isArray(value?.data?.Tasks)) {
+        return value.data.Tasks;
     }
 
     return [];
 };
 
-// ============================================================
-// BADGES
-// ============================================================
-
-function PriorityBadge({ priority }) {
-    const value = String(
-        priority || ""
-    ).toLowerCase();
-
-    let classes =
-        "bg-gray-100 text-gray-700";
-
-    if (value === "critical") {
-        classes =
-            "bg-red-100 text-red-700";
-    } else if (value === "high") {
-        classes =
-            "bg-orange-100 text-orange-700";
-    } else if (value === "medium") {
-        classes =
-            "bg-yellow-100 text-yellow-700";
-    } else if (value === "low") {
-        classes =
-            "bg-green-100 text-green-700";
+const formatDate = (value) => {
+    if (!value) {
+        return "—";
     }
 
-    return (
-        <span
-            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${classes}`}
-        >
-            {priority}
-        </span>
-    );
-}
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return normalizeValue(value);
+    }
+
+    return date.toLocaleDateString();
+};
+
+const formatDateTime = (value) => {
+    if (!value) {
+        return "—";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return normalizeValue(value);
+    }
+
+    return date.toLocaleString();
+};
+
+const getReviewBadgeClasses = (status) => {
+    const value = normalizeValue(status).toLowerCase();
+
+    if (value === "approved") {
+        return "bg-green-100 text-green-700";
+    }
+
+    if (
+        value.includes("change") ||
+        value.includes("revision") ||
+        value.includes("reject")
+    ) {
+        return "bg-red-100 text-red-700";
+    }
+
+    return "bg-yellow-100 text-yellow-700";
+};
 
 function ReviewBadge({ status }) {
-    const value = String(
-        status || ""
-    ).toLowerCase();
+    const value = normalizeValue(status);
 
-    let classes =
-        "bg-yellow-100 text-yellow-700";
-
-    if (value.includes("approved")) {
-        classes =
-            "bg-green-100 text-green-700";
-    } else if (
-        value.includes("change") ||
-        value.includes("rejected")
-    ) {
-        classes =
-            "bg-red-100 text-red-700";
+    if (!value) {
+        return (
+            <span className="inline-flex rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-700">
+                Pending Review
+            </span>
+        );
     }
 
     return (
         <span
-            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${classes}`}
+            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getReviewBadgeClasses(
+                value
+            )}`}
         >
-            {status}
+            {value}
         </span>
     );
 }
-
-// ============================================================
-// COMPONENT
-// ============================================================
 
 export default function ReviewCompletedTasks({
     tasks: initialTasks = [],
-
+    sprintId,
     loadTasks,
-
     onRefresh,
-
     onReview,
-
     onTaskSelect,
-
     canReview = true,
 }) {
     const [tasks, setTasks] = useState(
@@ -419,44 +323,81 @@ export default function ReviewCompletedTasks({
     const [success, setSuccess] =
         useState("");
 
-    // ========================================================
-    // SYNC DATA
-    // ========================================================
-
     useEffect(() => {
         setTasks(
-            normalizeTasks(
-                initialTasks
-            )
+            normalizeTasks(initialTasks)
         );
     }, [initialTasks]);
 
-    // ========================================================
-    // COMPLETED TASKS
-    // ========================================================
+    const refreshTasks = async () => {
+        setError("");
+        setSuccess("");
+
+        try {
+            setIsLoading(true);
+
+            let result;
+
+            if (loadTasks) {
+                result = await Promise.resolve(
+                    loadTasks()
+                );
+            } else if (sprintId) {
+                const response = await api.get(
+                    `/tasks/team-leader/sprint/${sprintId}`
+                );
+
+                result = response?.data;
+            } else if (onRefresh) {
+                result = await Promise.resolve(
+                    onRefresh()
+                );
+            }
+
+            if (result !== undefined) {
+                setTasks(
+                    normalizeTasks(result)
+                );
+            }
+
+            setSuccess(
+                "Completed tasks refreshed."
+            );
+
+            setTimeout(() => {
+                setSuccess("");
+            }, 2000);
+        } catch (err) {
+            setError(
+                err?.response?.data?.message ??
+                    err?.message ??
+                    "Unable to load completed tasks."
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (sprintId && !loadTasks) {
+            refreshTasks();
+        }
+    }, [sprintId]);
 
     const completedTasks = useMemo(() => {
         return tasks.filter(
-            (task) =>
-                isCompleted(task)
+            (task) => isCompleted(task)
         );
     }, [tasks]);
-
-    // ========================================================
-    // FILTER OPTIONS
-    // ========================================================
 
     const projectOptions = useMemo(() => {
         return [
             ...new Set(
                 completedTasks
-                    .map(
-                        getProjectName
-                    )
+                    .map(getProjectName)
                     .filter(
                         (value) =>
-                            value !==
-                            "No Project"
+                            value !== "No Project"
                     )
             ),
         ].sort();
@@ -466,21 +407,14 @@ export default function ReviewCompletedTasks({
         return [
             ...new Set(
                 completedTasks
-                    .map(
-                        getSprintName
-                    )
+                    .map(getSprintName)
                     .filter(
                         (value) =>
-                            value !==
-                            "No Sprint"
+                            value !== "No Sprint"
                     )
             ),
         ].sort();
     }, [completedTasks]);
-
-    // ========================================================
-    // FILTERED TASKS
-    // ========================================================
 
     const filteredTasks = useMemo(() => {
         const search =
@@ -515,50 +449,37 @@ export default function ReviewCompletedTasks({
                         task
                     ).toLowerCase();
 
-                const reviewStatus =
-                    String(
-                        getReviewStatus(
-                            task
-                        )
-                    ).toLowerCase();
-
                 const matchesSearch =
                     !search ||
-                    title.includes(
-                        search
-                    ) ||
-                    description.includes(
-                        search
-                    ) ||
-                    project.includes(
-                        search
-                    ) ||
-                    sprint.includes(
-                        search
-                    ) ||
-                    assignee.includes(
-                        search
-                    );
+                    title.includes(search) ||
+                    description.includes(search) ||
+                    project.includes(search) ||
+                    sprint.includes(search) ||
+                    assignee.includes(search);
 
                 const matchesProject =
-                    projectFilter ===
-                        "all" ||
-                    getProjectName(
-                        task
-                    ) === projectFilter;
+                    projectFilter === "all" ||
+                    getProjectName(task) ===
+                        projectFilter;
 
                 const matchesSprint =
-                    sprintFilter ===
-                        "all" ||
-                    getSprintName(
+                    sprintFilter === "all" ||
+                    getSprintName(task) ===
+                        sprintFilter;
+
+                const reviewStatus =
+                    getReviewStatus(
                         task
-                    ) === sprintFilter;
+                    );
 
                 const matchesReview =
-                    reviewFilter ===
-                        "all" ||
-                    reviewStatus ===
-                        reviewFilter.toLowerCase();
+                    reviewFilter === "all" ||
+                    (reviewFilter === "pending" &&
+                        !reviewStatus) ||
+                    (reviewFilter === "approved" &&
+                        isApproved(task)) ||
+                    (reviewFilter === "changes" &&
+                        isChangesRequested(task));
 
                 return (
                     matchesSearch &&
@@ -576,24 +497,11 @@ export default function ReviewCompletedTasks({
         reviewFilter,
     ]);
 
-    // ========================================================
-    // STATISTICS
-    // ========================================================
-
     const statistics = useMemo(() => {
         const pending =
             completedTasks.filter(
                 (task) =>
-                    !isApproved(task) &&
-                    !String(
-                        getReviewStatus(
-                            task
-                        )
-                    )
-                        .toLowerCase()
-                        .includes(
-                            "change"
-                        )
+                    !getReviewStatus(task)
             ).length;
 
         const approved =
@@ -605,122 +513,35 @@ export default function ReviewCompletedTasks({
         const changesRequested =
             completedTasks.filter(
                 (task) =>
-                    String(
-                        getReviewStatus(
-                            task
-                        )
-                    )
-                        .toLowerCase()
-                        .includes(
-                            "change"
-                        )
+                    isChangesRequested(task)
             ).length;
 
         return {
-            total:
-                completedTasks.length,
+            total: completedTasks.length,
             pending,
             approved,
             changesRequested,
         };
     }, [completedTasks]);
 
-    // ========================================================
-    // REFRESH
-    // ========================================================
-
-    const refreshTasks = async () => {
-        setError("");
-        setSuccess("");
-
-        try {
-            setIsLoading(true);
-
-            if (loadTasks) {
-                const result =
-                    await Promise.resolve(
-                        loadTasks()
-                    );
-
-                if (result) {
-                    setTasks(
-                        normalizeTasks(
-                            result
-                        )
-                    );
-                }
-            }
-
-            if (onRefresh) {
-                const result =
-                    await Promise.resolve(
-                        onRefresh()
-                    );
-
-                if (result) {
-                    setTasks(
-                        normalizeTasks(
-                            result
-                        )
-                    );
-                }
-            }
-
-            setSuccess(
-                "Completed tasks refreshed."
-            );
-
-            setTimeout(() => {
-                setSuccess("");
-            }, 2000);
-        } catch (err) {
-            console.error(
-                "Review Completed Tasks Error:",
-                err
-            );
-
-            setError(
-                err?.response?.data?.message ??
-                    err?.message ??
-                    "Unable to load completed tasks."
-            );
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // ========================================================
-    // OPEN DETAILS
-    // ========================================================
-
-    const handleViewTask = (
-        task
-    ) => {
-        setSelectedTask(
-            task
-        );
-
-        setShowDetails(
-            true
-        );
+    const handleViewTask = (task) => {
+        setSelectedTask(task);
+        setShowDetails(true);
 
         if (onTaskSelect) {
-            onTaskSelect(
-                task
-            );
+            onTaskSelect(task);
         }
     };
 
-    // ========================================================
-    // OPEN REVIEW
-    // ========================================================
+    const handleOpenReview = (task) => {
+        if (!canReview) {
+            setError(
+                "You are not authorized to review completed tasks."
+            );
+            return;
+        }
 
-    const handleOpenReview = (
-        task
-    ) => {
-        setSelectedTask(
-            task
-        );
+        setSelectedTask(task);
 
         setReviewDecision(
             isApproved(task)
@@ -728,649 +549,454 @@ export default function ReviewCompletedTasks({
                 : "Approved"
         );
 
-        setReviewComment("");
+        setReviewComment(
+            getReviewComment(task)
+        );
 
         setError("");
-
-        setShowReview(
-            true
-        );
+        setSuccess("");
+        setShowReview(true);
     };
 
-    // ========================================================
-    // SUBMIT REVIEW
-    // ========================================================
+    const handleSubmitReview = async (event) => {
+        event.preventDefault();
 
-    const handleSubmitReview =
-        async (event) => {
-            event.preventDefault();
+        setError("");
+        setSuccess("");
 
-            setError("");
-            setSuccess("");
+        if (!canReview) {
+            setError(
+                "You are not authorized to review completed tasks."
+            );
+            return;
+        }
 
-            if (!canReview) {
-                setError(
-                    "You are not authorized to review completed tasks."
-                );
-                return;
-            }
+        if (!selectedTask) {
+            setError(
+                "No completed task has been selected."
+            );
+            return;
+        }
 
-            if (!selectedTask) {
-                setError(
-                    "No completed task has been selected."
-                );
-                return;
-            }
+        const taskId =
+            getTaskId(selectedTask);
 
-            const taskId =
-                getTaskId(
-                    selectedTask
-                );
+        if (!taskId) {
+            setError(
+                "The selected task does not have a valid task ID."
+            );
+            return;
+        }
 
-            if (!taskId) {
-                setError(
-                    "The selected task does not have a valid task ID."
-                );
-                return;
-            }
+        if (!reviewDecision) {
+            setError(
+                "Please select a review decision."
+            );
+            return;
+        }
 
-            if (
-                !reviewDecision
-            ) {
-                setError(
-                    "Please select a review decision."
-                );
-                return;
-            }
+        if (
+            reviewComment.trim().length >
+            2000
+        ) {
+            setError(
+                "The review comment cannot exceed 2000 characters."
+            );
+            return;
+        }
 
-            if (
-                reviewComment.trim()
-                    .length >
-                2000
-            ) {
-                setError(
-                    "The review comment cannot exceed 2000 characters."
-                );
-                return;
-            }
+        if (!onReview) {
+            setError(
+                "The review save operation is not connected yet."
+            );
+            return;
+        }
 
-            const reviewPayload = {
-                taskId,
-                reviewStatus:
-                    reviewDecision,
-                comment:
-                    reviewComment.trim() ||
-                    null,
-            };
-
-            try {
-                setIsSaving(
-                    true
-                );
-
-                if (!onReview) {
-                    throw new Error(
-                        "No completed-task review handler was provided."
-                    );
-                }
-
-                await Promise.resolve(
-                    onReview(
-                        selectedTask,
-                        reviewDecision,
-                        reviewPayload
-                    )
-                );
-
-                setSuccess(
-                    reviewDecision ===
-                        "Approved"
-                        ? "Task approved successfully."
-                        : "Changes requested successfully."
-                );
-
-                setTasks(
-                    (currentTasks) =>
-                        currentTasks.map(
-                            (task) => {
-                                const id =
-                                    getTaskId(
-                                        task
-                                    );
-
-                                if (
-                                    String(
-                                        id
-                                    ) !==
-                                    String(
-                                        taskId
-                                    )
-                                ) {
-                                    return task;
-                                }
-
-                                return {
-                                    ...task,
-                                    reviewStatus:
-                                        reviewDecision,
-                                    ReviewStatus:
-                                        reviewDecision,
-                                    reviewComment:
-                                        reviewComment.trim() ||
-                                        null,
-                                };
-                            }
-                        )
-                );
-
-                setTimeout(() => {
-                    setShowReview(
-                        false
-                    );
-                    setSelectedTask(
-                        null
-                    );
-                    setSuccess("");
-                }, 700);
-            } catch (err) {
-                console.error(
-                    "Submit Task Review Error:",
-                    err
-                );
-
-                setError(
-                    err?.response?.data
-                        ?.message ??
-                        err?.message ??
-                        "Unable to save the task review."
-                );
-            } finally {
-                setIsSaving(
-                    false
-                );
-            }
+        const reviewPayload = {
+            taskId,
+            reviewStatus:
+                reviewDecision,
+            comment:
+                reviewComment.trim() ||
+                null,
         };
 
-    // ========================================================
-    // CLEAR FILTERS
-    // ========================================================
+        try {
+            setIsSaving(true);
+
+            await Promise.resolve(
+                onReview(
+                    selectedTask,
+                    reviewDecision,
+                    reviewPayload
+                )
+            );
+
+            setSuccess(
+                reviewDecision === "Approved"
+                    ? "Task approved successfully."
+                    : "Changes requested successfully."
+            );
+
+            setTasks(
+                (currentTasks) =>
+                    currentTasks.map(
+                        (task) => {
+                            const id =
+                                getTaskId(
+                                    task
+                                );
+
+                            if (
+                                String(id) !==
+                                String(taskId)
+                            ) {
+                                return task;
+                            }
+
+                            return {
+                                ...task,
+                                reviewStatus:
+                                    reviewDecision,
+                                ReviewStatus:
+                                    reviewDecision,
+                                reviewComment:
+                                    reviewComment.trim(),
+                                ReviewComment:
+                                    reviewComment.trim(),
+                            };
+                        }
+                    )
+            );
+
+            setSelectedTask(
+                (currentTask) => ({
+                    ...currentTask,
+                    reviewStatus:
+                        reviewDecision,
+                    ReviewStatus:
+                        reviewDecision,
+                    reviewComment:
+                        reviewComment.trim(),
+                    ReviewComment:
+                        reviewComment.trim(),
+                })
+            );
+
+            setShowReview(false);
+
+            setTimeout(() => {
+                setSuccess("");
+            }, 3000);
+        } catch (err) {
+            setError(
+                err?.response?.data?.message ??
+                    err?.message ??
+                    "Unable to review task. Please try again."
+            );
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const clearFilters = () => {
         setSearchTerm("");
-        setProjectFilter(
-            "all"
-        );
-        setSprintFilter(
-            "all"
-        );
-        setReviewFilter(
-            "all"
-        );
+        setProjectFilter("all");
+        setSprintFilter("all");
+        setReviewFilter("all");
     };
-
-    // ========================================================
-    // ACCESS DENIED
-    // ========================================================
-
-    if (!canReview) {
-        return (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-6">
-                <div className="flex gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 font-bold text-red-600">
-                        !
-                    </div>
-
-                    <div>
-                        <h2 className="font-semibold text-red-800">
-                            Access Denied
-                        </h2>
-
-                        <p className="mt-1 text-sm text-red-700">
-                            You are not authorized to
-                            review completed team tasks.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // ========================================================
-    // UI
-    // ========================================================
 
     return (
         <div className="space-y-6">
-            {/* =================================================
-                HEADER
-            ================================================= */}
-
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-4 rounded-xl border border-border/70 bg-background p-5 shadow-sm md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
+                    <h2 className="text-xl font-semibold tracking-tight">
                         Review Completed Tasks
                     </h2>
 
-                    <p className="mt-1 text-sm text-gray-600">
-                        Review completed work submitted by
-                        Developers and Staff on your team.
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Review completed team tasks and provide approval or feedback.
                     </p>
                 </div>
 
-                <button
+                <Button
                     type="button"
-                    onClick={
-                        refreshTasks
-                    }
-                    disabled={
-                        isLoading
-                    }
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    variant="outline"
+                    onClick={refreshTasks}
+                    disabled={isLoading}
+                    className="gap-2"
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className={`h-4 w-4 ${
-                            isLoading
-                                ? "animate-spin"
-                                : ""
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M4 4v5h5M20 20v-5h-5M5.64 18.36A9 9 0 1018.36 5.64"
-                        />
-                    </svg>
-
-                    {isLoading
-                        ? "Refreshing..."
-                        : "Refresh"}
-                </button>
+                    {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                        <RefreshCw className="h-4 w-4" />
+                    )}
+                    Refresh
+                </Button>
             </div>
 
-            {/* =================================================
-                ALERTS
-            ================================================= */}
+            {error && (
+                <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                    <span>{error}</span>
+                </div>
+            )}
 
             {success && (
-                <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-                    <p className="text-sm font-medium text-green-700">
-                        {success}
-                    </p>
+                <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+                    <span>{success}</span>
                 </div>
             )}
 
-            {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                    <p className="text-sm text-red-700">
-                        {error}
-                    </p>
-                </div>
-            )}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl border border-border/70 bg-background p-5 shadow-sm transition-transform hover:-translate-y-0.5">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-muted-foreground">
+                            Completed
+                        </p>
 
-            {/* =================================================
-                STATISTICS
-            ================================================= */}
+                        <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
+                    </div>
 
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                        Completed
-                    </p>
-
-                    <p className="mt-2 text-2xl font-bold text-gray-900">
+                    <p className="mt-3 text-3xl font-bold">
                         {statistics.total}
                     </p>
                 </div>
 
-                <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-5 shadow-sm">
-                    <p className="text-xs font-medium uppercase tracking-wide text-yellow-700">
-                        Pending Review
-                    </p>
+                <div className="rounded-xl border border-border/70 bg-background p-5 shadow-sm transition-transform hover:-translate-y-0.5">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-muted-foreground">
+                            Pending Review
+                        </p>
 
-                    <p className="mt-2 text-2xl font-bold text-yellow-700">
+                        <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                    </div>
+
+                    <p className="mt-3 text-3xl font-bold">
                         {statistics.pending}
                     </p>
                 </div>
 
-                <div className="rounded-xl border border-green-200 bg-green-50 p-5 shadow-sm">
-                    <p className="text-xs font-medium uppercase tracking-wide text-green-700">
-                        Approved
-                    </p>
+                <div className="rounded-xl border border-border/70 bg-background p-5 shadow-sm transition-transform hover:-translate-y-0.5">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-muted-foreground">
+                            Approved
+                        </p>
 
-                    <p className="mt-2 text-2xl font-bold text-green-700">
+                        <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
+                    </div>
+
+                    <p className="mt-3 text-3xl font-bold">
                         {statistics.approved}
                     </p>
                 </div>
 
-                <div className="rounded-xl border border-red-200 bg-red-50 p-5 shadow-sm">
-                    <p className="text-xs font-medium uppercase tracking-wide text-red-700">
-                        Changes Requested
-                    </p>
+                <div className="rounded-xl border border-border/70 bg-background p-5 shadow-sm transition-transform hover:-translate-y-0.5">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-muted-foreground">
+                            Changes Requested
+                        </p>
 
-                    <p className="mt-2 text-2xl font-bold text-red-700">
-                        {
-                            statistics.changesRequested
-                        }
+                        <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                    </div>
+
+                    <p className="mt-3 text-3xl font-bold">
+                        {statistics.changesRequested}
                     </p>
                 </div>
             </div>
 
-            {/* =================================================
-                FILTERS
-            ================================================= */}
+            <div className="rounded-xl border border-border/70 bg-background p-5 shadow-sm">
+                <div className="mb-4 flex items-center gap-2">
+                    <Filter className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="font-semibold">
+                        Filters
+                    </h3>
+                </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {/* Search */}
-                    <div className="lg:col-span-2">
-                        <label
-                            htmlFor="completed-task-search"
-                            className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500"
+                <div className="grid gap-4 lg:grid-cols-4">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+                        <Input
+                            value={searchTerm}
+                            onChange={(event) =>
+                                setSearchTerm(
+                                    event.target.value
+                                )
+                            }
+                            placeholder="Search tasks..."
+                            className="pl-9"
+                        />
+                    </div>
+
+                    <select
+                        value={projectFilter}
+                        onChange={(event) =>
+                            setProjectFilter(
+                                event.target.value
+                            )
+                        }
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                        <option value="all">
+                            All Projects
+                        </option>
+
+                        {projectOptions.map(
+                            (project) => (
+                                <option
+                                    key={project}
+                                    value={project}
+                                >
+                                    {project}
+                                </option>
+                            )
+                        )}
+                    </select>
+
+                    <select
+                        value={sprintFilter}
+                        onChange={(event) =>
+                            setSprintFilter(
+                                event.target.value
+                            )
+                        }
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                        <option value="all">
+                            All Sprints
+                        </option>
+
+                        {sprintOptions.map(
+                            (sprint) => (
+                                <option
+                                    key={sprint}
+                                    value={sprint}
+                                >
+                                    {sprint}
+                                </option>
+                            )
+                        )}
+                    </select>
+
+                    <select
+                        value={reviewFilter}
+                        onChange={(event) =>
+                            setReviewFilter(
+                                event.target.value
+                            )
+                        }
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                        <option value="all">
+                            All Review Status
+                        </option>
+
+                        <option value="pending">
+                            Pending Review
+                        </option>
+
+                        <option value="approved">
+                            Approved
+                        </option>
+
+                        <option value="changes">
+                            Changes Requested
+                        </option>
+                    </select>
+                </div>
+
+                {(searchTerm ||
+                    projectFilter !== "all" ||
+                    sprintFilter !== "all" ||
+                    reviewFilter !== "all") && (
+                    <div className="mt-4 flex justify-end">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={clearFilters}
+                            className="gap-2"
                         >
-                            Search
-                        </label>
+                            <X className="h-4 w-4" />
+                            Clear Filters
+                        </Button>
+                    </div>
+                )}
+            </div>
 
-                        <div className="relative">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z"
-                                />
-                            </svg>
+            <div className="rounded-xl border border-border/70 bg-background shadow-sm">
+                <div className="border-b border-border/70 p-5">
+                    <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h3 className="font-semibold">
+                                Completed Tasks
+                            </h3>
 
-                            <input
-                                id="completed-task-search"
-                                type="text"
-                                value={
-                                    searchTerm
-                                }
-                                onChange={(
-                                    event
-                                ) =>
-                                    setSearchTerm(
-                                        event
-                                            .target
-                                            .value
-                                    )
-                                }
-                                placeholder="Search completed tasks..."
-                                className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                            />
+                            <p className="text-sm text-muted-foreground">
+                                Showing{" "}
+                                {filteredTasks.length}{" "}
+                                of{" "}
+                                {completedTasks.length}{" "}
+                                completed tasks
+                            </p>
                         </div>
                     </div>
-
-                    {/* Project */}
-                    <div>
-                        <label
-                            htmlFor="completed-project-filter"
-                            className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500"
-                        >
-                            Project
-                        </label>
-
-                        <select
-                            id="completed-project-filter"
-                            value={
-                                projectFilter
-                            }
-                            onChange={(
-                                event
-                            ) =>
-                                setProjectFilter(
-                                    event
-                                        .target
-                                        .value
-                                )
-                            }
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        >
-                            <option value="all">
-                                All Projects
-                            </option>
-
-                            {projectOptions.map(
-                                (project) => (
-                                    <option
-                                        key={
-                                            project
-                                        }
-                                        value={
-                                            project
-                                        }
-                                    >
-                                        {project}
-                                    </option>
-                                )
-                            )}
-                        </select>
-                    </div>
-
-                    {/* Sprint */}
-                    <div>
-                        <label
-                            htmlFor="completed-sprint-filter"
-                            className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500"
-                        >
-                            Sprint
-                        </label>
-
-                        <select
-                            id="completed-sprint-filter"
-                            value={
-                                sprintFilter
-                            }
-                            onChange={(
-                                event
-                            ) =>
-                                setSprintFilter(
-                                    event
-                                        .target
-                                        .value
-                                )
-                            }
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        >
-                            <option value="all">
-                                All Sprints
-                            </option>
-
-                            {sprintOptions.map(
-                                (sprint) => (
-                                    <option
-                                        key={
-                                            sprint
-                                        }
-                                        value={
-                                            sprint
-                                        }
-                                    >
-                                        {sprint}
-                                    </option>
-                                )
-                            )}
-                        </select>
-                    </div>
-
-                    {/* Review status */}
-                    <div>
-                        <label
-                            htmlFor="review-status-filter"
-                            className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500"
-                        >
-                            Review
-                        </label>
-
-                        <select
-                            id="review-status-filter"
-                            value={
-                                reviewFilter
-                            }
-                            onChange={(
-                                event
-                            ) =>
-                                setReviewFilter(
-                                    event
-                                        .target
-                                        .value
-                                )
-                            }
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        >
-                            <option value="all">
-                                All Reviews
-                            </option>
-
-                            <option value="Pending Review">
-                                Pending Review
-                            </option>
-
-                            <option value="Approved">
-                                Approved
-                            </option>
-
-                            <option value="Changes Requested">
-                                Changes Requested
-                            </option>
-                        </select>
-                    </div>
                 </div>
 
-                <div className="mt-4">
-                    <button
-                        type="button"
-                        onClick={
-                            clearFilters
-                        }
-                        className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                        Clear Filters
-                    </button>
-                </div>
-            </div>
-
-            {/* =================================================
-                RESULT COUNT
-            ================================================= */}
-
-            <div>
-                <p className="text-sm text-gray-600">
-                    Showing{" "}
-                    <strong className="text-gray-900">
-                        {
-                            filteredTasks.length
-                        }
-                    </strong>{" "}
-                    completed task
-                    {filteredTasks.length !==
-                    1
-                        ? "s"
-                        : ""}
-                </p>
-            </div>
-
-            {/* =================================================
-                EMPTY STATE
-            ================================================= */}
-
-            {filteredTasks.length ===
-            0 ? (
-                <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-7 w-7"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M9 12l2 2 4-4"
-                            />
-
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M5 5h14v14H5z"
-                            />
-                        </svg>
+                {isLoading ? (
+                    <div className="flex min-h-48 items-center justify-center">
+                        <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
                     </div>
+                ) : filteredTasks.length === 0 ? (
+                    <div className="flex min-h-48 flex-col items-center justify-center px-6 text-center">
+                        <CheckCircle2 className="mb-3 h-10 w-10 text-muted-foreground" />
 
-                    <h3 className="mt-4 text-lg font-semibold text-gray-900">
-                        No completed tasks found
-                    </h3>
+                        <h4 className="font-semibold">
+                            No completed tasks found
+                        </h4>
 
-                    <p className="mt-1 text-sm text-gray-600">
-                        There are no completed tasks
-                        matching the current filters.
-                    </p>
-
-                    <button
-                        type="button"
-                        onClick={
-                            clearFilters
-                        }
-                        className="mt-5 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                        Clear Filters
-                    </button>
-                </div>
-            ) : (
-                /* =================================================
-                   TASK TABLE
-                ================================================= */
-
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                    <div className="hidden overflow-x-auto lg:block">
-                        <table className="w-full">
-                            <thead className="border-b border-gray-200 bg-gray-50">
-                                <tr>
-                                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                            There are no completed tasks matching the selected filters.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[1000px] text-sm">
+                            <thead>
+                                <tr className="border-b border-border/70 bg-muted/30">
+                                    <th className="px-5 py-3 text-left font-semibold">
                                         Task
                                     </th>
 
-                                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                        Project / Sprint
+                                    <th className="px-5 py-3 text-left font-semibold">
+                                        Project
                                     </th>
 
-                                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    <th className="px-5 py-3 text-left font-semibold">
+                                        Sprint
+                                    </th>
+
+                                    <th className="px-5 py-3 text-left font-semibold">
                                         Contributor
                                     </th>
 
-                                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                        Priority
-                                    </th>
-
-                                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    <th className="px-5 py-3 text-left font-semibold">
                                         Completed
                                     </th>
 
-                                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    <th className="px-5 py-3 text-left font-semibold">
                                         Review
                                     </th>
 
-                                    <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                        Action
+                                    <th className="px-5 py-3 text-right font-semibold">
+                                        Actions
                                     </th>
                                 </tr>
                             </thead>
 
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody>
                                 {filteredTasks.map(
                                     (task) => {
                                         const taskId =
@@ -1383,71 +1009,49 @@ export default function ReviewCompletedTasks({
                                                 key={
                                                     taskId
                                                 }
-                                                className="transition hover:bg-gray-50"
+                                                className="border-b border-border/60 last:border-0 hover:bg-muted/20"
                                             >
                                                 <td className="px-5 py-4">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            handleViewTask(
-                                                                task
-                                                            )
-                                                        }
-                                                        className="text-left"
-                                                    >
-                                                        <p className="text-sm font-semibold text-gray-900 hover:text-blue-600">
+                                                    <div className="max-w-[260px]">
+                                                        <p className="font-medium">
                                                             {getTaskTitle(
                                                                 task
                                                             )}
                                                         </p>
 
-                                                        <p className="mt-1 max-w-xs truncate text-xs text-gray-500">
+                                                        <p className="mt-1 truncate text-xs text-muted-foreground">
                                                             {getDescription(
                                                                 task
                                                             ) ||
                                                                 "No description"}
                                                         </p>
-                                                    </button>
+                                                    </div>
                                                 </td>
 
                                                 <td className="px-5 py-4">
-                                                    <p className="text-sm font-medium text-gray-900">
-                                                        {getProjectName(
-                                                            task
-                                                        )}
-                                                    </p>
-
-                                                    <p className="mt-1 text-xs text-gray-500">
-                                                        {getSprintName(
-                                                            task
-                                                        )}
-                                                    </p>
+                                                    {getProjectName(
+                                                        task
+                                                    )}
                                                 </td>
 
                                                 <td className="px-5 py-4">
-                                                    <p className="text-sm font-medium text-gray-900">
-                                                        {getAssigneeName(
-                                                            task
-                                                        )}
-                                                    </p>
+                                                    {getSprintName(
+                                                        task
+                                                    )}
                                                 </td>
 
                                                 <td className="px-5 py-4">
-                                                    <PriorityBadge
-                                                        priority={getPriority(
-                                                            task
-                                                        )}
-                                                    />
+                                                    {getAssigneeName(
+                                                        task
+                                                    )}
                                                 </td>
 
                                                 <td className="px-5 py-4">
-                                                    <p className="text-sm text-gray-900">
-                                                        {formatDate(
-                                                            getCompletedAt(
-                                                                task
-                                                            )
-                                                        )}
-                                                    </p>
+                                                    {formatDate(
+                                                        getCompletedAt(
+                                                            task
+                                                        )
+                                                    )}
                                                 </td>
 
                                                 <td className="px-5 py-4">
@@ -1458,35 +1062,39 @@ export default function ReviewCompletedTasks({
                                                     />
                                                 </td>
 
-                                                <td className="px-5 py-4 text-right">
+                                                <td className="px-5 py-4">
                                                     <div className="flex justify-end gap-2">
-                                                        <button
+                                                        <Button
                                                             type="button"
+                                                            variant="outline"
+                                                            size="sm"
                                                             onClick={() =>
                                                                 handleViewTask(
                                                                     task
                                                                 )
                                                             }
-                                                            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                                            className="gap-2"
                                                         >
+                                                            <Eye className="h-4 w-4" />
                                                             View
-                                                        </button>
+                                                        </Button>
 
-                                                        {!isApproved(
-                                                            task
-                                                        ) && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    handleOpenReview(
-                                                                        task
-                                                                    )
-                                                                }
-                                                                className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
-                                                            >
-                                                                Review
-                                                            </button>
-                                                        )}
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                handleOpenReview(
+                                                                    task
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                !canReview
+                                                            }
+                                                            className="gap-2"
+                                                        >
+                                                            <CheckCircle2 className="h-4 w-4" />
+                                                            Review
+                                                        </Button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1496,290 +1104,234 @@ export default function ReviewCompletedTasks({
                             </tbody>
                         </table>
                     </div>
+                )}
+            </div>
 
-                    {/* =================================================
-                        MOBILE
-                    ================================================= */}
+            <div className="space-y-4 md:hidden">
+                {filteredTasks.map(
+                    (task) => {
+                        const taskId =
+                            getTaskId(task);
 
-                    <div className="divide-y divide-gray-200 lg:hidden">
-                        {filteredTasks.map(
-                            (task) => (
-                                <div
-                                    key={getTaskId(
-                                        task
-                                    )}
-                                    className="p-5"
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    handleViewTask(
-                                                        task
-                                                    )
-                                                }
-                                                className="text-left text-sm font-semibold text-gray-900 hover:text-blue-600"
-                                            >
-                                                {getTaskTitle(
-                                                    task
-                                                )}
-                                            </button>
-
-                                            <p className="mt-1 text-xs text-gray-500">
-                                                {getProjectName(
-                                                    task
-                                                )}{" "}
-                                                /{" "}
-                                                {getSprintName(
-                                                    task
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        <ReviewBadge
-                                            status={getReviewStatus(
+                        return (
+                            <div
+                                key={taskId}
+                                className="rounded-xl border border-border/70 bg-background p-4 shadow-sm"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <h4 className="truncate font-semibold">
+                                            {getTaskTitle(
                                                 task
                                             )}
-                                        />
+                                        </h4>
+
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {getAssigneeName(
+                                                task
+                                            )}
+                                        </p>
                                     </div>
 
-                                    <p className="mt-3 text-sm text-gray-600">
-                                        {getDescription(
+                                    <ReviewBadge
+                                        status={getReviewStatus(
                                             task
-                                        ) ||
-                                            "No description available."}
-                                    </p>
-
-                                    <div className="mt-4 grid grid-cols-2 gap-3">
-                                        <div>
-                                            <p className="text-xs text-gray-500">
-                                                Contributor
-                                            </p>
-
-                                            <p className="mt-1 text-sm font-medium text-gray-900">
-                                                {getAssigneeName(
-                                                    task
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <p className="text-xs text-gray-500">
-                                                Priority
-                                            </p>
-
-                                            <div className="mt-1">
-                                                <PriorityBadge
-                                                    priority={getPriority(
-                                                        task
-                                                    )}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <p className="text-xs text-gray-500">
-                                                Completed
-                                            </p>
-
-                                            <p className="mt-1 text-sm font-medium text-gray-900">
-                                                {formatDate(
-                                                    getCompletedAt(
-                                                        task
-                                                    )
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <p className="text-xs text-gray-500">
-                                                Deadline
-                                            </p>
-
-                                            <p className="mt-1 text-sm font-medium text-gray-900">
-                                                {formatDate(
-                                                    getDeadline(
-                                                        task
-                                                    )
-                                                )}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4">
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-gray-500">
-                                                Completion
-                                            </span>
-
-                                            <span className="font-semibold text-gray-700">
-                                                {getProgress(
-                                                    task
-                                                )}
-                                                %
-                                            </span>
-                                        </div>
-
-                                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
-                                            <div
-                                                className="h-full rounded-full bg-green-600"
-                                                style={{
-                                                    width: `${getProgress(
-                                                        task
-                                                    )}%`,
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-4 flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleViewTask(
-                                                    task
-                                                )
-                                            }
-                                            className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                        >
-                                            View
-                                        </button>
-
-                                        {!isApproved(
-                                            task
-                                        ) && (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    handleOpenReview(
-                                                        task
-                                                    )
-                                                }
-                                                className="flex-1 rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-                                            >
-                                                Review
-                                            </button>
                                         )}
-                                    </div>
-                                </div>
-                            )
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* =================================================
-                DETAILS MODAL
-            ================================================= */}
-
-            {showDetails &&
-                selectedTask && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                        <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl">
-                            <div className="flex items-start justify-between border-b border-gray-200 px-6 py-5">
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-900">
-                                        Completed Task
-                                    </h2>
-
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        Task ID:{" "}
-                                        {getTaskId(
-                                            selectedTask
-                                        )}
-                                    </p>
+                                    />
                                 </div>
 
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowDetails(
-                                            false
-                                        );
-                                        setSelectedTask(
-                                            null
-                                        );
-                                    }}
-                                    className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                                >
-                                    ×
-                                </button>
-                            </div>
-
-                            <div className="space-y-6 p-6">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-900">
-                                        {getTaskTitle(
-                                            selectedTask
-                                        )}
-                                    </h3>
-
-                                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-600">
-                                        {getDescription(
-                                            selectedTask
-                                        ) ||
-                                            "No description available."}
-                                    </p>
-                                </div>
-
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div className="rounded-lg border border-gray-200 p-4">
-                                        <p className="text-xs uppercase tracking-wide text-gray-500">
+                                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">
                                             Project
                                         </p>
 
-                                        <p className="mt-1 text-sm font-semibold text-gray-900">
+                                        <p className="mt-1 font-medium">
+                                            {getProjectName(
+                                                task
+                                            )}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Sprint
+                                        </p>
+
+                                        <p className="mt-1 font-medium">
+                                            {getSprintName(
+                                                task
+                                            )}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Completed
+                                        </p>
+
+                                        <p className="mt-1 font-medium">
+                                            {formatDate(
+                                                getCompletedAt(
+                                                    task
+                                                )
+                                            )}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Progress
+                                        </p>
+
+                                        <p className="mt-1 font-medium">
+                                            {getProgress(
+                                                task
+                                            )}
+                                            %
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                            handleViewTask(
+                                                task
+                                            )
+                                        }
+                                        className="flex-1 gap-2"
+                                    >
+                                        <Eye className="h-4 w-4" />
+                                        View
+                                    </Button>
+
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() =>
+                                            handleOpenReview(
+                                                task
+                                            )
+                                        }
+                                        disabled={
+                                            !canReview
+                                        }
+                                        className="flex-1 gap-2"
+                                    >
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        Review
+                                    </Button>
+                                </div>
+                            </div>
+                        );
+                    }
+                )}
+            </div>
+
+            {showDetails &&
+                selectedTask && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                        <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border/70 bg-background shadow-xl">
+                            <div className="flex items-center justify-between border-b border-border/70 p-5">
+                                <div>
+                                    <h3 className="text-lg font-semibold">
+                                        Task Details
+                                    </h3>
+
+                                    <p className="text-sm text-muted-foreground">
+                                        {getTaskTitle(
+                                            selectedTask
+                                        )}
+                                    </p>
+                                </div>
+
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                        setShowDetails(
+                                            false
+                                        )
+                                    }
+                                >
+                                    <X className="h-5 w-5" />
+                                </Button>
+                            </div>
+
+                            <div className="space-y-5 p-5">
+                                <div>
+                                    <Label>
+                                        Description
+                                    </Label>
+
+                                    <p className="mt-2 rounded-lg bg-muted/30 p-3 text-sm">
+                                        {getDescription(
+                                            selectedTask
+                                        ) ||
+                                            "No description available."}
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div>
+                                        <Label>
+                                            Project
+                                        </Label>
+
+                                        <p className="mt-1 text-sm">
                                             {getProjectName(
                                                 selectedTask
                                             )}
                                         </p>
                                     </div>
 
-                                    <div className="rounded-lg border border-gray-200 p-4">
-                                        <p className="text-xs uppercase tracking-wide text-gray-500">
+                                    <div>
+                                        <Label>
                                             Sprint
-                                        </p>
+                                        </Label>
 
-                                        <p className="mt-1 text-sm font-semibold text-gray-900">
+                                        <p className="mt-1 text-sm">
                                             {getSprintName(
                                                 selectedTask
                                             )}
                                         </p>
                                     </div>
 
-                                    <div className="rounded-lg border border-gray-200 p-4">
-                                        <p className="text-xs uppercase tracking-wide text-gray-500">
+                                    <div>
+                                        <Label>
                                             Contributor
-                                        </p>
+                                        </Label>
 
-                                        <p className="mt-1 text-sm font-semibold text-gray-900">
+                                        <p className="mt-1 text-sm">
                                             {getAssigneeName(
                                                 selectedTask
                                             )}
                                         </p>
                                     </div>
 
-                                    <div className="rounded-lg border border-gray-200 p-4">
-                                        <p className="text-xs uppercase tracking-wide text-gray-500">
+                                    <div>
+                                        <Label>
                                             Priority
-                                        </p>
+                                        </Label>
 
-                                        <div className="mt-2">
-                                            <PriorityBadge
-                                                priority={getPriority(
-                                                    selectedTask
-                                                )}
-                                            />
-                                        </div>
+                                        <p className="mt-1 text-sm">
+                                            {getPriority(
+                                                selectedTask
+                                            )}
+                                        </p>
                                     </div>
 
-                                    <div className="rounded-lg border border-gray-200 p-4">
-                                        <p className="text-xs uppercase tracking-wide text-gray-500">
-                                            Completed At
-                                        </p>
+                                    <div>
+                                        <Label>
+                                            Completed
+                                        </Label>
 
-                                        <p className="mt-1 text-sm font-semibold text-gray-900">
+                                        <p className="mt-1 text-sm">
                                             {formatDateTime(
                                                 getCompletedAt(
                                                     selectedTask
@@ -1788,12 +1340,12 @@ export default function ReviewCompletedTasks({
                                         </p>
                                     </div>
 
-                                    <div className="rounded-lg border border-gray-200 p-4">
-                                        <p className="text-xs uppercase tracking-wide text-gray-500">
+                                    <div>
+                                        <Label>
                                             Deadline
-                                        </p>
+                                        </Label>
 
-                                        <p className="mt-1 text-sm font-semibold text-gray-900">
+                                        <p className="mt-1 text-sm">
                                             {formatDate(
                                                 getDeadline(
                                                     selectedTask
@@ -1801,15 +1353,13 @@ export default function ReviewCompletedTasks({
                                             )}
                                         </p>
                                     </div>
-                                </div>
 
-                                <div>
-                                    <div className="flex justify-between">
-                                        <p className="text-sm font-semibold text-gray-900">
-                                            Completion
-                                        </p>
+                                    <div>
+                                        <Label>
+                                            Progress
+                                        </Label>
 
-                                        <p className="text-sm font-semibold text-gray-700">
+                                        <p className="mt-1 text-sm">
                                             {getProgress(
                                                 selectedTask
                                             )}
@@ -1817,38 +1367,51 @@ export default function ReviewCompletedTasks({
                                         </p>
                                     </div>
 
-                                    <div className="mt-2 h-3 overflow-hidden rounded-full bg-gray-200">
-                                        <div
-                                            className="h-full rounded-full bg-green-600"
-                                            style={{
-                                                width: `${getProgress(
+                                    <div>
+                                        <Label>
+                                            Review Status
+                                        </Label>
+
+                                        <div className="mt-1">
+                                            <ReviewBadge
+                                                status={getReviewStatus(
                                                     selectedTask
-                                                )}%`,
-                                            }}
-                                        />
+                                                )}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <p className="text-xs uppercase tracking-wide text-gray-500">
-                                        Review Status
-                                    </p>
-
-                                    <div className="mt-2">
-                                        <ReviewBadge
-                                            status={getReviewStatus(
-                                                selectedTask
-                                            )}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end gap-2 border-t border-gray-200 px-6 py-5">
-                                {!isApproved(
+                                {getReviewComment(
                                     selectedTask
                                 ) && (
-                                    <button
+                                    <div>
+                                        <Label>
+                                            Review Comment
+                                        </Label>
+
+                                        <p className="mt-2 rounded-lg bg-muted/30 p-3 text-sm">
+                                            {getReviewComment(
+                                                selectedTask
+                                            )}
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="flex justify-end gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() =>
+                                            setShowDetails(
+                                                false
+                                            )
+                                        }
+                                    >
+                                        Close
+                                    </Button>
+
+                                    <Button
                                         type="button"
                                         onClick={() => {
                                             setShowDetails(
@@ -1858,155 +1421,108 @@ export default function ReviewCompletedTasks({
                                                 selectedTask
                                             );
                                         }}
-                                        className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+                                        disabled={
+                                            !canReview
+                                        }
                                     >
                                         Review Task
-                                    </button>
-                                )}
-
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowDetails(
-                                            false
-                                        );
-                                        setSelectedTask(
-                                            null
-                                        );
-                                    }}
-                                    className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                >
-                                    Close
-                                </button>
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 )}
 
-            {/* =================================================
-                REVIEW MODAL
-            ================================================= */}
-
             {showReview &&
                 selectedTask && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                        <div className="w-full max-w-xl rounded-xl bg-white shadow-2xl">
-                            <div className="flex items-start justify-between border-b border-gray-200 px-6 py-5">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                        <div className="w-full max-w-lg rounded-xl border border-border/70 bg-background shadow-xl">
+                            <div className="flex items-center justify-between border-b border-border/70 p-5">
                                 <div>
-                                    <h2 className="text-xl font-bold text-gray-900">
-                                        Review Completed Task
-                                    </h2>
+                                    <h3 className="text-lg font-semibold">
+                                        Review Task
+                                    </h3>
 
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        {
-                                            getTaskTitle(
-                                                selectedTask
-                                            )
-                                        }
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {getTaskTitle(
+                                            selectedTask
+                                        )}
                                     </p>
                                 </div>
 
-                                <button
+                                <Button
                                     type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                        setShowReview(
+                                            false
+                                        )
+                                    }
                                     disabled={
                                         isSaving
                                     }
-                                    onClick={() => {
-                                        setShowReview(
-                                            false
-                                        );
-                                        setSelectedTask(
-                                            null
-                                        );
-                                    }}
-                                    className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
                                 >
-                                    ×
-                                </button>
+                                    <X className="h-5 w-5" />
+                                </Button>
                             </div>
 
                             <form
                                 onSubmit={
                                     handleSubmitReview
                                 }
-                                className="space-y-6 p-6"
+                                className="space-y-5 p-5"
                             >
-                                {error && (
-                                    <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                                        <p className="text-sm text-red-700">
-                                            {
-                                                error
-                                            }
-                                        </p>
-                                    </div>
-                                )}
-
                                 <div>
-                                    <p className="mb-3 text-sm font-semibold text-gray-900">
+                                    <Label htmlFor="reviewDecision">
                                         Review Decision
-                                    </p>
+                                    </Label>
 
-                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <select
+                                        id="reviewDecision"
+                                        value={
+                                            reviewDecision
+                                        }
+                                        onChange={(
+                                            event
+                                        ) =>
+                                            setReviewDecision(
+                                                event
+                                                    .target
+                                                    .value
+                                            )
+                                        }
+                                        disabled={
+                                            isSaving
+                                        }
+                                        className="mt-2 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                    >
                                         {REVIEW_OPTIONS.map(
                                             (
                                                 option
-                                            ) => {
-                                                const selected =
-                                                    reviewDecision ===
-                                                    option.value;
-
-                                                return (
-                                                    <button
-                                                        key={
-                                                            option.value
-                                                        }
-                                                        type="button"
-                                                        disabled={
-                                                            isSaving
-                                                        }
-                                                        onClick={() =>
-                                                            setReviewDecision(
-                                                                option.value
-                                                            )
-                                                        }
-                                                        className={`rounded-lg border p-4 text-left transition ${
-                                                            selected
-                                                                ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
-                                                                : "border-gray-200 hover:bg-gray-50"
-                                                        }`}
-                                                    >
-                                                        <p className="text-sm font-semibold text-gray-900">
-                                                            {
-                                                                option.value
-                                                            }
-                                                        </p>
-
-                                                        <p className="mt-1 text-xs leading-5 text-gray-500">
-                                                            {
-                                                                option.description
-                                                            }
-                                                        </p>
-                                                    </button>
-                                                );
-                                            }
+                                            ) => (
+                                                <option
+                                                    key={
+                                                        option
+                                                    }
+                                                    value={
+                                                        option
+                                                    }
+                                                >
+                                                    {option}
+                                                </option>
+                                            )
                                         )}
-                                    </div>
+                                    </select>
                                 </div>
 
                                 <div>
-                                    <label
-                                        htmlFor="review-comment"
-                                        className="mb-2 block text-sm font-semibold text-gray-900"
-                                    >
-                                        Review Comment
-                                    </label>
+                                    <Label htmlFor="reviewComment">
+                                        Feedback
+                                    </Label>
 
-                                    <textarea
-                                        id="review-comment"
-                                        rows={5}
-                                        maxLength={
-                                            2000
-                                        }
+                                    <Textarea
+                                        id="reviewComment"
                                         value={
                                             reviewComment
                                         }
@@ -2019,121 +1535,63 @@ export default function ReviewCompletedTasks({
                                                     .value
                                             )
                                         }
+                                        placeholder="Enter feedback for the contributor..."
+                                        maxLength={2000}
                                         disabled={
                                             isSaving
                                         }
-                                        placeholder={
-                                            reviewDecision ===
-                                            "Approved"
-                                                ? "Add an optional approval comment..."
-                                                : "Explain what needs to be changed..."
-                                        }
-                                        className="w-full resize-none rounded-lg border border-gray-300 px-3 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
+                                        className="mt-2 min-h-32"
                                     />
 
-                                    <div className="mt-1 flex justify-end">
-                                        <span className="text-xs text-gray-400">
-                                            {
-                                                reviewComment.length
-                                            }
-                                            /2000
-                                        </span>
-                                    </div>
+                                    <p className="mt-1 text-right text-xs text-muted-foreground">
+                                        {
+                                            reviewComment.length
+                                        }{" "}
+                                        / 2000
+                                    </p>
                                 </div>
 
-                                {reviewDecision ===
-                                    "Changes Requested" && (
-                                    <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                                        <p className="text-sm font-medium text-red-800">
-                                            Changes Requested
-                                        </p>
-
-                                        <p className="mt-1 text-xs leading-5 text-red-700">
-                                            The contributor should
-                                            receive clear feedback
-                                            explaining what must be
-                                            corrected before the task
-                                            can be approved.
-                                        </p>
+                                {error && (
+                                    <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                                        <span>
+                                            {error}
+                                        </span>
                                     </div>
                                 )}
 
-                                {reviewDecision ===
-                                    "Approved" && (
-                                    <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-                                        <p className="text-sm font-medium text-green-800">
-                                            Approve Completed Task
-                                        </p>
-
-                                        <p className="mt-1 text-xs leading-5 text-green-700">
-                                            The task will be recorded
-                                            as reviewed and approved.
-                                        </p>
-                                    </div>
-                                )}
-
-                                <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-end">
-                                    <button
+                                <div className="flex justify-end gap-2">
+                                    <Button
                                         type="button"
-                                        disabled={
-                                            isSaving
-                                        }
-                                        onClick={() => {
+                                        variant="outline"
+                                        onClick={() =>
                                             setShowReview(
                                                 false
-                                            );
-                                            setSelectedTask(
-                                                null
-                                            );
-                                        }}
-                                        className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                                    >
-                                        Cancel
-                                    </button>
-
-                                    <button
-                                        type="submit"
+                                            )
+                                        }
                                         disabled={
                                             isSaving
                                         }
-                                        className={`inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${
-                                            reviewDecision ===
-                                            "Approved"
-                                                ? "bg-green-600 hover:bg-green-700"
-                                                : "bg-red-600 hover:bg-red-700"
-                                        }`}
                                     >
-                                        {isSaving && (
-                                            <svg
-                                                className="h-4 w-4 animate-spin"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <circle
-                                                    className="opacity-25"
-                                                    cx="12"
-                                                    cy="12"
-                                                    r="10"
-                                                    stroke="currentColor"
-                                                    strokeWidth="4"
-                                                />
+                                        Cancel
+                                    </Button>
 
-                                                <path
-                                                    className="opacity-75"
-                                                    fill="currentColor"
-                                                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                                                />
-                                            </svg>
+                                    <Button
+                                        type="submit"
+                                        disabled={
+                                            isSaving ||
+                                            !canReview
+                                        }
+                                        className="gap-2"
+                                    >
+                                        {isSaving ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <CheckCircle2 className="h-4 w-4" />
                                         )}
 
-                                        {isSaving
-                                            ? "Saving..."
-                                            : reviewDecision ===
-                                              "Approved"
-                                            ? "Approve Task"
-                                            : "Request Changes"}
-                                    </button>
+                                        Submit Review
+                                    </Button>
                                 </div>
                             </form>
                         </div>

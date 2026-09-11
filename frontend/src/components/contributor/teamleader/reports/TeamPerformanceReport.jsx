@@ -1,4 +1,6 @@
+
 import { useState } from "react";
+
 import {
     FolderKanban,
     LayoutDashboard,
@@ -11,12 +13,18 @@ import ViewProjectDetails from "@/components/contributor/teamleader/project-part
 export default function Projects() {
     const [selectedProject, setSelectedProject] = useState(null);
 
+    const handleSelectProject = (project) => {
+        setSelectedProject(project);
+    };
+
+    const handleBack = () => {
+        setSelectedProject(null);
+    };
+
     return (
         <div className="min-h-screen bg-slate-50">
             <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                {/* =====================================================
-                    PAGE HEADER
-                ====================================================== */}
+
                 <div className="mb-8">
                     <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-start gap-4">
@@ -55,34 +63,44 @@ export default function Projects() {
                     </div>
                 </div>
 
-                {/* =====================================================
-                    BREADCRUMB / CONTEXT
-                ====================================================== */}
                 <div className="mb-6 flex items-center gap-2 text-sm">
                     <LayoutDashboard className="h-4 w-4 text-slate-400" />
 
-                    <span className="text-slate-400">Project Participation</span>
+                    <span className="text-slate-400">
+                        Project Participation
+                    </span>
 
-                    <span className="text-slate-300">/</span>
+                    <span className="text-slate-300">
+                        /
+                    </span>
 
                     <span className="font-medium text-slate-700">
                         {selectedProject
                             ? "Project Details"
                             : "Assigned Projects"}
                     </span>
+
+                    {selectedProject?.name && (
+                        <>
+                            <span className="text-slate-300">
+                                /
+                            </span>
+
+                            <span className="max-w-xs truncate font-medium text-indigo-600">
+                                {selectedProject.name}
+                            </span>
+                        </>
+                    )}
                 </div>
 
-                {/* =====================================================
-                    CONTENT
-                ====================================================== */}
                 {selectedProject ? (
                     <ViewProjectDetails
                         project={selectedProject}
-                        onBack={() => setSelectedProject(null)}
+                        onBack={handleBack}
                     />
                 ) : (
                     <ViewAssignedProjects
-                        onSelectProject={setSelectedProject}
+                        onSelectProject={handleSelectProject}
                     />
                 )}
             </div>
