@@ -26,34 +26,6 @@ import {
     assignManagerToTeam,
     getAvailableManagers,
 } from "@/services/teamService";
-
-// ============================================================
-// ASSIGN MANAGER MODAL
-// TEAM-005
-// ============================================================
-//
-// Responsibilities:
-//
-// - Show the selected team
-// - Load available Manager users
-// - Assign a Manager to the selected team
-// - Prevent assigning a Manager already assigned elsewhere
-// - Allow replacement of an existing Manager
-// - Require confirmation before replacement
-// - Send performedBy to the backend/service
-// - Return updated team data to the parent
-//
-// Expected backend/service response codes:
-//
-// TEAM_NOT_FOUND
-// MANAGER_NOT_FOUND
-// INVALID_MANAGER_ROLE
-// MANAGER_ALREADY_ASSIGNED
-// MANAGER_ALREADY_ASSIGNED_TO_ANOTHER_TEAM
-// MANAGER_ASSIGNED
-//
-// ============================================================
-
 function AssignManagerModal({
     open = false,
     team = null,
@@ -81,11 +53,6 @@ function AssignManagerModal({
 
     const [replaceConfirmation, setReplaceConfirmation] =
         useState(false);
-
-    // ============================================================
-    // HELPERS
-    // ============================================================
-
     const getTeamId = (selectedTeam) => {
         return (
             selectedTeam?.id ??

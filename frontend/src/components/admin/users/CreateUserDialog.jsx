@@ -470,110 +470,115 @@ function CreateUserDialog({
         }));
     };
 
-    // ========================================================
-    // CONTRIBUTOR TYPE CHANGE
-    // ========================================================
 
-    const handleContributorTypeChange =
-        async (value) => {
-            console.log(
-                "SELECTED CONTRIBUTOR TYPE:",
-                value
-            );
 
-            const selectedType =
-                contributorTypes.find(
-                    (type) =>
-                        String(type.id) ===
-                        String(value)
-                );
 
-            if (!selectedType) {
-                console.error(
-                    "Contributor type not found:",
-                    value
-                );
 
-                return;
-            }
 
-          const isTeamLeader =
-    selectedType.name
+
+
+
+
+
+
+   // ========================================================
+// CONTRIBUTOR TYPE CHANGE
+// ========================================================
+const handleContributorTypeChange =
+  async (value) => {
+    console.log(
+      "SELECTED CONTRIBUTOR TYPE:",
+      value
+    );
+    //  CHANGE: Match by name instead of id
+    const selectedType =
+      contributorTypes.find(
+        (type) =>
+          String(type.name).toLowerCase() ===
+          String(value).toLowerCase()
+      );
+    if (!selectedType) {
+      console.error(
+        "Contributor type not found:",
+        value
+      );
+      return;
+    }
+    const isTeamLeader =
+      selectedType.name
         ?.trim()
         .toLowerCase() === "team leader";
-
-setForm((previous) => ({
-    ...previous,
-
-    contributorType:
+    setForm((previous) => ({
+      ...previous,
+      contributorType:
         selectedType.name,
-
-    contributorTypeId:
+      contributorTypeId:
         String(selectedType.id),
-
-    contributorSubType:
+      contributorSubType:
         isTeamLeader
-            ? ""
-            : previous.contributorSubType,
-
-    contributorSubTypeId:
+          ? ""
+          : previous.contributorSubType,
+      contributorSubTypeId:
         isTeamLeader
-            ? ""
-            : previous.contributorSubTypeId,
-
-    newContributorSubTypeName:
+          ? ""
+          : previous.contributorSubTypeId,
+      newContributorSubTypeName:
         "",
-}));
-
-setContributorSubTypes([]);
-
-if (!isTeamLeader) {
-    await loadContributorSubTypes(
+    }));
+    setContributorSubTypes([]);
+    if (!isTeamLeader) {
+      await loadContributorSubTypes(
         selectedType.id
-    );
-}
-        };
+      );
+    }
+  };
+// ========================================================
+// CONTRIBUTOR SUBTYPE CHANGE
+// ========================================================
+const handleContributorSubTypeChange =
+  (value) => {
+    // 🌟 CHANGE: Match by name instead of id
+    const selectedSubType =
+      contributorSubTypes.find(
+        (subType) =>
+          String(subType.name).toLowerCase() ===
+          String(value).toLowerCase()
+      );
+    const selectedId =
+      selectedSubType?.id ??
+      "";
+    setForm((previous) => ({
+      ...previous,
+      contributorSubType:
+        selectedSubType?.name ??
+        "",
+      contributorSubTypeId:
+        selectedId || "",
+      newContributorSubTypeName:
+        selectedSubType?.name ===
+        "Other"
+          ? ""
+          : previous.newContributorSubTypeName,
+    }));
+    setErrors((previous) => ({
+      ...previous,
+      contributorSubType: "",
+      newContributorSubTypeName: "",
+    }));
+  };
 
-    // ========================================================
-    // CONTRIBUTOR SUBTYPE CHANGE
-    // ========================================================
 
-    const handleContributorSubTypeChange =
-        (value) => {
-            const selectedSubType =
-                contributorSubTypes.find(
-                    (subType) =>
-                        String(subType.id) ===
-                        String(value)
-                );
 
-            const selectedId =
-                selectedSubType?.id ??
-                value;
 
-            setForm((previous) => ({
-                ...previous,
 
-                contributorSubType:
-                    selectedSubType?.name ??
-                    "",
 
-                contributorSubTypeId:
-                    selectedId || "",
 
-                newContributorSubTypeName:
-                    selectedSubType?.name ===
-                    "Other"
-                        ? ""
-                        : previous.newContributorSubTypeName,
-            }));
 
-            setErrors((previous) => ({
-                ...previous,
-                contributorSubType: "",
-                newContributorSubTypeName: "",
-            }));
-        };
+
+
+
+
+
 
     // ========================================================
     // CREATE CUSTOM SUBTYPE
@@ -1683,76 +1688,80 @@ const isOtherSubType =
         label: type.name,
     }))
 )}
-                                        <SelectField
-                                            label="Contributor Type"
-                                            required
-                                            icon={
-                                                <UsersRound
-                                                    size={
-                                                        17
-                                                    }
-                                                />
-                                            }
-                                            value={
-                                                form.contributorTypeId
-                                            }
-                                            onChange={
-                                                handleContributorTypeChange
-                                            }
-                                            placeholder={
-                                                loadingTypes
-                                                    ? "Loading contributor types..."
-                                                    : "Select contributor type"
-                                            }
-                                            options={contributorTypes.map(
-    (type) => ({
-        value: type.id,
-        label: type.name,
-    })
-)}
-
-                                            error={
-                                                errors.contributorType
-                                            }
-                                            disabled={
-                                                loadingTypes ||
-                                                submitting
-                                            }
-                                        />
-
-                               {form.contributorTypeId && !isTeamLeader && (
-    <SelectField
-        label="Contributor Subtype"
-        required
-        icon={
-            <Code2 size={17} />
-        }
-        value={
-            form.contributorSubTypeId
-        }
-        onChange={
-            handleContributorSubTypeChange
-        }
-        placeholder={
-            loadingSubTypes
-                ? "Loading subtypes..."
-                : "Select contributor subtype"
-        }
-        options={contributorSubTypes.map(
-            (subType) => ({
-                value: subType.id,
-                label: subType.name,
-            })
-        )}
-        error={
-            errors.contributorSubType
-        }
-        disabled={
-            loadingSubTypes ||
-            submitting
-        }
+<SelectField
+  label="Contributor Type"
+  required
+  icon={
+    <UsersRound
+      size={
+        17
+      }
     />
+  }
+  // 🌟 CHANGE: Use the Name for the dropdown value
+  value={
+    form.contributorType
+  }
+  onChange={
+    handleContributorTypeChange
+  }
+  placeholder={
+    loadingTypes
+      ? "Loading contributor types..."
+      : "Select contributor type"
+  }
+  // 🌟 CHANGE: Use the Name as the option value
+  options={contributorTypes.map(
+    (type) => ({
+      value: type.name,
+      label: type.name,
+    })
+  )}
+  error={
+    errors.contributorType
+  }
+  disabled={
+    loadingTypes ||
+    submitting
+  }
+/>
+{form.contributorTypeId && !isTeamLeader && (
+  <SelectField
+    label="Contributor Subtype"
+    required
+    icon={
+      <Code2 size={17} />
+    }
+    // 🌟 CHANGE: Use the Name for the dropdown value
+    value={
+      form.contributorSubType
+    }
+    onChange={
+      handleContributorSubTypeChange
+    }
+    placeholder={
+      loadingSubTypes
+        ? "Loading subtypes..."
+        : "Select contributor subtype"
+    }
+    // 🌟 CHANGE: Use the Name as the option value
+    options={contributorSubTypes.map(
+      (subType) => ({
+        value: subType.name,
+        label: subType.name,
+      })
+    )}
+    error={
+      errors.contributorSubType
+    }
+    disabled={
+      loadingSubTypes ||
+      submitting
+    }
+  />
 )}
+
+
                                     </div>
 
                                     {isOtherSubType && (
