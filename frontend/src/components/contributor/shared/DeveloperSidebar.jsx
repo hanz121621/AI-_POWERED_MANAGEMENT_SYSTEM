@@ -275,7 +275,7 @@ const MAIN_NAVIGATION = [
 // ============================================================
 
 function DeveloperSidebar({
-    open = true,
+    open = false,
     onClose,
     collapsed = false,
     onToggleCollapse,

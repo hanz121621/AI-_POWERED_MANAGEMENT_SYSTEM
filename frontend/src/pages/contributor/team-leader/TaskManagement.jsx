@@ -18,7 +18,8 @@ import {
 // ============================================================
 // TEAM LEADER TASK MANAGEMENT USE CASE COMPONENTS
 // ============================================================
-
+import AITaskBreakdownModal from "@/components/contributor/teamleader/task-management/AITaskBreakdownModal";
+import { Sparkles } from "lucide-react";
 import CreateTeamTask from "@/components/contributor/teamleader/task-management/CreateTeamTask";
 import UpdateTeamTask from "@/components/contributor/teamleader/task-management/UpdateTeamTask";
 import DeleteTeamTask from "@/components/contributor/teamleader/task-management/DeleteTeamTask";
@@ -44,6 +45,16 @@ const TASK_USE_CASES = [
             "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400",
         component: CreateTeamTask,
     },
+    {
+    id: "ai-task-breakdown",
+    title: "AI Task Breakdown",
+    description: "Use AI to automatically break down sprint goals into tasks.",
+    useCase: "AI-TASK-001",
+    icon: Sparkles,
+    iconClass:
+        "bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400",
+    component: AITaskBreakdownModal, // This will open the modal
+},
     {
         id: "update-task",
         title: "Update Task",
@@ -244,15 +255,37 @@ function TaskCard({ task, onClick }) {
     );
 }
 
-// ============================================================
-// TASK MODAL
-// ============================================================
+
+
+
+
+
+
+
 
 function TaskModal({ task, onClose }) {
     if (!task || !task.component) {
         return null;
     }
 
+    // If it's the AI Task Breakdown, render it directly (it's already a modal)
+    if (task.id === "ai-task-breakdown") {
+        const Component = task.component;
+        return (
+            <Component 
+                isOpen={true} 
+                onClose={onClose} 
+                parentTask={null} // You can pass the selected sprint here
+                onSaveTasks={(tasks) => {
+                    console.log("Saving tasks:", tasks);
+                    // Handle saving tasks to backend
+                    onClose();
+                }}
+            />
+        );
+    }
+
+    // For other components, render inside the existing modal
     const Icon = task.icon;
     const Component = task.component;
 
@@ -297,10 +330,7 @@ function TaskModal({ task, onClose }) {
                     dark:bg-[#081b33]
                 "
             >
-                {/* ==================================================
-                    MODAL HEADER
-                ================================================== */}
-
+                {/* MODAL HEADER */}
                 <div
                     className="
                         flex
@@ -408,10 +438,7 @@ function TaskModal({ task, onClose }) {
                     </button>
                 </div>
 
-                {/* ==================================================
-                    MODAL BODY
-                ================================================== */}
-
+                {/* MODAL BODY */}
                 <div
                     className="
                         min-h-0
@@ -430,7 +457,6 @@ function TaskModal({ task, onClose }) {
         </div>
     );
 }
-
 // ============================================================
 // MAIN TASK MANAGEMENT PAGE
 // ============================================================

@@ -1,16 +1,19 @@
+import { useState } from "react";
 import { Outlet } from "react-router-dom";
 
 import ManagerSidebar from "@/components/manager/ManagerSidebar";
 import ManagerNavbar from "@/components/manager/ManagerNavbar";
 
 function ManagerLayout() {
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
     return (
         <div
             className="
                 flex
-                min-h-screen
+                h-screen
                 w-full
-                overflow-x-hidden
+                overflow-hidden
                 bg-slate-50
                 text-slate-900
                 transition-colors
@@ -19,31 +22,52 @@ function ManagerLayout() {
                 dark:text-slate-100
             "
         >
+            {/* Mobile overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="
+                        fixed
+                        inset-0
+                        z-40
+                        bg-black/50
+                        md:hidden
+                    "
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <ManagerSidebar />
+            <ManagerSidebar
+                isMobileOpen={isSidebarOpen}
+                onCloseMobile={() => setIsSidebarOpen(false)}
+            />
 
             {/* Main application area */}
             <div
                 className="
-                    ml-64
                     flex
+                    min-h-0
                     min-w-0
-                    min-h-screen
                     flex-1
                     flex-col
+                    overflow-hidden
                     bg-slate-50
                     dark:bg-slate-950
+                    md:ml-64
                 "
             >
                 {/* Navbar */}
-                <ManagerNavbar />
+                <ManagerNavbar
+                    onToggleSidebar={() => setIsSidebarOpen(true)}
+                />
 
-                {/* Page content */}
+                {/* ONLY THIS AREA SCROLLS */}
                 <main
                     className="
+                        min-h-0
                         min-w-0
-                        min-h-[calc(100vh-80px)]
                         flex-1
+                        overflow-y-auto
                         overflow-x-hidden
                         bg-slate-50
                         p-3
@@ -67,3 +91,6 @@ function ManagerLayout() {
 }
 
 export default ManagerLayout;
+
+
+

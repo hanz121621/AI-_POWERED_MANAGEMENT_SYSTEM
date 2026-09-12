@@ -6,11 +6,10 @@ using System.Security.Claims;
 
 using AI_PMS.API.Authorization;
 using AI_PMS.API.Services;
-
-using AI_PMS.Application.DTOs.Auth;
 using AI_PMS.Application.Interfaces.AI;
-using AI_PMS.Infrastructure.AI.Configuration;
 using AI_PMS.Infrastructure.AI.Services;
+using AI_PMS.Infrastructure.AI.Configuration; // Needed for AIOptions
+using AI_PMS.Application.DTOs.Auth;
 using AI_PMS.Application.Interfaces.Activities;
 using AI_PMS.Application.Interfaces.Auth;
 using AI_PMS.Application.Interfaces.Communication;
@@ -115,7 +114,9 @@ var builder = WebApplication.CreateBuilder(args);
 // =========================================================
 // AI / OLLAMA
 // =========================================================
-
+builder.Services.Configure<AI_PMS.Infrastructure.AI.Configuration.AIOptions>(
+    builder.Configuration.GetSection("AI")
+);
 builder.Services.AddHttpClient<IAiSuggestionService, AiSuggestionService>(
     client =>
     {
@@ -250,7 +251,9 @@ builder.Services.AddScoped<UserPermissionRepository>();
 // =========================================================
 
 builder.Services.AddScoped<IAuthService, AuthService>();
-
+builder.Services.AddHttpClient<IAIService, OllamaService>();
+// 🌟 ADD THIS LINE TO REGISTER AI OPTIONS
+builder.Services.Configure<AIOptions>(builder.Configuration.GetSection("AI"));
 // =========================================================
 // CONTRIBUTOR MANAGEMENT
 // =========================================================
@@ -758,6 +761,10 @@ var app = builder.Build();
 // =========================================================
 // DATABASE SEEDING
 // =========================================================
+
+
+
+
 
 using (var scope = app.Services.CreateScope())
 {

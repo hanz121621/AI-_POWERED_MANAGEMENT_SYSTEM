@@ -234,6 +234,12 @@ const [teamLeaders, setTeamLeaders] =
                     project?.CompletionNote ??
                     project?.CompletionInformation ??
                     null,
+                    teamMemberCount: 
+                project?.teamMemberCount ??
+                project?.memberCount ??
+                project?.MemberCount ??
+                project?.members?.length ??
+                0,
             };
         },
         []
@@ -432,6 +438,38 @@ useEffect(() => {
     );
   }
 }, [teamLeaders]); // 🌟 This safely updates the names when teamLeaders loads, without looping
+// ========================================================
+// ENRICH PROJECTS WITH TEAM MEMBER COUNTS
+// ========================================================
+useEffect(() => {
+    if (projects.length > 0 && teams.length > 0) {
+        setProjects((currentProjects) =>
+            currentProjects.map((project) => {
+                // Find the team that matches this project's teamId
+                const matchingTeam = teams.find(
+                    (team) =>
+                        String(team?.id) === String(project?.teamId) ||
+                        String(team?.teamId) === String(project?.teamId) ||
+                        team?.name === project?.team
+                );
+
+                if (matchingTeam) {
+                    const memberCount =
+                        matchingTeam?.memberCount ??
+                        matchingTeam?.members?.length ??
+                        0;
+
+                    return {
+                        ...project,
+                        teamMemberCount: memberCount,
+                        team: matchingTeam?.name || project?.team || "No team assigned",
+                    };
+                }
+                return project;
+            })
+        );
+    }
+}, [teams]); // 🌟 This runs when teams are loaded
     // ========================================================
     // CREATE PROJECT
     // ========================================================
@@ -530,17 +568,17 @@ useEffect(() => {
 const requestData = {
     name: String(newProject.name || "").trim(),
     description: String(newProject.description || "").trim(),
-    statusId: newProject.statusId || "a1b2c3d4-e5f6-7890-abcd-ef1234567890", 
-    priorityId: newProject.priorityId || 1, 
-    managerId: newProject.managerId || null,
+    statusId: newProject.statusId || "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    priorityId: newProject.priorityId || 1,
+    managerId: newProject.managerId || null, // <--- WE ARE CHECKING THIS
     teamId: newProject.teamId ?? selectedTeam?.id ?? selectedTeam?.teamId ?? null,
     teamLeaderId: newProject.teamLeaderId || null,
-    
-    // ✅ FIX: Provide valid default date strings, NOT null
-    startDate: newProject.startDate || "2026-09-02", 
-    deadline: newProject.deadline || "2026-10-01",   
+    startDate: newProject.startDate || "2026-09-02",
+    deadline: newProject.deadline || "2026-10-01",
 };
 
+// 🌟 ADD THIS LINE TO SEE EXACTLY WHAT IS BEING SENT
+console.log("🚀 SENDING TO BACKEND - MANAGER ID:", requestData.managerId);
             console.log(
                 "CREATE PROJECT REQUEST:",
                 requestData
@@ -2233,23 +2271,18 @@ const handleGetAiInsight = async (project) => {
                                                     p-4
                                                 "
                                             >
-                                                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                                                    <UsersRound
-                                                        size={
-                                                            15
-                                                        }
-                                                        className="text-blue-500"
-                                                    />
-                                                    Assigned
-                                                    Team
-                                                </div>
-
-                                                <p className="mt-2 truncate text-sm font-semibold text-foreground">
-                                                    {
-                                                        project.team
-                                                    }
-                                                </p>
-                                            </div>
+                                               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+    <UsersRound size={15} className="text-blue-500" />
+    Assigned Team
+</div>
+<p className="mt-2 truncate text-sm font-semibold text-foreground">
+    {project.team}
+</p>
+{/* 🌟 SHOW MEMBER COUNT */}
+<p className="mt-1 text-xs text-muted-foreground">
+    {project.teamMemberCount || 0} member{project.teamMemberCount !== 1 ? "s" : ""}
+</p>
+</div>
 
                                             <div
                                                 className="
@@ -2911,81 +2944,66 @@ const handleGetAiInsight = async (project) => {
                                     </p>
                                 </div>
 
-                                {/* OWNERSHIP */}
 
-                                <div>
-                                    <h3 className="mb-3 text-sm font-semibold text-foreground">
-                                        Project Ownership
-                                    </h3>
 
-                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                        <div className="rounded-xl border border-border bg-muted/30 p-4">
-                                            <div className="flex items-center gap-2">
-                                                <UserRound
-                                                    size={
-                                                        16
-                                                    }
-                                                    className="text-cyan-500"
-                                                />
 
-                                                <p className="text-xs text-muted-foreground">
-                                                    Project
-                                                    Manager
-                                                </p>
-                                            </div>
 
-                                            <p className="mt-2 text-sm font-semibold text-foreground">
-                                                {
-                                                    selectedProject?.manager
-                                                }
-                                            </p>
-                                        </div>
 
-                                        <div className="rounded-xl border border-border bg-muted/30 p-4">
-                                            <div className="flex items-center gap-2">
-                                                <UsersRound
-                                                    size={
-                                                        16
-                                                    }
-                                                    className="text-blue-500"
-                                                />
 
-                                                <p className="text-xs text-muted-foreground">
-                                                    Assigned
-                                                    Team
-                                                </p>
-                                            </div>
 
-                                            <p className="mt-2 text-sm font-semibold text-foreground">
-                                                {
-                                                    selectedProject?.team
-                                                }
-                                            </p>
-                                        </div>
 
-                                        <div className="rounded-xl border border-border bg-muted/30 p-4">
-                                            <div className="flex items-center gap-2">
-                                                <UserCog
-                                                    size={
-                                                        16
-                                                    }
-                                                    className="text-violet-500"
-                                                />
+                              {/* OWNERSHIP */}
+<div>
+    <h3 className="mb-3 text-sm font-semibold text-foreground">
+        Project Ownership
+    </h3>
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {/* Manager */}
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <div className="flex items-center gap-2">
+                <UserRound size={16} className="text-cyan-500" />
+                <p className="text-xs text-muted-foreground">Project Manager</p>
+            </div>
+            <p className="mt-2 text-sm font-semibold text-foreground">
+                {selectedProject?.manager}
+            </p>
+        </div>
+        
+        {/* 🌟 CORRECTED ASSIGNED TEAM BLOCK */}
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <div className="flex items-center gap-2">
+                <UsersRound size={16} className="text-blue-500" />
+                <p className="text-xs text-muted-foreground">Assigned Team</p>
+            </div>
+            <p className="mt-2 text-sm font-semibold text-foreground">
+                {selectedProject?.team}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+                {selectedProject?.teamMemberCount || 0} member{selectedProject?.teamMemberCount !== 1 ? 's' : ''}
+            </p>
+        </div>
 
-                                                <p className="text-xs text-muted-foreground">
-                                                    Team
-                                                    Leader
-                                                </p>
-                                            </div>
+        {/* Team Leader */}
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <div className="flex items-center gap-2">
+                <UserCog size={16} className="text-violet-500" />
+                <p className="text-xs text-muted-foreground">Team Leader</p>
+            </div>
+            <p className="mt-2 text-sm font-semibold text-foreground">
+                {selectedProject?.teamLeader}
+            </p>
+        </div>
+    </div>
+</div>
 
-                                            <p className="mt-2 text-sm font-semibold text-foreground">
-                                                {
-                                                    selectedProject?.teamLeader
-                                                }
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
+
+
+
+
+
+
+
+
 
                                 {/* DATES */}
 

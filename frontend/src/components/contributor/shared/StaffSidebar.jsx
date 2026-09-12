@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 // ============================================================
 
 function StaffSidebar({
-    sidebarOpen = true,
+    sidebarOpen = false,
     onClose,
 }) {
     const navigate = useNavigate();

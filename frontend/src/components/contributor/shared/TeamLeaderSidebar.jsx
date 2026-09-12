@@ -34,9 +34,8 @@ import {
 // - Keep paths synchronized with AppRoutes.jsx
 //
 // ============================================================
-
 function TeamLeaderSidebar({
-    isOpen = true,
+    isOpen = false,
     onClose,
 }) {
     // ========================================================

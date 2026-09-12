@@ -1,4 +1,3 @@
-
 // ============================================================
 // AIPMS - MANAGER NAVBAR
 // ============================================================
@@ -8,6 +7,7 @@ import React from "react";
 import {
     Bell,
     Search,
+    Menu,
 } from "lucide-react";
 
 import {
@@ -18,7 +18,7 @@ import {
 // COMPONENT
 // ============================================================
 
-function ManagerNavbar() {
+function ManagerNavbar({ onToggleSidebar }) {
     const navigate = useNavigate();
 
     // ========================================================
@@ -52,70 +52,111 @@ function ManagerNavbar() {
                 w-full
                 items-center
                 justify-between
+                gap-3
                 border-b
                 border-slate-200
                 bg-white
-                px-8
+                px-3
                 transition-colors
                 duration-200
+                sm:px-4
+                md:px-6
+                lg:px-8
                 dark:border-slate-800
                 dark:bg-slate-900
             "
         >
 
             {/* ==================================================
-                SEARCH
+                LEFT SIDE
             ================================================== */}
 
-            <div className="relative w-96">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
 
-                <Search
-                    size={20}
-                    className="
-                        absolute
-                        left-3
-                        top-1/2
-                        -translate-y-1/2
-                        text-slate-400
-                        dark:text-slate-500
-                    "
-                />
+                {/* ==================================================
+                    MOBILE HAMBURGER
+                ================================================== */}
 
-                <input
-                    type="text"
-                    placeholder="Search projects..."
+                <button
+                    type="button"
+                    onClick={onToggleSidebar}
+                    aria-label="Open sidebar"
+                    title="Open sidebar"
                     className="
-                        w-full
+                        shrink-0
                         rounded-lg
-                        border
-                        border-slate-300
-                        bg-slate-50
-                        py-3
-                        pl-10
-                        pr-4
-                        text-slate-800
-                        placeholder:text-slate-400
-                        outline-none
+                        p-2
+                        text-slate-600
                         transition
-                        focus:border-blue-500
+                        hover:bg-slate-100
+                        hover:text-slate-900
+                        focus:outline-none
                         focus:ring-2
-                        focus:ring-blue-200
-                        dark:border-slate-700
-                        dark:bg-slate-800
-                        dark:text-slate-100
-                        dark:placeholder:text-slate-500
-                        dark:focus:border-blue-500
-                        dark:focus:ring-blue-900
+                        focus:ring-blue-500
+                        md:hidden
+                        dark:text-slate-300
+                        dark:hover:bg-slate-800
+                        dark:hover:text-slate-100
                     "
-                />
+                >
+                    <Menu size={24} />
+                </button>
+
+                {/* ==================================================
+                    SEARCH
+                ================================================== */}
+
+                <div className="relative w-full max-w-96">
+
+                    <Search
+                        size={20}
+                        className="
+                            absolute
+                            left-3
+                            top-1/2
+                            -translate-y-1/2
+                            text-slate-400
+                            dark:text-slate-500
+                        "
+                    />
+
+                    <input
+                        type="text"
+                        placeholder="Search projects..."
+                        className="
+                            w-full
+                            rounded-lg
+                            border
+                            border-slate-300
+                            bg-slate-50
+                            py-3
+                            pl-10
+                            pr-4
+                            text-slate-800
+                            placeholder:text-slate-400
+                            outline-none
+                            transition
+                            focus:border-blue-500
+                            focus:ring-2
+                            focus:ring-blue-200
+                            dark:border-slate-700
+                            dark:bg-slate-800
+                            dark:text-slate-100
+                            dark:placeholder:text-slate-500
+                            dark:focus:border-blue-500
+                            dark:focus:ring-blue-900
+                        "
+                    />
+
+                </div>
 
             </div>
 
             {/* ==================================================
-                NOTIFICATION + PROFILE
+                RIGHT SIDE
             ================================================== */}
 
-            <div className="flex items-center gap-6">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-4 md:gap-6">
 
                 {/* ==================================================
                     NOTIFICATIONS
@@ -129,22 +170,25 @@ function ManagerNavbar() {
                     className="
                         relative
                         rounded-full
-                        p-3
+                        p-2
                         transition
                         hover:bg-slate-100
                         focus:outline-none
                         focus:ring-2
                         focus:ring-blue-500
                         focus:ring-offset-2
+                        sm:p-3
                         dark:hover:bg-slate-800
                         dark:focus:ring-offset-slate-900
                     "
                 >
 
                     <Bell
-                        size={24}
+                        size={22}
                         className="
                             text-slate-700
+                            sm:h-6
+                            sm:w-6
                             dark:text-slate-200
                         "
                     />
@@ -156,14 +200,16 @@ function ManagerNavbar() {
                     <span
                         className="
                             absolute
-                            right-2
-                            top-2
+                            right-1.5
+                            top-1.5
                             h-2
                             w-2
                             rounded-full
                             border-2
                             border-white
                             bg-red-600
+                            sm:right-2
+                            sm:top-2
                             dark:border-slate-900
                         "
                     />
@@ -181,7 +227,7 @@ function ManagerNavbar() {
                     className="
                         flex
                         items-center
-                        gap-3
+                        gap-2
                         rounded-lg
                         p-1
                         transition
@@ -190,6 +236,7 @@ function ManagerNavbar() {
                         focus:ring-2
                         focus:ring-blue-500
                         focus:ring-offset-2
+                        sm:gap-3
                         dark:hover:bg-slate-800
                         dark:focus:ring-offset-slate-900
                     "
@@ -202,14 +249,17 @@ function ManagerNavbar() {
                     <div
                         className="
                             flex
-                            h-10
-                            w-10
+                            h-9
+                            w-9
+                            shrink-0
                             items-center
                             justify-center
                             rounded-full
                             bg-blue-600
                             font-bold
                             text-white
+                            sm:h-10
+                            sm:w-10
                         "
                     >
                         M
@@ -219,7 +269,7 @@ function ManagerNavbar() {
                         MANAGER INFORMATION
                     ================================================== */}
 
-                    <div className="text-left">
+                    <div className="hidden text-left sm:block">
 
                         <p
                             className="
@@ -233,6 +283,8 @@ function ManagerNavbar() {
 
                         <p
                             className="
+                                max-w-40
+                                truncate
                                 text-sm
                                 text-slate-500
                                 dark:text-slate-400

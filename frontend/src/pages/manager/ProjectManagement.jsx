@@ -35,6 +35,7 @@ import AiProjectSummaryModal from "../../components/manager/project/AiProjectSum
 import AiTeamPerformanceModal from "../../components/manager/project/AiTeamPerformanceModal";
 import AiProgressPredictionModal from "../../components/manager/project/AiProgressPredictionModal";
 import AiSprintPlanningModal from "../../components/manager/project/AiSprintPlanningModal";
+import { getTeams } from "../../services/teamService";
 import {
     getMyProjects,
     getProjectSpecification,
@@ -86,7 +87,7 @@ function ProjectManagement() {
    const [summaryProject, setSummaryProject] = useState(null);
        const [recommendationsOpen, setRecommendationsOpen] = useState(false);
     const [recommendationsProject, setRecommendationsProject] = useState(null);
-
+const [teams, setTeams] = useState([]);
     const [bottlenecksOpen, setBottlenecksOpen] = useState(false);
     const [bottlenecksProject, setBottlenecksProject] = useState(null);
        const [deadlineOpen, setDeadlineOpen] = useState(false);
@@ -272,17 +273,26 @@ function ProjectManagement() {
                         project.manager?.name ??
                         "",
 
-                    team:
-                        project.team ??
-                        project.teamSize ??
-                        project.teamCount ??
-                        0,
+   // 🌟 FIX: Ensure 'team' is always a string (the team name), never a number like 0
+team:
+    project.teamName ??
+    project.team ??
+    "No team assigned",
 
-                    teamName:
-                        project.teamName ??
-                        project.TeamName ??
-                        project.team?.name ??
-                        "",
+teamName:
+    project.teamName ??
+    project.TeamName ??
+    project.team?.name ??
+    "",
+
+// 🌟 ADD THIS LINE
+teamMemberCount:
+    project.teamMemberCount ??
+    project.memberCount ??
+    project.MemberCount ??
+    project.team?.memberCount ??
+    project.team?.members?.length ??
+    0,
 
                     hasSpecification:
                         Boolean(
@@ -459,18 +469,26 @@ function ProjectManagement() {
                 // safety check.
                 // ------------------------------------------------
 
-                const assigned =
-                    projectsWithSpecifications.filter(
-                        (project) =>
-                            String(
-                                project.managerId
-                            ).toLowerCase() ===
-                            String(
-                                manager.id
-                            ).toLowerCase()
-                    );
+               const assigned = projectsWithSpecifications.filter(
+    (project) =>
+        String(project.managerId).toLowerCase() ===
+        String(manager.id).toLowerCase()
+);
 
-                setProjects(assigned);
+setProjects(assigned);
+
+// 🌟 FETCH TEAMS TO CALCULATE MEMBER COUNTS
+try {
+    const teamsResult = await getTeams();
+    const teamsData = Array.isArray(teamsResult) 
+        ? teamsResult 
+        : Array.isArray(teamsResult?.data) 
+        ? teamsResult.data 
+        : [];
+    setTeams(teamsData);
+} catch (error) {
+    console.error("LOAD TEAMS ERROR:", error);
+}
             } catch (error) {
                 console.error(
                     "LOAD MANAGER PROJECTS ERROR:",
@@ -494,7 +512,6 @@ function ProjectManagement() {
             handleProjectError,
         ]
     );
-
     // ========================================================
     // INITIAL LOAD
     // ========================================================
@@ -506,107 +523,67 @@ function ProjectManagement() {
             try {
                 setLoading(true);
 
-                const manager =
-                    await loadCurrentManager();
+                const manager = await loadCurrentManager();
 
-                if (!mounted) {
-                    return;
-                }
+                if (!mounted) return;
 
-                const apiProjects =
-                    await getMyProjects();
+                const apiProjects = await getMyProjects();
 
-                if (!mounted) {
-                    return;
-                }
+                if (!mounted) return;
 
-                const normalizedProjects =
-                    Array.isArray(apiProjects)
-                        ? apiProjects
-                              .map(
-                                  normalizeManagerProject
-                              )
-                              .filter(Boolean)
-                        : [];
+                const normalizedProjects = Array.isArray(apiProjects)
+                    ? apiProjects.map(normalizeManagerProject).filter(Boolean)
+                    : [];
 
-                const projectsWithSpecifications =
-                    await Promise.all(
-                        normalizedProjects.map(
-                            async (project) => {
-                                try {
-                                    const specification =
-                                        await getProjectSpecification(
-                                            project.id
-                                        );
-
-                                    return {
-                                        ...project,
-
-                                        hasSpecification:
-                                            Boolean(
-                                                specification
-                                            ),
-
-                                        specification:
-                                            specification ||
-                                            null,
-                                    };
-                                } catch (error) {
-                                    const status =
-                                        error?.cause
-                                            ?.response
-                                            ?.status ??
-                                        error?.response
-                                            ?.status;
-
-                                    if (
-                                        status ===
-                                        404
-                                    ) {
-                                        return {
-                                            ...project,
-
-                                            hasSpecification:
-                                                false,
-
-                                            specification:
-                                                null,
-                                        };
-                                    }
-
-                                    return project;
-                                }
+                const projectsWithSpecifications = await Promise.all(
+                    normalizedProjects.map(async (project) => {
+                        try {
+                            const specification = await getProjectSpecification(project.id);
+                            return {
+                                ...project,
+                                hasSpecification: Boolean(specification),
+                                specification: specification || null,
+                            };
+                        } catch (error) {
+                            const status = error?.cause?.response?.status ?? error?.response?.status;
+                            if (status === 404) {
+                                return { ...project, hasSpecification: false, specification: null };
                             }
-                        )
-                    );
-
-                if (!mounted) {
-                    return;
-                }
-
-                const assigned =
-                    projectsWithSpecifications.filter(
-                        (project) =>
-                            String(
-                                project.managerId
-                            ).toLowerCase() ===
-                            String(
-                                manager.id
-                            ).toLowerCase()
-                    );
-
-                setProjects(assigned);
-            } catch (error) {
-                console.error(
-                    "INITIALIZE PROJECT MANAGEMENT ERROR:",
-                    error
+                            return project;
+                        }
+                    })
                 );
 
+                if (!mounted) return;
+
+                const assigned = projectsWithSpecifications.filter(
+                    (project) =>
+                        String(project.managerId).toLowerCase() ===
+                        String(manager.id).toLowerCase()
+                );
+
+                setProjects(assigned);
+
+                // 🌟 FIX: Fetch teams on initial load so the enrichment useEffect can run!
+                try {
+                    const teamsResult = await getTeams();
+                    const teamsData = Array.isArray(teamsResult) 
+                        ? teamsResult 
+                        : Array.isArray(teamsResult?.data) 
+                        ? teamsResult.data 
+                        : [];
+                    
+                    if (mounted) {
+                        setTeams(teamsData);
+                    }
+                } catch (error) {
+                    console.error("LOAD TEAMS ERROR (INITIAL):", error);
+                }
+
+            } catch (error) {
+                console.error("INITIALIZE PROJECT MANAGEMENT ERROR:", error);
                 if (mounted) {
-                    handleProjectError(
-                        error?.message ||
-                            "Unable to load project management data."
-                    );
+                    handleProjectError(error?.message || "Unable to load project management data.");
                 }
             } finally {
                 if (mounted) {
@@ -620,12 +597,72 @@ function ProjectManagement() {
         return () => {
             mounted = false;
         };
-    }, [
-        loadCurrentManager,
-        normalizeManagerProject,
-        handleProjectError,
-    ]);
+    }, [loadCurrentManager, normalizeManagerProject, handleProjectError]);  
+  // ========================================================
+// ENRICH PROJECTS WITH TEAM MEMBER COUNTS
+// ========================================================
+useEffect(() => {
+    if (projects.length > 0 && teams.length > 0) {
+        setProjects((currentProjects) =>
+            currentProjects.map((project) => {
+                const matchingTeam = teams.find(
+                    (team) =>
+                        String(team?.id) === String(project?.teamId) ||
+                        String(team?.teamId) === String(project?.teamId)
+                );
 
+                if (matchingTeam) {
+                    const memberCount =
+                        matchingTeam?.memberCount ??
+                        matchingTeam?.members?.length ??
+                        0;
+
+                    return {
+                        ...project,
+                        teamMemberCount: memberCount,
+                        // 🌟 FIX: Update BOTH 'team' and 'teamName' to the actual team name
+                        team: matchingTeam?.name || "No team assigned",
+                        teamName: matchingTeam?.name || "No team assigned",
+                    };
+                }
+                return project;
+            })
+        );
+    }
+}, [teams]);
+
+// ========================================================
+// ENRICH PROJECTS WITH TEAM MEMBER COUNTS
+// ========================================================
+useEffect(() => {
+    if (projects.length > 0 && teams.length > 0) {
+        setProjects((currentProjects) =>
+            currentProjects.map((project) => {
+                // Find the team that matches this project's teamId
+                const matchingTeam = teams.find(
+                    (team) =>
+                        String(team?.id) === String(project?.teamId) ||
+                        String(team?.teamId) === String(project?.teamId) ||
+                        team?.name === project?.team
+                );
+
+                if (matchingTeam) {
+                    const memberCount =
+                        matchingTeam?.memberCount ??
+                        matchingTeam?.members?.length ??
+                        0;
+
+                    return {
+                        ...project,
+                        teamMemberCount: memberCount,
+                        team: matchingTeam?.name || project?.team || "No team assigned",
+                    };
+                }
+                return project;
+            })
+        );
+    }
+}, [teams]); // 🌟 This runs when teams are loaded
     // ========================================================
     // ASSIGNED PROJECTS
     // ========================================================

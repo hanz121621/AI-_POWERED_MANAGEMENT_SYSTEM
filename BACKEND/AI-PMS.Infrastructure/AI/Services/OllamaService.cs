@@ -347,7 +347,122 @@ if (suggestions == null)
         return new List<AISuggestion>();
     }
 }
+    // ============================================================
+    // AI TASK BREAKDOWN (AI-TASK-001)
+    // ============================================================
 
+    public async Task<TaskBreakdownResponse> GenerateTaskBreakdownAsync(
+        string sprintGoal, 
+        string sprintDescription, 
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var prompt = 
+                "You are an expert Agile project management AI assistant.\n\n" +
+                "Analyze the following sprint information and break it down into specific, actionable tasks.\n\n" +
+                $"SPRINT GOAL: {sprintGoal}\n" +
+                $"SPRINT DESCRIPTION: {sprintDescription}\n\n" +
+                "IMPORTANT OUTPUT RULE:\n" +
+                "Return ONLY a valid JSON object containing a 'tasks' array.\n" +
+                "Do not write any text before or after the JSON.\n" +
+                "Do not use markdown formatting like ```json.\n\n" +
+                "Generate 3 to 7 specific tasks. Each task object MUST contain exactly these fields:\n" +
+                "- title (string): A clear, concise task title\n" +
+                "- description (string): A detailed description of what needs to be done\n" +
+                "- estimatedHours (integer): A realistic estimate of effort in hours\n" +
+                "- recommendedRole (string): e.g., 'Frontend Developer', 'Backend Developer', 'UI/UX Designer', 'QA/Tester', 'DevOps', 'Team Leader', or 'Staff'\n\n" +
+                "Example output:\n" +
+                "{\"tasks\": [{\"title\": \"Setup Database\", \"description\": \"Create initial schema\", \"estimatedHours\": 4, \"recommendedRole\": \"Backend Developer\"}]}";
+
+            var payload = new
+            {
+                model = _options.Model,
+                prompt = prompt,
+                stream = false,
+                format = "json" // Forces Ollama to return valid JSON
+            };
+
+            using var response = await _httpClient.PostAsJsonAsync(
+                "/api/generate", 
+                payload, 
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+
+            var result = await response.Content.ReadFromJsonAsync<OllamaResponse>(cancellationToken: cancellationToken);
+
+            if (result == null || string.IsNullOrWhiteSpace(result.Response))
+            {
+                Console.WriteLine("Ollama returned an empty task breakdown response.");
+                return new TaskBreakdownResponse();
+            }
+
+            Console.WriteLine("========== OLLAMA TASK BREAKDOWN RESPONSE ==========");
+            Console.WriteLine(result.Response);
+            Console.WriteLine("====================================================");
+
+            var json = result.Response.Trim();
+
+            // Remove markdown code fences if Ollama adds them
+            if (json.StartsWith("```"))
+            {
+                var firstNewLine = json.IndexOf('\n');
+                if (firstNewLine >= 0) json = json[(firstNewLine + 1)..];
+                
+                var closingFence = json.LastIndexOf("```");
+                if (closingFence >= 0) json = json[..closingFence];
+                
+                json = json.Trim();
+            }
+
+            // Extract the JSON object if there's extra text
+            var objectStart = json.IndexOf('{');
+            var objectEnd = json.LastIndexOf('}');
+
+            if (objectStart >= 0 && objectEnd > objectStart)
+            {
+                json = json.Substring(objectStart, objectEnd - objectStart + 1);
+            }
+
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            TaskBreakdownResponse? breakdown = null;
+
+            try
+            {
+                breakdown = JsonSerializer.Deserialize<TaskBreakdownResponse>(json, options);
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"Ollama Task Breakdown JSON parsing error: {ex.Message}");
+                Console.WriteLine($"Ollama response: {result.Response}");
+            }
+
+            if (breakdown == null || breakdown.Tasks == null || breakdown.Tasks.Count == 0)
+            {
+                Console.WriteLine("Ollama returned no valid AI tasks. Returning empty list.");
+                return new TaskBreakdownResponse();
+            }
+
+            Console.WriteLine($"Successfully parsed {breakdown.Tasks.Count} AI suggested tasks.");
+            return breakdown;
+        }
+        catch (TaskCanceledException)
+        {
+            Console.WriteLine("AI task breakdown request timed out.");
+            return new TaskBreakdownResponse();
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"Could not connect to Ollama for task breakdown: {ex.Message}");
+            return new TaskBreakdownResponse();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"AI task breakdown generation error: {ex}");
+            return new TaskBreakdownResponse();
+        }
+    }
     // ============================================================
     // OLLAMA RESPONSE
     // ============================================================

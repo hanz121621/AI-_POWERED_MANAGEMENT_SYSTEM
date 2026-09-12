@@ -10,4 +10,8 @@ public interface IAIService
     Task<List<AISuggestion>>
         GenerateSuggestionsAsync(
             AISuggestionRequest request);
+            Task<TaskBreakdownResponse> GenerateTaskBreakdownAsync(
+            string sprintGoal, 
+            string sprintDescription, 
+            CancellationToken cancellationToken = default);
 }

@@ -925,7 +925,7 @@ teamLeaderId:
     disabled:opacity-60
     disabled:bg-blue-950
     disabled:border-blue-900
-    disabled:bg-slate-100
+   
     "
 >
     <option

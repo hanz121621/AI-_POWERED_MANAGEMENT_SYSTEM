@@ -36,7 +36,7 @@ import {
 //
 // Therefore ../../services/teamService is required.
 import teamService from "../../services/teamService";
-
+import api from "@/services/api";
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -139,119 +139,60 @@ function TeamManagement() {
 
     }, []);
 
-    // ========================================================
+      // ========================================================
     // NORMALIZE TEAM DATA FOR UI
     // ========================================================
 
-    const normalizeTeamForPage = (
-        rawTeam
-    ) => {
-
+    const normalizeTeamForPage = (rawTeam) => {
         if (!rawTeam) {
             return null;
         }
 
         const normalized =
-            typeof teamService.normalizeTeam ===
-            "function"
-                ? teamService.normalizeTeam(
-                    rawTeam
-                )
+            typeof teamService.normalizeTeam === "function"
+                ? teamService.normalizeTeam(rawTeam)
                 : rawTeam;
 
-        const members =
-            Array.isArray(
-                normalized?.members
-            )
-                ? normalized.members
-                : [];
+        const members = Array.isArray(normalized?.members) ? normalized.members : [];
 
+        //  ENHANCED TEAM LEADER EXTRACTION
+        // It checks the direct property first, then searches the members array.
         const teamLeader =
             normalized?.teamLeader ||
             normalized?.leader ||
             normalized?.teamLeaderUser ||
+            members.find((m) => m.isTeamLeader === true) || 
+            members.find((m) => m.contributorTypeName?.toLowerCase() === 'team leader') || 
             null;
 
-        const sprints =
-            Array.isArray(
-                normalized?.sprints
-            )
-                ? normalized.sprints
-                : [];
+        const sprints = Array.isArray(normalized?.sprints) ? normalized.sprints : [];
 
         return {
             ...normalized,
-
-            id:
-                normalized?.id ??
-                normalized?.teamId,
-
-            name:
-                normalized?.name ||
-                normalized?.teamName ||
-                "Team",
-
-            projectId:
-                normalized?.projectId,
-
-            projectName:
-                normalized?.projectName ||
-                normalized?.project?.name ||
-                "Assigned Project",
-
-            managerId:
-                normalized?.managerId,
-
-            managerName:
-                normalized?.managerName,
-
-            teamLeader:
-                teamLeader
-                    ? {
-                        id:
-                            teamLeader.id ??
-                            teamLeader.userId ??
-                            teamLeader.UserId,
-
-                        name:
-                            teamLeader.name ??
-                            teamLeader.fullName ??
-                            teamLeader.userName ??
-                            "Team Leader",
-
-                        role:
-                            teamLeader.role ||
-                            "Team Leader",
-
-                        contributorType:
-                            teamLeader.contributorType ||
-                            teamLeader.contributorTypeName ||
-                            "Developer",
-
-                        specialization:
-                            teamLeader.specialization ||
-                            teamLeader.specializationName ||
-                            "Software Development",
-                    }
-                    : null,
+            id: normalized?.id ?? normalized?.teamId,
+            name: normalized?.name || normalized?.teamName || "Team",
+            projectId: normalized?.projectId,
+            projectName: normalized?.projectName || normalized?.project?.name || "Assigned Project",
+            managerId: normalized?.managerId,
+            managerName: normalized?.managerName,
+            
+            // 🌟 PROPERLY FORMAT TEAM LEADER
+            teamLeader: teamLeader
+                ? {
+                    id: teamLeader.id ?? teamLeader.userId ?? teamLeader.UserId,
+                    name: teamLeader.name ?? teamLeader.fullName ?? teamLeader.userName ?? "Team Leader",
+                    role: teamLeader.role || "Team Leader",
+                    contributorType: teamLeader.contributorType || teamLeader.contributorTypeName || "Developer",
+                    specialization: teamLeader.specialization || teamLeader.specializationName || "Software Development",
+                }
+                : null,
 
             members,
-
             sprints,
         };
-
     };
-
-    // ========================================================
-    // LOAD ASSIGNED TEAM
-    // ========================================================
-
-    const loadTeam = async (
-        showRefresh = false
-    ) => {
-
+    const loadTeam = async (showRefresh = false) => {
         try {
-
             if (showRefresh) {
                 setRefreshing(true);
             } else {
@@ -260,169 +201,86 @@ function TeamManagement() {
 
             clearMessages();
 
-            const teams =
-                await teamService.getTeams();
+            const teams = await teamService.getTeams();
+            const normalizedTeams = Array.isArray(teams)
+                ? teams.map((item) => normalizeTeamForPage(item)).filter(Boolean)
+                : [];
 
-            const normalizedTeams =
-                Array.isArray(teams)
-                    ? teams
-                        .map(
-                            (item) =>
-                                normalizeTeamForPage(
-                                    item
-                                )
-                        )
-                        .filter(Boolean)
-                    : [];
-
-            if (
-                normalizedTeams.length === 0
-            ) {
-
+            if (normalizedTeams.length === 0) {
                 setTeam(null);
-
                 return;
             }
 
             // ------------------------------------------------
-            // Prefer a team assigned to the current manager.
+            // Get the current manager's projects to find the correct team
             // ------------------------------------------------
+            try {
+                const projectsResponse = await api.get('/projects/my-projects');
+                const projects = projectsResponse?.data?.data || projectsResponse?.data || [];
+                
+                if (projects.length > 0) {
+                    // Get the teamId from the first project
+                    const projectTeamId = projects[0].teamId;
+                    
+                    // Find the team that matches this project's teamId
+                    const selectedTeam = normalizedTeams.find(
+                        (item) => String(item.id) === String(projectTeamId)
+                    );
+                    
+                    if (selectedTeam) {
+                        // Load full team details
+                        if (selectedTeam?.id && typeof teamService.getTeamMembers === "function") {
+                            try {
+                                const membersResponse = await teamService.getTeamMembers(selectedTeam.id);
+                                const extractedMembers = 
+                                    Array.isArray(membersResponse) 
+                                        ? membersResponse 
+                                        : Array.isArray(membersResponse?.data) 
+                                        ? membersResponse.data 
+                                        : selectedTeam.members || [];
 
-            const managerId =
-                currentManager?.id ??
-                currentManager?.userId ??
-                currentManager?.Id ??
-                currentManager?.UserId;
+                                setTeam({
+                                    ...selectedTeam,
+                                    members: extractedMembers,
+                                });
+                                return;
+                            } catch (memberError) {
+                                console.warn("Unable to load team members:", memberError);
+                            }
+                        }
+                        
+                        setTeam(selectedTeam);
+                        return;
+                    }
+                }
+            } catch (projectError) {
+                console.warn("Unable to load projects to find team:", projectError);
+            }
 
-            let selectedTeam = null;
+            // Fallback: Use the old logic if project loading fails
+            const managerId = currentManager?.id ?? currentManager?.userId;
+            let fallbackTeam = null;
 
             if (managerId) {
-
-                selectedTeam =
-                    normalizedTeams.find(
-                        (item) =>
-                            String(
-                                item.managerId
-                            ) ===
-                            String(managerId)
-                    );
+                fallbackTeam = normalizedTeams.find(
+                    (item) => String(item.managerId).toLowerCase() === String(managerId).toLowerCase()
+                );
             }
 
-            // ------------------------------------------------
-            // If the service/API already returns the
-            // manager's authorized team, use the first one.
-            // ------------------------------------------------
-
-            if (!selectedTeam) {
-
-                selectedTeam =
-                    normalizedTeams.find(
-                        (item) =>
-                            item.managerId
-                    ) ||
-                    normalizedTeams[0];
+            if (!fallbackTeam) {
+                fallbackTeam = normalizedTeams.find((item) => item.managerId) || normalizedTeams[0];
             }
 
-            // ------------------------------------------------
-            // Get full team details when possible.
-            // ------------------------------------------------
-
-            if (
-                selectedTeam?.id
-            ) {
-
-                try {
-
-                    const detailedTeam =
-                        await teamService.getTeamById(
-                            selectedTeam.id
-                        );
-
-                    if (detailedTeam) {
-
-                        selectedTeam =
-                            normalizeTeamForPage(
-                                detailedTeam
-                            );
-
-                    }
-
-                } catch (detailError) {
-
-                    console.warn(
-                        "Unable to load detailed team. Using team list data:",
-                        detailError
-                    );
-
-                }
-
-            }
-
-            // ------------------------------------------------
-            // Get members directly from member endpoint.
-            // ------------------------------------------------
-
-            if (
-                selectedTeam?.id &&
-                typeof teamService.getTeamMembers ===
-                "function"
-            ) {
-
-                try {
-
-                    const members =
-                        await teamService.getTeamMembers(
-                            selectedTeam.id
-                        );
-
-                    selectedTeam = {
-                        ...selectedTeam,
-
-                        members:
-                            Array.isArray(
-                                members
-                            )
-                                ? members
-                                : selectedTeam.members ||
-                                [],
-                    };
-
-                } catch (memberError) {
-
-                    console.warn(
-                        "Unable to load team members:",
-                        memberError
-                    );
-
-                }
-
-            }
-
-            setTeam(
-                selectedTeam
-            );
+            setTeam(fallbackTeam);
 
         } catch (error) {
-
-            console.error(
-                "Unable to load team:",
-                error
-            );
-
+            console.error("Unable to load team:", error);
             setTeam(null);
-
-            showError(
-                error?.message ||
-                "Unable to load team management data."
-            );
-
+            showError(error?.message || "Unable to load team management data.");
         } finally {
-
             setLoading(false);
             setRefreshing(false);
-
         }
-
     };
 
     // ========================================================
