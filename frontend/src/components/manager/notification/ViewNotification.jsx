@@ -253,10 +253,6 @@ function ViewNotification() {
     // LOAD NOTIFICATIONS
     // ========================================================
 
-    useEffect(() => {
-        loadNotifications();
-    }, []);
-
     const loadNotifications = async (options = {}) => {
         const isRefresh =
             options.refresh === true;
@@ -305,6 +301,14 @@ function ViewNotification() {
     };
 
     // ========================================================
+    // INITIAL LOAD
+    // ========================================================
+
+    useEffect(() => {
+        loadNotifications();
+    }, []);
+
+    // ========================================================
     // UNREAD COUNT
     // ========================================================
 
@@ -338,7 +342,6 @@ function ViewNotification() {
         notification
     ) => {
         setSelectedNotification(notification);
-
         setActionError("");
 
         if (!isNotificationRead(notification)) {
@@ -472,7 +475,9 @@ function ViewNotification() {
     // NOTIFICATION ICON
     // ========================================================
 
-    const renderNotificationIcon = (notification) => {
+    const renderNotificationIcon = (
+        notification
+    ) => {
         const config =
             getNotificationConfig(notification);
 
@@ -490,10 +495,10 @@ function ViewNotification() {
 
         return (
             <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${
                     isAI
-                        ? "bg-violet-100 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400"
-                        : "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-muted text-muted-foreground"
                 }`}
             >
                 <Icon className="h-5 w-5" />
@@ -507,12 +512,14 @@ function ViewNotification() {
 
     if (loading) {
         return (
-            <div className="rounded-2xl border border-slate-200 bg-white p-12 dark:border-slate-800 dark:bg-slate-900">
+            <div className="rounded-xl border border-border bg-card p-12">
                 <div className="flex min-h-[300px] items-center justify-center">
-                    <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
-                        <RefreshCw className="h-5 w-5 animate-spin text-blue-600" />
+                    <div className="flex flex-col items-center gap-3">
+                        <RefreshCw className="h-6 w-6 animate-spin text-primary" />
 
-                        Loading notifications...
+                        <p className="text-sm text-muted-foreground">
+                            Loading notifications...
+                        </p>
                     </div>
                 </div>
             </div>
@@ -530,36 +537,41 @@ function ViewNotification() {
             ================================================== */}
 
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
-                        <Bell className="h-6 w-6" />
+
+                <div className="flex items-center gap-3">
+
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Bell className="h-5 w-5" />
                     </div>
 
                     <div>
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+
+                        <div className="flex flex-wrap items-center gap-2">
+
+                            <h2 className="text-lg font-semibold text-foreground">
                                 Notifications
                             </h2>
 
                             {unreadCount > 0 && (
-                                <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                                <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
                                     {unreadCount} unread
                                 </span>
                             )}
+
                         </div>
 
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            View notifications related to
-                            your projects, sprints, teams,
-                            and activities.
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            View notifications related to your
+                            projects, sprints, teams, and activities.
                         </p>
+
                     </div>
+
                 </div>
 
-                <div className="flex items-center gap-2">
-                    {/* ==================================================
-                        BLUE REFRESH BUTTON
-                    ================================================== */}
+                <div className="flex flex-wrap items-center gap-2">
+
+                    {/* REFRESH */}
 
                     <button
                         type="button"
@@ -569,7 +581,7 @@ function ViewNotification() {
                             })
                         }
                         disabled={refreshing}
-                        className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-blue-400 disabled:opacity-70"
+                        className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <RefreshCw
                             className={`h-4 w-4 ${
@@ -584,9 +596,7 @@ function ViewNotification() {
                             : "Refresh"}
                     </button>
 
-                    {/* ==================================================
-                        BLUE MARK ALL READ BUTTON
-                    ================================================== */}
+                    {/* MARK ALL READ */}
 
                     {unreadCount > 0 && (
                         <button
@@ -595,7 +605,7 @@ function ViewNotification() {
                                 handleMarkAllAsRead
                             }
                             disabled={markingAllRead}
-                            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <CheckCheck className="h-4 w-4" />
 
@@ -604,7 +614,9 @@ function ViewNotification() {
                                 : "Mark all read"}
                         </button>
                     )}
+
                 </div>
+
             </div>
 
             {/* ==================================================
@@ -612,17 +624,20 @@ function ViewNotification() {
             ================================================== */}
 
             {error && (
-                <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
-                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
 
                     <div className="flex-1">
-                        <p className="font-semibold">
+
+                        <p className="font-semibold text-foreground">
                             Unable to load notifications
                         </p>
 
-                        <p className="mt-1">
+                        <p className="mt-1 text-sm text-muted-foreground">
                             {error}
                         </p>
+
                     </div>
 
                     <button
@@ -630,10 +645,11 @@ function ViewNotification() {
                         onClick={() =>
                             loadNotifications()
                         }
-                        className="text-sm font-semibold underline"
+                        className="text-sm font-medium text-primary hover:underline"
                     >
                         Try again
                     </button>
+
                 </div>
             )}
 
@@ -642,10 +658,11 @@ function ViewNotification() {
             ================================================== */}
 
             {actionError && (
-                <div className="mb-5 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
-                    <AlertCircle className="h-5 w-5 shrink-0" />
+                <div className="mb-5 flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
 
-                    <span className="flex-1">
+                    <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
+
+                    <span className="flex-1 text-sm text-foreground">
                         {actionError}
                     </span>
 
@@ -654,10 +671,11 @@ function ViewNotification() {
                         onClick={() =>
                             setActionError("")
                         }
-                        className="rounded p-1 hover:bg-red-100 dark:hover:bg-red-900/30"
+                        className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                     >
                         <X className="h-4 w-4" />
                     </button>
+
                 </div>
             )}
 
@@ -665,16 +683,17 @@ function ViewNotification() {
                 FILTERS
             ================================================== */}
 
-            <div className="mb-5 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800">
+            <div className="mb-5 flex items-center gap-1 border-b border-border">
+
                 <button
                     type="button"
                     onClick={() =>
                         setActiveFilter("all")
                     }
-                    className={`border-b-2 px-4 py-3 text-sm font-semibold transition ${
+                    className={`border-b-2 px-4 py-3 text-sm font-medium transition ${
                         activeFilter === "all"
-                            ? "border-blue-600 text-blue-700 dark:border-blue-400 dark:text-blue-400"
-                            : "border-transparent text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+                            ? "border-primary text-primary"
+                            : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                 >
                     All
@@ -685,20 +704,22 @@ function ViewNotification() {
                     onClick={() =>
                         setActiveFilter("unread")
                     }
-                    className={`border-b-2 px-4 py-3 text-sm font-semibold transition ${
+                    className={`border-b-2 px-4 py-3 text-sm font-medium transition ${
                         activeFilter === "unread"
-                            ? "border-blue-600 text-blue-700 dark:border-blue-400 dark:text-blue-400"
-                            : "border-transparent text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+                            ? "border-primary text-primary"
+                            : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                 >
                     Unread
 
                     {unreadCount > 0 && (
-                        <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                        <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
                             {unreadCount}
                         </span>
                     )}
+
                 </button>
+
             </div>
 
             {/* ==================================================
@@ -708,21 +729,23 @@ function ViewNotification() {
             {!error &&
                 filteredNotifications.length ===
                     0 && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-900">
-                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/40">
-                            <Bell className="h-6 w-6 text-blue-500" />
+                    <div className="rounded-xl border border-border bg-card p-12 text-center">
+
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                            <Bell className="h-6 w-6 text-muted-foreground" />
                         </div>
 
-                        <h2 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">
-                            No notifications available.
+                        <h2 className="mt-4 text-lg font-semibold text-foreground">
+                            No notifications available
                         </h2>
 
-                        <p className="mx-auto mt-2 max-w-lg text-sm text-slate-500 dark:text-slate-400">
+                        <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
                             {activeFilter ===
                             "unread"
                                 ? "You have no unread notifications."
                                 : "You currently have no notifications related to your projects, sprints, teams, or activities."}
                         </p>
+
                     </div>
                 )}
 
@@ -731,8 +754,10 @@ function ViewNotification() {
             ================================================== */}
 
             <div className="space-y-3">
+
                 {filteredNotifications.map(
                     (notification) => {
+
                         const id =
                             getNotificationId(
                                 notification
@@ -756,8 +781,7 @@ function ViewNotification() {
                         const isAI =
                             type ===
                                 "aiRecommendation" ||
-                            notification?.isAI ===
-                                true ||
+                            notification?.isAI === true ||
                             String(
                                 notification?.source ||
                                     ""
@@ -782,23 +806,27 @@ function ViewNotification() {
                                 }
                                 className={`w-full rounded-xl border p-4 text-left transition ${
                                     read
-                                        ? "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/30 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
-                                        : "border-blue-200 bg-blue-50/30 shadow-sm hover:border-blue-300 hover:bg-blue-50 dark:border-blue-900 dark:bg-blue-950/20 dark:hover:bg-blue-950/30"
+                                        ? "border-border bg-card hover:bg-muted/40"
+                                        : "border-primary/30 bg-primary/5 hover:bg-primary/10"
                                 }`}
                             >
+
                                 <div className="flex items-start gap-4">
+
                                     {renderNotificationIcon(
                                         notification
                                     )}
 
                                     <div className="min-w-0 flex-1">
+
                                         <div className="flex flex-wrap items-center gap-2">
+
                                             <h3
                                                 className={`text-sm ${
                                                     read
                                                         ? "font-medium"
-                                                        : "font-bold"
-                                                } text-slate-900 dark:text-white`}
+                                                        : "font-semibold"
+                                                } text-foreground`}
                                             >
                                                 {getNotificationTitle(
                                                     notification
@@ -806,34 +834,33 @@ function ViewNotification() {
                                             </h3>
 
                                             {!read && (
-                                                <span className="h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-400" />
+                                                <span className="h-2 w-2 rounded-full bg-primary" />
                                             )}
 
                                             {isAI && (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
+                                                <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
                                                     <Bot className="h-3 w-3" />
                                                     AI
                                                 </span>
                                             )}
+
                                         </div>
 
-                                        <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
+                                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                                             {getNotificationMessage(
                                                 notification
                                             )}
                                         </p>
 
-                                        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-                                            <span className="font-medium text-blue-600 dark:text-blue-400">
-                                                {
-                                                    config.label
-                                                }
+                                        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+
+                                            <span className="font-medium text-primary">
+                                                {config.label}
                                             </span>
 
                                             {notification?.projectName && (
                                                 <span className="inline-flex items-center gap-1">
                                                     <FolderKanban className="h-3.5 w-3.5" />
-
                                                     {
                                                         notification.projectName
                                                     }
@@ -843,7 +870,6 @@ function ViewNotification() {
                                             {notification?.sprintName && (
                                                 <span className="inline-flex items-center gap-1">
                                                     <ListChecks className="h-3.5 w-3.5" />
-
                                                     {
                                                         notification.sprintName
                                                     }
@@ -853,7 +879,6 @@ function ViewNotification() {
                                             {notification?.teamName && (
                                                 <span className="inline-flex items-center gap-1">
                                                     <UsersRound className="h-3.5 w-3.5" />
-
                                                     {
                                                         notification.teamName
                                                     }
@@ -869,21 +894,28 @@ function ViewNotification() {
                                                     )
                                                 )}
                                             </span>
+
                                         </div>
+
                                     </div>
 
                                     {!read && (
                                         <div className="shrink-0">
-                                            <span className="rounded-full bg-blue-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+
+                                            <span className="rounded-md bg-primary px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground">
                                                 Unread
                                             </span>
+
                                         </div>
                                     )}
+
                                 </div>
+
                             </button>
                         );
                     }
                 )}
+
             </div>
 
             {/* ==================================================
@@ -892,7 +924,7 @@ function ViewNotification() {
 
             {selectedNotification && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
+                    className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4"
                     onMouseDown={(event) => {
                         if (
                             event.target ===
@@ -904,18 +936,24 @@ function ViewNotification() {
                         }
                     }}
                 >
-                    <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
+
+                    <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-card shadow-xl">
+
                         {/* MODAL HEADER */}
 
-                        <div className="flex items-start justify-between border-b border-slate-200 p-5 dark:border-slate-800">
+                        <div className="flex items-start justify-between border-b border-border p-5">
+
                             <div className="flex items-start gap-3">
+
                                 {renderNotificationIcon(
                                     selectedNotification
                                 )}
 
                                 <div>
+
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+
+                                        <h2 className="text-lg font-semibold text-foreground">
                                             {getNotificationTitle(
                                                 selectedNotification
                                             )}
@@ -934,21 +972,24 @@ function ViewNotification() {
                                             ).toLowerCase() ===
                                                 "ai"
                                         ) && (
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-1 text-xs font-semibold text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
+                                            <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
                                                 <Bot className="h-3 w-3" />
                                                 AI Recommendation
                                             </span>
                                         )}
+
                                     </div>
 
-                                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    <p className="mt-1 text-xs text-muted-foreground">
                                         {formatNotificationTime(
                                             getNotificationDate(
                                                 selectedNotification
                                             )
                                         )}
                                     </p>
+
                                 </div>
+
                             </div>
 
                             <button
@@ -958,16 +999,18 @@ function ViewNotification() {
                                         null
                                     )
                                 }
-                                className="rounded-lg p-2 text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 dark:hover:text-blue-400"
+                                className="rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
                             >
                                 <X className="h-5 w-5" />
                             </button>
+
                         </div>
 
                         {/* MODAL CONTENT */}
 
                         <div className="space-y-5 p-5">
-                            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700 dark:text-slate-300">
+
+                            <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">
                                 {getNotificationMessage(
                                     selectedNotification
                                 )}
@@ -976,82 +1019,102 @@ function ViewNotification() {
                             {/* PROJECT */}
 
                             {selectedNotification?.projectName && (
-                                <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4 dark:border-blue-900 dark:bg-blue-950/20">
+                                <div className="rounded-lg border border-border bg-muted/30 p-4">
+
                                     <div className="flex items-center gap-3">
-                                        <FolderKanban className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+
+                                        <FolderKanban className="h-5 w-5 text-primary" />
 
                                         <div>
-                                            <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+
+                                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                                 Related Project
                                             </p>
 
-                                            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                                            <p className="mt-1 text-sm font-semibold text-foreground">
                                                 {
                                                     selectedNotification.projectName
                                                 }
                                             </p>
+
                                         </div>
+
                                     </div>
+
                                 </div>
                             )}
 
                             {/* SPRINT */}
 
                             {selectedNotification?.sprintName && (
-                                <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4 dark:border-blue-900 dark:bg-blue-950/20">
+                                <div className="rounded-lg border border-border bg-muted/30 p-4">
+
                                     <div className="flex items-center gap-3">
-                                        <ListChecks className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+
+                                        <ListChecks className="h-5 w-5 text-primary" />
 
                                         <div>
-                                            <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+
+                                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                                 Related Sprint
                                             </p>
 
-                                            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                                            <p className="mt-1 text-sm font-semibold text-foreground">
                                                 {
                                                     selectedNotification.sprintName
                                                 }
                                             </p>
+
                                         </div>
+
                                     </div>
+
                                 </div>
                             )}
 
                             {/* TEAM */}
 
                             {selectedNotification?.teamName && (
-                                <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4 dark:border-blue-900 dark:bg-blue-950/20">
+                                <div className="rounded-lg border border-border bg-muted/30 p-4">
+
                                     <div className="flex items-center gap-3">
-                                        <UsersRound className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+
+                                        <UsersRound className="h-5 w-5 text-primary" />
 
                                         <div>
-                                            <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+
+                                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                                 Related Team
                                             </p>
 
-                                            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                                            <p className="mt-1 text-sm font-semibold text-foreground">
                                                 {
                                                     selectedNotification.teamName
                                                 }
                                             </p>
+
                                         </div>
+
                                     </div>
+
                                 </div>
                             )}
 
                             {/* ACTIVITY */}
 
                             {selectedNotification?.activityId && (
-                                <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
-                                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                <div className="rounded-lg border border-border p-4">
+
+                                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                         Activity Reference
                                     </p>
 
-                                    <p className="mt-1 break-all text-sm font-medium text-slate-700 dark:text-slate-300">
+                                    <p className="mt-1 break-all text-sm font-medium text-foreground">
                                         {
                                             selectedNotification.activityId
                                         }
                                     </p>
+
                                 </div>
                             )}
 
@@ -1062,7 +1125,7 @@ function ViewNotification() {
                                     href={
                                         selectedNotification.link
                                     }
-                                    className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                                 >
                                     Open related activity
 
@@ -1072,7 +1135,8 @@ function ViewNotification() {
 
                             {/* ACTIONS */}
 
-                            <div className="flex justify-end gap-2 border-t border-slate-200 pt-5 dark:border-slate-800">
+                            <div className="flex justify-end gap-2 border-t border-border pt-5">
+
                                 <button
                                     type="button"
                                     onClick={() =>
@@ -1080,7 +1144,7 @@ function ViewNotification() {
                                             null
                                         )
                                     }
-                                    className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                                    className="rounded-md border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
                                 >
                                     Close
                                 </button>
@@ -1101,7 +1165,7 @@ function ViewNotification() {
                                                 selectedNotification
                                             )
                                         }
-                                        className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+                                        className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <Check className="h-4 w-4" />
 
@@ -1113,9 +1177,13 @@ function ViewNotification() {
                                             : "Mark as read"}
                                     </button>
                                 )}
+
                             </div>
+
                         </div>
+
                     </div>
+
                 </div>
             )}
         </>

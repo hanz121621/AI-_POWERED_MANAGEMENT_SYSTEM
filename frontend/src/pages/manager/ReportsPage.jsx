@@ -5,13 +5,13 @@
 //
 // Manager Reports & Monitoring
 //
-// Sprint-style UI:
-// - Light slate page background
-// - Gradient hero
-// - Rounded 2xl cards
-// - Colorful statistics
-// - Modern report navigation
-// - Clean filters
+// Admin-style UI:
+// - Neutral theme-aware background
+// - No gradients
+// - Compact cards
+// - Admin-style spacing and controls
+// - Uses shadcn/theme tokens
+// - Preserves existing report functionality
 // ============================================================
 
 import React, { useMemo, useState } from "react";
@@ -36,23 +36,12 @@ import {
 // REPORT COMPONENTS
 // ============================================================
 
-import ViewProjectDashboard
-    from "../../components/manager/report/ViewProjectDashboard";
-
-import ProjectTimeline
-    from "../../components/manager/report/ProjectTimeline";
-
-import RiskIssues
-    from "../../components/manager/report/RiskIssues";
-
-import SprintProgressReport
-    from "../../components/manager/report/SprintProgressReport";
-
-import TeamPerformanceReport
-    from "../../components/manager/report/TeamPerformanceReport";
-
-import AIProjectSummary
-    from "../../components/manager/report/AIProjectSummary";
+import ViewProjectDashboard from "../../components/manager/report/ViewProjectDashboard";
+import ProjectTimeline from "../../components/manager/report/ProjectTimeline";
+import RiskIssues from "../../components/manager/report/RiskIssues";
+import SprintProgressReport from "../../components/manager/report/SprintProgressReport";
+import TeamPerformanceReport from "../../components/manager/report/TeamPerformanceReport";
+import AIProjectSummary from "../../components/manager/report/AIProjectSummary";
 
 // ============================================================
 // REPORT NAVIGATION
@@ -65,9 +54,6 @@ const REPORT_NAVIGATION = [
         shortLabel: "Overview",
         icon: BarChart3,
         description: "Overall project and team reporting overview.",
-        gradient: "from-violet-500 to-indigo-500",
-        light: "bg-violet-50",
-        text: "text-violet-600",
     },
     {
         id: "aiProjectSummary",
@@ -75,9 +61,6 @@ const REPORT_NAVIGATION = [
         shortLabel: "AI Summary",
         icon: Bot,
         description: "AI-powered summary of project performance.",
-        gradient: "from-fuchsia-500 to-purple-500",
-        light: "bg-fuchsia-50",
-        text: "text-fuchsia-600",
     },
     {
         id: "projectTimeline",
@@ -85,9 +68,6 @@ const REPORT_NAVIGATION = [
         shortLabel: "Timeline",
         icon: CalendarDays,
         description: "Project milestones, deadlines, and timeline.",
-        gradient: "from-cyan-500 to-blue-500",
-        light: "bg-cyan-50",
-        text: "text-cyan-600",
     },
     {
         id: "riskIssues",
@@ -95,9 +75,6 @@ const REPORT_NAVIGATION = [
         shortLabel: "Risks",
         icon: AlertCircle,
         description: "Project risks, issues, and warnings.",
-        gradient: "from-rose-500 to-orange-500",
-        light: "bg-rose-50",
-        text: "text-rose-600",
     },
     {
         id: "sprintProgress",
@@ -105,9 +82,6 @@ const REPORT_NAVIGATION = [
         shortLabel: "Sprint Progress",
         icon: CheckCircle2,
         description: "Sprint progress, tasks, and completion.",
-        gradient: "from-emerald-500 to-teal-500",
-        light: "bg-emerald-50",
-        text: "text-emerald-600",
     },
     {
         id: "teamPerformance",
@@ -115,9 +89,6 @@ const REPORT_NAVIGATION = [
         shortLabel: "Team Performance",
         icon: Users,
         description: "Team productivity and contribution.",
-        gradient: "from-blue-500 to-indigo-500",
-        light: "bg-blue-50",
-        text: "text-blue-600",
     },
     {
         id: "projectDashboard",
@@ -125,9 +96,6 @@ const REPORT_NAVIGATION = [
         shortLabel: "Project Dashboard",
         icon: FolderKanban,
         description: "Detailed project dashboard and statistics.",
-        gradient: "from-amber-500 to-orange-500",
-        light: "bg-amber-50",
-        text: "text-amber-600",
     },
 ];
 
@@ -140,79 +108,49 @@ function StatCard({
     value,
     subtitle,
     icon: Icon,
-    gradient,
 }) {
     return (
         <div
             className="
-                group
-                relative
-                overflow-hidden
-                rounded-2xl
+                rounded-lg
                 border
-                border-slate-200
-                bg-white
-                p-5
+                border-border
+                bg-card
+                p-4
                 shadow-sm
-                transition-all
-                duration-200
-                hover:-translate-y-0.5
-                hover:shadow-lg
+                transition-colors
+                hover:bg-accent/30
             "
         >
-            {/* TOP COLOR STRIPE */}
-
-            <div
-                className={`
-                    absolute
-                    left-0
-                    right-0
-                    top-0
-                    h-1
-                    bg-gradient-to-r
-                    ${gradient}
-                `}
-            />
-
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-500">
+                    <p className="text-sm font-medium text-muted-foreground">
                         {title}
                     </p>
 
-                    <p
-                        className="
-                            mt-2
-                            text-3xl
-                            font-bold
-                            tracking-tight
-                            text-slate-900
-                        "
-                    >
+                    <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
                         {value}
                     </p>
 
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-muted-foreground">
                         {subtitle}
                     </p>
                 </div>
 
                 <div
-                    className={`
+                    className="
                         flex
-                        h-11
-                        w-11
+                        h-9
+                        w-9
                         shrink-0
                         items-center
                         justify-center
-                        rounded-xl
-                        bg-gradient-to-br
-                        ${gradient}
-                        text-white
-                        shadow-sm
-                    `}
+                        rounded-md
+                        bg-primary/10
+                        text-primary
+                    "
                 >
-                    <Icon size={21} />
+                    <Icon className="h-4 w-4" />
                 </div>
             </div>
         </div>
@@ -231,13 +169,11 @@ function FilterField({
         <div>
             <label
                 className="
-                    mb-2
+                    mb-1.5
                     block
                     text-xs
-                    font-semibold
-                    uppercase
-                    tracking-wide
-                    text-slate-500
+                    font-medium
+                    text-muted-foreground
                 "
             >
                 {label}
@@ -254,53 +190,43 @@ function FilterField({
 
 function ReportFilters() {
     return (
-        <div
-            className="
-                overflow-hidden
-                rounded-2xl
-                border
-                border-slate-200
-                bg-white
-                shadow-sm
-            "
-        >
+        <section className="rounded-lg border border-border bg-card shadow-sm">
             <div
                 className="
                     flex
                     flex-col
                     gap-3
                     border-b
-                    border-slate-200
+                    border-border
                     px-5
-                    py-5
+                    py-4
                     sm:flex-row
                     sm:items-center
                     sm:justify-between
-                    sm:px-6
                 "
             >
                 <div className="flex items-center gap-3">
                     <div
                         className="
                             flex
-                            h-10
-                            w-10
+                            h-8
+                            w-8
                             items-center
                             justify-center
-                            rounded-xl
-                            bg-slate-100
-                            text-slate-600
+                            rounded-md
+                            bg-muted
+                            text-muted-foreground
                         "
                     >
-                        <Activity size={20} />
+                        <Activity className="h-4 w-4" />
                     </div>
 
                     <div>
-                        <h2 className="text-base font-bold text-slate-900">
+                        <h2 className="text-base font-semibold text-foreground">
                             Report Filters
                         </h2>
 
-                        <p className="text-sm text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                             Narrow reports by date, project, team, or user.
                         </p>
                     </div>
@@ -311,20 +237,22 @@ function ReportFilters() {
                         inline-flex
                         w-fit
                         items-center
-                        rounded-full
-                        bg-slate-100
-                        px-3
+                        rounded-md
+                        border
+                        border-border
+                        bg-muted
+                        px-2.5
                         py-1
                         text-xs
-                        font-semibold
-                        text-slate-500
+                        font-medium
+                        text-muted-foreground
                     "
                 >
                     Current data
                 </span>
             </div>
 
-            <div className="p-5 sm:p-6">
+            <div className="p-5">
                 <div
                     className="
                         grid
@@ -339,36 +267,37 @@ function ReportFilters() {
                     <FilterField label="From Date">
                         <div className="relative">
                             <CalendarDays
-                                size={17}
                                 className="
                                     pointer-events-none
                                     absolute
                                     left-3
                                     top-1/2
+                                    h-4
+                                    w-4
                                     -translate-y-1/2
-                                    text-slate-400
+                                    text-muted-foreground
                                 "
                             />
 
                             <input
                                 type="date"
                                 className="
+                                    h-10
                                     w-full
-                                    rounded-xl
+                                    rounded-md
                                     border
-                                    border-slate-200
-                                    bg-slate-50
-                                    py-2.5
-                                    pl-10
+                                    border-input
+                                    bg-background
+                                    py-2
+                                    pl-9
                                     pr-3
                                     text-sm
-                                    text-slate-700
+                                    text-foreground
                                     outline-none
-                                    transition
-                                    focus:border-violet-400
-                                    focus:bg-white
+                                    transition-colors
+                                    focus:border-ring
                                     focus:ring-2
-                                    focus:ring-violet-100
+                                    focus:ring-ring/20
                                 "
                             />
                         </div>
@@ -379,36 +308,37 @@ function ReportFilters() {
                     <FilterField label="To Date">
                         <div className="relative">
                             <CalendarDays
-                                size={17}
                                 className="
                                     pointer-events-none
                                     absolute
                                     left-3
                                     top-1/2
+                                    h-4
+                                    w-4
                                     -translate-y-1/2
-                                    text-slate-400
+                                    text-muted-foreground
                                 "
                             />
 
                             <input
                                 type="date"
                                 className="
+                                    h-10
                                     w-full
-                                    rounded-xl
+                                    rounded-md
                                     border
-                                    border-slate-200
-                                    bg-slate-50
-                                    py-2.5
-                                    pl-10
+                                    border-input
+                                    bg-background
+                                    py-2
+                                    pl-9
                                     pr-3
                                     text-sm
-                                    text-slate-700
+                                    text-foreground
                                     outline-none
-                                    transition
-                                    focus:border-violet-400
-                                    focus:bg-white
+                                    transition-colors
+                                    focus:border-ring
                                     focus:ring-2
-                                    focus:ring-violet-100
+                                    focus:ring-ring/20
                                 "
                             />
                         </div>
@@ -419,21 +349,20 @@ function ReportFilters() {
                     <FilterField label="Project">
                         <select
                             className="
+                                h-10
                                 w-full
-                                rounded-xl
+                                rounded-md
                                 border
-                                border-slate-200
-                                bg-slate-50
+                                border-input
+                                bg-background
                                 px-3
-                                py-2.5
                                 text-sm
-                                text-slate-700
+                                text-foreground
                                 outline-none
-                                transition
-                                focus:border-violet-400
-                                focus:bg-white
+                                transition-colors
+                                focus:border-ring
                                 focus:ring-2
-                                focus:ring-violet-100
+                                focus:ring-ring/20
                             "
                         >
                             <option>All projects</option>
@@ -445,21 +374,20 @@ function ReportFilters() {
                     <FilterField label="Team">
                         <select
                             className="
+                                h-10
                                 w-full
-                                rounded-xl
+                                rounded-md
                                 border
-                                border-slate-200
-                                bg-slate-50
+                                border-input
+                                bg-background
                                 px-3
-                                py-2.5
                                 text-sm
-                                text-slate-700
+                                text-foreground
                                 outline-none
-                                transition
-                                focus:border-violet-400
-                                focus:bg-white
+                                transition-colors
+                                focus:border-ring
                                 focus:ring-2
-                                focus:ring-violet-100
+                                focus:ring-ring/20
                             "
                         >
                             <option>All teams</option>
@@ -471,21 +399,20 @@ function ReportFilters() {
                     <FilterField label="User">
                         <select
                             className="
+                                h-10
                                 w-full
-                                rounded-xl
+                                rounded-md
                                 border
-                                border-slate-200
-                                bg-slate-50
+                                border-input
+                                bg-background
                                 px-3
-                                py-2.5
                                 text-sm
-                                text-slate-700
+                                text-foreground
                                 outline-none
-                                transition
-                                focus:border-violet-400
-                                focus:bg-white
+                                transition-colors
+                                focus:border-ring
                                 focus:ring-2
-                                focus:ring-violet-100
+                                focus:ring-ring/20
                             "
                         >
                             <option>All users</option>
@@ -499,32 +426,29 @@ function ReportFilters() {
                         flex
                         items-start
                         gap-3
-                        rounded-xl
+                        rounded-md
                         border
                         border-dashed
-                        border-slate-200
-                        bg-slate-50
+                        border-border
+                        bg-muted/40
                         p-4
                     "
                 >
-                    <AlertCircle
-                        size={18}
-                        className="mt-0.5 shrink-0 text-slate-400"
-                    />
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
 
                     <div>
-                        <p className="text-sm font-medium text-slate-600">
+                        <p className="text-sm font-medium text-foreground">
                             No project, team, or user data is currently
                             available for filtering.
                         </p>
 
-                        <p className="mt-1 text-xs text-slate-400">
+                        <p className="mt-1 text-xs text-muted-foreground">
                             Available data will appear here automatically.
                         </p>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
     );
 }
 
@@ -542,10 +466,10 @@ function OverviewReport() {
                     flex
                     items-center
                     gap-3
-                    rounded-2xl
+                    rounded-lg
                     border
-                    border-slate-200
-                    bg-white
+                    border-border
+                    bg-card
                     px-5
                     py-4
                     shadow-sm
@@ -554,26 +478,24 @@ function OverviewReport() {
                 <div
                     className="
                         flex
-                        h-10
-                        w-10
+                        h-8
+                        w-8
                         items-center
                         justify-center
-                        rounded-xl
-                        bg-gradient-to-br
-                        from-violet-500
-                        to-indigo-500
-                        text-white
+                        rounded-md
+                        bg-primary/10
+                        text-primary
                     "
                 >
-                    <BarChart3 size={20} />
+                    <BarChart3 className="h-4 w-4" />
                 </div>
 
                 <div>
-                    <h2 className="font-bold text-slate-900">
+                    <h2 className="text-base font-semibold text-foreground">
                         System Overview
                     </h2>
 
-                    <p className="text-sm text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                         Overall project performance and operational information.
                     </p>
                 </div>
@@ -595,7 +517,6 @@ function OverviewReport() {
                     value="0"
                     subtitle="Current projects"
                     icon={FolderKanban}
-                    gradient="from-violet-500 to-indigo-500"
                 />
 
                 <StatCard
@@ -603,7 +524,6 @@ function OverviewReport() {
                     value="0"
                     subtitle="Teams in the system"
                     icon={Users}
-                    gradient="from-fuchsia-500 to-purple-500"
                 />
 
                 <StatCard
@@ -611,7 +531,6 @@ function OverviewReport() {
                     value="0%"
                     subtitle="0 of 0 tasks completed"
                     icon={CheckCircle2}
-                    gradient="from-emerald-500 to-teal-500"
                 />
 
                 <StatCard
@@ -619,7 +538,6 @@ function OverviewReport() {
                     value="0"
                     subtitle="AI usage records"
                     icon={Bot}
-                    gradient="from-amber-500 to-orange-500"
                 />
             </div>
 
@@ -631,7 +549,7 @@ function OverviewReport() {
                     grid-cols-1
                     gap-4
                     sm:grid-cols-2
-                    lg:grid-cols-3
+                    xl:grid-cols-3
                 "
             >
                 <StatCard
@@ -639,7 +557,6 @@ function OverviewReport() {
                     value="0"
                     subtitle="Recent activity records"
                     icon={Activity}
-                    gradient="from-blue-500 to-cyan-500"
                 />
 
                 <StatCard
@@ -647,7 +564,6 @@ function OverviewReport() {
                     value="0"
                     subtitle="Currently active"
                     icon={FolderKanban}
-                    gradient="from-cyan-500 to-blue-500"
                 />
 
                 <StatCard
@@ -655,7 +571,6 @@ function OverviewReport() {
                     value="0"
                     subtitle="Current risks and issues"
                     icon={ShieldAlert}
-                    gradient="from-rose-500 to-orange-500"
                 />
             </div>
 
@@ -663,11 +578,11 @@ function OverviewReport() {
 
             <div
                 className="
-                    rounded-2xl
+                    rounded-lg
                     border
                     border-dashed
-                    border-slate-300
-                    bg-white
+                    border-border
+                    bg-card
                     px-6
                     py-10
                     text-center
@@ -678,23 +593,23 @@ function OverviewReport() {
                     className="
                         mx-auto
                         flex
-                        h-14
-                        w-14
+                        h-12
+                        w-12
                         items-center
                         justify-center
-                        rounded-2xl
-                        bg-slate-100
-                        text-slate-400
+                        rounded-md
+                        bg-muted
+                        text-muted-foreground
                     "
                 >
-                    <FileText size={25} />
+                    <FileText className="h-5 w-5" />
                 </div>
 
-                <h3 className="mt-4 text-base font-bold text-slate-800">
+                <h3 className="mt-4 text-base font-semibold text-foreground">
                     Report data will appear here
                 </h3>
 
-                <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+                <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
                     Select a report above to view detailed project,
                     sprint, risk, AI, or team information.
                 </p>
@@ -761,13 +676,13 @@ function DetailedReport({ type }) {
     const ReportComponent = report.component;
 
     return (
-        <div
+        <section
             className="
                 overflow-hidden
-                rounded-2xl
+                rounded-lg
                 border
-                border-slate-200
-                bg-white
+                border-border
+                bg-card
                 shadow-sm
             "
         >
@@ -776,36 +691,34 @@ function DetailedReport({ type }) {
             <div
                 className="
                     border-b
-                    border-slate-200
-                    bg-slate-50
+                    border-border
+                    bg-muted/30
                     px-5
-                    py-5
-                    sm:px-6
+                    py-4
                 "
             >
                 <div className="flex items-center gap-3">
                     <div
                         className="
                             flex
-                            h-10
-                            w-10
+                            h-8
+                            w-8
                             items-center
                             justify-center
-                            rounded-xl
-                            bg-white
-                            text-violet-600
-                            shadow-sm
+                            rounded-md
+                            bg-primary/10
+                            text-primary
                         "
                     >
-                        <FileText size={20} />
+                        <FileText className="h-4 w-4" />
                     </div>
 
                     <div>
-                        <h2 className="text-lg font-bold text-slate-900">
+                        <h2 className="text-base font-semibold text-foreground">
                             {report.title}
                         </h2>
 
-                        <p className="mt-0.5 text-sm text-slate-500">
+                        <p className="mt-0.5 text-xs text-muted-foreground">
                             {report.description}
                         </p>
                     </div>
@@ -814,10 +727,10 @@ function DetailedReport({ type }) {
 
             {/* REPORT CONTENT */}
 
-            <div className="p-5 sm:p-6">
+            <div className="p-5">
                 <ReportComponent />
             </div>
-        </div>
+        </section>
     );
 }
 
@@ -830,13 +743,13 @@ function ReportNavigation({
     setActiveReport,
 }) {
     return (
-        <div className="space-y-4">
+        <section className="space-y-4">
             <div>
-                <h2 className="text-lg font-bold text-slate-900">
+                <h2 className="text-base font-semibold text-foreground">
                     Reports
                 </h2>
 
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-muted-foreground">
                     Select a report to view detailed information.
                 </p>
             </div>
@@ -848,7 +761,7 @@ function ReportNavigation({
                     gap-3
                     sm:grid-cols-2
                     lg:grid-cols-3
-                    xl:grid-cols-7
+                    xl:grid-cols-4
                 "
             >
                 {REPORT_NAVIGATION.map((item) => {
@@ -859,140 +772,95 @@ function ReportNavigation({
                         <button
                             key={item.id}
                             type="button"
-                            onClick={() =>
-                                setActiveReport(item.id)
-                            }
+                            onClick={() => setActiveReport(item.id)}
                             title={item.description}
                             className={`
                                 group
                                 relative
-                                overflow-hidden
-                                rounded-2xl
+                                flex
+                                min-h-[112px]
+                                flex-col
+                                rounded-lg
                                 border
                                 p-4
                                 text-left
-                                transition-all
-                                duration-200
+                                transition-colors
                                 focus:outline-none
                                 focus:ring-2
-                                focus:ring-violet-400
-
+                                focus:ring-ring
                                 ${
                                     isActive
-                                        ? `
-                                            border-violet-200
-                                            bg-white
-                                            shadow-lg
-                                            shadow-violet-100
-                                        `
-                                        : `
-                                            border-slate-200
-                                            bg-white
-                                            shadow-sm
-                                            hover:-translate-y-0.5
-                                            hover:border-slate-300
-                                            hover:shadow-md
-                                        `
+                                        ? "border-primary/40 bg-primary/5 shadow-sm"
+                                        : "border-border bg-card hover:bg-accent"
                                 }
                             `}
                         >
-                            {/* ACTIVE TOP STRIPE */}
-
-                            {isActive && (
-                                <div
-                                    className={`
-                                        absolute
-                                        left-0
-                                        right-0
-                                        top-0
-                                        h-1
-                                        bg-gradient-to-r
-                                        ${item.gradient}
-                                    `}
-                                />
-                            )}
-
-                            <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center justify-between gap-3">
                                 <div
                                     className={`
                                         flex
-                                        h-10
-                                        w-10
+                                        h-9
+                                        w-9
                                         shrink-0
                                         items-center
                                         justify-center
-                                        rounded-xl
+                                        rounded-md
                                         ${
                                             isActive
-                                                ? `bg-gradient-to-br ${item.gradient} text-white`
-                                                : `${item.light} ${item.text}`
+                                                ? "bg-primary/10 text-primary"
+                                                : "bg-muted text-muted-foreground"
                                         }
                                     `}
                                 >
-                                    <Icon size={19} />
+                                    <Icon className="h-4 w-4" />
                                 </div>
 
                                 <ChevronRight
-                                    size={17}
                                     className={`
-                                        mt-1
+                                        h-4
+                                        w-4
                                         transition-transform
                                         ${
                                             isActive
-                                                ? "translate-x-0.5 text-violet-500"
-                                                : "text-slate-300 group-hover:translate-x-0.5 group-hover:text-slate-500"
+                                                ? "text-primary"
+                                                : "text-muted-foreground group-hover:translate-x-0.5"
                                         }
                                     `}
                                 />
                             </div>
 
-                            <div className="mt-4">
+                            <div className="mt-3">
                                 <p
                                     className={`
                                         text-sm
-                                        font-bold
+                                        font-medium
                                         ${
                                             isActive
-                                                ? "text-slate-900"
-                                                : "text-slate-700"
+                                                ? "text-foreground"
+                                                : "text-foreground"
                                         }
                                     `}
                                 >
                                     {item.label}
                                 </p>
 
-                                <p
-                                    className="
-                                        mt-1
-                                        line-clamp-2
-                                        text-xs
-                                        leading-5
-                                        text-slate-500
-                                    "
-                                >
+                                <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                                     {item.description}
                                 </p>
                             </div>
 
                             {isActive && (
-                                <div
-                                    className="
-                                        mt-3
-                                        text-[11px]
-                                        font-bold
-                                        uppercase
-                                        tracking-wide
-                                        text-violet-600
-                                    "
-                                >
-                                    Currently selected
+                                <div className="mt-auto pt-2">
+                                    <span className="text-[11px] font-medium text-primary">
+                                        Currently selected
+                                    </span>
                                 </div>
                             )}
                         </button>
                     );
                 })}
             </div>
-        </div>
+        </section>
     );
 }
 
@@ -1001,11 +869,9 @@ function ReportNavigation({
 // ============================================================
 
 function ReportsPage() {
-    const [activeReport, setActiveReport] =
-        useState("overview");
+    const [activeReport, setActiveReport] = useState("overview");
 
-    const [isRefreshing, setIsRefreshing] =
-        useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // ========================================================
     // REFRESH
@@ -1031,10 +897,9 @@ function ReportsPage() {
     // ACTIVE NAVIGATION
     // ========================================================
 
-    const activeNavigationItem =
-        REPORT_NAVIGATION.find(
-            (item) => item.id === activeReport
-        );
+    const activeNavigationItem = REPORT_NAVIGATION.find(
+        (item) => item.id === activeReport
+    );
 
     // ========================================================
     // REPORT CONTENT
@@ -1045,11 +910,7 @@ function ReportsPage() {
             return <OverviewReport />;
         }
 
-        return (
-            <DetailedReport
-                type={activeReport}
-            />
-        );
+        return <DetailedReport type={activeReport} />;
     }, [activeReport]);
 
     // ========================================================
@@ -1057,402 +918,244 @@ function ReportsPage() {
     // ========================================================
 
     return (
-        <div
-            className="
-                min-h-full
-                w-full
-                bg-slate-50
-                text-slate-900
-            "
-        >
-            <div
-                className="
-                    mx-auto
-                    max-w-7xl
-                    px-4
-                    py-6
-                    sm:px-6
-                    sm:py-8
-                    lg:px-8
-                "
-            >
-                {/* ==================================================
-                    HERO
-                ================================================== */}
+        <div className="w-full space-y-6 text-foreground">
+            {/* ==================================================
+                PAGE HEADER
+            ================================================== */}
 
-                <div
-                    className="
-                        relative
-                        mb-6
-                        overflow-hidden
-                        rounded-2xl
-                        bg-gradient-to-r
-                        from-violet-600
-                        via-blue-600
-                        to-cyan-500
-                        p-6
-                        text-white
-                        shadow-lg
-                        sm:p-8
-                    "
-                >
-                    {/* DECORATIVE CIRCLES */}
-
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
                     <div
                         className="
-                            pointer-events-none
-                            absolute
-                            -right-16
-                            -top-20
-                            h-64
-                            w-64
-                            rounded-full
-                            bg-white/10
-                        "
-                    />
-
-                    <div
-                        className="
-                            pointer-events-none
-                            absolute
-                            -bottom-28
-                            right-32
-                            h-56
-                            w-56
-                            rounded-full
-                            bg-white/5
-                        "
-                    />
-
-                    <div
-                        className="
-                            relative
                             flex
-                            flex-col
-                            gap-6
-                            lg:flex-row
-                            lg:items-center
-                            lg:justify-between
-                        "
-                    >
-                        {/* HERO LEFT */}
-
-                        <div className="flex items-start gap-4">
-                            <div
-                                className="
-                                    flex
-                                    h-14
-                                    w-14
-                                    shrink-0
-                                    items-center
-                                    justify-center
-                                    rounded-2xl
-                                    bg-white/15
-                                    ring-1
-                                    ring-white/20
-                                    backdrop-blur-sm
-                                "
-                            >
-                                <BarChart3 size={28} />
-                            </div>
-
-                            <div>
-                                <div
-                                    className="
-                                        mb-2
-                                        inline-flex
-                                        items-center
-                                        rounded-full
-                                        bg-white/15
-                                        px-3
-                                        py-1
-                                        text-xs
-                                        font-semibold
-                                        backdrop-blur-sm
-                                    "
-                                >
-                                    Manager Workspace
-                                </div>
-
-                                <h1
-                                    className="
-                                        text-3xl
-                                        font-bold
-                                        tracking-tight
-                                        sm:text-4xl
-                                    "
-                                >
-                                    Reports
-                                </h1>
-
-                                <p
-                                    className="
-                                        mt-2
-                                        max-w-2xl
-                                        text-sm
-                                        leading-6
-                                        text-white/80
-                                        sm:text-base
-                                    "
-                                >
-                                    Monitor project performance,
-                                    sprint progress, team productivity,
-                                    risks, timelines, and AI-powered
-                                    project insights.
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* HERO ACTIONS */}
-
-                        <div
-                            className="
-                                flex
-                                w-full
-                                gap-3
-                                lg:w-auto
-                            "
-                        >
-                            <button
-                                type="button"
-                                onClick={handleRefresh}
-                                disabled={isRefreshing}
-                                className="
-                                    inline-flex
-                                    flex-1
-                                    items-center
-                                    justify-center
-                                    gap-2
-                                    rounded-xl
-                                    border
-                                    border-white/25
-                                    bg-white/10
-                                    px-4
-                                    py-2.5
-                                    text-sm
-                                    font-semibold
-                                    text-white
-                                    backdrop-blur-sm
-                                    transition
-                                    hover:bg-white/20
-                                    disabled:cursor-not-allowed
-                                    disabled:opacity-60
-                                    lg:flex-none
-                                "
-                            >
-                                <RefreshCw
-                                    size={17}
-                                    className={
-                                        isRefreshing
-                                            ? "animate-spin"
-                                            : ""
-                                    }
-                                />
-
-                                Refresh
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={handleExportPDF}
-                                className="
-                                    inline-flex
-                                    flex-1
-                                    items-center
-                                    justify-center
-                                    gap-2
-                                    rounded-xl
-                                    bg-white
-                                    px-4
-                                    py-2.5
-                                    text-sm
-                                    font-semibold
-                                    text-violet-700
-                                    shadow-sm
-                                    transition
-                                    hover:bg-slate-50
-                                    lg:flex-none
-                                "
-                            >
-                                <Download size={17} />
-
-                                Export PDF
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* ==================================================
-                    QUICK STATISTICS
-                ================================================== */}
-
-                <div
-                    className="
-                        mb-6
-                        grid
-                        grid-cols-1
-                        gap-4
-                        sm:grid-cols-2
-                        xl:grid-cols-4
-                    "
-                >
-                    <StatCard
-                        title="Total Projects"
-                        value="0"
-                        subtitle="Current projects"
-                        icon={FolderKanban}
-                        gradient="from-violet-500 to-indigo-500"
-                    />
-
-                    <StatCard
-                        title="Teams"
-                        value="0"
-                        subtitle="Teams in the system"
-                        icon={Users}
-                        gradient="from-fuchsia-500 to-purple-500"
-                    />
-
-                    <StatCard
-                        title="Task Completion"
-                        value="0%"
-                        subtitle="0 of 0 tasks completed"
-                        icon={CheckCircle2}
-                        gradient="from-emerald-500 to-teal-500"
-                    />
-
-                    <StatCard
-                        title="Project Risks"
-                        value="0"
-                        subtitle="Current risks and issues"
-                        icon={AlertCircle}
-                        gradient="from-rose-500 to-orange-500"
-                    />
-                </div>
-
-                {/* ==================================================
-                    FILTERS
-                ================================================== */}
-
-                <div className="mb-6">
-                    <ReportFilters />
-                </div>
-
-                {/* ==================================================
-                    REPORT NAVIGATION
-                ================================================== */}
-
-                <div className="mb-6">
-                    <ReportNavigation
-                        activeReport={activeReport}
-                        setActiveReport={setActiveReport}
-                    />
-                </div>
-
-                {/* ==================================================
-                    CURRENT REPORT INDICATOR
-                ================================================== */}
-
-                {activeNavigationItem && (
-                    <div
-                        className="
-                            mb-6
-                            flex
+                            h-10
+                            w-10
                             items-center
-                            gap-3
-                            rounded-2xl
-                            border
-                            border-slate-200
-                            bg-white
-                            px-5
-                            py-4
-                            shadow-sm
+                            justify-center
+                            rounded-lg
+                            bg-primary/10
+                            text-primary
                         "
                     >
-                        <div
-                            className={`
-                                flex
-                                h-10
-                                w-10
-                                shrink-0
-                                items-center
-                                justify-center
-                                rounded-xl
-                                bg-gradient-to-br
-                                ${activeNavigationItem.gradient}
-                                text-white
-                            `}
-                        >
-                            {React.createElement(
-                                activeNavigationItem.icon,
-                                {
-                                    size: 19,
-                                }
-                            )}
-                        </div>
-
-                        <div className="min-w-0">
-                            <p
-                                className="
-                                    text-[11px]
-                                    font-bold
-                                    uppercase
-                                    tracking-wider
-                                    text-violet-600
-                                "
-                            >
-                                Active Report
-                            </p>
-
-                            <h2
-                                className="
-                                    mt-0.5
-                                    truncate
-                                    text-base
-                                    font-bold
-                                    text-slate-900
-                                "
-                            >
-                                {activeNavigationItem.label}
-                            </h2>
-                        </div>
-
-                        <div className="ml-auto hidden sm:block">
-                            <span
-                                className="
-                                    inline-flex
-                                    items-center
-                                    rounded-full
-                                    bg-emerald-50
-                                    px-3
-                                    py-1
-                                    text-xs
-                                    font-semibold
-                                    text-emerald-600
-                                "
-                            >
-                                Selected
-                            </span>
-                        </div>
+                        <BarChart3 className="h-5 w-5" />
                     </div>
-                )}
 
-                {/* ==================================================
-                    ACTIVE REPORT
-                ================================================== */}
+                    <div>
+                        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                            Reports
+                        </h1>
 
-                <div className="mb-6">
-                    {reportContent}
+                        <p className="text-sm text-muted-foreground">
+                            Monitor project, sprint, team, risk, and AI performance.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                        className="
+                            inline-flex
+                            h-10
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-md
+                            border
+                            border-input
+                            bg-background
+                            px-4
+                            text-sm
+                            font-medium
+                            text-foreground
+                            shadow-sm
+                            transition-colors
+                            hover:bg-accent
+                            hover:text-accent-foreground
+                            disabled:pointer-events-none
+                            disabled:opacity-50
+                        "
+                    >
+                        <RefreshCw
+                            className={`h-4 w-4 ${
+                                isRefreshing ? "animate-spin" : ""
+                            }`}
+                        />
+
+                        Refresh
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={handleExportPDF}
+                        className="
+                            inline-flex
+                            h-10
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-md
+                            bg-primary
+                            px-4
+                            text-sm
+                            font-medium
+                            text-primary-foreground
+                            shadow-sm
+                            transition-colors
+                            hover:bg-primary/90
+                        "
+                    >
+                        <Download className="h-4 w-4" />
+
+                        Export PDF
+                    </button>
                 </div>
             </div>
 
-            {/* ======================================================
+            {/* ==================================================
+                QUICK STATISTICS
+            ================================================== */}
+
+            <div
+                className="
+                    grid
+                    grid-cols-1
+                    gap-4
+                    sm:grid-cols-2
+                    xl:grid-cols-4
+                "
+            >
+                <StatCard
+                    title="Total Projects"
+                    value="0"
+                    subtitle="Current projects"
+                    icon={FolderKanban}
+                />
+
+                <StatCard
+                    title="Teams"
+                    value="0"
+                    subtitle="Teams in the system"
+                    icon={Users}
+                />
+
+                <StatCard
+                    title="Task Completion"
+                    value="0%"
+                    subtitle="0 of 0 tasks completed"
+                    icon={CheckCircle2}
+                />
+
+                <StatCard
+                    title="Project Risks"
+                    value="0"
+                    subtitle="Current risks and issues"
+                    icon={AlertCircle}
+                />
+            </div>
+
+            {/* ==================================================
+                FILTERS
+            ================================================== */}
+
+            <ReportFilters />
+
+            {/* ==================================================
+                REPORT NAVIGATION
+            ================================================== */}
+
+            <ReportNavigation
+                activeReport={activeReport}
+                setActiveReport={setActiveReport}
+            />
+
+            {/* ==================================================
+                CURRENT REPORT INDICATOR
+            ================================================== */}
+
+            {activeNavigationItem && (
+                <div
+                    className="
+                        flex
+                        items-center
+                        gap-3
+                        rounded-lg
+                        border
+                        border-border
+                        bg-card
+                        px-5
+                        py-4
+                        shadow-sm
+                    "
+                >
+                    <div
+                        className="
+                            flex
+                            h-8
+                            w-8
+                            shrink-0
+                            items-center
+                            justify-center
+                            rounded-md
+                            bg-primary/10
+                            text-primary
+                        "
+                    >
+                        {React.createElement(
+                            activeNavigationItem.icon,
+                            {
+                                className: "h-4 w-4",
+                            }
+                        )}
+                    </div>
+
+                    <div className="min-w-0">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                            Active Report
+                        </p>
+
+                        <h2 className="mt-0.5 truncate text-sm font-semibold text-foreground">
+                            {activeNavigationItem.label}
+                        </h2>
+                    </div>
+
+                    <div className="ml-auto hidden sm:block">
+                        <span
+                            className="
+                                inline-flex
+                                items-center
+                                rounded-md
+                                border
+                                border-border
+                                bg-muted
+                                px-2.5
+                                py-1
+                                text-xs
+                                font-medium
+                                text-muted-foreground
+                            "
+                        >
+                            Selected
+                        </span>
+                    </div>
+                </div>
+            )}
+
+            {/* ==================================================
+                ACTIVE REPORT
+            ================================================== */}
+
+            <div>{reportContent}</div>
+
+            {/* ==================================================
                 PRINT STYLES
-            ====================================================== */}
+            ================================================== */}
 
             <style>
                 {`
                     @media print {
-
                         body {
                             background: white !important;
                         }
@@ -1484,10 +1187,6 @@ function ReportsPage() {
 
                         button {
                             display: none !important;
-                        }
-
-                        .bg-slate-50 {
-                            background: white !important;
                         }
                     }
                 `}

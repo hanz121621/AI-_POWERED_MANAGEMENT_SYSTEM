@@ -1,5 +1,5 @@
-
 import React, { useEffect, useState } from "react";
+
 import {
     User,
     Mail,
@@ -15,7 +15,22 @@ import {
     CheckCircle,
     AlertCircle,
     Loader2,
+    UserRound,
+    RefreshCw,
+    Building2,
+    UsersRound,
+    CalendarDays,
+    Clock3,
 } from "lucide-react";
+
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from "@/components/ui/tabs";
+
+import { Button } from "@/components/ui/button";
 
 import {
     getMyProfile,
@@ -25,46 +40,165 @@ import {
     validatePasswordForm,
 } from "@/services/managerProfileService";
 
-const Profile = () => {
-    // ============================================================
+
+// ============================================================
+// DEFAULT FORM VALUES
+// ============================================================
+
+const EMPTY_PROFILE_FORM = {
+    fullName: "",
+    email: "",
+    phoneNumber: "",
+    profilePicture: "",
+};
+
+const EMPTY_PASSWORD_FORM = {
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+};
+
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+const formatDate = (value) => {
+    if (!value) return "Not available";
+
+    try {
+        return new Date(value).toLocaleDateString();
+    } catch {
+        return "Not available";
+    }
+};
+
+const formatDateTime = (value) => {
+    if (!value) return "Not available";
+
+    try {
+        return new Date(value).toLocaleString();
+    } catch {
+        return "Not available";
+    }
+};
+
+const getErrorMessage = (error, fallback = "Something went wrong.") => {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.response?.data?.title ||
+        error?.message ||
+        fallback
+    );
+};
+
+
+// ============================================================
+// INFO ITEM
+// ============================================================
+
+function InfoItem({
+    icon: Icon,
+    label,
+    value,
+}) {
+    return (
+        <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Icon className="h-4 w-4" />
+            </div>
+
+            <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {label}
+                </p>
+
+                <p className="mt-1 break-words text-sm font-medium text-foreground">
+                    {value || "Not available"}
+                </p>
+            </div>
+        </div>
+    );
+}
+
+
+// ============================================================
+// SECTION HEADER
+// ============================================================
+
+function SectionHeader({
+    icon: Icon,
+    title,
+    description,
+}) {
+    return (
+        <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Icon className="h-4 w-4" />
+            </div>
+
+            <div>
+                <h3 className="text-base font-semibold text-foreground">
+                    {title}
+                </h3>
+
+                {description && (
+                    <p className="text-xs text-muted-foreground">
+                        {description}
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+}
+
+
+// ============================================================
+// MANAGER PROFILE PAGE
+// ============================================================
+
+export default function Profile() {
+    // --------------------------------------------------------
     // PROFILE STATE
-    // ============================================================
+    // --------------------------------------------------------
 
     const [profile, setProfile] = useState(null);
 
-    const [formData, setFormData] = useState({
-        fullName: "",
-        email: "",
-        phoneNumber: "",
-        profilePicture: "",
-    });
+    const [profileForm, setProfileForm] = useState(
+        EMPTY_PROFILE_FORM
+    );
 
-    const [originalFormData, setOriginalFormData] = useState({
-        fullName: "",
-        email: "",
-        phoneNumber: "",
-        profilePicture: "",
-    });
+    const [originalProfileForm, setOriginalProfileForm] =
+        useState(EMPTY_PROFILE_FORM);
 
-    const [isEditing, setIsEditing] = useState(false);
+    // --------------------------------------------------------
+    // PAGE STATE
+    // --------------------------------------------------------
+
+    const [activeTab, setActiveTab] = useState("profile");
 
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
+
+    // --------------------------------------------------------
+    // MESSAGE STATE
+    // --------------------------------------------------------
 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-
     const [fieldErrors, setFieldErrors] = useState({});
 
-    // ============================================================
+    // --------------------------------------------------------
     // PASSWORD STATE
-    // ============================================================
+    // --------------------------------------------------------
 
-    const [passwordData, setPasswordData] = useState({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-    });
+    const [passwordForm, setPasswordForm] = useState(
+        EMPTY_PASSWORD_FORM
+    );
 
     const [showCurrentPassword, setShowCurrentPassword] =
         useState(false);
@@ -75,121 +209,202 @@ const Profile = () => {
     const [showConfirmPassword, setShowConfirmPassword] =
         useState(false);
 
-    const [passwordSaving, setPasswordSaving] = useState(false);
-    const [passwordError, setPasswordError] = useState("");
-    const [passwordSuccess, setPasswordSuccess] = useState("");
-    const [passwordErrors, setPasswordErrors] = useState({});
+    const [passwordSaving, setPasswordSaving] =
+        useState(false);
 
-    // ============================================================
+    const [passwordError, setPasswordError] =
+        useState("");
+
+    const [passwordSuccess, setPasswordSuccess] =
+        useState("");
+
+    const [passwordErrors, setPasswordErrors] =
+        useState({});
+
+
+    // ========================================================
     // LOAD PROFILE
-    // ============================================================
+    // ========================================================
+
+    const loadProfile = async ({
+        showLoading = true,
+        showRefreshing = false,
+    } = {}) => {
+        try {
+            if (showLoading) {
+                setLoading(true);
+            }
+
+            if (showRefreshing) {
+                setRefreshing(true);
+            }
+
+            setError("");
+
+            const response = await getMyProfile();
+
+            const data = response?.data || response;
+
+            if (!data) {
+                throw new Error("Unable to load your profile.");
+            }
+
+            const normalizedProfile = {
+                ...data,
+
+                fullName:
+                    data.fullName ||
+                    data.name ||
+                    "",
+
+                email:
+                    data.email ||
+                    "",
+
+                phoneNumber:
+                    data.phoneNumber ||
+                    data.phone ||
+                    "",
+
+                profilePicture:
+                    data.profilePicture ||
+                    data.profileImage ||
+                    "",
+
+                role:
+                    data.role ||
+                    data.roleName ||
+                    "Manager",
+
+                organization:
+                    data.organization ||
+                    data.organizationName ||
+                    "",
+
+                team:
+                    data.team ||
+                    data.teamName ||
+                    "",
+
+                isActive:
+                    data.isActive ??
+                    data.active ??
+                    true,
+
+                accountCreated:
+                    data.accountCreated ||
+                    data.createdAt ||
+                    data.createdDate ||
+                    "",
+
+                lastLogin:
+                    data.lastLogin ||
+                    data.lastLoginAt ||
+                    "",
+            };
+
+            setProfile(normalizedProfile);
+
+            const newForm = {
+                fullName: normalizedProfile.fullName,
+                email: normalizedProfile.email,
+                phoneNumber: normalizedProfile.phoneNumber,
+                profilePicture: normalizedProfile.profilePicture,
+            };
+
+            setProfileForm(newForm);
+            setOriginalProfileForm(newForm);
+
+            setIsEditing(false);
+            setActiveTab("profile");
+        } catch (err) {
+            setError(
+                getErrorMessage(
+                    err,
+                    "Unable to load your profile."
+                )
+            );
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+
+    // ========================================================
+    // INITIAL LOAD
+    // ========================================================
 
     useEffect(() => {
         loadProfile();
     }, []);
 
-    const loadProfile = async () => {
-        try {
-            setLoading(true);
-            setError("");
-            setSuccess("");
 
-            console.log(
-                "========== LOAD MANAGER PROFILE =========="
-            );
+    // ========================================================
+    // REFRESH
+    // ========================================================
 
-            const result = await getMyProfile();
-
-            console.log(
-                "PROFILE LOAD RESULT:",
-                result
-            );
-
-            if (!result?.success) {
-                throw new Error(
-                    result?.message ||
-                        "Failed to load your profile."
-                );
-            }
-
-            const data =
-                result?.profile ||
-                result?.data ||
-                result;
-
-            const loadedData = {
-                fullName:
-                    data?.fullName ??
-                    data?.FullName ??
-                    "",
-
-                email:
-                    data?.email ??
-                    data?.Email ??
-                    "",
-
-                phoneNumber:
-                    data?.phoneNumber ??
-                    data?.PhoneNumber ??
-                    "",
-
-                profilePicture:
-                    data?.profilePicture ??
-                    data?.ProfilePicture ??
-                    data?.profileImage ??
-                    data?.ProfileImage ??
-                    "",
-            };
-
-            setProfile(data);
-
-            setFormData(loadedData);
-
-            setOriginalFormData(loadedData);
-        } catch (err) {
-            console.error(
-                "MANAGER PROFILE LOAD ERROR:",
-                err
-            );
-
-            const status =
-                err?.response?.status ??
-                err?.status;
-
-            const backendMessage =
-                err?.response?.data?.message ??
-                err?.response?.data?.Message ??
-                err?.response?.data?.detail ??
-                err?.response?.data?.title ??
-                err?.message;
-
-            if (status === 401) {
-                setError(
-                    "Your session is not authorized. Please sign in again."
-                );
-            } else if (status === 403) {
-                setError(
-                    "You are not authorized to access your profile."
-                );
-            } else {
-                setError(
-                    backendMessage ||
-                        "Unable to load your profile. Please try again."
-                );
-            }
-        } finally {
-            setLoading(false);
+    const handleRefresh = async () => {
+        if (loading || refreshing || saving || passwordSaving) {
+            return;
         }
+
+        setSuccess("");
+        setError("");
+        setPasswordError("");
+        setPasswordSuccess("");
+
+        await loadProfile({
+            showLoading: false,
+            showRefreshing: true,
+        });
     };
 
-    // ============================================================
-    // PROFILE FORM CHANGE
-    // ============================================================
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
+    // ========================================================
+    // EDIT PROFILE
+    // ========================================================
 
-        setFormData((previous) => ({
+    const handleEdit = () => {
+        setError("");
+        setSuccess("");
+        setFieldErrors({});
+
+        setProfileForm({
+            ...originalProfileForm,
+        });
+
+        setIsEditing(true);
+        setActiveTab("edit");
+    };
+
+
+    // ========================================================
+    // CANCEL EDIT
+    // ========================================================
+
+    const handleCancel = () => {
+        setProfileForm({
+            ...originalProfileForm,
+        });
+
+        setFieldErrors({});
+        setError("");
+        setSuccess("");
+
+        setIsEditing(false);
+        setActiveTab("profile");
+    };
+
+
+    // ========================================================
+    // PROFILE INPUT
+    // ========================================================
+
+    const handleProfileChange = (event) => {
+        const { name, value } = event.target;
+
+        setProfileForm((previous) => ({
             ...previous,
             [name]: value,
         }));
@@ -200,246 +415,122 @@ const Profile = () => {
         }));
 
         setError("");
-        setSuccess("");
     };
 
-    // ============================================================
-    // START EDITING
-    // ============================================================
 
-    const handleEdit = () => {
-        setError("");
-        setSuccess("");
-        setFieldErrors({});
-
-        setFormData({
-            ...originalFormData,
-        });
-
-        setIsEditing(true);
-    };
-
-    // ============================================================
-    // CANCEL EDITING
-    // ============================================================
-
-    const handleCancel = () => {
-        setFormData({
-            ...originalFormData,
-        });
-
-        setIsEditing(false);
-
-        setError("");
-        setSuccess("");
-        setFieldErrors({});
-    };
-
-    // ============================================================
-    // VALIDATE PROFILE
-    // ============================================================
-
-    const validateForm = () => {
-        const validation =
-            validateProfileForm(formData);
-
-        if (!validation?.isValid) {
-            setFieldErrors(
-                validation?.errors || {}
-            );
-
-            return false;
-        }
-
-        setFieldErrors({});
-
-        return true;
-    };
-
-    // ============================================================
+    // ========================================================
     // SAVE PROFILE
-    // ============================================================
+    // ========================================================
 
-    const handleSaveProfile = async (e) => {
-        e.preventDefault();
+    const handleSaveProfile = async (event) => {
+        event.preventDefault();
+
+        if (saving) return;
 
         setError("");
         setSuccess("");
-
-        if (!validateForm()) {
-            return;
-        }
+        setFieldErrors({});
 
         try {
-            setSaving(true);
+            const validation =
+                validateProfileForm(profileForm);
 
-            /*
-             * SECURITY:
-             *
-             * Only permitted personal information is sent.
-             *
-             * Do NOT send:
-             * - userId
-             * - role
-             * - permissions
-             * - organizationId
-             * - teamId
-             *
-             * The backend identifies the authenticated
-             * manager from the JWT.
-             */
+            if (validation !== true) {
+                if (
+                    validation &&
+                    typeof validation === "object"
+                ) {
+                    setFieldErrors(validation);
+                } else {
+                    setError(
+                        typeof validation === "string"
+                            ? validation
+                            : "Please correct the highlighted fields."
+                    );
+                }
 
-            const payload = {
-                fullName: String(
-                    formData?.fullName ?? ""
-                ).trim(),
-
-                email: String(
-                    formData?.email ?? ""
-                ).trim(),
-
-                phoneNumber: String(
-                    formData?.phoneNumber ?? ""
-                ).trim(),
-
-                /*
-                 * ProfileImage is optional.
-                 * Include the existing/selected image so the
-                 * backend can preserve/update it.
-                 */
-                profileImage:
-                    formData?.profilePicture || null,
-            };
-
-            console.log(
-                "========== UPDATE MANAGER PROFILE =========="
-            );
-
-            console.log(
-                "PROFILE PAYLOAD:",
-                payload
-            );
-
-            const result =
-                await updateMyProfile(payload);
-
-            console.log(
-                "PROFILE UPDATE RESULT:",
-                result
-            );
-
-            if (!result?.success) {
-                throw new Error(
-                    result?.message ||
-                        "Failed to update your profile."
-                );
+                return;
             }
 
-            /*
-             * PUT /Users/profile currently returns:
-             *
-             * {
-             *   message: "Profile updated successfully."
-             * }
-             *
-             * It does not necessarily return the updated
-             * profile object.
-             *
-             * Therefore preserve the profile object and
-             * update only the editable fields locally.
-             */
+            setSaving(true);
 
-            const updatedData = {
-                fullName: payload.fullName,
-
-                email: payload.email,
-
-                phoneNumber: payload.phoneNumber,
-
-                profilePicture:
-                    formData?.profilePicture ||
-                    originalFormData?.profilePicture ||
-                    "",
+            const payload = {
+                fullName: profileForm.fullName.trim(),
+                email: profileForm.email.trim(),
+                phoneNumber:
+                    profileForm.phoneNumber?.trim() || "",
+                profileImage:
+                    profileForm.profilePicture || "",
             };
 
-            setProfile((previous) => ({
-                ...(previous || {}),
-                fullName: updatedData.fullName,
-                FullName: updatedData.fullName,
+            const response =
+                await updateMyProfile(payload);
 
-                email: updatedData.email,
-                Email: updatedData.email,
+            const updatedProfile =
+                response?.data || response;
+
+            const mergedProfile = {
+                ...profile,
+                ...(updatedProfile || {}),
+
+                fullName:
+                    updatedProfile?.fullName ||
+                    profileForm.fullName,
+
+                email:
+                    updatedProfile?.email ||
+                    profileForm.email,
 
                 phoneNumber:
-                    updatedData.phoneNumber,
-                PhoneNumber:
-                    updatedData.phoneNumber,
+                    updatedProfile?.phoneNumber ??
+                    profileForm.phoneNumber,
 
                 profilePicture:
-                    updatedData.profilePicture,
-                ProfilePicture:
-                    updatedData.profilePicture,
+                    updatedProfile?.profilePicture ||
+                    updatedProfile?.profileImage ||
+                    profileForm.profilePicture,
+            };
 
-                profileImage:
-                    updatedData.profilePicture,
-                ProfileImage:
-                    updatedData.profilePicture,
-            }));
+            setProfile(mergedProfile);
 
-            setFormData(updatedData);
+            const updatedForm = {
+                fullName: mergedProfile.fullName || "",
+                email: mergedProfile.email || "",
+                phoneNumber:
+                    mergedProfile.phoneNumber || "",
+                profilePicture:
+                    mergedProfile.profilePicture || "",
+            };
 
-            setOriginalFormData(updatedData);
+            setProfileForm(updatedForm);
+            setOriginalProfileForm(updatedForm);
 
             setIsEditing(false);
-
-            setFieldErrors({});
+            setActiveTab("profile");
 
             setSuccess(
-                "Profile updated successfully."
+                "Your profile was updated successfully."
             );
-
-            setTimeout(() => {
-                setSuccess("");
-            }, 4000);
         } catch (err) {
-            console.error(
-                "MANAGER PROFILE UPDATE ERROR:",
-                err
-            );
+            const status = err?.response?.status;
 
-            const status =
-                err?.response?.status ??
-                err?.status;
-
-            const backendMessage =
-                err?.response?.data?.message ??
-                err?.response?.data?.Message ??
-                err?.response?.data?.detail ??
-                err?.response?.data?.title ??
-                err?.message;
-
-            if (status === 400) {
+            if (status === 409) {
                 setError(
-                    backendMessage ||
-                        "The profile information is invalid."
+                    "The email address or another profile value is already in use."
                 );
-            } else if (status === 401) {
+            } else if (status === 400) {
                 setError(
-                    "Your session is not authorized. Please sign in again."
-                );
-            } else if (status === 403) {
-                setError(
-                    "You are not authorized to update this profile."
-                );
-            } else if (status === 409) {
-                setError(
-                    backendMessage ||
-                        "This email address or phone number is already associated with another account."
+                    getErrorMessage(
+                        err,
+                        "Please check your profile information."
+                    )
                 );
             } else {
                 setError(
-                    backendMessage ||
-                        "Failed to update your profile. Please try again."
+                    getErrorMessage(
+                        err,
+                        "Unable to update your profile."
+                    )
                 );
             }
         } finally {
@@ -447,280 +538,133 @@ const Profile = () => {
         }
     };
 
-    // ============================================================
-    // PROFILE PICTURE
-    // ============================================================
 
-    const handleProfilePictureChange = (e) => {
-        if (!isEditing) {
+    // ========================================================
+    // PROFILE PICTURE
+    // ========================================================
+
+    const handleProfilePictureChange = async (event) => {
+        const file = event.target.files?.[0];
+
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            setError("Please select a valid image file.");
             return;
         }
 
-        const file = e.target.files?.[0];
-
-        if (!file) {
+        if (file.size > 5 * 1024 * 1024) {
+            setError("Profile image must be smaller than 5 MB.");
             return;
         }
 
         setError("");
         setSuccess("");
 
-        // --------------------------------------------------------
-        // FILE TYPE
-        // --------------------------------------------------------
+        try {
+            const reader = new FileReader();
 
-        if (!file.type.startsWith("image/")) {
-            setError(
-                "Please select a valid image file."
-            );
+            reader.onload = async () => {
+                const base64Image = reader.result;
 
-            e.target.value = "";
-
-            return;
-        }
-
-        // --------------------------------------------------------
-        // FILE SIZE
-        // --------------------------------------------------------
-
-        if (file.size > 5 * 1024 * 1024) {
-            setError(
-                "Profile picture must be smaller than 5MB."
-            );
-
-            e.target.value = "";
-
-            return;
-        }
-
-        const reader = new FileReader();
-
-        reader.onload = async () => {
-            const imageData = reader.result;
-
-            if (
-                typeof imageData !== "string"
-            ) {
-                setError(
-                    "Failed to process the selected image."
-                );
-
-                e.target.value = "";
-
-                return;
-            }
-
-            /*
-             * Show selected image immediately.
-             */
-
-            setFormData((previous) => ({
-                ...previous,
-                profilePicture: imageData,
-            }));
-
-            /*
-             * Save the image through the existing
-             * PUT /Users/profile endpoint.
-             *
-             * IMPORTANT:
-             * The backend UpdateProfileDto requires
-             * FullName and Email, so we must send the
-             * complete profile payload rather than only
-             * profileImage.
-             */
-
-            try {
-                setSaving(true);
-
-                console.log(
-                    "========== UPDATE PROFILE PICTURE =========="
-                );
-
-                const payload = {
-                    fullName: String(
-                        formData?.fullName ?? ""
-                    ).trim(),
-
-                    email: String(
-                        formData?.email ?? ""
-                    ).trim(),
-
-                    phoneNumber: String(
-                        formData?.phoneNumber ?? ""
-                    ).trim(),
-
-                    profileImage: imageData,
-                };
-
-                console.log(
-                    "PROFILE PICTURE PAYLOAD:",
-                    payload
-                );
-
-                const result =
-                    await updateMyProfile(
-                        payload
-                    );
-
-                console.log(
-                    "PROFILE PICTURE UPDATE RESULT:",
-                    result
-                );
-
-                if (!result?.success) {
-                    throw new Error(
-                        result?.message ||
-                            "Failed to update profile picture."
-                    );
-                }
-
-                /*
-                 * Backend returns a success message rather
-                 * than a complete profile object.
-                 */
-
-                const updatedData = {
-                    fullName:
-                        payload.fullName,
-
-                    email:
-                        payload.email,
-
-                    phoneNumber:
-                        payload.phoneNumber,
-
-                    profilePicture:
-                        imageData,
-                };
-
-                setProfile((previous) => ({
-                    ...(previous || {}),
-
-                    fullName:
-                        updatedData.fullName,
-
-                    FullName:
-                        updatedData.fullName,
-
-                    email:
-                        updatedData.email,
-
-                    Email:
-                        updatedData.email,
-
-                    phoneNumber:
-                        updatedData.phoneNumber,
-
-                    PhoneNumber:
-                        updatedData.phoneNumber,
-
-                    profilePicture:
-                        updatedData.profilePicture,
-
-                    ProfilePicture:
-                        updatedData.profilePicture,
-
-                    profileImage:
-                        updatedData.profilePicture,
-
-                    ProfileImage:
-                        updatedData.profilePicture,
-                }));
-
-                setFormData(updatedData);
-
-                setOriginalFormData(updatedData);
-
-                setSuccess(
-                    "Profile picture updated successfully."
-                );
-
-                setTimeout(() => {
-                    setSuccess("");
-                }, 3000);
-            } catch (err) {
-                console.error(
-                    "PROFILE PICTURE UPDATE ERROR:",
-                    err
-                );
-
-                /*
-                 * Restore previous picture if
-                 * backend update failed.
-                 */
-
-                setFormData((previous) => ({
+                setProfileForm((previous) => ({
                     ...previous,
-                    profilePicture:
-                        originalFormData.profilePicture,
+                    profilePicture: base64Image,
                 }));
 
-                const status =
-                    err?.response?.status ??
-                    err?.status;
+                try {
+                    setSaving(true);
 
-                const backendMessage =
-                    err?.response?.data?.message ??
-                    err?.response?.data?.Message ??
-                    err?.response?.data?.detail ??
-                    err?.response?.data?.title ??
-                    err?.message;
+                    const payload = {
+                        fullName: profileForm.fullName.trim(),
+                        email: profileForm.email.trim(),
+                        phoneNumber:
+                            profileForm.phoneNumber?.trim() || "",
+                        profileImage: base64Image,
+                    };
 
-                if (status === 400) {
-                    setError(
-                        backendMessage ||
-                            "The selected profile picture is invalid."
+                    const response =
+                        await updateMyProfile(payload);
+
+                    const updatedProfile =
+                        response?.data || response;
+
+                    const mergedProfile = {
+                        ...profile,
+                        ...(updatedProfile || {}),
+                        profilePicture:
+                            updatedProfile?.profilePicture ||
+                            updatedProfile?.profileImage ||
+                            base64Image,
+                    };
+
+                    setProfile(mergedProfile);
+
+                    const updatedForm = {
+                        fullName:
+                            mergedProfile.fullName ||
+                            profileForm.fullName,
+                        email:
+                            mergedProfile.email ||
+                            profileForm.email,
+                        phoneNumber:
+                            mergedProfile.phoneNumber ||
+                            profileForm.phoneNumber,
+                        profilePicture:
+                            mergedProfile.profilePicture ||
+                            base64Image,
+                    };
+
+                    setProfileForm(updatedForm);
+                    setOriginalProfileForm(updatedForm);
+
+                    setSuccess(
+                        "Your profile picture was updated successfully."
                     );
-                } else if (status === 401) {
+                } catch (err) {
+                    setProfileForm((previous) => ({
+                        ...previous,
+                        profilePicture:
+                            originalProfileForm.profilePicture,
+                    }));
+
                     setError(
-                        "Your session is not authorized. Please sign in again."
+                        getErrorMessage(
+                            err,
+                            "Unable to update your profile picture."
+                        )
                     );
-                } else if (status === 403) {
-                    setError(
-                        "You are not authorized to update your profile picture."
-                    );
-                } else if (status === 409) {
-                    setError(
-                        backendMessage ||
-                            "The profile could not be updated because of a duplicate value."
-                    );
-                } else {
-                    setError(
-                        backendMessage ||
-                            "Failed to update profile picture."
-                    );
+                } finally {
+                    setSaving(false);
                 }
-            } finally {
-                setSaving(false);
+            };
 
-                /*
-                 * Allow selecting the same file again.
-                 */
+            reader.onerror = () => {
+                setError(
+                    "Unable to read the selected image."
+                );
+            };
 
-                e.target.value = "";
-            }
-        };
-
-        reader.onerror = () => {
+            reader.readAsDataURL(file);
+        } catch (err) {
             setError(
-                "Failed to read the selected image."
+                getErrorMessage(
+                    err,
+                    "Unable to process the profile picture."
+                )
             );
-
-            e.target.value = "";
-        };
-
-        reader.readAsDataURL(file);
+        }
     };
 
-    // ============================================================
-    // PASSWORD FORM CHANGE
-    // ============================================================
 
-    const handlePasswordChange = (e) => {
-        const { name, value } = e.target;
+    // ========================================================
+    // PASSWORD INPUT
+    // ========================================================
 
-        setPasswordData((previous) => ({
+    const handlePasswordChange = (event) => {
+        const { name, value } = event.target;
+
+        setPasswordForm((previous) => ({
             ...previous,
             [name]: value,
         }));
@@ -734,122 +678,81 @@ const Profile = () => {
         setPasswordSuccess("");
     };
 
-    // ============================================================
-    // CHANGE PASSWORD
-    // ============================================================
 
-    const handleChangePassword = async (e) => {
-        e.preventDefault();
+    // ========================================================
+    // CHANGE PASSWORD
+    // ========================================================
+
+    const handleChangePassword = async (event) => {
+        event.preventDefault();
+
+        if (passwordSaving) return;
 
         setPasswordError("");
         setPasswordSuccess("");
-
-        const validation =
-            validatePasswordForm(
-                passwordData.currentPassword,
-                passwordData.newPassword,
-                passwordData.confirmPassword
-            );
-
-        if (!validation?.isValid) {
-            setPasswordErrors(
-                validation?.errors || {}
-            );
-
-            return;
-        }
-
         setPasswordErrors({});
 
         try {
-            setPasswordSaving(true);
+            const validation =
+                validatePasswordForm(passwordForm);
 
-            console.log(
-                "========== CHANGE MANAGER PASSWORD =========="
-            );
+            if (validation !== true) {
+                if (
+                    validation &&
+                    typeof validation === "object"
+                ) {
+                    setPasswordErrors(validation);
+                } else {
+                    setPasswordError(
+                        typeof validation === "string"
+                            ? validation
+                            : "Please correct the password fields."
+                    );
+                }
 
-            /*
-             * Backend endpoint:
-             *
-             * POST /api/Auth/change-password
-             *
-             * Required DTO:
-             *
-             * {
-             *   currentPassword,
-             *   newPassword,
-             *   confirmPassword
-             * }
-             */
-
-            const result =
-                await changeMyPassword(
-                    passwordData.currentPassword,
-                    passwordData.newPassword,
-                    passwordData.confirmPassword
-                );
-
-            console.log(
-                "PASSWORD CHANGE RESULT:",
-                result
-            );
-
-            if (!result?.success) {
-                throw new Error(
-                    result?.message ||
-                        "Failed to change your password."
-                );
+                return;
             }
 
-            setPasswordData({
-                currentPassword: "",
-                newPassword: "",
-                confirmPassword: "",
-            });
+            setPasswordSaving(true);
 
-            setPasswordErrors({});
+            const payload = {
+                currentPassword:
+                    passwordForm.currentPassword,
+
+                newPassword:
+                    passwordForm.newPassword,
+
+                confirmPassword:
+                    passwordForm.confirmPassword,
+            };
+
+            await changeMyPassword(payload);
+
+            setPasswordForm(EMPTY_PASSWORD_FORM);
 
             setPasswordSuccess(
-                "Password changed successfully."
+                "Your password was changed successfully."
             );
-
-            setTimeout(() => {
-                setPasswordSuccess("");
-            }, 4000);
         } catch (err) {
-            console.error(
-                "CHANGE PASSWORD ERROR:",
-                err
-            );
+            const status = err?.response?.status;
 
-            const status =
-                err?.response?.status ??
-                err?.status;
-
-            const backendMessage =
-                err?.response?.data?.message ??
-                err?.response?.data?.Message ??
-                err?.response?.data?.detail ??
-                err?.response?.data?.title ??
-                err?.message;
-
-            if (status === 400) {
+            if (status === 401) {
                 setPasswordError(
-                    backendMessage ||
-                        "The current or new password is invalid."
+                    "Your current password is incorrect."
                 );
-            } else if (status === 401) {
+            } else if (status === 400) {
                 setPasswordError(
-                    "Your session is not authorized. Please sign in again."
-                );
-            } else if (status === 403) {
-                setPasswordError(
-                    "You are not authorized to change this password."
+                    getErrorMessage(
+                        err,
+                        "Please check your password information."
+                    )
                 );
             } else {
                 setPasswordError(
-                    backendMessage ||
-                        "Failed to change password. Please try again."
+                    getErrorMessage(
+                        err,
+                        "Unable to change your password."
+                    )
                 );
             }
         } finally {
@@ -857,769 +760,1104 @@ const Profile = () => {
         }
     };
 
-    // ============================================================
-    // GET ROLE
-    // ============================================================
 
-    const getRole = () => {
-        return (
-            profile?.role ??
-            profile?.Role ??
-            profile?.userRole ??
-            profile?.UserRole ??
-            "Manager"
-        );
-    };
-
-    // ============================================================
+    // ========================================================
     // LOADING
-    // ============================================================
+    // ========================================================
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
+            <div className="min-h-full p-4 md:p-6">
+                <div className="flex min-h-[500px] items-center justify-center rounded-2xl border border-border bg-card">
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                        <Loader2 className="h-7 w-7 animate-spin text-primary" />
 
-                    <Loader2 className="w-8 h-8 animate-spin text-slate-600" />
-
-                    <p className="text-slate-600">
-                        Loading your profile...
-                    </p>
-
+                        <p className="text-sm">
+                            Loading profile...
+                        </p>
+                    </div>
                 </div>
             </div>
         );
     }
 
-    // ============================================================
-    // UI
-    // ============================================================
 
-    return (
-        <div className="min-h-screen bg-slate-50 p-6">
+    // ========================================================
+    // NO PROFILE
+    // ========================================================
 
-            <div className="max-w-7xl mx-auto">
+    if (!profile) {
+        return (
+            <div className="min-h-full space-y-6 p-4 md:p-6">
 
-                {/* ==================================================
-                    HEADER
-                ================================================== */}
+                <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                            <UserRound className="h-6 w-6" />
+                        </div>
 
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">
+                                Profile Management
+                            </h1>
 
-                    <div>
-
-                        <h1 className="text-3xl font-bold text-slate-900">
-                            My Profile
-                        </h1>
-
-                        <p className="text-slate-500 mt-1">
-                            View and manage your personal information.
-                        </p>
-
+                            <p className="text-sm text-muted-foreground">
+                                View and manage your personal profile information.
+                            </p>
+                        </div>
                     </div>
 
-                    {!isEditing ? (
+                    <Button
+                        variant="outline"
+                        onClick={handleRefresh}
+                        disabled={refreshing}
+                    >
+                        <RefreshCw
+                            className={`mr-2 h-4 w-4 ${
+                                refreshing
+                                    ? "animate-spin"
+                                    : ""
+                            }`}
+                        />
 
-                        <button
-                            type="button"
-                            onClick={handleEdit}
-                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition"
-                        >
-                            <Edit3 className="w-4 h-4" />
+                        Refresh
+                    </Button>
+                </div>
 
-                            Edit Profile
-                        </button>
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
+                    <div className="flex items-start gap-3">
+                        <AlertCircle className="mt-0.5 h-5 w-5 text-destructive" />
 
-                    ) : (
+                        <div>
+                            <h2 className="font-semibold text-foreground">
+                                Unable to load profile
+                            </h2>
 
-                        <div className="flex items-center gap-3">
-
-                            <button
-                                type="button"
-                                onClick={handleCancel}
-                                disabled={saving}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 transition disabled:opacity-50"
-                            >
-                                <X className="w-4 h-4" />
-
-                                Cancel
-                            </button>
-
-                            <button
-                                type="submit"
-                                form="profile-form"
-                                disabled={saving}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition disabled:opacity-50"
-                            >
-                                {saving ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-
-                                        Saving...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="w-4 h-4" />
-
-                                        Save Changes
-                                    </>
-                                )}
-                            </button>
-
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                {error ||
+                                    "Your profile could not be loaded."}
+                            </p>
                         </div>
-                    )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+
+    // ========================================================
+    // DISPLAY VALUES
+    // ========================================================
+
+    const displayName =
+        profile.fullName ||
+        profileForm.fullName ||
+        "Manager";
+
+    const displayEmail =
+        profile.email ||
+        profileForm.email ||
+        "Not available";
+
+    const displayPhone =
+        profile.phoneNumber ||
+        profileForm.phoneNumber ||
+        "Not available";
+
+    const displayRole =
+        profile.role ||
+        "Manager";
+
+    const displayOrganization =
+        profile.organization ||
+        "Not available";
+
+    const displayTeam =
+        profile.team ||
+        "Not available";
+
+    const displayPicture =
+        profileForm.profilePicture ||
+        profile.profilePicture ||
+        "";
+
+    const isActive =
+        profile.isActive !== false;
+
+
+    // ========================================================
+    // MAIN PAGE
+    // ========================================================
+
+    return (
+        <div className="min-h-full space-y-6 p-4 md:p-6">
+
+            {/* ==================================================
+                PAGE HEADER
+            ================================================== */}
+
+            <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+
+                <div className="flex items-center gap-4">
+
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                        <UserRound className="h-6 w-6" />
+                    </div>
+
+                    <div>
+                        <h1 className="text-2xl font-bold text-foreground">
+                            Profile Management
+                        </h1>
+
+                        <p className="text-sm text-muted-foreground">
+                            View and manage your personal profile information.
+                        </p>
+                    </div>
 
                 </div>
 
-                {/* ==================================================
-                    GLOBAL ERROR
-                ================================================== */}
+                <Button
+                    variant="outline"
+                    onClick={handleRefresh}
+                    disabled={
+                        refreshing ||
+                        saving ||
+                        passwordSaving
+                    }
+                >
+                    <RefreshCw
+                        className={`mr-2 h-4 w-4 ${
+                            refreshing
+                                ? "animate-spin"
+                                : ""
+                        }`}
+                    />
 
-                {error && (
+                    Refresh
+                </Button>
 
-                    <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+            </div>
 
-                        <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
 
-                        <span>
+            {/* ==================================================
+                GLOBAL MESSAGES
+            ================================================== */}
+
+            {error && (
+                <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+
+                    <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">
                             {error}
-                        </span>
-
+                        </p>
                     </div>
 
-                )}
+                </div>
+            )}
 
-                {/* ==================================================
-                    GLOBAL SUCCESS
-                ================================================== */}
+            {success && (
+                <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950/30">
 
-                {success && (
+                    <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-600 dark:text-green-400" />
 
-                    <div className="mb-6 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-4 text-green-700">
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                        {success}
+                    </p>
 
-                        <CheckCircle className="w-5 h-5 mt-0.5 shrink-0" />
+                </div>
+            )}
 
-                        <span>
-                            {success}
-                        </span>
 
-                    </div>
+            {/* ==================================================
+                MAIN PROFILE CARD
+            ================================================== */}
 
-                )}
+            <div className="rounded-2xl border border-border bg-card shadow-sm">
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Tabs
+                    value={activeTab}
+                    onValueChange={setActiveTab}
+                    className="w-full"
+                >
 
                     {/* ==================================================
-                        PROFILE SUMMARY
+                        TAB NAVIGATION
                     ================================================== */}
 
-                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+                    <div className="border-b border-border px-5 pt-5 md:px-6">
 
-                        <div className="flex flex-col items-center">
+                        <TabsList className="grid w-full max-w-md grid-cols-2">
 
-                            {/* PROFILE IMAGE */}
+                            <TabsTrigger value="profile">
+                                View Profile
+                            </TabsTrigger>
 
-                            <div className="relative">
+                            <TabsTrigger value="edit">
+                                Update Profile
+                            </TabsTrigger>
 
-                                <div className="w-32 h-32 rounded-full bg-slate-100 border-4 border-white shadow-md overflow-hidden flex items-center justify-center">
+                        </TabsList>
 
-                                    {formData.profilePicture ? (
+                    </div>
 
-                                        <img
-                                            src={formData.profilePicture}
-                                            alt="Profile"
-                                            className="w-full h-full object-cover"
-                                        />
 
-                                    ) : (
+                    {/* ==================================================
+                        VIEW PROFILE
+                    ================================================== */}
 
-                                        <User className="w-16 h-16 text-slate-400" />
+                    <TabsContent
+                        value="profile"
+                        className="mt-0 p-5 md:p-6"
+                    >
 
-                                    )}
+                        <div className="space-y-8">
+
+                            {/* PROFILE HEADER */}
+
+                            <div className="flex flex-col gap-5 rounded-xl border border-border bg-muted/20 p-5 md:flex-row md:items-center md:justify-between">
+
+                                <div className="flex items-center gap-4">
+
+                                    <div className="relative">
+
+                                        {displayPicture ? (
+                                            <img
+                                                src={displayPicture}
+                                                alt={displayName}
+                                                className="h-20 w-20 rounded-full border-2 border-border object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
+                                                {displayName
+                                                    .charAt(0)
+                                                    .toUpperCase()}
+                                            </div>
+                                        )}
+
+                                    </div>
+
+                                    <div>
+
+                                        <h2 className="text-xl font-semibold text-foreground">
+                                            {displayName}
+                                        </h2>
+
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            {displayEmail}
+                                        </p>
+
+                                        <div className="mt-2 flex flex-wrap items-center gap-2">
+
+                                            <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                                                {displayRole}
+                                            </span>
+
+                                            <span
+                                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                                                    isActive
+                                                        ? "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400"
+                                                        : "bg-muted text-muted-foreground"
+                                                }`}
+                                            >
+                                                {isActive
+                                                    ? "Active"
+                                                    : "Inactive"}
+                                            </span>
+
+                                        </div>
+
+                                    </div>
 
                                 </div>
 
-                                {isEditing && (
+                                <Button
+                                    onClick={handleEdit}
+                                >
+                                    <Edit3 className="mr-2 h-4 w-4" />
+                                    Edit Profile
+                                </Button>
 
-                                    <>
+                            </div>
 
-                                        <label
-                                            htmlFor="profile-picture"
-                                            className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center cursor-pointer hover:bg-slate-800 transition shadow-lg"
+
+                            {/* PERSONAL INFORMATION */}
+
+                            <section>
+
+                                <SectionHeader
+                                    icon={User}
+                                    title="Personal Information"
+                                    description="Your basic personal contact information."
+                                />
+
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+                                    <InfoItem
+                                        icon={User}
+                                        label="Full Name"
+                                        value={displayName}
+                                    />
+
+                                    <InfoItem
+                                        icon={Mail}
+                                        label="Email"
+                                        value={displayEmail}
+                                    />
+
+                                    <InfoItem
+                                        icon={Phone}
+                                        label="Phone Number"
+                                        value={displayPhone}
+                                    />
+
+                                    <InfoItem
+                                        icon={Shield}
+                                        label="Role"
+                                        value={displayRole}
+                                    />
+
+                                </div>
+
+                            </section>
+
+
+                            {/* ORGANIZATION AND TEAM */}
+
+                            <section>
+
+                                <SectionHeader
+                                    icon={Building2}
+                                    title="Organization & Team"
+                                    description="Your current organization and team information."
+                                />
+
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+                                    <InfoItem
+                                        icon={Building2}
+                                        label="Organization"
+                                        value={displayOrganization}
+                                    />
+
+                                    <InfoItem
+                                        icon={UsersRound}
+                                        label="Team"
+                                        value={displayTeam}
+                                    />
+
+                                </div>
+
+                            </section>
+
+
+                            {/* ACCOUNT INFORMATION */}
+
+                            <section>
+
+                                <SectionHeader
+                                    icon={Clock3}
+                                    title="Account Information"
+                                    description="Information about your account status and activity."
+                                />
+
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+                                    <InfoItem
+                                        icon={Shield}
+                                        label="Account Status"
+                                        value={
+                                            isActive
+                                                ? "Active"
+                                                : "Inactive"
+                                        }
+                                    />
+
+                                    <InfoItem
+                                        icon={CalendarDays}
+                                        label="Account Created"
+                                        value={formatDate(
+                                            profile.accountCreated
+                                        )}
+                                    />
+
+                                    <InfoItem
+                                        icon={Clock3}
+                                        label="Last Login"
+                                        value={formatDateTime(
+                                            profile.lastLogin
+                                        )}
+                                    />
+
+                                </div>
+
+                            </section>
+
+
+                            {/* SECURITY */}
+
+                            <section>
+
+                                <SectionHeader
+                                    icon={Lock}
+                                    title="Profile Security"
+                                    description="Manage your password and account security."
+                                />
+
+                                <div className="rounded-xl border border-border bg-muted/30 p-5">
+
+                                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+                                        <div>
+                                            <p className="font-medium text-foreground">
+                                                Password
+                                            </p>
+
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                Keep your account secure by using a strong password.
+                                            </p>
+                                        </div>
+
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleEdit}
                                         >
-                                            <Camera className="w-5 h-5" />
-                                        </label>
+                                            <Lock className="mr-2 h-4 w-4" />
+                                            Manage Security
+                                        </Button>
 
-                                        <input
-                                            id="profile-picture"
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={
-                                                handleProfilePictureChange
-                                            }
-                                            disabled={saving}
-                                        />
+                                    </div>
 
-                                    </>
+                                </div>
 
-                                )}
-
-                            </div>
-
-                            {/* NAME */}
-
-                            <h2 className="mt-5 text-xl font-bold text-slate-900 text-center">
-
-                                {formData.fullName ||
-                                    "Manager"}
-
-                            </h2>
-
-                            {/* EMAIL */}
-
-                            <p className="text-slate-500 text-sm mt-1">
-
-                                {formData.email}
-
-                            </p>
-
-                            {/* ROLE */}
-
-                            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 text-sm font-medium">
-
-                                <Shield className="w-4 h-4" />
-
-                                {getRole()}
-
-                            </div>
+                            </section>
 
                         </div>
 
-                        {/* ACCOUNT STATUS */}
+                    </TabsContent>
 
-                        <div className="mt-8 pt-6 border-t border-slate-200">
-
-                            <div className="flex items-center gap-3 text-sm text-slate-600">
-
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-
-                                Active Account
-
-                            </div>
-
-                            <div className="flex items-center gap-3 text-sm text-slate-600 mt-3">
-
-                                <Shield className="w-4 h-4 text-slate-500" />
-
-                                Role and permissions are managed separately
-
-                            </div>
-
-                        </div>
-
-                    </div>
 
                     {/* ==================================================
-                        RIGHT SIDE
+                        UPDATE PROFILE
                     ================================================== */}
 
-                    <div className="lg:col-span-2 space-y-6">
+                    <TabsContent
+                        value="edit"
+                        className="mt-0 p-5 md:p-6"
+                    >
 
-                        {/* ==================================================
-                            PERSONAL INFORMATION
-                        ================================================== */}
+                        <div className="space-y-8">
 
-                        <form
-                            id="profile-form"
-                            onSubmit={handleSaveProfile}
-                            className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6"
-                        >
+                            {/* UPDATE PROFILE HEADER */}
 
-                            <div className="mb-6">
-
-                                <h2 className="text-xl font-bold text-slate-900">
-                                    Personal Information
-                                </h2>
-
-                                <p className="text-sm text-slate-500 mt-1">
-                                    Update your permitted personal and account information.
-                                </p>
-
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-                                {/* ==================================================
-                                    FULL NAME
-                                ================================================== */}
+                            <div className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between">
 
                                 <div>
 
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Full Name
-                                    </label>
+                                    <h2 className="text-xl font-semibold text-foreground">
+                                        Update Profile
+                                    </h2>
 
-                                    <div className="relative">
-
-                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-
-                                        <input
-                                            type="text"
-                                            name="fullName"
-                                            value={formData.fullName}
-                                            onChange={handleChange}
-                                            disabled={!isEditing || saving}
-                                            autoComplete="name"
-                                            className={`w-full pl-10 pr-4 py-2.5 rounded-lg border ${
-                                                fieldErrors.fullName
-                                                    ? "border-red-400"
-                                                    : "border-slate-300"
-                                            } ${
-                                                isEditing
-                                                    ? "bg-white"
-                                                    : "bg-slate-50"
-                                            } text-slate-900 outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed`}
-                                        />
-
-                                    </div>
-
-                                    {fieldErrors.fullName && (
-
-                                        <p className="text-sm text-red-600 mt-1">
-                                            {fieldErrors.fullName}
-                                        </p>
-
-                                    )}
-
-                                </div>
-
-                                {/* ==================================================
-                                    EMAIL
-                                ================================================== */}
-
-                                <div>
-
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Email Address
-                                    </label>
-
-                                    <div className="relative">
-
-                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-
-                                        <input
-                                            type="email"
-                                            name="email"
-                                            value={formData.email}
-                                            onChange={handleChange}
-                                            disabled={!isEditing || saving}
-                                            autoComplete="email"
-                                            className={`w-full pl-10 pr-4 py-2.5 rounded-lg border ${
-                                                fieldErrors.email
-                                                    ? "border-red-400"
-                                                    : "border-slate-300"
-                                            } ${
-                                                isEditing
-                                                    ? "bg-white"
-                                                    : "bg-slate-50"
-                                            } text-slate-900 outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed`}
-                                        />
-
-                                    </div>
-
-                                    {fieldErrors.email && (
-
-                                        <p className="text-sm text-red-600 mt-1">
-                                            {fieldErrors.email}
-                                        </p>
-
-                                    )}
-
-                                </div>
-
-                                {/* ==================================================
-                                    PHONE
-                                ================================================== */}
-
-                                <div>
-
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Phone Number
-                                    </label>
-
-                                    <div className="relative">
-
-                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-
-                                        <input
-                                            type="tel"
-                                            name="phoneNumber"
-                                            value={formData.phoneNumber}
-                                            onChange={handleChange}
-                                            disabled={!isEditing || saving}
-                                            autoComplete="tel"
-                                            className={`w-full pl-10 pr-4 py-2.5 rounded-lg border ${
-                                                fieldErrors.phoneNumber
-                                                    ? "border-red-400"
-                                                    : "border-slate-300"
-                                            } ${
-                                                isEditing
-                                                    ? "bg-white"
-                                                    : "bg-slate-50"
-                                            } text-slate-900 outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed`}
-                                        />
-
-                                    </div>
-
-                                    {fieldErrors.phoneNumber && (
-
-                                        <p className="text-sm text-red-600 mt-1">
-                                            {fieldErrors.phoneNumber}
-                                        </p>
-
-                                    )}
-
-                                </div>
-
-                                {/* ==================================================
-                                    ROLE
-                                ================================================== */}
-
-                                <div>
-
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Role
-                                    </label>
-
-                                    <div className="relative">
-
-                                        <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-
-                                        <input
-                                            type="text"
-                                            value={getRole()}
-                                            disabled
-                                            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 bg-slate-100 text-slate-600 cursor-not-allowed"
-                                        />
-
-                                    </div>
-
-                                    <p className="text-xs text-slate-500 mt-1">
-                                        Role cannot be changed from this page.
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        Update your personal information and profile picture.
                                     </p>
 
                                 </div>
 
-                            </div>
+                                <div className="flex items-center gap-2">
 
-                        </form>
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleCancel}
+                                        disabled={saving}
+                                    >
+                                        <X className="mr-2 h-4 w-4" />
+                                        Cancel
+                                    </Button>
 
-                        {/* ==================================================
-                            PASSWORD
-                        ================================================== */}
-
-                        <form
-                            onSubmit={handleChangePassword}
-                            className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6"
-                        >
-
-                            <div className="mb-6">
-
-                                <h2 className="text-xl font-bold text-slate-900">
-                                    Change Password
-                                </h2>
-
-                                <p className="text-sm text-slate-500 mt-1">
-                                    Change your account password securely.
-                                </p>
-
-                            </div>
-
-                            {/* PASSWORD ERROR */}
-
-                            {passwordError && (
-
-                                <div className="mb-5 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-
-                                    <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
-
-                                    <span>
-                                        {passwordError}
-                                    </span>
-
-                                </div>
-
-                            )}
-
-                            {/* PASSWORD SUCCESS */}
-
-                            {passwordSuccess && (
-
-                                <div className="mb-5 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-4 text-green-700">
-
-                                    <CheckCircle className="w-5 h-5 mt-0.5 shrink-0" />
-
-                                    <span>
-                                        {passwordSuccess}
-                                    </span>
-
-                                </div>
-
-                            )}
-
-                            <div className="space-y-5">
-
-                                {/* ==================================================
-                                    CURRENT PASSWORD
-                                ================================================== */}
-
-                                <div>
-
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Current Password
-                                    </label>
-
-                                    <div className="relative">
-
-                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-
-                                        <input
-                                            type={
-                                                showCurrentPassword
-                                                    ? "text"
-                                                    : "password"
-                                            }
-                                            name="currentPassword"
-                                            value={
-                                                passwordData.currentPassword
-                                            }
-                                            onChange={
-                                                handlePasswordChange
-                                            }
-                                            autoComplete="current-password"
-                                            className={`w-full pl-10 pr-12 py-2.5 rounded-lg border ${
-                                                passwordErrors.currentPassword
-                                                    ? "border-red-400"
-                                                    : "border-slate-300"
-                                            } bg-white text-slate-900 outline-none focus:ring-2 focus:ring-slate-300`}
-                                        />
-
-                                        <button
-                                            type="button"
+                                    {!isEditing && (
+                                        <Button
                                             onClick={() =>
-                                                setShowCurrentPassword(
-                                                    (value) =>
-                                                        !value
-                                                )
-                                            }
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                            aria-label={
-                                                showCurrentPassword
-                                                    ? "Hide current password"
-                                                    : "Show current password"
+                                                setIsEditing(true)
                                             }
                                         >
-                                            {showCurrentPassword ? (
-                                                <EyeOff className="w-5 h-5" />
-                                            ) : (
-                                                <Eye className="w-5 h-5" />
-                                            )}
-                                        </button>
-
-                                    </div>
-
-                                    {passwordErrors.currentPassword && (
-
-                                        <p className="text-sm text-red-600 mt-1">
-                                            {
-                                                passwordErrors.currentPassword
-                                            }
-                                        </p>
-
-                                    )}
-
-                                </div>
-
-                                {/* ==================================================
-                                    NEW PASSWORD
-                                ================================================== */}
-
-                                <div>
-
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        New Password
-                                    </label>
-
-                                    <div className="relative">
-
-                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-
-                                        <input
-                                            type={
-                                                showNewPassword
-                                                    ? "text"
-                                                    : "password"
-                                            }
-                                            name="newPassword"
-                                            value={
-                                                passwordData.newPassword
-                                            }
-                                            onChange={
-                                                handlePasswordChange
-                                            }
-                                            autoComplete="new-password"
-                                            className={`w-full pl-10 pr-12 py-2.5 rounded-lg border ${
-                                                passwordErrors.newPassword
-                                                    ? "border-red-400"
-                                                    : "border-slate-300"
-                                            } bg-white text-slate-900 outline-none focus:ring-2 focus:ring-slate-300`}
-                                        />
-
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setShowNewPassword(
-                                                    (value) =>
-                                                        !value
-                                                )
-                                            }
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                            aria-label={
-                                                showNewPassword
-                                                    ? "Hide new password"
-                                                    : "Show new password"
-                                            }
-                                        >
-                                            {showNewPassword ? (
-                                                <EyeOff className="w-5 h-5" />
-                                            ) : (
-                                                <Eye className="w-5 h-5" />
-                                            )}
-                                        </button>
-
-                                    </div>
-
-                                    {passwordErrors.newPassword && (
-
-                                        <p className="text-sm text-red-600 mt-1">
-                                            {
-                                                passwordErrors.newPassword
-                                            }
-                                        </p>
-
-                                    )}
-
-                                </div>
-
-                                {/* ==================================================
-                                    CONFIRM PASSWORD
-                                ================================================== */}
-
-                                <div>
-
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Confirm New Password
-                                    </label>
-
-                                    <div className="relative">
-
-                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-
-                                        <input
-                                            type={
-                                                showConfirmPassword
-                                                    ? "text"
-                                                    : "password"
-                                            }
-                                            name="confirmPassword"
-                                            value={
-                                                passwordData.confirmPassword
-                                            }
-                                            onChange={
-                                                handlePasswordChange
-                                            }
-                                            autoComplete="new-password"
-                                            className={`w-full pl-10 pr-12 py-2.5 rounded-lg border ${
-                                                passwordErrors.confirmPassword
-                                                    ? "border-red-400"
-                                                    : "border-slate-300"
-                                            } bg-white text-slate-900 outline-none focus:ring-2 focus:ring-slate-300`}
-                                        />
-
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setShowConfirmPassword(
-                                                    (value) =>
-                                                        !value
-                                                )
-                                            }
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                            aria-label={
-                                                showConfirmPassword
-                                                    ? "Hide password confirmation"
-                                                    : "Show password confirmation"
-                                            }
-                                        >
-                                            {showConfirmPassword ? (
-                                                <EyeOff className="w-5 h-5" />
-                                            ) : (
-                                                <Eye className="w-5 h-5" />
-                                            )}
-                                        </button>
-
-                                    </div>
-
-                                    {passwordErrors.confirmPassword && (
-
-                                        <p className="text-sm text-red-600 mt-1">
-                                            {
-                                                passwordErrors.confirmPassword
-                                            }
-                                        </p>
-
+                                            <Edit3 className="mr-2 h-4 w-4" />
+                                            Edit Profile
+                                        </Button>
                                     )}
 
                                 </div>
 
                             </div>
 
-                            {/* CHANGE PASSWORD BUTTON */}
 
-                            <div className="mt-6 flex justify-end">
+                            {/* PROFILE FORM */}
 
-                                <button
-                                    type="submit"
-                                    disabled={passwordSaving}
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition disabled:opacity-50"
+                            <form
+                                onSubmit={handleSaveProfile}
+                                className="space-y-6"
+                            >
+
+                                {/* PROFILE PICTURE */}
+
+                                <section>
+
+                                    <SectionHeader
+                                        icon={Camera}
+                                        title="Profile Picture"
+                                        description="Choose an image to use as your profile picture."
+                                    />
+
+                                    <div className="flex flex-col gap-5 rounded-xl border border-border bg-muted/20 p-5 sm:flex-row sm:items-center">
+
+                                        <div>
+
+                                            {displayPicture ? (
+                                                <img
+                                                    src={displayPicture}
+                                                    alt={displayName}
+                                                    className="h-24 w-24 rounded-full border-2 border-border object-cover"
+                                                />
+                                            ) : (
+                                                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary text-3xl font-bold text-primary-foreground">
+                                                    {displayName
+                                                        .charAt(0)
+                                                        .toUpperCase()}
+                                                </div>
+                                            )}
+
+                                        </div>
+
+                                        <div>
+
+                                            <label
+                                                className={`inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground ${
+                                                    !isEditing ||
+                                                    saving
+                                                        ? "pointer-events-none opacity-50"
+                                                        : ""
+                                                }`}
+                                            >
+
+                                                <Camera className="mr-2 h-4 w-4" />
+
+                                                Change Picture
+
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    disabled={
+                                                        !isEditing ||
+                                                        saving
+                                                    }
+                                                    onChange={
+                                                        handleProfilePictureChange
+                                                    }
+                                                />
+
+                                            </label>
+
+                                            <p className="mt-2 text-xs text-muted-foreground">
+                                                Maximum file size: 5 MB.
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+                                </section>
+
+
+                                {/* PERSONAL INFORMATION */}
+
+                                <section>
+
+                                    <SectionHeader
+                                        icon={User}
+                                        title="Personal Information"
+                                        description="Update your personal contact information."
+                                    />
+
+                                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+
+                                        {/* FULL NAME */}
+
+                                        <div className="space-y-2">
+
+                                            <label
+                                                htmlFor="fullName"
+                                                className="text-sm font-medium text-foreground"
+                                            >
+                                                Full Name
+                                            </label>
+
+                                            <div className="relative">
+
+                                                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+                                                <input
+                                                    id="fullName"
+                                                    name="fullName"
+                                                    value={
+                                                        profileForm.fullName
+                                                    }
+                                                    onChange={
+                                                        handleProfileChange
+                                                    }
+                                                    disabled={
+                                                        !isEditing ||
+                                                        saving
+                                                    }
+                                                    className="h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                                    placeholder="Enter your full name"
+                                                />
+
+                                            </div>
+
+                                            {fieldErrors.fullName && (
+                                                <p className="text-xs text-destructive">
+                                                    {
+                                                        fieldErrors.fullName
+                                                    }
+                                                </p>
+                                            )}
+
+                                        </div>
+
+
+                                        {/* EMAIL */}
+
+                                        <div className="space-y-2">
+
+                                            <label
+                                                htmlFor="email"
+                                                className="text-sm font-medium text-foreground"
+                                            >
+                                                Email
+                                            </label>
+
+                                            <div className="relative">
+
+                                                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+                                                <input
+                                                    id="email"
+                                                    name="email"
+                                                    type="email"
+                                                    value={
+                                                        profileForm.email
+                                                    }
+                                                    onChange={
+                                                        handleProfileChange
+                                                    }
+                                                    disabled={
+                                                        !isEditing ||
+                                                        saving
+                                                    }
+                                                    className="h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                                    placeholder="Enter your email"
+                                                />
+
+                                            </div>
+
+                                            {fieldErrors.email && (
+                                                <p className="text-xs text-destructive">
+                                                    {
+                                                        fieldErrors.email
+                                                    }
+                                                </p>
+                                            )}
+
+                                        </div>
+
+
+                                        {/* PHONE */}
+
+                                        <div className="space-y-2">
+
+                                            <label
+                                                htmlFor="phoneNumber"
+                                                className="text-sm font-medium text-foreground"
+                                            >
+                                                Phone Number
+                                            </label>
+
+                                            <div className="relative">
+
+                                                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+                                                <input
+                                                    id="phoneNumber"
+                                                    name="phoneNumber"
+                                                    value={
+                                                        profileForm.phoneNumber
+                                                    }
+                                                    onChange={
+                                                        handleProfileChange
+                                                    }
+                                                    disabled={
+                                                        !isEditing ||
+                                                        saving
+                                                    }
+                                                    className="h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                                    placeholder="Enter your phone number"
+                                                />
+
+                                            </div>
+
+                                            {fieldErrors.phoneNumber && (
+                                                <p className="text-xs text-destructive">
+                                                    {
+                                                        fieldErrors.phoneNumber
+                                                    }
+                                                </p>
+                                            )}
+
+                                        </div>
+
+                                    </div>
+
+                                </section>
+
+
+                                {/* SAVE BUTTON */}
+
+                                {isEditing && (
+                                    <div className="flex justify-end border-t border-border pt-5">
+
+                                        <Button
+                                            type="submit"
+                                            disabled={saving}
+                                        >
+                                            {saving ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Saving...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save className="mr-2 h-4 w-4" />
+                                                    Save Changes
+                                                </>
+                                            )}
+                                        </Button>
+
+                                    </div>
+                                )}
+
+                            </form>
+
+
+                            {/* ==================================================
+                                CHANGE PASSWORD
+                            ================================================== */}
+
+                            <section className="border-t border-border pt-8">
+
+                                <SectionHeader
+                                    icon={Lock}
+                                    title="Change Password"
+                                    description="Update your password to keep your account secure."
+                                />
+
+                                {passwordError && (
+                                    <div className="mb-5 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+
+                                        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+
+                                        <p className="text-sm text-foreground">
+                                            {passwordError}
+                                        </p>
+
+                                    </div>
+                                )}
+
+                                {passwordSuccess && (
+                                    <div className="mb-5 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950/30">
+
+                                        <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-600 dark:text-green-400" />
+
+                                        <p className="text-sm text-green-700 dark:text-green-300">
+                                            {passwordSuccess}
+                                        </p>
+
+                                    </div>
+                                )}
+
+                                <form
+                                    onSubmit={
+                                        handleChangePassword
+                                    }
+                                    className="rounded-xl border border-border bg-muted/20 p-5"
                                 >
 
-                                    {passwordSaving ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
 
-                                            Changing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Lock className="w-4 h-4" />
+                                        {/* CURRENT PASSWORD */}
 
-                                            Change Password
-                                        </>
-                                    )}
+                                        <div className="space-y-2 md:col-span-2">
 
-                                </button>
+                                            <label
+                                                htmlFor="currentPassword"
+                                                className="text-sm font-medium text-foreground"
+                                            >
+                                                Current Password
+                                            </label>
 
-                            </div>
+                                            <div className="relative">
 
-                        </form>
+                                                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+                                                <input
+                                                    id="currentPassword"
+                                                    name="currentPassword"
+                                                    type={
+                                                        showCurrentPassword
+                                                            ? "text"
+                                                            : "password"
+                                                    }
+                                                    value={
+                                                        passwordForm.currentPassword
+                                                    }
+                                                    onChange={
+                                                        handlePasswordChange
+                                                    }
+                                                    disabled={
+                                                        passwordSaving
+                                                    }
+                                                    className="h-10 w-full rounded-md border border-input bg-background pl-10 pr-10 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                                    placeholder="Enter current password"
+                                                />
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setShowCurrentPassword(
+                                                            (value) =>
+                                                                !value
+                                                        )
+                                                    }
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                                    tabIndex={-1}
+                                                >
+                                                    {showCurrentPassword ? (
+                                                        <EyeOff className="h-4 w-4" />
+                                                    ) : (
+                                                        <Eye className="h-4 w-4" />
+                                                    )}
+                                                </button>
+
+                                            </div>
+
+                                            {passwordErrors.currentPassword && (
+                                                <p className="text-xs text-destructive">
+                                                    {
+                                                        passwordErrors.currentPassword
+                                                    }
+                                                </p>
+                                            )}
+
+                                        </div>
+
+
+                                        {/* NEW PASSWORD */}
+
+                                        <div className="space-y-2">
+
+                                            <label
+                                                htmlFor="newPassword"
+                                                className="text-sm font-medium text-foreground"
+                                            >
+                                                New Password
+                                            </label>
+
+                                            <div className="relative">
+
+                                                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+                                                <input
+                                                    id="newPassword"
+                                                    name="newPassword"
+                                                    type={
+                                                        showNewPassword
+                                                            ? "text"
+                                                            : "password"
+                                                    }
+                                                    value={
+                                                        passwordForm.newPassword
+                                                    }
+                                                    onChange={
+                                                        handlePasswordChange
+                                                    }
+                                                    disabled={
+                                                        passwordSaving
+                                                    }
+                                                    className="h-10 w-full rounded-md border border-input bg-background pl-10 pr-10 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                                    placeholder="Enter new password"
+                                                />
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setShowNewPassword(
+                                                            (value) =>
+                                                                !value
+                                                        )
+                                                    }
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                                    tabIndex={-1}
+                                                >
+                                                    {showNewPassword ? (
+                                                        <EyeOff className="h-4 w-4" />
+                                                    ) : (
+                                                        <Eye className="h-4 w-4" />
+                                                    )}
+                                                </button>
+
+                                            </div>
+
+                                            {passwordErrors.newPassword && (
+                                                <p className="text-xs text-destructive">
+                                                    {
+                                                        passwordErrors.newPassword
+                                                    }
+                                                </p>
+                                            )}
+
+                                        </div>
+
+
+                                        {/* CONFIRM PASSWORD */}
+
+                                        <div className="space-y-2">
+
+                                            <label
+                                                htmlFor="confirmPassword"
+                                                className="text-sm font-medium text-foreground"
+                                            >
+                                                Confirm Password
+                                            </label>
+
+                                            <div className="relative">
+
+                                                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+                                                <input
+                                                    id="confirmPassword"
+                                                    name="confirmPassword"
+                                                    type={
+                                                        showConfirmPassword
+                                                            ? "text"
+                                                            : "password"
+                                                    }
+                                                    value={
+                                                        passwordForm.confirmPassword
+                                                    }
+                                                    onChange={
+                                                        handlePasswordChange
+                                                    }
+                                                    disabled={
+                                                        passwordSaving
+                                                    }
+                                                    className="h-10 w-full rounded-md border border-input bg-background pl-10 pr-10 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                                    placeholder="Confirm new password"
+                                                />
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setShowConfirmPassword(
+                                                            (value) =>
+                                                                !value
+                                                        )
+                                                    }
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                                    tabIndex={-1}
+                                                >
+                                                    {showConfirmPassword ? (
+                                                        <EyeOff className="h-4 w-4" />
+                                                    ) : (
+                                                        <Eye className="h-4 w-4" />
+                                                    )}
+                                                </button>
+
+                                            </div>
+
+                                            {passwordErrors.confirmPassword && (
+                                                <p className="text-xs text-destructive">
+                                                    {
+                                                        passwordErrors.confirmPassword
+                                                    }
+                                                </p>
+                                            )}
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div className="mt-5 flex justify-end">
+
+                                        <Button
+                                            type="submit"
+                                            disabled={passwordSaving}
+                                        >
+                                            {passwordSaving ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Changing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Lock className="mr-2 h-4 w-4" />
+                                                    Change Password
+                                                </>
+                                            )}
+                                        </Button>
+
+                                    </div>
+
+                                </form>
+
+                            </section>
+
+                        </div>
+
+                    </TabsContent>
+
+                </Tabs>
+
+            </div>
+
+
+            {/* ==================================================
+                BUSINESS RULE INFORMATION
+            ================================================== */}
+
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
+
+                <div className="flex items-start gap-3">
+
+                    <Shield className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
+
+                    <div>
+
+                        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                            Profile Information
+                        </h3>
+
+                        <p className="mt-1 text-sm text-blue-800 dark:text-blue-300">
+                            Keep your profile information accurate so your team and project management activities remain up to date.
+                        </p>
 
                     </div>
+
                 </div>
+
             </div>
+
         </div>
     );
-};
-
-export default Profile;
+}

@@ -1,3 +1,4 @@
+
 import React from "react";
 
 import {
@@ -14,11 +15,11 @@ import {
 // MANAGER — PROJECT CARD
 //
 // Design:
-// - Light slate background compatible
-// - White card
-// - Colorful status accent
-// - Violet / blue / cyan visual language
-// - Matches Sprint Management page
+// - Matches Admin / Manager design system
+// - Uses semantic theme tokens
+// - Supports light and dark mode
+// - Keeps existing project information
+// - Keeps status and progress visualization
 // ============================================================
 
 function ProjectCard({ project }) {
@@ -33,41 +34,36 @@ function ProjectCard({ project }) {
     const statusStyles = {
         Active: {
             className:
-                "bg-emerald-50 text-emerald-700 border-emerald-200",
-            accent:
-                "bg-gradient-to-r from-emerald-400 to-green-600",
+                "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+            accent: "bg-emerald-500",
             icon: CheckCircle2,
         },
 
         Planning: {
             className:
-                "bg-amber-50 text-amber-700 border-amber-200",
-            accent:
-                "bg-gradient-to-r from-amber-400 to-orange-500",
+                "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+            accent: "bg-amber-500",
             icon: Clock,
         },
 
         Completed: {
             className:
-                "bg-blue-50 text-blue-700 border-blue-200",
-            accent:
-                "bg-gradient-to-r from-blue-400 to-cyan-600",
+                "border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400",
+            accent: "bg-blue-500",
             icon: CheckCircle2,
         },
 
         OnHold: {
             className:
-                "bg-yellow-50 text-yellow-700 border-yellow-200",
-            accent:
-                "bg-gradient-to-r from-yellow-400 to-amber-500",
+                "border-yellow-500/20 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
+            accent: "bg-yellow-500",
             icon: AlertCircle,
         },
 
         Cancelled: {
             className:
-                "bg-red-50 text-red-700 border-red-200",
-            accent:
-                "bg-gradient-to-r from-red-400 to-rose-600",
+                "border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400",
+            accent: "bg-red-500",
             icon: AlertCircle,
         },
     };
@@ -84,10 +80,7 @@ function ProjectCard({ project }) {
 
     const progress = Math.max(
         0,
-        Math.min(
-            100,
-            Number(project.progress) || 0
-        )
+        Math.min(100, Number(project.progress) || 0)
     );
 
     // ========================================================
@@ -95,14 +88,14 @@ function ProjectCard({ project }) {
     // ========================================================
 
     return (
-        <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
+        <div className="group relative overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
 
             {/* ==================================================
-                COLOR ACCENT
+                STATUS ACCENT
             ================================================== */}
 
             <div
-                className={`absolute inset-x-0 top-0 h-1.5 ${status.accent}`}
+                className={`absolute inset-x-0 top-0 h-1 ${status.accent}`}
             />
 
             {/* ==================================================
@@ -121,10 +114,8 @@ function ProjectCard({ project }) {
 
                         {/* PROJECT ICON */}
 
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-100 to-blue-100 text-violet-700 ring-1 ring-violet-100">
-
-                            <FolderKanban size={22} />
-
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/10">
+                            <FolderKanban size={21} />
                         </div>
 
                         {/* PROJECT NAME */}
@@ -134,21 +125,21 @@ function ProjectCard({ project }) {
                             <div className="mb-1 flex items-center gap-2">
 
                                 <Sparkles
-                                    size={14}
-                                    className="shrink-0 text-violet-500"
+                                    size={13}
+                                    className="shrink-0 text-primary"
                                 />
 
-                                <span className="text-xs font-semibold uppercase tracking-wide text-violet-500">
+                                <span className="text-xs font-semibold uppercase tracking-wide text-primary">
                                     Project
                                 </span>
 
                             </div>
 
-                            <h3 className="truncate text-lg font-bold text-slate-900">
+                            <h3 className="truncate text-lg font-semibold text-foreground">
                                 {project.name}
                             </h3>
 
-                            <p className="mt-1 text-xs font-medium text-slate-500">
+                            <p className="mt-1 text-xs text-muted-foreground">
                                 Project #{project.id}
                             </p>
 
@@ -161,11 +152,9 @@ function ProjectCard({ project }) {
                     <div
                         className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ${status.className}`}
                     >
-
                         <StatusIcon size={14} />
 
                         {project.status}
-
                     </div>
 
                 </div>
@@ -174,13 +163,11 @@ function ProjectCard({ project }) {
                     DESCRIPTION
                 ================================================== */}
 
-                <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <div className="mt-5 rounded-lg border border-border bg-muted/50 p-4">
 
-                    <p className="text-sm leading-6 text-slate-600">
-
+                    <p className="text-sm leading-6 text-muted-foreground">
                         {project.description ||
                             "No project description available."}
-
                     </p>
 
                 </div>
@@ -195,24 +182,24 @@ function ProjectCard({ project }) {
 
                         <div className="flex items-center gap-2">
 
-                            <div className="h-2 w-2 rounded-full bg-violet-500" />
+                            <div className="h-2 w-2 rounded-full bg-primary" />
 
-                            <span className="text-sm font-semibold text-slate-600">
+                            <span className="text-sm font-medium text-muted-foreground">
                                 Project Progress
                             </span>
 
                         </div>
 
-                        <span className="text-sm font-bold text-slate-900">
+                        <span className="text-sm font-semibold text-foreground">
                             {progress}%
                         </span>
 
                     </div>
 
-                    <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-2.5 overflow-hidden rounded-full bg-muted">
 
                         <div
-                            className="h-full rounded-full bg-gradient-to-r from-violet-500 via-blue-500 to-cyan-500 transition-all duration-300"
+                            className="h-full rounded-full bg-primary transition-all duration-300"
                             style={{
                                 width: `${progress}%`,
                             }}
@@ -230,27 +217,23 @@ function ProjectCard({ project }) {
 
                     {/* START DATE */}
 
-                    <div className="rounded-xl border border-violet-100 bg-violet-50 p-3.5">
+                    <div className="rounded-lg border border-border bg-muted/40 p-3.5">
 
                         <div className="flex items-center gap-3">
 
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-violet-600 shadow-sm">
-
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background text-primary ring-1 ring-border">
                                 <CalendarDays size={18} />
-
                             </div>
 
                             <div className="min-w-0">
 
-                                <p className="text-xs font-medium text-violet-600">
+                                <p className="text-xs font-medium text-muted-foreground">
                                     Start Date
                                 </p>
 
-                                <p className="mt-0.5 truncate text-sm font-bold text-slate-800">
-
+                                <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
                                     {project.startDate ||
                                         "Not set"}
-
                                 </p>
 
                             </div>
@@ -261,27 +244,23 @@ function ProjectCard({ project }) {
 
                     {/* DEADLINE */}
 
-                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-3.5">
+                    <div className="rounded-lg border border-border bg-muted/40 p-3.5">
 
                         <div className="flex items-center gap-3">
 
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
-
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background text-primary ring-1 ring-border">
                                 <Clock size={18} />
-
                             </div>
 
                             <div className="min-w-0">
 
-                                <p className="text-xs font-medium text-blue-600">
+                                <p className="text-xs font-medium text-muted-foreground">
                                     Deadline
                                 </p>
 
-                                <p className="mt-0.5 truncate text-sm font-bold text-slate-800">
-
+                                <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
                                     {project.deadline ||
                                         "Not set"}
-
                                 </p>
 
                             </div>
@@ -292,27 +271,23 @@ function ProjectCard({ project }) {
 
                     {/* TEAM */}
 
-                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3.5">
+                    <div className="rounded-lg border border-border bg-muted/40 p-3.5">
 
                         <div className="flex items-center gap-3">
 
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-600 shadow-sm">
-
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background text-primary ring-1 ring-border">
                                 <Users size={18} />
-
                             </div>
 
                             <div className="min-w-0">
 
-                                <p className="text-xs font-medium text-emerald-600">
+                                <p className="text-xs font-medium text-muted-foreground">
                                     Team
                                 </p>
 
-                                <p className="mt-0.5 truncate text-sm font-bold text-slate-800">
-
+                                <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
                                     {project.teamName ||
                                         `${project.team || 0} members`}
-
                                 </p>
 
                             </div>
@@ -323,28 +298,24 @@ function ProjectCard({ project }) {
 
                     {/* SPECIFICATION */}
 
-                    <div className="rounded-xl border border-amber-100 bg-amber-50 p-3.5">
+                    <div className="rounded-lg border border-border bg-muted/40 p-3.5">
 
                         <div className="flex items-center gap-3">
 
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-amber-600 shadow-sm">
-
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background text-primary ring-1 ring-border">
                                 <FolderKanban size={18} />
-
                             </div>
 
                             <div className="min-w-0">
 
-                                <p className="text-xs font-medium text-amber-600">
+                                <p className="text-xs font-medium text-muted-foreground">
                                     Specification
                                 </p>
 
-                                <p className="mt-0.5 truncate text-sm font-bold text-slate-800">
-
+                                <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
                                     {project.hasSpecification
                                         ? "Available"
                                         : "Not created"}
-
                                 </p>
 
                             </div>

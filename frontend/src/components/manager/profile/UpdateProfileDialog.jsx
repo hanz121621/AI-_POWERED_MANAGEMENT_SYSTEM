@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import {
     UserRound,
     Mail,
@@ -22,27 +23,29 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-/**
- * ============================================================
- * UPDATE PROFILE DIALOG
- * PM-PROFILE-001 — Update Profile
- * ============================================================
- *
- * Editable:
- * - Full name
- * - Email
- * - Phone number
- * - Profile picture
- *
- * NOT editable:
- * - Role
- * - Permissions
- * - Project relationships
- * - Team relationships
- *
- * API operation is delegated to the parent/service layer.
- * ============================================================
- */
+// ============================================================
+// UPDATE PROFILE DIALOG
+// PM-PROFILE-001 — Update Profile
+//
+// Editable:
+// - Full name
+// - Email
+// - Phone number
+// - Profile picture
+//
+// NOT editable:
+// - Role
+// - Permissions
+// - Project relationships
+// - Team relationships
+//
+// API operation is delegated to the parent/service layer.
+// ============================================================
+
+
+// ============================================================
+// GET PROFILE VALUE
+// ============================================================
 
 const getProfileValue = (profile, ...keys) => {
     if (!profile) {
@@ -61,6 +64,11 @@ const getProfileValue = (profile, ...keys) => {
     return "";
 };
 
+
+// ============================================================
+// EXTRACT ERROR MESSAGE
+// ============================================================
+
 const extractErrorMessage = (error) => {
     if (!error) {
         return "Unable to update your profile.";
@@ -69,6 +77,57 @@ const extractErrorMessage = (error) => {
     if (typeof error === "string") {
         return error;
     }
+
+    // ========================================================
+    // AXIOS RESPONSE
+    // ========================================================
+
+    const responseData = error?.response?.data;
+
+    if (
+        responseData?.message ||
+        responseData?.Message
+    ) {
+        return (
+            responseData.message ??
+            responseData.Message
+        );
+    }
+
+    // ========================================================
+    // VALIDATION ERRORS
+    // ========================================================
+
+    if (responseData?.errors) {
+        const validationErrors =
+            responseData.errors;
+
+        const messages = Object.values(
+            validationErrors
+        )
+            .flat()
+            .filter(Boolean);
+
+        if (messages.length > 0) {
+            return messages.join(" ");
+        }
+    }
+
+    // ========================================================
+    // PROBLEM DETAILS
+    // ========================================================
+
+    if (responseData?.title) {
+        return responseData.title;
+    }
+
+    if (responseData?.detail) {
+        return responseData.detail;
+    }
+
+    // ========================================================
+    // NORMAL ERROR
+    // ========================================================
 
     return (
         error?.message ||
@@ -79,6 +138,11 @@ const extractErrorMessage = (error) => {
     );
 };
 
+
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
+
 export default function UpdateProfileDialog({
     open,
     onOpenChange,
@@ -86,22 +150,51 @@ export default function UpdateProfileDialog({
     onSuccess,
     updateProfile,
 }) {
+
+    // ========================================================
+    // FORM STATE
+    // ========================================================
+
     const [form, setForm] = useState({
         fullName: "",
         email: "",
         phoneNumber: "",
-        profilePictureUrl: "",
+        profileImage: "",
     });
+
+
+    // ========================================================
+    // VALIDATION STATE
+    // ========================================================
 
     const [errors, setErrors] = useState({});
 
-    const [serverError, setServerError] =
-        useState("");
+
+    // ========================================================
+    // SERVER ERROR
+    // ========================================================
+
+    const [serverError, setServerError] = useState("");
+
+
+    // ========================================================
+    // SUCCESS MESSAGE
+    // ========================================================
 
     const [successMessage, setSuccessMessage] =
         useState("");
 
+
+    // ========================================================
+    // SAVING STATE
+    // ========================================================
+
     const [saving, setSaving] = useState(false);
+
+
+    // ========================================================
+    // LOAD PROFILE INTO FORM
+    // ========================================================
 
     useEffect(() => {
         if (!open) {
@@ -115,18 +208,22 @@ export default function UpdateProfileDialog({
                 "name",
                 "displayName"
             ),
+
             email: getProfileValue(
                 profile,
                 "email",
                 "emailAddress"
             ),
+
             phoneNumber: getProfileValue(
                 profile,
                 "phoneNumber",
                 "phone"
             ),
-            profilePictureUrl: getProfileValue(
+
+            profileImage: getProfileValue(
                 profile,
+                "profileImage",
                 "profilePictureUrl",
                 "profilePicture",
                 "avatarUrl",
@@ -139,8 +236,16 @@ export default function UpdateProfileDialog({
         setSuccessMessage("");
     }, [open, profile]);
 
+
+    // ========================================================
+    // HANDLE INPUT CHANGE
+    // ========================================================
+
     const handleChange = (event) => {
-        const { name, value } = event.target;
+        const {
+            name,
+            value,
+        } = event.target;
 
         setForm((current) => ({
             ...current,
@@ -153,7 +258,13 @@ export default function UpdateProfileDialog({
         }));
 
         setServerError("");
+        setSuccessMessage("");
     };
+
+
+    // ========================================================
+    // VALIDATE FORM
+    // ========================================================
 
     const validate = () => {
         const nextErrors = {};
@@ -167,8 +278,13 @@ export default function UpdateProfileDialog({
         const phone =
             form.phoneNumber.trim();
 
-        const profilePicture =
-            form.profilePictureUrl.trim();
+        const profileImage =
+            form.profileImage.trim();
+
+
+        // ====================================================
+        // FULL NAME
+        // ====================================================
 
         if (!fullName) {
             nextErrors.fullName =
@@ -181,6 +297,11 @@ export default function UpdateProfileDialog({
                 "Full name cannot exceed 150 characters.";
         }
 
+
+        // ====================================================
+        // EMAIL
+        // ====================================================
+
         if (!email) {
             nextErrors.email =
                 "Email address is required.";
@@ -191,32 +312,51 @@ export default function UpdateProfileDialog({
         ) {
             nextErrors.email =
                 "Enter a valid email address.";
+        } else if (email.length > 150) {
+            nextErrors.email =
+                "Email address cannot exceed 150 characters.";
         }
 
-        if (phone && phone.length > 30) {
+
+        // ====================================================
+        // PHONE
+        // ====================================================
+
+        if (
+            phone &&
+            !/^[+]?[0-9\s\-()]{7,20}$/.test(
+                phone
+            )
+        ) {
             nextErrors.phoneNumber =
-                "Phone number cannot exceed 30 characters.";
+                "Please enter a valid phone number.";
         }
 
-        if (profilePicture) {
+
+        // ====================================================
+        // PROFILE IMAGE
+        // ====================================================
+
+        if (profileImage) {
             try {
-                const url = new URL(
-                    profilePicture
-                );
+                const url =
+                    new URL(profileImage);
 
                 if (
-                    !["http:", "https:"].includes(
-                        url.protocol
-                    )
+                    ![
+                        "http:",
+                        "https:",
+                    ].includes(url.protocol)
                 ) {
-                    nextErrors.profilePictureUrl =
+                    nextErrors.profileImage =
                         "Profile picture must use a valid HTTP or HTTPS URL.";
                 }
             } catch {
-                nextErrors.profilePictureUrl =
+                nextErrors.profileImage =
                     "Enter a valid profile picture URL.";
             }
         }
+
 
         setErrors(nextErrors);
 
@@ -225,15 +365,30 @@ export default function UpdateProfileDialog({
         );
     };
 
+
+    // ========================================================
+    // HANDLE SUBMIT
+    // ========================================================
+
     const handleSubmit = async (event) => {
         event.preventDefault();
 
         setServerError("");
         setSuccessMessage("");
 
+
+        // ====================================================
+        // CLIENT VALIDATION
+        // ====================================================
+
         if (!validate()) {
             return;
         }
+
+
+        // ====================================================
+        // SERVICE CHECK
+        // ====================================================
 
         if (
             typeof updateProfile !==
@@ -242,25 +397,74 @@ export default function UpdateProfileDialog({
             setServerError(
                 "Profile update service is not connected yet."
             );
+
             return;
         }
 
+
         setSaving(true);
 
+
         try {
+
+            // ==================================================
+            // BACKEND PAYLOAD
+            //
+            // Matches UpdateProfileDto:
+            //
+            // FullName
+            // Email
+            // PhoneNumber
+            // ProfileImage
+            // ==================================================
+
             const payload = {
-                fullName: form.fullName.trim(),
-                email: form.email.trim(),
+                fullName:
+                    form.fullName.trim(),
+
+                email:
+                    form.email.trim(),
+
                 phoneNumber:
                     form.phoneNumber.trim() ||
                     null,
-                profilePictureUrl:
-                    form.profilePictureUrl.trim() ||
+
+                profileImage:
+                    form.profileImage.trim() ||
                     null,
             };
 
+
+            console.log(
+                "========== UPDATE PROFILE DIALOG =========="
+            );
+
+            console.log(
+                "PROFILE UPDATE PAYLOAD:",
+                {
+                    ...payload,
+
+                    profileImage:
+                        payload.profileImage
+                            ? "PROVIDED"
+                            : null,
+                }
+            );
+
+
+            // ==================================================
+            // CALL PARENT / SERVICE
+            // ==================================================
+
             const result =
-                await updateProfile(payload);
+                await updateProfile(
+                    payload
+                );
+
+
+            // ==================================================
+            // HANDLE EXPLICIT FAILURE
+            // ==================================================
 
             if (
                 result?.success === false
@@ -268,14 +472,33 @@ export default function UpdateProfileDialog({
                 throw result;
             }
 
+
+            // ==================================================
+            // EXTRACT UPDATED PROFILE
+            // ==================================================
+
             const updatedProfile =
-                result?.data ??
                 result?.profile ??
+                result?.data?.profile ??
+                result?.data?.Profile ??
+                result?.data ??
                 result;
+
+
+            // ==================================================
+            // SUCCESS
+            // ==================================================
 
             setSuccessMessage(
                 "Your profile was updated successfully."
             );
+
+            setErrors({});
+
+
+            // ==================================================
+            // INFORM PARENT
+            // ==================================================
 
             if (
                 typeof onSuccess ===
@@ -285,14 +508,29 @@ export default function UpdateProfileDialog({
                     updatedProfile
                 );
             }
+
         } catch (error) {
+
+            console.error(
+                "UPDATE PROFILE DIALOG ERROR:",
+                error
+            );
+
+
             const message =
                 extractErrorMessage(
                     error
                 );
 
             const normalized =
-                message.toLowerCase();
+                String(
+                    message
+                ).toLowerCase();
+
+
+            // ==================================================
+            // EMAIL DUPLICATE
+            // ==================================================
 
             if (
                 normalized.includes(
@@ -307,25 +545,112 @@ export default function UpdateProfileDialog({
                     ) ||
                     normalized.includes(
                         "duplicate"
+                    ) ||
+                    normalized.includes(
+                        "unique"
                     )
                 )
             ) {
                 setErrors(
                     (current) => ({
                         ...current,
+
                         email:
                             "This email address is already associated with another account.",
                     })
                 );
-            } else {
-                setServerError(
-                    message
-                );
+
+                return;
             }
+
+
+            // ==================================================
+            // FULL NAME ERROR
+            // ==================================================
+
+            if (
+                normalized.includes(
+                    "full name"
+                )
+            ) {
+                setErrors(
+                    (current) => ({
+                        ...current,
+
+                        fullName:
+                            message,
+                    })
+                );
+
+                return;
+            }
+
+
+            // ==================================================
+            // PHONE ERROR
+            // ==================================================
+
+            if (
+                normalized.includes(
+                    "phone"
+                )
+            ) {
+                setErrors(
+                    (current) => ({
+                        ...current,
+
+                        phoneNumber:
+                            message,
+                    })
+                );
+
+                return;
+            }
+
+
+            // ==================================================
+            // PROFILE IMAGE ERROR
+            // ==================================================
+
+            if (
+                normalized.includes(
+                    "profile image"
+                ) ||
+                normalized.includes(
+                    "profile picture"
+                )
+            ) {
+                setErrors(
+                    (current) => ({
+                        ...current,
+
+                        profileImage:
+                            message,
+                    })
+                );
+
+                return;
+            }
+
+
+            // ==================================================
+            // GENERAL SERVER ERROR
+            // ==================================================
+
+            setServerError(
+                message
+            );
+
         } finally {
+
             setSaving(false);
         }
     };
+
+
+    // ========================================================
+    // HANDLE CLOSE
+    // ========================================================
 
     const handleClose = () => {
         if (saving) {
@@ -335,76 +660,107 @@ export default function UpdateProfileDialog({
         onOpenChange(false);
     };
 
+
+    // ========================================================
+    // RENDER
+    // ========================================================
+
     return (
         <Dialog
             open={open}
             onOpenChange={handleClose}
         >
+
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
+
+                {/* ==================================================
+                    HEADER
+                ================================================== */}
+
                 <DialogHeader>
-                    <DialogTitle>
+
+                    <DialogTitle className="text-xl font-semibold text-foreground">
                         Update Profile
                     </DialogTitle>
 
                     <DialogDescription>
-                        Update your permitted personal
-                        and account information.
+                        Update your permitted personal and
+                        account information.
                     </DialogDescription>
+
                 </DialogHeader>
+
+
+                {/* ==================================================
+                    FORM
+                ================================================== */}
 
                 <form
                     onSubmit={handleSubmit}
                     className="space-y-5"
                 >
-                    {/* =================================================
+
+                    {/* ==================================================
                         SERVER ERROR
-                    ================================================= */}
+                    ================================================== */}
 
                     {serverError && (
-                        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                            <div className="flex items-start gap-2">
-                                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+                        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
 
-                                <p className="text-sm text-red-700">
+                            <div className="flex items-start gap-2">
+
+                                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+
+                                <p className="text-sm text-destructive">
                                     {serverError}
                                 </p>
+
                             </div>
+
                         </div>
                     )}
 
-                    {/* =================================================
+
+                    {/* ==================================================
                         SUCCESS
-                    ================================================= */}
+                    ================================================== */}
 
                     {successMessage && (
-                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                            <div className="flex items-start gap-2">
-                                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/50 dark:bg-emerald-950/30">
 
-                                <p className="text-sm text-emerald-700">
+                            <div className="flex items-start gap-2">
+
+                                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+
+                                <p className="text-sm text-emerald-700 dark:text-emerald-300">
                                     {successMessage}
                                 </p>
+
                             </div>
+
                         </div>
                     )}
 
-                    {/* =================================================
+
+                    {/* ==================================================
                         FULL NAME
-                    ================================================= */}
+                    ================================================== */}
 
                     <div className="space-y-2">
+
                         <label
                             htmlFor="manager-full-name"
-                            className="text-sm font-medium text-slate-700"
+                            className="text-sm font-medium text-foreground"
                         >
                             Full Name{" "}
-                            <span className="text-red-500">
+                            <span className="text-destructive">
                                 *
                             </span>
                         </label>
 
                         <div className="relative">
-                            <UserRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                            <UserRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
                             <Input
                                 id="manager-full-name"
@@ -419,37 +775,46 @@ export default function UpdateProfileDialog({
                                     saving
                                 }
                                 placeholder="Enter your full name"
-                                className="pl-10"
+                                className={`pl-10 ${
+                                    errors.fullName
+                                        ? "border-destructive focus-visible:ring-destructive"
+                                        : ""
+                                }`}
                                 autoComplete="name"
                             />
+
                         </div>
 
                         {errors.fullName && (
-                            <p className="text-sm text-red-600">
+                            <p className="text-sm text-destructive">
                                 {
                                     errors.fullName
                                 }
                             </p>
                         )}
+
                     </div>
 
-                    {/* =================================================
+
+                    {/* ==================================================
                         EMAIL
-                    ================================================= */}
+                    ================================================== */}
 
                     <div className="space-y-2">
+
                         <label
                             htmlFor="manager-email"
-                            className="text-sm font-medium text-slate-700"
+                            className="text-sm font-medium text-foreground"
                         >
                             Email Address{" "}
-                            <span className="text-red-500">
+                            <span className="text-destructive">
                                 *
                             </span>
                         </label>
 
                         <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
                             <Input
                                 id="manager-email"
@@ -465,34 +830,48 @@ export default function UpdateProfileDialog({
                                     saving
                                 }
                                 placeholder="Enter your email address"
-                                className="pl-10"
+                                className={`pl-10 ${
+                                    errors.email
+                                        ? "border-destructive focus-visible:ring-destructive"
+                                        : ""
+                                }`}
                                 autoComplete="email"
                             />
+
                         </div>
 
                         {errors.email && (
-                            <p className="text-sm text-red-600">
+                            <p className="text-sm text-destructive">
                                 {
                                     errors.email
                                 }
                             </p>
                         )}
+
+                        <p className="text-xs text-muted-foreground">
+                            Your email address must be
+                            unique across the system.
+                        </p>
+
                     </div>
 
-                    {/* =================================================
+
+                    {/* ==================================================
                         PHONE
-                    ================================================= */}
+                    ================================================== */}
 
                     <div className="space-y-2">
+
                         <label
                             htmlFor="manager-phone"
-                            className="text-sm font-medium text-slate-700"
+                            className="text-sm font-medium text-foreground"
                         >
                             Phone Number
                         </label>
 
                         <div className="relative">
-                            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
                             <Input
                                 id="manager-phone"
@@ -508,41 +887,50 @@ export default function UpdateProfileDialog({
                                     saving
                                 }
                                 placeholder="Enter your phone number"
-                                className="pl-10"
+                                className={`pl-10 ${
+                                    errors.phoneNumber
+                                        ? "border-destructive focus-visible:ring-destructive"
+                                        : ""
+                                }`}
                                 autoComplete="tel"
                             />
+
                         </div>
 
                         {errors.phoneNumber && (
-                            <p className="text-sm text-red-600">
+                            <p className="text-sm text-destructive">
                                 {
                                     errors.phoneNumber
                                 }
                             </p>
                         )}
+
                     </div>
 
-                    {/* =================================================
+
+                    {/* ==================================================
                         PROFILE PICTURE
-                    ================================================= */}
+                    ================================================== */}
 
                     <div className="space-y-2">
+
                         <label
-                            htmlFor="manager-profile-picture"
-                            className="text-sm font-medium text-slate-700"
+                            htmlFor="manager-profile-image"
+                            className="text-sm font-medium text-foreground"
                         >
                             Profile Picture URL
                         </label>
 
                         <div className="relative">
-                            <Camera className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                            <Camera className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
                             <Input
-                                id="manager-profile-picture"
-                                name="profilePictureUrl"
+                                id="manager-profile-image"
+                                name="profileImage"
                                 type="url"
                                 value={
-                                    form.profilePictureUrl
+                                    form.profileImage
                                 }
                                 onChange={
                                     handleChange
@@ -551,41 +939,88 @@ export default function UpdateProfileDialog({
                                     saving
                                 }
                                 placeholder="https://example.com/profile.jpg"
-                                className="pl-10"
+                                className={`pl-10 ${
+                                    errors.profileImage
+                                        ? "border-destructive focus-visible:ring-destructive"
+                                        : ""
+                                }`}
                             />
+
                         </div>
 
-                        {errors.profilePictureUrl && (
-                            <p className="text-sm text-red-600">
+                        {errors.profileImage && (
+                            <p className="text-sm text-destructive">
                                 {
-                                    errors.profilePictureUrl
+                                    errors.profileImage
                                 }
                             </p>
                         )}
+
                     </div>
 
-                    {/* =================================================
-                        NON-EDITABLE INFORMATION
-                    ================================================= */}
 
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <p className="text-sm font-medium text-slate-700">
+                    {/* ==================================================
+                        PROFILE PREVIEW
+                    ================================================== */}
+
+                    {form.profileImage && (
+                        <div className="rounded-lg border border-border bg-muted/40 p-4">
+
+                            <p className="mb-3 text-sm font-medium text-foreground">
+                                Profile Picture Preview
+                            </p>
+
+                            <div className="flex items-center gap-4">
+
+                                <img
+                                    src={
+                                        form.profileImage
+                                    }
+                                    alt="Profile preview"
+                                    className="h-16 w-16 rounded-full border border-border object-cover"
+                                    onError={(event) => {
+                                        event.currentTarget.style.display =
+                                            "none";
+                                    }}
+                                />
+
+                                <p className="text-xs text-muted-foreground">
+                                    Preview of your
+                                    profile picture.
+                                </p>
+
+                            </div>
+
+                        </div>
+                    )}
+
+
+                    {/* ==================================================
+                        NON-EDITABLE INFORMATION
+                    ================================================== */}
+
+                    <div className="rounded-lg border border-border bg-muted/40 p-4">
+
+                        <p className="text-sm font-medium text-foreground">
                             Protected account information
                         </p>
 
-                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
                             Your system role, permissions,
                             project assignments, and team
                             relationships cannot be changed
                             from your profile page.
                         </p>
+
                     </div>
 
-                    {/* =================================================
-                        BUTTONS
-                    ================================================= */}
 
-                    <div className="flex justify-end gap-3 border-t pt-5">
+                    {/* ==================================================
+                        BUTTONS
+                    ================================================== */}
+
+                    <div className="flex justify-end gap-3 border-t border-border pt-5">
+
                         <Button
                             type="button"
                             variant="outline"
@@ -598,8 +1033,10 @@ export default function UpdateProfileDialog({
                             className="gap-2"
                         >
                             <X className="h-4 w-4" />
+
                             Cancel
                         </Button>
+
 
                         <Button
                             type="submit"
@@ -608,6 +1045,7 @@ export default function UpdateProfileDialog({
                             }
                             className="gap-2"
                         >
+
                             {saving ? (
                                 <>
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -619,10 +1057,15 @@ export default function UpdateProfileDialog({
                                     Save Changes
                                 </>
                             )}
+
                         </Button>
+
                     </div>
+
                 </form>
+
             </DialogContent>
+
         </Dialog>
     );
 }

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from "react";
 
 import {
@@ -340,6 +339,7 @@ function SendMessageToTeamLeader() {
 
             if (teamList.length === 1) {
                 const firstTeam = teamList[0];
+
                 const firstTeamId =
                     getTeamId(firstTeam);
 
@@ -725,285 +725,298 @@ function SendMessageToTeamLeader() {
         [teams]
     );
 
+    const isRefreshing =
+        loadingProjects ||
+        loadingTeams ||
+        loadingLeader ||
+        loadingMessages;
+
     // ========================================================
     // RENDER
     // ========================================================
 
     return (
-        <div className="min-h-full bg-white p-4 md:p-6">
-            <div className="mx-auto max-w-7xl">
+        <div className="w-full space-y-6 text-foreground">
 
-                {/* ==================================================
-                    HEADER
-                ================================================== */}
+            {/* ==================================================
+                HEADER
+            ================================================== */}
 
-                <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
-                    <div className="flex items-center gap-4">
+                <div className="flex min-w-0 items-center gap-3">
 
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
-                            <MessageCircle className="h-6 w-6" />
-                        </div>
-
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                                Message Team Leader
-                            </h1>
-
-                            <p className="mt-1 text-sm text-slate-500">
-                                Send a direct message to the Team Leader of an authorized project team.
-                            </p>
-                        </div>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted">
+                        <MessageCircle className="h-5 w-5 text-foreground" />
                     </div>
 
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleRefresh}
-                        disabled={
-                            loadingProjects ||
-                            loadingTeams ||
-                            loadingLeader ||
-                            loadingMessages ||
-                            sending
-                        }
-                        className="gap-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                    >
-                        <RefreshIcon
-                            spinning={
-                                loadingProjects ||
-                                loadingTeams ||
-                                loadingLeader ||
-                                loadingMessages
+                    <div className="min-w-0">
+                        <h1 className="text-xl font-semibold tracking-tight">
+                            Message Team Leader
+                        </h1>
+
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Send a direct message to the Team Leader of an authorized project team.
+                        </p>
+                    </div>
+                </div>
+
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleRefresh}
+                    disabled={
+                        isRefreshing ||
+                        sending
+                    }
+                    className="w-full gap-2 sm:w-auto"
+                >
+                    <RefreshCw
+                        className={`h-4 w-4 ${
+                            isRefreshing
+                                ? "animate-spin"
+                                : ""
+                        }`}
+                    />
+
+                    Refresh
+                </Button>
+            </div>
+
+            {/* ==================================================
+                ERROR
+            ================================================== */}
+
+            {error && (
+                <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+
+                    <span>{error}</span>
+                </div>
+            )}
+
+            {/* ==================================================
+                SUCCESS
+            ================================================== */}
+
+            {success && (
+                <div className="flex items-start gap-3 rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-700 dark:text-green-400">
+
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+
+                    <span>{success}</span>
+                </div>
+            )}
+
+            {/* ==================================================
+                PROJECT & TEAM
+            ================================================== */}
+
+            <section className="rounded-xl border border-border bg-card">
+
+                <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                        <Users className="h-4 w-4 text-foreground" />
+                    </div>
+
+                    <div>
+                        <h2 className="font-semibold">
+                            Project & Team
+                        </h2>
+
+                        <p className="text-sm text-muted-foreground">
+                            Select an authorized project and its assigned team.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-5 p-5 md:grid-cols-2">
+
+                    {/* PROJECT */}
+
+                    <div>
+                        <label
+                            htmlFor="project"
+                            className="mb-2 block text-sm font-medium"
+                        >
+                            Project
+                        </label>
+
+                        <select
+                            id="project"
+                            value={selectedProjectId}
+                            onChange={
+                                handleProjectChange
                             }
-                        />
+                            disabled={
+                                loadingProjects ||
+                                sending
+                            }
+                            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <option value="">
+                                {loadingProjects
+                                    ? "Loading assigned projects..."
+                                    : projects.length ===
+                                      0
+                                    ? "No assigned projects found"
+                                    : "Select project"}
+                            </option>
 
-                        Refresh
-                    </Button>
-                </div>
+                            {projectOptions.map(
+                                (project) => {
+                                    const id =
+                                        getProjectId(
+                                            project
+                                        );
 
-                {/* ==================================================
-                    ERROR
-                ================================================== */}
-
-                {error && (
-                    <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-
-                        <span>{error}</span>
-                    </div>
-                )}
-
-                {/* ==================================================
-                    SUCCESS
-                ================================================== */}
-
-                {success && (
-                    <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
-                        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-
-                        <span>{success}</span>
-                    </div>
-                )}
-
-                {/* ==================================================
-                    PROJECT & TEAM
-                ================================================== */}
-
-                <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-
-                    <div className="mb-5 flex items-center gap-3">
-
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-                            <Users className="h-5 w-5 text-blue-600" />
-                        </div>
-
-                        <div>
-                            <h2 className="text-lg font-bold text-slate-900">
-                                Project & Team
-                            </h2>
-
-                            <p className="mt-1 text-sm text-slate-500">
-                                Select an authorized project and its assigned Team.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-
-                        {/* PROJECT */}
-
-                        <div>
-                            <label
-                                htmlFor="project"
-                                className="mb-2 block text-sm font-medium text-slate-700"
-                            >
-                                Project
-                            </label>
-
-                            <select
-                                id="project"
-                                value={selectedProjectId}
-                                onChange={handleProjectChange}
-                                disabled={
-                                    loadingProjects ||
-                                    sending
-                                }
-                                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-60"
-                            >
-                                <option value="">
-                                    {loadingProjects
-                                        ? "Loading assigned projects..."
-                                        : projects.length === 0
-                                        ? "No assigned projects found"
-                                        : "Select project"}
-                                </option>
-
-                                {projectOptions.map(
-                                    (project) => {
-                                        const id =
-                                            getProjectId(
+                                    return (
+                                        <option
+                                            key={id}
+                                            value={id}
+                                        >
+                                            {getProjectName(
                                                 project
-                                            );
-
-                                        return (
-                                            <option
-                                                key={id}
-                                                value={id}
-                                            >
-                                                {getProjectName(
-                                                    project
-                                                )}
-                                            </option>
-                                        );
-                                    }
-                                )}
-                            </select>
-                        </div>
-
-                        {/* TEAM */}
-
-                        <div>
-                            <label
-                                htmlFor="team"
-                                className="mb-2 block text-sm font-medium text-slate-700"
-                            >
-                                Team
-                            </label>
-
-                            <select
-                                id="team"
-                                value={selectedTeamId}
-                                onChange={handleTeamChange}
-                                disabled={
-                                    !selectedProjectId ||
-                                    loadingTeams ||
-                                    sending
+                                            )}
+                                        </option>
+                                    );
                                 }
-                                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-60"
-                            >
-                                <option value="">
-                                    {!selectedProjectId
-                                        ? "Select a project first"
-                                        : loadingTeams
-                                        ? "Loading team..."
-                                        : teams.length === 0
-                                        ? "No team assigned"
-                                        : "Select team"}
-                                </option>
+                            )}
+                        </select>
+                    </div>
 
-                                {teamOptions.map(
-                                    (team) => {
-                                        const id =
-                                            getTeamId(
-                                                team
-                                            );
+                    {/* TEAM */}
 
-                                        return (
-                                            <option
-                                                key={id}
-                                                value={id}
-                                            >
-                                                {getTeamName(
-                                                    team
-                                                )}
-                                            </option>
+                    <div>
+                        <label
+                            htmlFor="team"
+                            className="mb-2 block text-sm font-medium"
+                        >
+                            Team
+                        </label>
+
+                        <select
+                            id="team"
+                            value={selectedTeamId}
+                            onChange={
+                                handleTeamChange
+                            }
+                            disabled={
+                                !selectedProjectId ||
+                                loadingTeams ||
+                                sending
+                            }
+                            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <option value="">
+                                {!selectedProjectId
+                                    ? "Select a project first"
+                                    : loadingTeams
+                                    ? "Loading team..."
+                                    : teams.length ===
+                                      0
+                                    ? "No team assigned"
+                                    : "Select team"}
+                            </option>
+
+                            {teamOptions.map(
+                                (team) => {
+                                    const id =
+                                        getTeamId(
+                                            team
                                         );
-                                    }
-                                )}
-                            </select>
-                        </div>
+
+                                    return (
+                                        <option
+                                            key={id}
+                                            value={id}
+                                        >
+                                            {getTeamName(
+                                                team
+                                            )}
+                                        </option>
+                                    );
+                                }
+                            )}
+                        </select>
                     </div>
                 </div>
+            </section>
 
-                {/* ==================================================
-                    NO TEAM
-                ================================================== */}
+            {/* ==================================================
+                NO TEAM
+            ================================================== */}
 
-                {selectedProjectId &&
-                    !loadingTeams &&
-                    teams.length === 0 && (
-                        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-6">
-                            <div className="flex items-start gap-3">
+            {selectedProjectId &&
+                !loadingTeams &&
+                teams.length === 0 && (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-5">
 
-                                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                        <div className="flex items-start gap-3">
 
-                                <div>
-                                    <h3 className="font-semibold text-amber-900">
-                                        No Team assigned
-                                    </h3>
-
-                                    <p className="mt-1 text-sm text-amber-800">
-                                        This project does not currently have an assigned Team.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                {/* ==================================================
-                    TEAM LEADER
-                ================================================== */}
-
-                {selectedTeamId && (
-                    <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-
-                        <div className="mb-5 flex items-center gap-3">
-
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50">
-                                <UserRound className="h-5 w-5 text-violet-600" />
-                            </div>
+                            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
 
                             <div>
-                                <h2 className="text-lg font-bold text-slate-900">
-                                    Team Leader
-                                </h2>
+                                <h3 className="font-semibold">
+                                    No Team assigned
+                                </h3>
 
-                                <p className="mt-1 text-sm text-slate-500">
-                                    Current Team Leader retrieved from the Team relationship.
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    This project does not currently have an assigned team.
                                 </p>
                             </div>
                         </div>
+                    </div>
+                )}
+
+            {/* ==================================================
+                TEAM LEADER
+            ================================================== */}
+
+            {selectedTeamId && (
+                <section className="rounded-xl border border-border bg-card">
+
+                    <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                            <UserRound className="h-4 w-4 text-foreground" />
+                        </div>
+
+                        <div>
+                            <h2 className="font-semibold">
+                                Team Leader
+                            </h2>
+
+                            <p className="text-sm text-muted-foreground">
+                                Current Team Leader retrieved from the team relationship.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="p-5">
 
                         {loadingLeader ? (
-                            <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-4">
-                                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 p-4">
 
-                                <span className="text-sm text-slate-600">
+                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+
+                                <span className="text-sm text-muted-foreground">
                                     Loading current Team Leader...
                                 </span>
                             </div>
                         ) : teamLeader ? (
-                            <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex flex-col gap-4 rounded-lg border border-border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
 
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-3">
 
-                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-                                        <UserRound className="h-6 w-6" />
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-background text-foreground ring-1 ring-border">
+                                        <UserRound className="h-5 w-5" />
                                     </div>
 
                                     <div>
-                                        <h3 className="font-semibold text-slate-900">
+                                        <h3 className="font-medium">
                                             {getUserName(
                                                 teamLeader
                                             )}
@@ -1012,7 +1025,7 @@ function SendMessageToTeamLeader() {
                                         {getUserEmail(
                                             teamLeader
                                         ) && (
-                                            <p className="mt-1 text-sm text-slate-500">
+                                            <p className="text-sm text-muted-foreground">
                                                 {getUserEmail(
                                                     teamLeader
                                                 )}
@@ -1021,309 +1034,300 @@ function SendMessageToTeamLeader() {
                                     </div>
                                 </div>
 
-                                <span className="inline-flex w-fit rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                                <span className="inline-flex w-fit rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-foreground">
                                     Team Leader
                                 </span>
                             </div>
                         ) : (
-                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                                No Team Leader is currently assigned to this Team.
+                            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400">
+                                No Team Leader is currently assigned to this team.
                             </div>
                         )}
                     </div>
-                )}
+                </section>
+            )}
 
-                {/* ==================================================
-                    MAIN COMMUNICATION AREA
-                ================================================== */}
+            {/* ==================================================
+                MAIN COMMUNICATION AREA
+            ================================================== */}
 
-                {selectedTeamId &&
-                    teamLeader && (
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {selectedTeamId &&
+                teamLeader && (
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-                            {/* MESSAGE COMPOSER */}
+                        {/* ==================================================
+                            MESSAGE COMPOSER
+                        ================================================== */}
 
-                            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-1">
+                        <section className="rounded-xl border border-border bg-card lg:col-span-1">
 
-                                <div className="mb-5">
-                                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-                                        <Send className="h-5 w-5 text-blue-600" />
-                                    </div>
+                            <div className="border-b border-border px-5 py-4">
 
-                                    <h2 className="text-lg font-bold text-slate-900">
-                                        New Message
+                                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                                    <Send className="h-4 w-4 text-foreground" />
+                                </div>
+
+                                <h2 className="font-semibold">
+                                    New Message
+                                </h2>
+
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Message{" "}
+                                    <span className="font-medium text-foreground">
+                                        {getUserName(
+                                            teamLeader
+                                        )}
+                                    </span>
+                                </p>
+                            </div>
+
+                            <form
+                                onSubmit={
+                                    handleSendMessage
+                                }
+                                className="p-5"
+                            >
+                                <label
+                                    htmlFor="message"
+                                    className="mb-2 block text-sm font-medium"
+                                >
+                                    Message
+                                </label>
+
+                                <textarea
+                                    id="message"
+                                    value={
+                                        messageText
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        setMessageText(
+                                            event
+                                                .target
+                                                .value
+                                        )
+                                    }
+                                    disabled={
+                                        sending
+                                    }
+                                    rows={8}
+                                    maxLength={5000}
+                                    placeholder="Enter your message..."
+                                    className="w-full resize-none rounded-md border border-input bg-background px-3 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+
+                                <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+
+                                    <span>
+                                        Messages are
+                                        stored securely.
+                                    </span>
+
+                                    <span>
+                                        {
+                                            messageText.length
+                                        }
+                                        /5000
+                                    </span>
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        sending ||
+                                        !messageText.trim()
+                                    }
+                                    className="mt-5 w-full gap-2"
+                                >
+                                    {sending ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send className="h-4 w-4" />
+                                            Send Message
+                                        </>
+                                    )}
+                                </Button>
+                            </form>
+                        </section>
+
+                        {/* ==================================================
+                            CONVERSATION
+                        ================================================== */}
+
+                        <section className="flex min-h-[500px] flex-col rounded-xl border border-border bg-card lg:col-span-2">
+
+                            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+
+                                <div>
+                                    <h2 className="font-semibold">
+                                        Conversation
                                     </h2>
 
-                                    <p className="mt-1 text-sm text-slate-500">
-                                        Message{" "}
-                                        <span className="font-medium text-slate-700">
-                                            {getUserName(
-                                                teamLeader
-                                            )}
-                                        </span>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {getUserName(
+                                            teamLeader
+                                        )}
                                     </p>
                                 </div>
 
-                                <form
-                                    onSubmit={
-                                        handleSendMessage
-                                    }
-                                >
-                                    <label
-                                        htmlFor="message"
-                                        className="mb-2 block text-sm font-medium text-slate-700"
-                                    >
-                                        Message
-                                    </label>
-
-                                    <textarea
-                                        id="message"
-                                        value={
-                                            messageText
-                                        }
-                                        onChange={(
-                                            event
-                                        ) =>
-                                            setMessageText(
-                                                event.target
-                                                    .value
-                                            )
-                                        }
-                                        disabled={
-                                            sending
-                                        }
-                                        rows={8}
-                                        maxLength={5000}
-                                        placeholder="Enter your message..."
-                                        className="w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100"
-                                    />
-
-                                    <div className="mt-2 flex justify-between text-xs text-slate-400">
-                                        <span>
-                                            Messages are
-                                            stored securely.
-                                        </span>
-
-                                        <span>
-                                            {
-                                                messageText.length
-                                            }
-                                            /5000
-                                        </span>
-                                    </div>
-
-                                    <Button
-                                        type="submit"
-                                        disabled={
-                                            sending ||
-                                            !messageText.trim()
-                                        }
-                                        className="mt-5 w-full gap-2 bg-blue-600 hover:bg-blue-700"
-                                    >
-                                        {sending ? (
-                                            <>
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                Sending...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Send className="h-4 w-4" />
-                                                Send Message
-                                            </>
-                                        )}
-                                    </Button>
-                                </form>
+                                {loadingMessages && (
+                                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                )}
                             </div>
 
-                            {/* CONVERSATION */}
+                            <div className="flex-1 space-y-4 overflow-y-auto p-5">
 
-                            <div className="flex min-h-[500px] flex-col rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-2">
+                                {!loadingMessages &&
+                                    messages.length ===
+                                        0 && (
+                                        <div className="flex min-h-[350px] flex-col items-center justify-center text-center">
 
-                                <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-
-                                    <div>
-                                        <h2 className="text-lg font-bold text-slate-900">
-                                            Conversation
-                                        </h2>
-
-                                        <p className="mt-1 text-xs text-slate-500">
-                                            {getUserName(
-                                                teamLeader
-                                            )}
-                                        </p>
-                                    </div>
-
-                                    {loadingMessages && (
-                                        <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                                    )}
-                                </div>
-
-                                <div className="flex-1 space-y-4 overflow-y-auto p-6">
-
-                                    {!loadingMessages &&
-                                        messages.length ===
-                                            0 && (
-                                            <div className="flex min-h-[350px] flex-col items-center justify-center text-center">
-
-                                                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
-                                                    <MessageCircle className="h-8 w-8 text-blue-500" />
-                                                </div>
-
-                                                <h3 className="font-semibold text-slate-900">
-                                                    No messages yet
-                                                </h3>
-
-                                                <p className="mt-2 max-w-sm text-sm text-slate-500">
-                                                    Start the conversation with the Team Leader.
-                                                </p>
+                                            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                                                <MessageCircle className="h-6 w-6 text-muted-foreground" />
                                             </div>
-                                        )}
 
-                                    {messages.map(
-                                        (
-                                            message,
-                                            index
-                                        ) => {
-                                            const fromManager =
-                                                isManagerMessage(
-                                                    message
-                                                );
+                                            <h3 className="font-medium">
+                                                No messages yet
+                                            </h3>
 
-                                            const text =
-                                                message?.message ||
-                                                message?.content ||
-                                                message?.text ||
-                                                "";
+                                            <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+                                                Start the conversation with the Team Leader.
+                                            </p>
+                                        </div>
+                                    )}
 
-                                            const sender =
-                                                message?.sender ||
-                                                message?.senderName ||
-                                                (fromManager
-                                                    ? "You"
-                                                    : getUserName(
-                                                          teamLeader
-                                                      ));
+                                {messages.map(
+                                    (
+                                        message,
+                                        index
+                                    ) => {
+                                        const fromManager =
+                                            isManagerMessage(
+                                                message
+                                            );
 
-                                            const date =
-                                                message?.createdAt ||
-                                                message?.sentAt ||
-                                                message?.timestamp ||
-                                                message?.date;
+                                        const text =
+                                            message?.message ||
+                                            message?.content ||
+                                            message?.text ||
+                                            "";
 
-                                            return (
+                                        const sender =
+                                            message?.sender ||
+                                            message?.senderName ||
+                                            (fromManager
+                                                ? "You"
+                                                : getUserName(
+                                                      teamLeader
+                                                  ));
+
+                                        const date =
+                                            message?.createdAt ||
+                                            message?.sentAt ||
+                                            message?.timestamp ||
+                                            message?.date;
+
+                                        return (
+                                            <div
+                                                key={
+                                                    message?.id ||
+                                                    message?.messageId ||
+                                                    index
+                                                }
+                                                className={`flex ${
+                                                    fromManager
+                                                        ? "justify-end"
+                                                        : "justify-start"
+                                                }`}
+                                            >
                                                 <div
-                                                    key={
-                                                        message?.id ||
-                                                        message?.messageId ||
-                                                        index
-                                                    }
-                                                    className={`flex ${
+                                                    className={`max-w-[85%] rounded-lg px-4 py-3 ${
                                                         fromManager
-                                                            ? "justify-end"
-                                                            : "justify-start"
+                                                            ? "bg-primary text-primary-foreground"
+                                                            : "border border-border bg-muted/50 text-foreground"
                                                     }`}
                                                 >
-                                                    <div
-                                                        className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                                                            fromManager
-                                                                ? "bg-blue-600 text-white"
-                                                                : "border border-slate-200 bg-slate-50 text-slate-900"
-                                                        }`}
-                                                    >
-                                                        <div className="mb-1 text-xs font-semibold opacity-80">
-                                                            {
-                                                                sender
-                                                            }
-                                                        </div>
-
-                                                        <p className="whitespace-pre-wrap text-sm leading-6">
-                                                            {
-                                                                text
-                                                            }
-                                                        </p>
-
-                                                        {date && (
-                                                            <div className="mt-2 text-[11px] opacity-70">
-                                                                {formatMessageDate(
-                                                                    date
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                    <div className="mb-1 text-xs font-medium opacity-80">
+                                                        {
+                                                            sender
+                                                        }
                                                     </div>
+
+                                                    <p className="whitespace-pre-wrap text-sm leading-6">
+                                                        {
+                                                            text
+                                                        }
+                                                    </p>
+
+                                                    {date && (
+                                                        <div className="mt-2 text-[11px] opacity-70">
+                                                            {formatMessageDate(
+                                                                date
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            );
-                                        }
-                                    )}
-                                </div>
+                                            </div>
+                                        );
+                                    }
+                                )}
                             </div>
+                        </section>
+                    </div>
+                )}
+
+            {/* ==================================================
+                NO TEAM LEADER
+            ================================================== */}
+
+            {selectedTeamId &&
+                !loadingLeader &&
+                !teamLeader && (
+                    <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
+
+                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                            <UserRound className="h-6 w-6 text-muted-foreground" />
                         </div>
-                    )}
 
-                {/* ==================================================
-                    NO TEAM LEADER
-                ================================================== */}
+                        <h2 className="font-semibold">
+                            No Team Leader Assigned
+                        </h2>
 
-                {selectedTeamId &&
-                    !loadingLeader &&
-                    !teamLeader && (
-                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
+                        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
+                            No Team Leader is currently assigned to this team. The messaging interface is unavailable until a current Team Leader is assigned.
+                        </p>
+                    </div>
+                )}
 
-                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
-                                <UserRound className="h-8 w-8 text-amber-500" />
-                            </div>
+            {/* ==================================================
+                INITIAL STATE
+            ================================================== */}
 
-                            <h2 className="text-lg font-semibold text-slate-900">
-                                No Team Leader Assigned
-                            </h2>
+            {!selectedProjectId &&
+                !loadingProjects &&
+                !error && (
+                    <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
 
-                            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
-                                No Team Leader is currently assigned to this Team. The messaging interface is unavailable until a current Team Leader is assigned.
-                            </p>
+                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                            <MessageCircle className="h-6 w-6 text-muted-foreground" />
                         </div>
-                    )}
 
-                {/* ==================================================
-                    INITIAL STATE
-                ================================================== */}
+                        <h2 className="font-semibold">
+                            Message Team Leader
+                        </h2>
 
-                {!selectedProjectId &&
-                    !loadingProjects &&
-                    !error && (
-                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
-
-                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
-                                <MessageCircle className="h-8 w-8 text-blue-500" />
-                            </div>
-
-                            <h2 className="text-lg font-semibold text-slate-900">
-                                Message Team Leader
-                            </h2>
-
-                            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
-                                Select an assigned project to find its current Team Leader and start a conversation.
-                            </p>
-                        </div>
-                    )}
-            </div>
+                        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
+                            Select an assigned project to find its current Team Leader and start a conversation.
+                        </p>
+                    </div>
+                )}
         </div>
     );
 }
 
-// ============================================================
-// REFRESH ICON
-// ============================================================
-
-function RefreshIcon({ spinning }) {
-    return (
-        <RefreshCw
-            className={`h-4 w-4 ${
-                spinning
-                    ? "animate-spin"
-                    : ""
-            }`}
-        />
-    );
-}
-
 export default SendMessageToTeamLeader;
-

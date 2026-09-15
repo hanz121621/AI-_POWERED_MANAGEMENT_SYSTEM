@@ -1,18 +1,26 @@
+
 // ============================================================
 // AIPMS - MANAGER NAVBAR
 // ============================================================
 
-import React from "react";
-
 import {
-    Bell,
-    Search,
     Menu,
+    Search,
+    Bell,
+    ChevronDown,
 } from "lucide-react";
 
+import { useNavigate } from "react-router-dom";
+
+import { Input } from "@/components/ui/input";
+import ThemeToggle from "@/components/common/ThemeToggle";
+
 import {
-    useNavigate,
-} from "react-router-dom";
+    Avatar,
+    AvatarFallback,
+} from "@/components/ui/avatar";
+
+import { Button } from "@/components/ui/button";
 
 // ============================================================
 // COMPONENT
@@ -46,265 +54,162 @@ function ManagerNavbar({ onToggleSidebar }) {
             className="
                 sticky
                 top-0
-                z-30
+                z-40
                 flex
                 h-20
-                w-full
                 items-center
                 justify-between
-                gap-3
                 border-b
-                border-slate-200
-                bg-white
-                px-3
-                transition-colors
-                duration-200
-                sm:px-4
-                md:px-6
+                border-border
+                bg-background
+                px-6
+                text-foreground
                 lg:px-8
-                dark:border-slate-800
-                dark:bg-slate-900
             "
         >
-
             {/* ==================================================
-                LEFT SIDE
+                LEFT SIDE - SEARCH
             ================================================== */}
 
-            <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="relative flex w-full max-w-md items-center">
 
-                {/* ==================================================
-                    MOBILE HAMBURGER
-                ================================================== */}
-
+                {/* Mobile Menu */}
                 <button
                     type="button"
                     onClick={onToggleSidebar}
+                    className="mr-4 text-foreground md:hidden"
                     aria-label="Open sidebar"
                     title="Open sidebar"
-                    className="
-                        shrink-0
-                        rounded-lg
-                        p-2
-                        text-slate-600
-                        transition
-                        hover:bg-slate-100
-                        hover:text-slate-900
-                        focus:outline-none
-                        focus:ring-2
-                        focus:ring-blue-500
-                        md:hidden
-                        dark:text-slate-300
-                        dark:hover:bg-slate-800
-                        dark:hover:text-slate-100
-                    "
                 >
                     <Menu size={24} />
                 </button>
 
-                {/* ==================================================
-                    SEARCH
-                ================================================== */}
-
-                <div className="relative w-full max-w-96">
-
+                {/* Search */}
+                <div className="relative w-full">
                     <Search
-                        size={20}
                         className="
+                            pointer-events-none
                             absolute
                             left-3
                             top-1/2
+                            h-4
+                            w-4
                             -translate-y-1/2
-                            text-slate-400
-                            dark:text-slate-500
+                            text-muted-foreground
                         "
                     />
 
-                    <input
+                    <Input
                         type="text"
-                        placeholder="Search projects..."
+                        placeholder="Search projects, teams..."
                         className="
+                            h-10
                             w-full
-                            rounded-lg
-                            border
-                            border-slate-300
-                            bg-slate-50
-                            py-3
+                            border-border
+                            bg-muted/50
                             pl-10
                             pr-4
-                            text-slate-800
-                            placeholder:text-slate-400
-                            outline-none
-                            transition
-                            focus:border-blue-500
-                            focus:ring-2
-                            focus:ring-blue-200
-                            dark:border-slate-700
-                            dark:bg-slate-800
-                            dark:text-slate-100
-                            dark:placeholder:text-slate-500
-                            dark:focus:border-blue-500
-                            dark:focus:ring-blue-900
+                            text-sm
+                            text-foreground
+                            placeholder:text-muted-foreground
+                            focus-visible:ring-2
+                            focus-visible:ring-primary
                         "
                     />
-
                 </div>
-
             </div>
 
             {/* ==================================================
                 RIGHT SIDE
             ================================================== */}
 
-            <div className="flex shrink-0 items-center gap-2 sm:gap-4 md:gap-6">
+            <div className="ml-4 flex items-center gap-2">
 
-                {/* ==================================================
-                    NOTIFICATIONS
-                ================================================== */}
-
-                <button
+                {/* Notifications */}
+                <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={handleNotificationsClick}
                     aria-label="Open notifications"
                     title="Notifications"
                     className="
                         relative
+                        h-10
+                        w-10
                         rounded-full
-                        p-2
-                        transition
-                        hover:bg-slate-100
-                        focus:outline-none
-                        focus:ring-2
-                        focus:ring-blue-500
-                        focus:ring-offset-2
-                        sm:p-3
-                        dark:hover:bg-slate-800
-                        dark:focus:ring-offset-slate-900
+                        text-foreground
+                        transition-all
+                        duration-200
+                        hover:bg-muted
+                        hover:text-primary
                     "
                 >
+                    <Bell className="h-5 w-5 text-muted-foreground" />
 
-                    <Bell
-                        size={22}
-                        className="
-                            text-slate-700
-                            sm:h-6
-                            sm:w-6
-                            dark:text-slate-200
-                        "
-                    />
-
-                    {/* ==================================================
-                        NOTIFICATION INDICATOR
-                    ================================================== */}
-
+                    {/* Notification indicator */}
                     <span
                         className="
                             absolute
-                            right-1.5
-                            top-1.5
+                            right-2
+                            top-2
                             h-2
                             w-2
                             rounded-full
-                            border-2
-                            border-white
-                            bg-red-600
-                            sm:right-2
-                            sm:top-2
-                            dark:border-slate-900
+                            bg-red-500
+                            ring-2
+                            ring-background
                         "
                     />
+                </Button>
 
-                </button>
+                {/* Theme */}
+                <ThemeToggle />
 
-                {/* ==================================================
-                    PROFILE
-                ================================================== */}
-
-                <button
+                {/* Manager Profile */}
+                <Button
                     type="button"
+                    variant="ghost"
                     onClick={handleProfileClick}
-                    aria-label="Open manager profile"
                     className="
-                        flex
-                        items-center
-                        gap-2
+                        h-12
                         rounded-lg
-                        p-1
-                        transition
-                        hover:bg-slate-100
-                        focus:outline-none
-                        focus:ring-2
-                        focus:ring-blue-500
-                        focus:ring-offset-2
-                        sm:gap-3
-                        dark:hover:bg-slate-800
-                        dark:focus:ring-offset-slate-900
+                        px-2
+                        text-foreground
+                        transition-all
+                        duration-200
+                        hover:bg-muted
                     "
                 >
+                    <div className="flex items-center gap-3">
 
-                    {/* ==================================================
-                        AVATAR
-                    ================================================== */}
+                        {/* Avatar */}
+                        <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-primary font-semibold text-primary-foreground">
+                                M
+                            </AvatarFallback>
+                        </Avatar>
 
-                    <div
-                        className="
-                            flex
-                            h-9
-                            w-9
-                            shrink-0
-                            items-center
-                            justify-center
-                            rounded-full
-                            bg-blue-600
-                            font-bold
-                            text-white
-                            sm:h-10
-                            sm:w-10
-                        "
-                    >
-                        M
-                    </div>
+                        {/* Manager Information */}
+                        <div className="hidden flex-col items-start sm:flex">
+                            <span className="text-sm font-semibold text-foreground">
+                                Manager
+                            </span>
 
-                    {/* ==================================================
-                        MANAGER INFORMATION
-                    ================================================== */}
+                            <span className="text-xs text-muted-foreground">
+                                Project Manager
+                            </span>
+                        </div>
 
-                    <div className="hidden text-left sm:block">
-
-                        <p
-                            className="
-                                font-semibold
-                                text-slate-800
-                                dark:text-slate-100
-                            "
-                        >
-                            Manager
-                        </p>
-
-                        <p
-                            className="
-                                max-w-40
-                                truncate
-                                text-sm
-                                text-slate-500
-                                dark:text-slate-400
-                            "
-                        >
-                            manager@email.com
-                        </p>
+                        {/* Dropdown indicator */}
+                        <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
 
                     </div>
-
-                </button>
+                </Button>
 
             </div>
-
         </header>
     );
 }
-
-// ============================================================
-// EXPORT
-// ============================================================
 
 export default ManagerNavbar;

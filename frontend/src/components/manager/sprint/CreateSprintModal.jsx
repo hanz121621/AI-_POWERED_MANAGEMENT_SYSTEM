@@ -1,4 +1,3 @@
-
 // ==========================================================
 // AIPMS — CREATE SPRINT MODAL
 //
@@ -7,9 +6,12 @@
 // Location:
 // src/components/manager/sprint/CreateSprintModal.jsx
 //
+// UI:
+// Matches AIPMS Admin / Manager design system
+//
 // Compatible with:
 // SprintManagement.jsx
-// ============================================================
+// ==========================================================
 
 import React, { useEffect, useState } from "react";
 
@@ -31,7 +33,7 @@ function CreateSprintModal({
     onCreated,
     projectId = "",
     teamId = "",
-    teams = [], // 🌟 ADD THIS
+    teams = [],
 }) {
     // ========================================================
     // FORM STATE
@@ -40,6 +42,7 @@ function CreateSprintModal({
     const [formData, setFormData] = useState({
         name: "",
         teamId: "",
+        teamName: "",
         startDate: "",
         endDate: "",
         goal: "",
@@ -58,19 +61,29 @@ function CreateSprintModal({
     useEffect(() => {
         if (isOpen) {
             setError("");
- const selectedTeam = teams.find(t => t.id === teamId || t.Id === teamId);
-            const defaultTeamName = selectedTeam ? (selectedTeam.name || selectedTeam.Name || "Unknown Team") : "";
+
+            const selectedTeam = teams.find(
+                (team) =>
+                    team.id === teamId ||
+                    team.Id === teamId
+            );
+
+            const defaultTeamName = selectedTeam
+                ? selectedTeam.name ||
+                  selectedTeam.Name ||
+                  "Unknown Team"
+                : "";
 
             setFormData({
-                  name: "",
-                teamId: teamId,       // 🌟 Store the ID to send to backend
-                teamName: defaultTeamName, // 🌟 Store the Name to display
+                name: "",
+                teamId: teamId || "",
+                teamName: defaultTeamName,
                 startDate: "",
                 endDate: "",
                 goal: "",
             });
         }
-    }, [isOpen]);
+    }, [isOpen, teamId, teams]);
 
     // ========================================================
     // DO NOT RENDER WHEN CLOSED
@@ -95,24 +108,20 @@ function CreateSprintModal({
         setError("");
     };
 
-
-
-
-       // ========================================================
+    // ========================================================
     // VALIDATE
     // ========================================================
 
     const validateForm = () => {
-        // 🌟 Safely default to empty string if undefined
         const name = (formData.name || "").trim();
-        const teamId = (formData.teamId || "").trim();
+        const selectedTeamId = (formData.teamId || "").trim();
         const goal = (formData.goal || "").trim();
 
         if (!name) {
             return "Sprint name is required.";
         }
 
-        if (!teamId) {
+        if (!selectedTeamId) {
             return "Please select a team.";
         }
 
@@ -124,8 +133,13 @@ function CreateSprintModal({
             return "End date is required.";
         }
 
-        const startDate = new Date(`${formData.startDate}T00:00:00`);
-        const endDate = new Date(`${formData.endDate}T00:00:00`);
+        const startDate = new Date(
+            `${formData.startDate}T00:00:00`
+        );
+
+        const endDate = new Date(
+            `${formData.endDate}T00:00:00`
+        );
 
         if (Number.isNaN(startDate.getTime())) {
             return "Start date is invalid.";
@@ -145,7 +159,7 @@ function CreateSprintModal({
 
         return {
             name,
-            teamId, // 🌟 Return teamId instead of team name
+            teamId: selectedTeamId,
             startDate: formData.startDate,
             endDate: formData.endDate,
             goal,
@@ -173,10 +187,13 @@ function CreateSprintModal({
             return;
         }
 
-        // 🌟 Send the correct data structure to the backend
+        // ====================================================
+        // BACKEND PAYLOAD
+        // ====================================================
+
         const newSprintData = {
-            projectId: projectId, 
-            teamId: result.teamId, // 🌟 Use the GUID from validation
+            projectId: projectId,
+            teamId: result.teamId,
             name: result.name,
             startDate: result.startDate,
             endDate: result.endDate,
@@ -186,12 +203,23 @@ function CreateSprintModal({
         try {
             onCreated(newSprintData);
         } catch (submitError) {
-            console.error("Failed to create sprint:", submitError);
-            setError(submitError?.message || "Failed to create the sprint.");
+            console.error(
+                "Failed to create sprint:",
+                submitError
+            );
+
+            setError(
+                submitError?.message ||
+                    "Failed to create the sprint."
+            );
+
             return;
         }
 
-        // Reset form
+        // ====================================================
+        // RESET FORM
+        // ====================================================
+
         setFormData({
             name: "",
             teamId: "",
@@ -201,23 +229,14 @@ function CreateSprintModal({
             goal: "",
         });
 
-        // Close modal
+        // ====================================================
+        // CLOSE MODAL
+        // ====================================================
+
         if (typeof onClose === "function") {
             onClose();
         }
     };
-
-
-
-
-  
-
-
-
-
-
-
-
 
     // ========================================================
     // RENDER
@@ -225,7 +244,18 @@ function CreateSprintModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6 backdrop-blur-sm"
+            className="
+                fixed
+                inset-0
+                z-[100]
+                flex
+                items-center
+                justify-center
+                bg-black/50
+                px-4
+                py-6
+                backdrop-blur-sm
+            "
             onMouseDown={(event) => {
                 if (
                     event.target === event.currentTarget &&
@@ -236,7 +266,18 @@ function CreateSprintModal({
             }}
         >
             <div
-                className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl"
+                className="
+                    max-h-[90vh]
+                    w-full
+                    max-w-lg
+                    overflow-y-auto
+                    rounded-xl
+                    border
+                    border-border
+                    bg-card
+                    text-foreground
+                    shadow-xl
+                "
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="create-sprint-title"
@@ -245,53 +286,77 @@ function CreateSprintModal({
                     HEADER
                 ================================================== */}
 
-                <div className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-500 px-6 py-5 text-white">
-
-                    <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
-
-                    <div className="absolute -bottom-12 right-20 h-24 w-24 rounded-full bg-white/10" />
-
-                    <div className="relative flex items-start justify-between">
-
-                        <div className="flex items-center gap-3">
-
-                            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
-
-                                <CalendarDays
-                                    size={21}
-                                    className="text-white"
-                                />
-
-                            </div>
-
-                            <div>
-
-                                <h2
-                                    id="create-sprint-title"
-                                    className="text-lg font-bold"
-                                >
-                                    Create Sprint
-                                </h2>
-
-                                <p className="mt-1 text-sm text-white/80">
-                                    Create a new sprint for your project team.
-                                </p>
-
-                            </div>
-
+                <div
+                    className="
+                        flex
+                        items-center
+                        justify-between
+                        border-b
+                        border-border
+                        px-6
+                        py-5
+                    "
+                >
+                    <div className="flex items-center gap-3">
+                        <div
+                            className="
+                                flex
+                                h-11
+                                w-11
+                                items-center
+                                justify-center
+                                rounded-xl
+                                bg-primary/10
+                                text-primary
+                            "
+                        >
+                            <CalendarDays size={21} />
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            aria-label="Close create sprint dialog"
-                            className="rounded-lg p-2 text-white/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
-                        >
-                            <X size={19} />
-                        </button>
+                        <div>
+                            <h2
+                                id="create-sprint-title"
+                                className="
+                                    text-lg
+                                    font-semibold
+                                    tracking-tight
+                                    text-foreground
+                                "
+                            >
+                                Create Sprint
+                            </h2>
 
+                            <p
+                                className="
+                                    mt-1
+                                    text-sm
+                                    text-muted-foreground
+                                "
+                            >
+                                Create a new sprint for your
+                                project team.
+                            </p>
+                        </div>
                     </div>
 
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="Close create sprint dialog"
+                        className="
+                            rounded-lg
+                            p-2
+                            text-muted-foreground
+                            transition-colors
+                            hover:bg-muted
+                            hover:text-foreground
+                            focus:outline-none
+                            focus:ring-2
+                            focus:ring-primary/30
+                        "
+                    >
+                        <X size={19} />
+                    </button>
                 </div>
 
                 {/* ==================================================
@@ -302,7 +367,6 @@ function CreateSprintModal({
                     onSubmit={handleSubmit}
                     className="space-y-5 px-6 py-6"
                 >
-
                     {/* ==================================================
                         ERROR
                     ================================================== */}
@@ -310,11 +374,24 @@ function CreateSprintModal({
                     {error && (
                         <div
                             role="alert"
-                            className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+                            className="
+                                flex
+                                items-start
+                                gap-2
+                                rounded-lg
+                                border
+                                border-destructive/20
+                                bg-destructive/10
+                                px-4
+                                py-3
+                                text-sm
+                                font-medium
+                                text-destructive
+                            "
                         >
                             <AlertTriangle
                                 size={18}
-                                className="mt-0.5 shrink-0 text-red-600"
+                                className="mt-0.5 shrink-0"
                             />
 
                             <span>{error}</span>
@@ -326,10 +403,15 @@ function CreateSprintModal({
                     ================================================== */}
 
                     <div>
-
                         <label
                             htmlFor="create-sprint-name"
-                            className="mb-1.5 block text-sm font-semibold text-slate-700"
+                            className="
+                                mb-1.5
+                                block
+                                text-sm
+                                font-medium
+                                text-foreground
+                            "
                         >
                             Sprint Name
                         </label>
@@ -342,15 +424,25 @@ function CreateSprintModal({
                             onChange={handleChange}
                             placeholder="Sprint 04"
                             autoFocus
-                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                            className="
+                                w-full
+                                rounded-lg
+                                border
+                                border-input
+                                bg-background
+                                px-3
+                                py-2.5
+                                text-sm
+                                text-foreground
+                                outline-none
+                                transition-colors
+                                placeholder:text-muted-foreground
+                                focus:border-primary
+                                focus:ring-2
+                                focus:ring-primary/20
+                            "
                         />
-
                     </div>
-
-
-
-
-
 
                     {/* ==================================================
                         TEAM
@@ -359,47 +451,90 @@ function CreateSprintModal({
                     <div>
                         <label
                             htmlFor="create-sprint-team"
-                            className="mb-1.5 block text-sm font-semibold text-slate-700"
+                            className="
+                                mb-1.5
+                                block
+                                text-sm
+                                font-medium
+                                text-foreground
+                            "
                         >
                             Team
                         </label>
 
-                        {/* 🌟 Use a dropdown to show the actual team name */}
                         <select
                             id="create-sprint-team"
+                            name="teamId"
                             value={formData.teamId}
-                            onChange={(e) => setFormData(prev => ({ ...prev, teamId: e.target.value }))}
-                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                            onChange={handleChange}
+                            className="
+                                w-full
+                                rounded-lg
+                                border
+                                border-input
+                                bg-background
+                                px-3
+                                py-2.5
+                                text-sm
+                                text-foreground
+                                outline-none
+                                transition-colors
+                                focus:border-primary
+                                focus:ring-2
+                                focus:ring-primary/20
+                            "
                         >
-                            {teams.length === 0 ? (
-                                <option value="">Loading teams...</option>
-                            ) : (
-                                teams.map((team) => (
-                                    <option key={team.id || team.Id} value={team.id || team.Id}>
-                                        {team.name || team.Name}
+                            <option value="">
+                                {teams.length === 0
+                                    ? "Loading teams..."
+                                    : "Select a team"}
+                            </option>
+
+                            {teams.map((team) => {
+                                const id =
+                                    team.id || team.Id;
+
+                                const name =
+                                    team.name ||
+                                    team.Name ||
+                                    "Unnamed Team";
+
+                                return (
+                                    <option
+                                        key={id}
+                                        value={id}
+                                    >
+                                        {name}
                                     </option>
-                                ))
-                            )}
+                                );
+                            })}
                         </select>
                     </div>
-
-
-
-
 
                     {/* ==================================================
                         DATES
                     ================================================== */}
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
+                    <div
+                        className="
+                            grid
+                            grid-cols-1
+                            gap-4
+                            sm:grid-cols-2
+                        "
+                    >
                         {/* START DATE */}
 
                         <div>
-
                             <label
                                 htmlFor="create-sprint-start-date"
-                                className="mb-1.5 block text-sm font-semibold text-slate-700"
+                                className="
+                                    mb-1.5
+                                    block
+                                    text-sm
+                                    font-medium
+                                    text-foreground
+                                "
                             >
                                 Start Date
                             </label>
@@ -410,18 +545,37 @@ function CreateSprintModal({
                                 type="date"
                                 value={formData.startDate}
                                 onChange={handleChange}
-                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                                className="
+                                    w-full
+                                    rounded-lg
+                                    border
+                                    border-input
+                                    bg-background
+                                    px-3
+                                    py-2.5
+                                    text-sm
+                                    text-foreground
+                                    outline-none
+                                    transition-colors
+                                    focus:border-primary
+                                    focus:ring-2
+                                    focus:ring-primary/20
+                                "
                             />
-
                         </div>
 
                         {/* END DATE */}
 
                         <div>
-
                             <label
                                 htmlFor="create-sprint-end-date"
-                                className="mb-1.5 block text-sm font-semibold text-slate-700"
+                                className="
+                                    mb-1.5
+                                    block
+                                    text-sm
+                                    font-medium
+                                    text-foreground
+                                "
                             >
                                 End Date
                             </label>
@@ -432,11 +586,24 @@ function CreateSprintModal({
                                 type="date"
                                 value={formData.endDate}
                                 onChange={handleChange}
-                                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                                className="
+                                    w-full
+                                    rounded-lg
+                                    border
+                                    border-input
+                                    bg-background
+                                    px-3
+                                    py-2.5
+                                    text-sm
+                                    text-foreground
+                                    outline-none
+                                    transition-colors
+                                    focus:border-primary
+                                    focus:ring-2
+                                    focus:ring-primary/20
+                                "
                             />
-
                         </div>
-
                     </div>
 
                     {/* ==================================================
@@ -444,14 +611,21 @@ function CreateSprintModal({
                     ================================================== */}
 
                     <div>
-
                         <label
                             htmlFor="create-sprint-goal"
-                            className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-slate-700"
+                            className="
+                                mb-1.5
+                                flex
+                                items-center
+                                gap-2
+                                text-sm
+                                font-medium
+                                text-foreground
+                            "
                         >
                             <Target
                                 size={16}
-                                className="text-violet-600"
+                                className="text-primary"
                             />
 
                             Sprint Goal
@@ -464,38 +638,92 @@ function CreateSprintModal({
                             value={formData.goal}
                             onChange={handleChange}
                             placeholder="Describe what this sprint should accomplish..."
-                            className="w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                            className="
+                                w-full
+                                resize-none
+                                rounded-lg
+                                border
+                                border-input
+                                bg-background
+                                px-3
+                                py-2.5
+                                text-sm
+                                text-foreground
+                                outline-none
+                                transition-colors
+                                placeholder:text-muted-foreground
+                                focus:border-primary
+                                focus:ring-2
+                                focus:ring-primary/20
+                            "
                         />
-
                     </div>
 
                     {/* ==================================================
                         ACTIONS
                     ================================================== */}
 
-                    <div className="flex justify-end gap-3 border-t border-slate-200 pt-5">
-
+                    <div
+                        className="
+                            flex
+                            justify-end
+                            gap-3
+                            border-t
+                            border-border
+                            pt-5
+                        "
+                    >
                         <button
                             type="button"
                             onClick={onClose}
-                            className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                            className="
+                                rounded-lg
+                                border
+                                border-border
+                                bg-background
+                                px-4
+                                py-2.5
+                                text-sm
+                                font-medium
+                                text-foreground
+                                transition-colors
+                                hover:bg-muted
+                                focus:outline-none
+                                focus:ring-2
+                                focus:ring-primary/20
+                            "
                         >
                             Cancel
                         </button>
 
                         <button
                             type="submit"
-                            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:from-violet-700 hover:to-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2"
+                            className="
+                                flex
+                                items-center
+                                gap-2
+                                rounded-lg
+                                bg-primary
+                                px-5
+                                py-2.5
+                                text-sm
+                                font-semibold
+                                text-primary-foreground
+                                shadow-sm
+                                transition-colors
+                                hover:bg-primary/90
+                                focus:outline-none
+                                focus:ring-2
+                                focus:ring-primary/30
+                                focus:ring-offset-2
+                            "
                         >
                             <Plus size={17} />
 
                             Create Sprint
                         </button>
-
                     </div>
-
                 </form>
-
             </div>
         </div>
     );
@@ -506,4 +734,3 @@ function CreateSprintModal({
 // ============================================================
 
 export default CreateSprintModal;
-

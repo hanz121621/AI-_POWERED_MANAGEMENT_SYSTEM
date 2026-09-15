@@ -1,9 +1,8 @@
+
 // ============================================================
 // AIPMS - MANAGER SIDEBAR
 // src/components/manager/ManagerSidebar.jsx
 // ============================================================
-
-import React from "react";
 
 import {
     LayoutDashboard,
@@ -11,272 +10,91 @@ import {
     ListTodo,
     UsersRound,
     Sparkles,
-    FileBarChart,
-    UserRound,
+    BarChart3,
+    Users,
     Settings,
-    CircleHelp,
+    HelpCircle,
     LogOut,
+    X,
 } from "lucide-react";
 
 import { NavLink, useNavigate } from "react-router-dom";
 
-// ============================================================
-// MANAGER SIDEBAR
-// ============================================================
-
 function ManagerSidebar({ isMobileOpen, onCloseMobile }) {
     const navigate = useNavigate();
 
-    // ============================================================
-    // MAIN NAVIGATION
-    // ============================================================
-
-    const navigationItems = [
+    const menuItems = [
         {
-            label: "Dashboard",
-            path: "/manager/dashboard",
+            name: "Dashboard",
             icon: LayoutDashboard,
+            path: "/manager/dashboard",
         },
         {
-            label: "Projects",
-            path: "/manager/projects",
+            name: "Projects",
             icon: FolderKanban,
+            path: "/manager/projects",
         },
         {
-            label: "Sprint",
-            path: "/manager/sprints",
+            name: "Sprint",
             icon: ListTodo,
+            path: "/manager/sprints",
         },
         {
-            label: "Team",
-            path: "/manager/team",
+            name: "Team",
             icon: UsersRound,
+            path: "/manager/team",
         },
         {
-            label: "AI Features",
-            path: "/manager/ai-features",
+            name: "AI Features",
             icon: Sparkles,
+            path: "/manager/ai-features",
         },
         {
-            label: "Report",
+            name: "Reports",
+            icon: BarChart3,
             path: "/manager/reports",
-            icon: FileBarChart,
         },
         {
-            label: "Profile Management",
+            name: "Profile Management",
+            icon: Users,
             path: "/manager/profile",
-            icon: UserRound,
         },
     ];
-
-    // ============================================================
-    // BOTTOM NAVIGATION
-    // ============================================================
-
-    const bottomNavigationItems = [
-        {
-            label: "Settings",
-            path: "/manager/settings",
-            icon: Settings,
-        },
-        {
-            label: "Help",
-            path: "/manager/help",
-            icon: CircleHelp,
-        },
-    ];
-
-    // ============================================================
-    // LOGOUT
-    // ============================================================
-
-    const handleLogout = () => {
-        navigate("/logout");
-    };
-
-    // ============================================================
-    // NAVIGATION ITEM
-    // ============================================================
-
-    const renderNavigationItem = (item) => {
-        const Icon = item.icon;
-
-        return (
-            <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={onCloseMobile}
-                className={({ isActive }) =>
-                    [
-                        "group",
-                        "flex",
-                        "w-full",
-                        "items-center",
-                        "gap-3",
-                        "rounded-xl",
-                        "px-4",
-                        "py-3",
-                        "text-sm",
-                        "font-medium",
-                        "transition-all",
-                        "duration-200",
-
-                        isActive
-                            ? [
-                                  "bg-slate-100",
-                                  "text-slate-900",
-                                  "shadow-sm",
-                                  "dark:bg-slate-800",
-                                  "dark:text-slate-100",
-                              ].join(" ")
-                            : [
-                                  "text-slate-600",
-                                  "hover:bg-slate-100",
-                                  "hover:text-slate-900",
-                                  "dark:text-slate-400",
-                                  "dark:hover:bg-slate-800",
-                                  "dark:hover:text-slate-100",
-                              ].join(" "),
-                    ].join(" ")
-                }
-            >
-                {({ isActive }) => (
-                    <>
-                        <Icon
-                            size={20}
-                            strokeWidth={isActive ? 2.3 : 2}
-                            className={
-                                isActive
-                                    ? "text-slate-900 dark:text-slate-100"
-                                    : "text-slate-500 group-hover:text-slate-900 dark:text-slate-500 dark:group-hover:text-slate-100"
-                            }
-                        />
-
-                        <span>{item.label}</span>
-                    </>
-                )}
-            </NavLink>
-        );
-    };
-
-    // ============================================================
-    // RENDER
-    // ============================================================
 
     return (
         <aside
             className={`
-                fixed
-                inset-y-0
-                left-0
-                z-50
-                flex
-                h-screen
-                w-64
-                flex-col
-                border-r
-                border-slate-200
-                bg-white
-                text-slate-900
-                shadow-xl
-                transition-transform
-                duration-300
-                ease-in-out
-                dark:border-slate-800
-                dark:bg-slate-900
-                dark:text-slate-100
-
+                fixed inset-y-0 left-0 z-50
+                flex h-screen min-h-screen w-64 shrink-0 flex-col
+                bg-sidebar text-sidebar-foreground
+                transition-transform duration-300 ease-in-out
+                md:relative md:translate-x-0
                 ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
-
-                md:translate-x-0
             `}
         >
             {/* ==================================================
                 LOGO / BRAND
             ================================================== */}
 
-            <div
-                className="
-                    relative
-                    flex
-                    h-20
-                    shrink-0
-                    items-center
-                    border-b
-                    border-slate-200
-                    px-6
-                    dark:border-slate-800
-                "
-            >
-                <div className="flex items-center gap-3">
-                    {/* LOGO ICON */}
+            <div className="flex items-center justify-between border-b border-sidebar-border px-5 py-6">
+                <div>
+                    <h1 className="text-xl font-bold text-sidebar-foreground">
+                        Africom AI-PMS
+                    </h1>
 
-                    <div
-                        className="
-                            flex
-                            h-10
-                            w-10
-                            items-center
-                            justify-center
-                            rounded-xl
-                            bg-slate-100
-                            text-slate-700
-                            dark:bg-slate-800
-                            dark:text-slate-200
-                        "
-                    >
-                        <Sparkles size={21} strokeWidth={2} />
-                    </div>
-
-                    {/* BRAND */}
-
-                    <div>
-                        <h1
-                            className="
-                                text-base
-                                font-bold
-                                tracking-wide
-                                text-slate-900
-                                dark:text-slate-100
-                            "
-                        >
-                            AIPMS
-                        </h1>
-
-                        <p
-                            className="
-                                text-xs
-                                text-slate-500
-                                dark:text-slate-400
-                            "
-                        >
-                            Manager
-                        </p>
-                    </div>
+                    <p className="mt-1 text-sm text-sidebar-foreground/60">
+                        Manager Panel
+                    </p>
                 </div>
 
-                {/* MOBILE CLOSE BUTTON */}
-
+                {/* Mobile close button */}
                 <button
                     type="button"
                     onClick={onCloseMobile}
-                    className="
-                        absolute
-                        right-3
-                        top-3
-                        rounded-lg
-                        p-2
-                        text-slate-500
-                        hover:bg-slate-100
-                        hover:text-slate-900
-                        md:hidden
-                        dark:text-slate-400
-                        dark:hover:bg-slate-800
-                        dark:hover:text-slate-100
-                    "
+                    className="text-sidebar-foreground/60 hover:text-sidebar-foreground md:hidden"
                     aria-label="Close sidebar"
                 >
-                    ✕
+                    <X size={24} />
                 </button>
             </div>
 
@@ -284,107 +102,111 @@ function ManagerSidebar({ isMobileOpen, onCloseMobile }) {
                 NAVIGATION
             ================================================== */}
 
-            <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
-                {/* MAIN ITEMS */}
+            <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-6">
+                {menuItems.map((item) => {
+                    const Icon = item.icon;
 
-                <div className="space-y-1">
-                    {navigationItems.map(renderNavigationItem)}
-                </div>
+                    return (
+                        <NavLink
+                            key={item.name}
+                            to={item.path}
+                            onClick={onCloseMobile}
+                            className={({ isActive }) =>
+                                `group flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
+                                    isActive
+                                        ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-black/10"
+                                        : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-1"
+                                }`
+                            }
+                        >
+                            <Icon
+                                size={20}
+                                className="shrink-0 transition-transform duration-200 group-hover:scale-110"
+                            />
 
-                {/* ==================================================
-                    SEPARATOR
-                ================================================== */}
-
-                <div className="my-5 px-3">
-                    <div
-                        className="
-                            h-px
-                            bg-slate-200
-                            dark:bg-slate-800
-                        "
-                    />
-                </div>
-
-                {/* ==================================================
-                    BOTTOM ITEMS
-                ================================================== */}
-
-                <div className="space-y-1">
-                    {bottomNavigationItems.map(renderNavigationItem)}
-                </div>
-
-                {/* ==================================================
-                    LOGOUT
-                ================================================== */}
-
-                <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="
-                        group
-                        mt-1
-                        flex
-                        w-full
-                        items-center
-                        gap-3
-                        rounded-xl
-                        px-4
-                        py-3
-                        text-left
-                        text-sm
-                        font-medium
-                        text-slate-600
-                        transition-all
-                        duration-200
-                        hover:bg-red-50
-                        hover:text-red-600
-                        dark:text-slate-400
-                        dark:hover:bg-red-950/40
-                        dark:hover:text-red-400
-                    "
-                >
-                    <LogOut
-                        size={20}
-                        strokeWidth={2}
-                        className="
-                            text-slate-500
-                            transition-colors
-                            group-hover:text-red-600
-                            dark:text-slate-500
-                            dark:group-hover:text-red-400
-                        "
-                    />
-
-                    <span>Logout</span>
-                </button>
+                            <span className="text-sm font-medium">
+                                {item.name}
+                            </span>
+                        </NavLink>
+                    );
+                })}
             </nav>
 
             {/* ==================================================
-                FOOTER
+                BOTTOM MANAGER SECTION
             ================================================== */}
 
-            <div
-                className="
-                    shrink-0
-                    border-t
-                    border-slate-200
-                    bg-white
-                    px-5
-                    py-4
-                    dark:border-slate-800
-                    dark:bg-slate-900
-                "
-            >
-                <p
-                    className="
-                        text-center
-                        text-xs
-                        text-slate-500
-                        dark:text-slate-400
-                    "
+            <div className="border-t border-sidebar-border bg-sidebar p-4">
+                {/* Manager identity */}
+                <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-primary font-bold text-sidebar-primary-foreground shadow-md">
+                        M
+                    </div>
+
+                    <div>
+                        <h3 className="text-sm font-semibold text-sidebar-foreground">
+                            Manager
+                        </h3>
+
+                        <p className="text-xs text-sidebar-foreground/60">
+                            Project Manager
+                        </p>
+                    </div>
+                </div>
+
+                {/* Settings */}
+                <NavLink
+                    to="/manager/settings"
+                    onClick={onCloseMobile}
+                    className={({ isActive }) =>
+                        `group mb-1 flex items-center gap-3 rounded-lg px-4 py-3 transition-all duration-200 ${
+                            isActive
+                                ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-black/10"
+                                : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-1"
+                        }`
+                    }
                 >
-                    AI-Powered Project Management
-                </p>
+                    <Settings
+                        size={20}
+                        className="transition-transform duration-200 group-hover:scale-110"
+                    />
+
+                    <span className="text-sm font-medium">
+                        Settings
+                    </span>
+                </NavLink>
+
+                {/* Help */}
+                <NavLink
+                    to="/manager/help"
+                    onClick={onCloseMobile}
+                    className="group mb-1 flex items-center gap-3 rounded-lg px-4 py-3 text-sidebar-foreground/75 transition-all duration-200 hover:translate-x-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                >
+                    <HelpCircle
+                        size={20}
+                        className="transition-transform duration-200 group-hover:scale-110"
+                    />
+
+                    <span className="text-sm font-medium">
+                        Help
+                    </span>
+                </NavLink>
+
+                {/* Logout */}
+                <button
+                    type="button"
+                    onClick={() => navigate("/logout")}
+                    className="group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-red-400 transition-all duration-200 hover:translate-x-1 hover:bg-red-500/10 hover:text-red-300"
+                >
+                    <LogOut
+                        size={20}
+                        className="transition-transform duration-200 group-hover:scale-110"
+                    />
+
+                    <span className="text-sm font-medium">
+                        Logout
+                    </span>
+                </button>
             </div>
         </aside>
     );

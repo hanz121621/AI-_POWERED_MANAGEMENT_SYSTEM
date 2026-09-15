@@ -2,26 +2,43 @@
 import api from "@/services/api";
 
 // ============================================================
+// MANAGER PROFILE SERVICE
+//
+// PROF-001: View Profile
+// PROF-002: Update Profile
+// PROF-003: Change Password
+// PROF-004: Update Profile Picture
+//
+// Backend is the source of truth.
+// No localStorage is used for profile data.
+// ============================================================
+
+
+// ============================================================
 // GET MY PROFILE
 // GET /api/Users/profile
 // ============================================================
 
 export const getMyProfile = async () => {
     try {
-        const response = await api.get("/Users/profile");
+        const response =
+            await api.get("/Users/profile");
 
-        const data = response?.data;
+        const data =
+            response?.data;
+
+        const profile =
+            data?.profile ??
+            data?.Profile ??
+            data?.data?.profile ??
+            data?.data?.Profile ??
+            data?.data ??
+            data?.Data ??
+            data;
 
         return {
             success: true,
-
-            profile:
-                data?.profile ??
-                data?.Profile ??
-                data?.data ??
-                data?.Data ??
-                data,
-
+            profile,
             data,
 
             message:
@@ -39,11 +56,14 @@ export const getMyProfile = async () => {
     }
 };
 
+
 // ============================================================
 // VALIDATE PROFILE
 // ============================================================
 
-export const validateProfileForm = (formData) => {
+export const validateProfileForm = (
+    formData
+) => {
     const errors = {};
 
     // --------------------------------------------------------
@@ -65,6 +85,7 @@ export const validateProfileForm = (formData) => {
             "Full name cannot exceed 100 characters.";
     }
 
+
     // --------------------------------------------------------
     // EMAIL
     // --------------------------------------------------------
@@ -77,30 +98,18 @@ export const validateProfileForm = (formData) => {
         errors.email =
             "Email address is required.";
     } else {
-        /*
-         * Correct email regex.
-         *
-         * IMPORTANT:
-         * The previous version contained:
-         *
-         * **\\.**
-         *
-         * which is invalid for the intended validation.
-         */
-
         const emailRegex =
             /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         if (!emailRegex.test(email)) {
             errors.email =
                 "Please enter a valid email address.";
-        }
-
-        if (email.length > 150) {
+        } else if (email.length > 150) {
             errors.email =
                 "Email address cannot exceed 150 characters.";
         }
     }
+
 
     // --------------------------------------------------------
     // PHONE NUMBER
@@ -120,6 +129,7 @@ export const validateProfileForm = (formData) => {
         }
     }
 
+
     return {
         isValid:
             Object.keys(errors).length === 0,
@@ -127,6 +137,7 @@ export const validateProfileForm = (formData) => {
         errors,
     };
 };
+
 
 // ============================================================
 // UPDATE MY PROFILE
@@ -137,20 +148,6 @@ export const updateMyProfile = async (
     formData
 ) => {
     try {
-        /*
-         * Backend UpdateProfileDto:
-         *
-         * public string FullName { get; set; }
-         * public string Email { get; set; }
-         * public string? PhoneNumber { get; set; }
-         * public string? Bio { get; set; }
-         * public string? ProfileImage { get; set; }
-         * public string? TechnicalSkills { get; set; }
-         *
-         * We only send fields that the manager is allowed
-         * to modify from the profile page.
-         */
-
         const payload = {
             fullName: String(
                 formData?.fullName ?? ""
@@ -165,16 +162,12 @@ export const updateMyProfile = async (
                     formData?.phoneNumber ?? ""
                 ).trim() || null,
 
-            /*
-             * Profile image is optional.
-             *
-             * Do not send undefined.
-             */
             profileImage:
                 formData?.profileImage ??
                 formData?.profilePicture ??
                 null,
         };
+
 
         console.log(
             "========== UPDATE MY PROFILE =========="
@@ -187,30 +180,68 @@ export const updateMyProfile = async (
 
         console.log(
             "PROFILE PAYLOAD:",
-            payload
+            {
+                ...payload,
+                profileImage:
+                    payload.profileImage
+                        ? "PROVIDED"
+                        : null,
+            }
         );
 
-        const response = await api.put(
-            "/Users/profile",
-            payload
-        );
+
+        const validation =
+            validateProfileForm(
+                payload
+            );
+
+        if (!validation.isValid) {
+            const validationError =
+                new Error(
+                    "Profile validation failed."
+                );
+
+            validationError.validationErrors =
+                validation.errors;
+
+            throw validationError;
+        }
+
+
+        const response =
+            await api.put(
+                "/Users/profile",
+                payload
+            );
+
+
+        const data =
+            response?.data;
+
+
+        const profile =
+            data?.profile ??
+            data?.Profile ??
+            data?.data?.profile ??
+            data?.data?.Profile ??
+            data?.data ??
+            data?.Data ??
+            null;
+
 
         console.log(
             "PROFILE UPDATE RESPONSE:",
-            response?.data
+            data
         );
 
-        const data = response?.data;
 
         return {
-            success: true,
+            success:
+                data?.success ??
+                data?.Success ??
+                true,
 
-            profile:
-                data?.profile ??
-                data?.Profile ??
-                data?.data?.profile ??
-                data?.data?.Profile ??
-                null,
+            profile,
 
             data,
 
@@ -229,6 +260,7 @@ export const updateMyProfile = async (
     }
 };
 
+
 // ============================================================
 // VALIDATE PASSWORD
 // ============================================================
@@ -240,6 +272,7 @@ export const validatePasswordForm = (
 ) => {
     const errors = {};
 
+
     // --------------------------------------------------------
     // CURRENT PASSWORD
     // --------------------------------------------------------
@@ -249,6 +282,7 @@ export const validatePasswordForm = (
             "Current password is required.";
     }
 
+
     // --------------------------------------------------------
     // NEW PASSWORD
     // --------------------------------------------------------
@@ -256,13 +290,18 @@ export const validatePasswordForm = (
     if (!newPassword) {
         errors.newPassword =
             "New password is required.";
-    } else if (newPassword.length < 8) {
+    } else if (
+        newPassword.length < 8
+    ) {
         errors.newPassword =
             "Password must contain at least 8 characters.";
-    } else if (newPassword.length > 128) {
+    } else if (
+        newPassword.length > 128
+    ) {
         errors.newPassword =
             "Password cannot exceed 128 characters.";
     }
+
 
     // --------------------------------------------------------
     // CONFIRM PASSWORD
@@ -272,11 +311,13 @@ export const validatePasswordForm = (
         errors.confirmPassword =
             "Please confirm your new password.";
     } else if (
-        newPassword !== confirmPassword
+        newPassword !==
+        confirmPassword
     ) {
         errors.confirmPassword =
             "Passwords do not match.";
     }
+
 
     // --------------------------------------------------------
     // SAME PASSWORD CHECK
@@ -285,11 +326,13 @@ export const validatePasswordForm = (
     if (
         currentPassword &&
         newPassword &&
-        currentPassword === newPassword
+        currentPassword ===
+            newPassword
     ) {
         errors.newPassword =
             "New password must be different from the current password.";
     }
+
 
     return {
         isValid:
@@ -298,6 +341,7 @@ export const validatePasswordForm = (
         errors,
     };
 };
+
 
 // ============================================================
 // CHANGE MY PASSWORD
@@ -310,14 +354,6 @@ export const changeMyPassword = async (
     confirmPassword
 ) => {
     try {
-        /*
-         * Backend ChangePasswordRequestDto requires:
-         *
-         * CurrentPassword
-         * NewPassword
-         * ConfirmPassword
-         */
-
         const payload = {
             currentPassword:
                 String(
@@ -335,6 +371,28 @@ export const changeMyPassword = async (
                 ),
         };
 
+
+        const validation =
+            validatePasswordForm(
+                currentPassword,
+                newPassword,
+                confirmPassword
+            );
+
+
+        if (!validation.isValid) {
+            const validationError =
+                new Error(
+                    "Password validation failed."
+                );
+
+            validationError.validationErrors =
+                validation.errors;
+
+            throw validationError;
+        }
+
+
         console.log(
             "========== CHANGE MY PASSWORD =========="
         );
@@ -343,10 +401,6 @@ export const changeMyPassword = async (
             "ENDPOINT:",
             "/Auth/change-password"
         );
-
-        /*
-         * Never print actual passwords.
-         */
 
         console.log(
             "PASSWORD PAYLOAD:",
@@ -368,17 +422,17 @@ export const changeMyPassword = async (
             }
         );
 
-        const response = await api.post(
-            "/Auth/change-password",
-            payload
-        );
 
-        console.log(
-            "PASSWORD CHANGE RESPONSE:",
-            response?.data
-        );
+        const response =
+            await api.post(
+                "/Auth/change-password",
+                payload
+            );
 
-        const data = response?.data;
+
+        const data =
+            response?.data;
+
 
         return {
             success:
@@ -403,28 +457,17 @@ export const changeMyPassword = async (
     }
 };
 
+
 // ============================================================
 // UPDATE PROFILE PICTURE
 // PUT /api/Users/profile
 // ============================================================
 //
-// IMPORTANT:
+// Backend currently accepts ProfileImage through the
+// UpdateProfileDto.
 //
-// There is currently NO:
-//
-// POST /api/Users/profile-picture
-//
-// endpoint in your UsersController.
-//
-// ProfileImage belongs to UpdateProfileDto.
-//
-// Therefore this helper sends the image through:
-//
-// PUT /api/Users/profile
-//
-// Because FullName and Email are required by the backend,
-// callers should provide the complete current profile data.
-//
+// FullName and Email are required.
+// Therefore callers must provide the current profile data.
 // ============================================================
 
 export const updateMyProfilePicture = async (
@@ -450,6 +493,21 @@ export const updateMyProfilePicture = async (
                 profilePicture || null,
         };
 
+
+        if (!payload.fullName) {
+            throw new Error(
+                "Full name is required to update the profile picture."
+            );
+        }
+
+
+        if (!payload.email) {
+            throw new Error(
+                "Email address is required to update the profile picture."
+            );
+        }
+
+
         console.log(
             "========== UPDATE PROFILE IMAGE =========="
         );
@@ -466,67 +524,33 @@ export const updateMyProfilePicture = async (
                 : "EMPTY"
         );
 
-        console.log(
-            "PROFILE IMAGE PAYLOAD:",
-            {
-                fullName:
-                    payload.fullName,
 
-                email:
-                    payload.email,
-
-                phoneNumber:
-                    payload.phoneNumber
-                        ? "PROVIDED"
-                        : "EMPTY",
-
-                profileImage:
-                    payload.profileImage
-                        ? "PROVIDED"
-                        : "EMPTY",
-            }
-        );
-
-        /*
-         * Backend requires FullName and Email.
-         *
-         * If they are missing, fail before making a
-         * request instead of sending an invalid request.
-         */
-
-        if (!payload.fullName) {
-            throw new Error(
-                "Full name is required to update the profile picture."
+        const response =
+            await api.put(
+                "/Users/profile",
+                payload
             );
-        }
 
-        if (!payload.email) {
-            throw new Error(
-                "Email address is required to update the profile picture."
-            );
-        }
 
-        const response = await api.put(
-            "/Users/profile",
-            payload
-        );
+        const data =
+            response?.data;
 
-        console.log(
-            "PROFILE IMAGE RESPONSE:",
-            response?.data
-        );
 
-        const data = response?.data;
+        const profile =
+            data?.profile ??
+            data?.Profile ??
+            data?.data?.profile ??
+            data?.data?.Profile ??
+            null;
+
 
         return {
-            success: true,
+            success:
+                data?.success ??
+                data?.Success ??
+                true,
 
-            profile:
-                data?.profile ??
-                data?.Profile ??
-                data?.data?.profile ??
-                data?.data?.Profile ??
-                null,
+            profile,
 
             data,
 
@@ -544,6 +568,7 @@ export const updateMyProfilePicture = async (
         throw error;
     }
 };
+
 
 // ============================================================
 // DEFAULT SERVICE OBJECT

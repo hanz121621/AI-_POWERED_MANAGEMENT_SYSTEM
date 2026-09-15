@@ -1,3 +1,4 @@
+
 // ============================================================
 // AIPMS — MANAGER SPRINT CARD
 //
@@ -50,6 +51,10 @@ function SprintCard({
         startDate = "Not set",
         endDate = "Not set",
     } = sprint;
+
+    // ============================================================
+    // STATUS
+    // ============================================================
 
     const normalizedStatus = String(status)
         .trim()
@@ -138,85 +143,144 @@ function SprintCard({
 
     // ============================================================
     // STATUS STYLING
+    //
+    // Uses semantic/theme-compatible classes.
     // ============================================================
 
     const statusStyles = isPlanning
         ? {
               badge:
-                  "border-amber-200 bg-amber-50 text-amber-700",
-              header:
-                  "from-amber-50 via-white to-orange-50",
+                  "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400",
+              accent:
+                  "bg-amber-500",
               icon:
-                  "border-amber-200 bg-amber-100 text-amber-600",
+                  "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400",
               progress:
                   "bg-amber-500",
+              progressText:
+                  "text-amber-600 dark:text-amber-400",
           }
         : isActive
         ? {
               badge:
-                  "border-blue-200 bg-blue-50 text-blue-700",
-              header:
-                  "from-blue-50 via-white to-indigo-50",
+                  "border-primary/30 bg-primary/10 text-primary",
+              accent:
+                  "bg-primary",
               icon:
-                  "border-blue-200 bg-blue-100 text-blue-600",
+                  "border-primary/20 bg-primary/10 text-primary",
               progress:
-                  "bg-blue-500",
+                  "bg-primary",
+              progressText:
+                  "text-primary",
           }
         : isCompleted
         ? {
               badge:
-                  "border-emerald-200 bg-emerald-50 text-emerald-700",
-              header:
-                  "from-emerald-50 via-white to-green-50",
+                  "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400",
+              accent:
+                  "bg-emerald-500",
               icon:
-                  "border-emerald-200 bg-emerald-100 text-emerald-600",
+                  "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400",
               progress:
                   "bg-emerald-500",
+              progressText:
+                  "text-emerald-600 dark:text-emerald-400",
           }
         : {
               badge:
-                  "border-slate-200 bg-slate-50 text-slate-600",
-              header:
-                  "from-slate-50 via-white to-slate-100",
+                  "border-border bg-muted text-muted-foreground",
+              accent:
+                  "bg-muted-foreground",
               icon:
-                  "border-slate-200 bg-slate-100 text-slate-600",
+                  "border-border bg-muted text-muted-foreground",
               progress:
-                  "bg-slate-500",
+                  "bg-muted-foreground",
+              progressText:
+                  "text-muted-foreground",
           };
 
     return (
         <article
             data-sprint-id={id}
-            className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+            className="
+                group
+                relative
+                overflow-hidden
+                rounded-xl
+                border
+                border-border
+                bg-card
+                text-card-foreground
+                shadow-sm
+                transition-all
+                duration-200
+                hover:-translate-y-0.5
+                hover:shadow-md
+            "
         >
+            {/* ====================================================
+                STATUS ACCENT
+            ==================================================== */}
+
+            <div
+                className={`absolute inset-x-0 top-0 h-1 ${statusStyles.accent}`}
+            />
+
             {/* ====================================================
                 HEADER
             ==================================================== */}
 
-            <div
-                className={`border-b border-slate-200 bg-gradient-to-r ${statusStyles.header} px-5 py-5`}
-            >
+            <div className="border-b border-border px-5 py-5">
                 <div className="flex items-start justify-between gap-4">
+
                     <div className="flex min-w-0 items-start gap-3">
+
+                        {/* SPRINT ICON */}
+
                         <div
-                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${statusStyles.icon}`}
+                            className={`
+                                flex
+                                h-11
+                                w-11
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-xl
+                                border
+                                ${statusStyles.icon}
+                            `}
                         >
                             <Target size={20} />
                         </div>
 
+                        {/* SPRINT INFORMATION */}
+
                         <div className="min-w-0">
-                            <h3 className="truncate text-lg font-bold text-slate-900">
+
+                            <h3 className="truncate text-lg font-bold text-foreground">
                                 {name}
                             </h3>
 
-                            <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-600">
+                            <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
                                 {goal}
                             </p>
+
                         </div>
                     </div>
 
+                    {/* STATUS */}
+
                     <span
-                        className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold ${statusStyles.badge}`}
+                        className={`
+                            shrink-0
+                            rounded-full
+                            border
+                            px-3
+                            py-1.5
+                            text-xs
+                            font-semibold
+                            ${statusStyles.badge}
+                        `}
                     >
                         {status}
                     </span>
@@ -228,46 +292,89 @@ function SprintCard({
             ==================================================== */}
 
             <div className="px-5 pt-5">
+
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
 
-                    <div className="rounded-xl border border-violet-200 bg-violet-50 p-3.5 transition hover:bg-violet-100">
-                        <div className="flex items-center gap-2 text-violet-600">
+                    {/* TEAM */}
+
+                    <div
+                        className="
+                            rounded-lg
+                            border
+                            border-border
+                            bg-muted/40
+                            p-3.5
+                            transition-colors
+                            hover:bg-muted
+                        "
+                    >
+                        <div className="flex items-center gap-2 text-primary">
+
                             <UsersRound size={16} />
 
                             <span className="text-xs font-semibold">
                                 Team
                             </span>
+
                         </div>
 
-                        <p className="mt-1.5 text-sm font-bold text-violet-950">
+                        <p className="mt-1.5 truncate text-sm font-semibold text-foreground">
                             {team || "Not assigned"}
                         </p>
                     </div>
 
-                    <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-3.5 transition hover:bg-cyan-100">
-                        <div className="flex items-center gap-2 text-cyan-600">
+                    {/* START DATE */}
+
+                    <div
+                        className="
+                            rounded-lg
+                            border
+                            border-border
+                            bg-muted/40
+                            p-3.5
+                            transition-colors
+                            hover:bg-muted
+                        "
+                    >
+                        <div className="flex items-center gap-2 text-primary">
+
                             <CalendarDays size={16} />
 
                             <span className="text-xs font-semibold">
                                 Start Date
                             </span>
+
                         </div>
 
-                        <p className="mt-1.5 text-sm font-bold text-cyan-950">
+                        <p className="mt-1.5 truncate text-sm font-semibold text-foreground">
                             {startDate}
                         </p>
                     </div>
 
-                    <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 transition hover:bg-rose-100">
-                        <div className="flex items-center gap-2 text-rose-600">
+                    {/* END DATE */}
+
+                    <div
+                        className="
+                            rounded-lg
+                            border
+                            border-border
+                            bg-muted/40
+                            p-3.5
+                            transition-colors
+                            hover:bg-muted
+                        "
+                    >
+                        <div className="flex items-center gap-2 text-primary">
+
                             <CalendarDays size={16} />
 
                             <span className="text-xs font-semibold">
                                 End Date
                             </span>
+
                         </div>
 
-                        <p className="mt-1.5 text-sm font-bold text-rose-950">
+                        <p className="mt-1.5 truncate text-sm font-semibold text-foreground">
                             {endDate}
                         </p>
                     </div>
@@ -280,33 +387,40 @@ function SprintCard({
             ==================================================== */}
 
             <div className="px-5 pt-5">
+
                 <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-slate-700">
+
+                    <span className="text-sm font-semibold text-foreground">
                         Sprint Progress
                     </span>
 
                     <span
-                        className={`text-sm font-bold ${
-                            isPlanning
-                                ? "text-amber-600"
-                                : isActive
-                                ? "text-blue-600"
-                                : isCompleted
-                                ? "text-emerald-600"
-                                : "text-slate-600"
-                        }`}
+                        className={`
+                            text-sm
+                            font-bold
+                            ${statusStyles.progressText}
+                        `}
                     >
                         {safeProgress}%
                     </span>
+
                 </div>
 
-                <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+
                     <div
-                        className={`h-full rounded-full transition-all duration-500 ${statusStyles.progress}`}
+                        className={`
+                            h-full
+                            rounded-full
+                            transition-all
+                            duration-500
+                            ${statusStyles.progress}
+                        `}
                         style={{
                             width: `${safeProgress}%`,
                         }}
                     />
+
                 </div>
             </div>
 
@@ -315,17 +429,44 @@ function SprintCard({
             ==================================================== */}
 
             <div className="px-5 pt-5">
+
                 <button
                     type="button"
                     onClick={handleViewBacklogClick}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-bold text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2"
+                    className="
+                        flex
+                        w-full
+                        items-center
+                        justify-center
+                        gap-2
+                        rounded-lg
+                        border
+                        border-border
+                        bg-muted/40
+                        px-4
+                        py-2.5
+                        text-sm
+                        font-semibold
+                        text-foreground
+                        transition
+                        hover:bg-muted
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-primary/30
+                        focus:ring-offset-2
+                        focus:ring-offset-background
+                    "
                 >
-                    <ListTodo size={17} />
+                    <ListTodo
+                        size={17}
+                        className="text-primary"
+                    />
 
                     <span>
                         View Sprint Backlog
                     </span>
                 </button>
+
             </div>
 
             {/* ====================================================
@@ -334,13 +475,40 @@ function SprintCard({
 
             <div className="grid grid-cols-1 gap-2 px-5 py-5 sm:grid-cols-2">
 
-                {/* START */}
+                {/* ==================================================
+                    START
+                ================================================== */}
 
                 {isPlanning && (
                     <button
                         type="button"
                         onClick={handleStartClick}
-                        className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2"
+                        className="
+                            flex
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-lg
+                            border
+                            border-emerald-200
+                            bg-emerald-50
+                            px-4
+                            py-2.5
+                            text-sm
+                            font-semibold
+                            text-emerald-700
+                            transition
+                            hover:bg-emerald-100
+                            focus:outline-none
+                            focus:ring-2
+                            focus:ring-emerald-300
+                            focus:ring-offset-2
+                            focus:ring-offset-background
+                            dark:border-emerald-900/50
+                            dark:bg-emerald-950/30
+                            dark:text-emerald-400
+                            dark:hover:bg-emerald-950/50
+                        "
                     >
                         <Play size={17} />
 
@@ -350,13 +518,40 @@ function SprintCard({
                     </button>
                 )}
 
-                {/* COMPLETE */}
+                {/* ==================================================
+                    COMPLETE
+                ================================================== */}
 
                 {isActive && (
                     <button
                         type="button"
                         onClick={handleCompleteClick}
-                        className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2"
+                        className="
+                            flex
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-lg
+                            border
+                            border-emerald-200
+                            bg-emerald-50
+                            px-4
+                            py-2.5
+                            text-sm
+                            font-semibold
+                            text-emerald-700
+                            transition
+                            hover:bg-emerald-100
+                            focus:outline-none
+                            focus:ring-2
+                            focus:ring-emerald-300
+                            focus:ring-offset-2
+                            focus:ring-offset-background
+                            dark:border-emerald-900/50
+                            dark:bg-emerald-950/30
+                            dark:text-emerald-400
+                            dark:hover:bg-emerald-950/50
+                        "
                     >
                         <CheckCircle2 size={17} />
 
@@ -366,15 +561,41 @@ function SprintCard({
                     </button>
                 )}
 
-                {/* UPDATE */}
+                {/* ==================================================
+                    UPDATE
+                ================================================== */}
 
                 {!isCompleted && (
                     <button
                         type="button"
                         onClick={handleUpdateClick}
-                        className="flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
+                        className="
+                            flex
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-lg
+                            border
+                            border-border
+                            bg-background
+                            px-4
+                            py-2.5
+                            text-sm
+                            font-semibold
+                            text-foreground
+                            transition
+                            hover:bg-muted
+                            focus:outline-none
+                            focus:ring-2
+                            focus:ring-primary/30
+                            focus:ring-offset-2
+                            focus:ring-offset-background
+                        "
                     >
-                        <Pencil size={17} />
+                        <Pencil
+                            size={17}
+                            className="text-primary"
+                        />
 
                         <span>
                             Update Sprint
@@ -382,13 +603,40 @@ function SprintCard({
                     </button>
                 )}
 
-                {/* DELETE */}
+                {/* ==================================================
+                    DELETE
+                ================================================== */}
 
                 {!isActive && (
                     <button
                         type="button"
                         onClick={handleDeleteClick}
-                        className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
+                        className="
+                            flex
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-lg
+                            border
+                            border-red-200
+                            bg-red-50
+                            px-4
+                            py-2.5
+                            text-sm
+                            font-semibold
+                            text-red-700
+                            transition
+                            hover:bg-red-100
+                            focus:outline-none
+                            focus:ring-2
+                            focus:ring-red-300
+                            focus:ring-offset-2
+                            focus:ring-offset-background
+                            dark:border-red-900/50
+                            dark:bg-red-950/30
+                            dark:text-red-400
+                            dark:hover:bg-red-950/50
+                        "
                     >
                         <Trash2 size={17} />
 
@@ -398,28 +646,80 @@ function SprintCard({
                     </button>
                 )}
 
-                {/* MONITOR */}
+                {/* ==================================================
+                    MONITOR
+                ================================================== */}
 
                 <button
                     type="button"
                     onClick={handleMonitorClick}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm font-bold text-purple-700 transition hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:ring-offset-2"
+                    className="
+                        flex
+                        items-center
+                        justify-center
+                        gap-2
+                        rounded-lg
+                        border
+                        border-border
+                        bg-background
+                        px-4
+                        py-2.5
+                        text-sm
+                        font-semibold
+                        text-foreground
+                        transition
+                        hover:bg-muted
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-primary/30
+                        focus:ring-offset-2
+                        focus:ring-offset-background
+                    "
                 >
-                    <Activity size={17} />
+                    <Activity
+                        size={17}
+                        className="text-primary"
+                    />
 
                     <span>
                         Monitor Progress
                     </span>
                 </button>
 
-                {/* ASSIGN TEAM */}
+                {/* ==================================================
+                    ASSIGN TEAM
+                ================================================== */}
 
                 <button
                     type="button"
                     onClick={handleAssignTeamClick}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm font-bold text-orange-700 transition hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
+                    className="
+                        flex
+                        items-center
+                        justify-center
+                        gap-2
+                        rounded-lg
+                        border
+                        border-border
+                        bg-background
+                        px-4
+                        py-2.5
+                        text-sm
+                        font-semibold
+                        text-foreground
+                        transition
+                        hover:bg-muted
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-primary/30
+                        focus:ring-offset-2
+                        focus:ring-offset-background
+                    "
                 >
-                    <UserPlus size={17} />
+                    <UserPlus
+                        size={17}
+                        className="text-primary"
+                    />
 
                     <span>
                         Assign to Team

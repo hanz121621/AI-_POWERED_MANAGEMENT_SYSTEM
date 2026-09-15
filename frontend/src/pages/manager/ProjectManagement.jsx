@@ -1,3 +1,4 @@
+
 import React, {
     useCallback,
     useEffect,
@@ -19,38 +20,38 @@ import {
     CircleDot,
     RefreshCw,
     Loader2,
-    FileText,        // 🌟 Kept for AI Summary
-    Lightbulb,       // 🌟 Added for Recommendations
-    Users,           // 🌟 Added for Team Performance
-    TrendingUp,      // 🌟 Added for Progress Prediction
-    CalendarDays,    // 🌟 Added for Sprint Planning
+    FileText,
+    Lightbulb,
+    Users,
+    TrendingUp,
+    CalendarDays,
 } from "lucide-react";
 
 // ============================================================
 // SERVICES
 // ============================================================
-import AiRecommendationsModal from "../../components/manager/project/AiRecommendationsModal"; 
-import AiBottlenecksModal from "../../components/manager/project/AiBottlenecksModal";        
+
+import AiRecommendationsModal from "../../components/manager/project/AiRecommendationsModal";
+import AiBottlenecksModal from "../../components/manager/project/AiBottlenecksModal";
 import AiProjectSummaryModal from "../../components/manager/project/AiProjectSummaryModal";
 import AiTeamPerformanceModal from "../../components/manager/project/AiTeamPerformanceModal";
 import AiProgressPredictionModal from "../../components/manager/project/AiProgressPredictionModal";
 import AiSprintPlanningModal from "../../components/manager/project/AiSprintPlanningModal";
+import AiDeadlinePredictionModal from "../../components/manager/project/AiDeadlinePredictionModal";
+
 import { getTeams } from "../../services/teamService";
+
 import {
     getMyProjects,
     getProjectSpecification,
 } from "../../services/projectService";
 
-// Use the existing authentication service if available.
-import {
-    getCurrentUser,
-} from "../../services/authService";
+import { getCurrentUser } from "../../services/authService";
 
 // ============================================================
 // PROJECT COMPONENTS
 // ============================================================
 
-import ProjectStatsCard from "../../components/manager/project/ProjectStatsCard";
 import ProjectCard from "../../components/manager/project/ProjectCard";
 
 // ============================================================
@@ -63,7 +64,7 @@ import DeleteProjectSpecificationModal from "../../components/manager/project/De
 import ViewAssignedProjectModal from "../../components/manager/project/ViewAssignedProjectModal";
 import UpdateTimelineProjectModal from "../../components/manager/project/UpdateTimelineProjectModal";
 import SetUpdateProjectDeadlineModal from "../../components/manager/project/SetUpdateProjectDeadlineModal";
-import ManageProjectStatusModal from "../../components/manager/project/ManageProjectStatusModal";import AiDeadlinePredictionModal from "../../components/manager/project/AiDeadlinePredictionModal";
+import ManageProjectStatusModal from "../../components/manager/project/ManageProjectStatusModal";
 
 // ============================================================
 // COMPONENT
@@ -74,66 +75,61 @@ function ProjectManagement() {
     // CURRENT MANAGER
     // ========================================================
 
-    const [currentManager, setCurrentManager] =
-        useState(null);
+    const [currentManager, setCurrentManager] = useState(null);
 
     // ========================================================
     // PROJECTS
     // ========================================================
 
     const [projects, setProjects] = useState([]);
+    const [teams, setTeams] = useState([]);
+
+    // ========================================================
+    // AI MODAL STATE
+    // ========================================================
 
     const [summaryOpen, setSummaryOpen] = useState(false);
-   const [summaryProject, setSummaryProject] = useState(null);
-       const [recommendationsOpen, setRecommendationsOpen] = useState(false);
+    const [summaryProject, setSummaryProject] = useState(null);
+
+    const [recommendationsOpen, setRecommendationsOpen] = useState(false);
     const [recommendationsProject, setRecommendationsProject] = useState(null);
-const [teams, setTeams] = useState([]);
+
     const [bottlenecksOpen, setBottlenecksOpen] = useState(false);
     const [bottlenecksProject, setBottlenecksProject] = useState(null);
-       const [deadlineOpen, setDeadlineOpen] = useState(false);
-   const [deadlineProject, setDeadlineProject] = useState(null);
-   const handleOpenDeadline = useCallback((project) => {
-       setDeadlineProject(project);
-       setDeadlineOpen(true);
-   }, []);
-    // 🌟 AI-004, AI-005, AI-007 STATES
+
+    const [deadlineOpen, setDeadlineOpen] = useState(false);
+    const [deadlineProject, setDeadlineProject] = useState(null);
+
     const [teamPerformanceOpen, setTeamPerformanceOpen] = useState(false);
     const [teamPerformanceProject, setTeamPerformanceProject] = useState(null);
 
     const [progressPredictionOpen, setProgressPredictionOpen] = useState(false);
-    const [progressPredictionProject, setProgressPredictionProject] = useState(null);
+    const [progressPredictionProject, setProgressPredictionProject] =
+        useState(null);
 
     const [sprintPlanningOpen, setSprintPlanningOpen] = useState(false);
     const [sprintPlanningProject, setSprintPlanningProject] = useState(null);
+
     // ========================================================
     // LOADING
     // ========================================================
 
-    const [loading, setLoading] =
-        useState(true);
-
-    const [refreshing, setRefreshing] =
-        useState(false);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     // ========================================================
-    // MODAL STATE
+    // PROJECT ACTION MODAL STATE
     // ========================================================
 
-    const [selectedProject, setSelectedProject] =
-        useState(null);
-
-    const [modalType, setModalType] =
-        useState(null);
+    const [selectedProject, setSelectedProject] = useState(null);
+    const [modalType, setModalType] = useState(null);
 
     // ========================================================
     // MESSAGES
     // ========================================================
 
-    const [successMessage, setSuccessMessage] =
-        useState("");
-
-    const [errorMessage, setErrorMessage] =
-        useState("");
+    const [successMessage, setSuccessMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
 
     // ========================================================
     // CLEAR MESSAGES
@@ -161,16 +157,12 @@ const [teams, setTeams] = useState([]);
     // ERROR HANDLER
     // ========================================================
 
-    const handleProjectError = useCallback(
-        (message) => {
-            setSuccessMessage("");
-            setErrorMessage(
-                message ||
-                    "An unexpected error occurred."
-            );
-        },
-        []
-    );
+    const handleProjectError = useCallback((message) => {
+        setSuccessMessage("");
+        setErrorMessage(
+            message || "An unexpected error occurred."
+        );
+    }, []);
 
     // ========================================================
     // FORMAT DATE
@@ -178,7 +170,7 @@ const [teams, setTeams] = useState([]);
 
     const formatDate = useCallback((value) => {
         if (!value) {
-            return "";
+            return "Not set";
         }
 
         const date = new Date(value);
@@ -187,183 +179,168 @@ const [teams, setTeams] = useState([]);
             return String(value);
         }
 
-        return date.toLocaleDateString(
-            "en-US",
-            {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-            }
-        );
+        return date.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+        });
     }, []);
 
     // ========================================================
-    // NORMALIZE PROJECT FOR THIS PAGE
+    // NORMALIZE PROJECT
     // ========================================================
 
-    const normalizeManagerProject =
-        useCallback(
-            (project) => {
-                if (!project) {
-                    return null;
-                }
+    const normalizeManagerProject = useCallback((project) => {
+        if (!project) {
+            return null;
+        }
 
-                const projectId =
-                    project.id ??
-                    project.projectId ??
-                    project.ProjectId ??
-                    null;
+        const projectId =
+            project.id ??
+            project.projectId ??
+            project.ProjectId ??
+            null;
 
-                const managerId =
-                    project.managerId ??
-                    project.ManagerId ??
-                    project.manager?.id ??
-                    project.manager?.userId ??
-                    null;
+        const managerId =
+            project.managerId ??
+            project.ManagerId ??
+            project.manager?.id ??
+            project.manager?.userId ??
+            null;
 
-                const status =
-                    project.statusName ??
-                    project.status ??
-                    project.Status ??
-                    "";
+        const status =
+            project.statusName ??
+            project.status ??
+            project.Status ??
+            "";
 
-                return {
-                    ...project,
+        return {
+            ...project,
 
-                    id: projectId,
+            id: projectId,
+            projectId,
 
-                    projectId,
+            name:
+                project.name ??
+                project.projectName ??
+                "",
 
-                    name:
-                        project.name ??
-                        project.projectName ??
-                        "",
+            description:
+                project.description ??
+                "",
 
-                    description:
-                        project.description ??
-                        "",
+            status,
+            statusName: status,
 
-                    status,
+            progress: Number(
+                project.progress ??
+                    project.Progress ??
+                    0
+            ),
 
-                    statusName: status,
+            startDate:
+                project.startDate ??
+                project.StartDate ??
+                null,
 
-                    progress:
-                        Number(
-                            project.progress ??
-                                project.Progress ??
-                                0
-                        ),
+            deadline:
+                project.deadline ??
+                project.Deadline ??
+                null,
 
-                    startDate:
-                        project.startDate ??
-                        project.StartDate ??
-                        null,
+            managerId,
 
-                    deadline:
-                        project.deadline ??
-                        project.Deadline ??
-                        null,
+            managerName:
+                project.managerName ??
+                project.ManagerName ??
+                project.manager?.fullName ??
+                project.manager?.name ??
+                "",
 
-                    managerId,
+            team:
+                project.teamName ??
+                project.team ??
+                project.team?.name ??
+                "No team assigned",
 
-                    managerName:
-                        project.managerName ??
-                        project.ManagerName ??
-                        project.manager?.fullName ??
-                        project.manager?.name ??
-                        "",
+            teamName:
+                project.teamName ??
+                project.TeamName ??
+                project.team?.name ??
+                "",
 
-   // 🌟 FIX: Ensure 'team' is always a string (the team name), never a number like 0
-team:
-    project.teamName ??
-    project.team ??
-    "No team assigned",
+            teamMemberCount:
+                project.teamMemberCount ??
+                project.memberCount ??
+                project.MemberCount ??
+                project.team?.memberCount ??
+                project.team?.members?.length ??
+                0,
 
-teamName:
-    project.teamName ??
-    project.TeamName ??
-    project.team?.name ??
-    "",
+            hasSpecification: Boolean(
+                project.hasSpecification ??
+                    project.specification ??
+                    false
+            ),
 
-// 🌟 ADD THIS LINE
-teamMemberCount:
-    project.teamMemberCount ??
-    project.memberCount ??
-    project.MemberCount ??
-    project.team?.memberCount ??
-    project.team?.members?.length ??
-    0,
+            specification:
+                project.specification ??
+                null,
 
-                    hasSpecification:
-                        Boolean(
-                            project.hasSpecification ??
-                                project.specification ??
-                                false
-                        ),
-
-                    specification:
-                        project.specification ??
-                        null,
-
-                    hasActiveSprint:
-                        Boolean(
-                            project.hasActiveSprint ??
-                                project.activeSprint ??
-                                false
-                        ),
-                };
-            },
-            []
-        );
+            hasActiveSprint: Boolean(
+                project.hasActiveSprint ??
+                    project.activeSprint ??
+                    false
+            ),
+        };
+    }, []);
 
     // ========================================================
     // LOAD CURRENT MANAGER
     // ========================================================
 
-    const loadCurrentManager =
-        useCallback(async () => {
-            try {
-                const user =
-                    await getCurrentUser();
+    const loadCurrentManager = useCallback(async () => {
+        try {
+            const user = await getCurrentUser();
 
-                if (!user) {
-                    throw new Error(
-                        "Unable to determine the current manager."
-                    );
-                }
-
-                const manager = {
-                    id:
-                        user.id ??
-                        user.userId ??
-                        user.Id ??
-                        user.UserId,
-
-                    name:
-                        user.fullName ??
-                        user.name ??
-                        user.FullName ??
-                        "Manager",
-                };
-
-                if (!manager.id) {
-                    throw new Error(
-                        "Current manager ID was not found."
-                    );
-                }
-
-                setCurrentManager(manager);
-
-                return manager;
-            } catch (error) {
-                console.error(
-                    "LOAD CURRENT MANAGER ERROR:",
-                    error
+            if (!user) {
+                throw new Error(
+                    "Unable to determine the current manager."
                 );
-
-                throw error;
             }
-        }, []);
+
+            const manager = {
+                id:
+                    user.id ??
+                    user.userId ??
+                    user.Id ??
+                    user.UserId,
+
+                name:
+                    user.fullName ??
+                    user.name ??
+                    user.FullName ??
+                    "Manager",
+            };
+
+            if (!manager.id) {
+                throw new Error(
+                    "Current manager ID was not found."
+                );
+            }
+
+            setCurrentManager(manager);
+
+            return manager;
+        } catch (error) {
+            console.error(
+                "LOAD CURRENT MANAGER ERROR:",
+                error
+            );
+
+            throw error;
+        }
+    }, []);
 
     // ========================================================
     // LOAD PROJECTS
@@ -384,25 +361,14 @@ teamMemberCount:
                     currentManager ||
                     (await loadCurrentManager());
 
-                // ------------------------------------------------
-                // Get projects assigned to authenticated manager
-                // ------------------------------------------------
-
-                const apiProjects =
-                    await getMyProjects();
+                const apiProjects = await getMyProjects();
 
                 const normalizedProjects =
                     Array.isArray(apiProjects)
                         ? apiProjects
-                              .map(
-                                  normalizeManagerProject
-                              )
+                              .map(normalizeManagerProject)
                               .filter(Boolean)
                         : [];
-
-                // ------------------------------------------------
-                // Load project specifications
-                // ------------------------------------------------
 
                 const projectsWithSpecifications =
                     await Promise.all(
@@ -416,12 +382,10 @@ teamMemberCount:
 
                                     return {
                                         ...project,
-
                                         hasSpecification:
                                             Boolean(
                                                 specification
                                             ),
-
                                         specification:
                                             specification ||
                                             null,
@@ -434,18 +398,11 @@ teamMemberCount:
                                         error?.response
                                             ?.status;
 
-                                    // 404 means the project simply
-                                    // does not have a specification.
-                                    if (
-                                        status ===
-                                        404
-                                    ) {
+                                    if (status === 404) {
                                         return {
                                             ...project,
-
                                             hasSpecification:
                                                 false,
-
                                             specification:
                                                 null,
                                         };
@@ -462,33 +419,43 @@ teamMemberCount:
                         )
                     );
 
+                const assigned =
+                    projectsWithSpecifications.filter(
+                        (project) =>
+                            String(
+                                project.managerId
+                            ).toLowerCase() ===
+                            String(
+                                manager.id
+                            ).toLowerCase()
+                    );
+
+                setProjects(assigned);
+
                 // ------------------------------------------------
-                // Keep only projects belonging to this manager.
-                // The backend should already enforce this through
-                // /my-projects, but this is an additional frontend
-                // safety check.
+                // LOAD TEAMS
                 // ------------------------------------------------
 
-               const assigned = projectsWithSpecifications.filter(
-    (project) =>
-        String(project.managerId).toLowerCase() ===
-        String(manager.id).toLowerCase()
-);
+                try {
+                    const teamsResult = await getTeams();
 
-setProjects(assigned);
+                    const teamsData = Array.isArray(
+                        teamsResult
+                    )
+                        ? teamsResult
+                        : Array.isArray(
+                              teamsResult?.data
+                          )
+                        ? teamsResult.data
+                        : [];
 
-// 🌟 FETCH TEAMS TO CALCULATE MEMBER COUNTS
-try {
-    const teamsResult = await getTeams();
-    const teamsData = Array.isArray(teamsResult) 
-        ? teamsResult 
-        : Array.isArray(teamsResult?.data) 
-        ? teamsResult.data 
-        : [];
-    setTeams(teamsData);
-} catch (error) {
-    console.error("LOAD TEAMS ERROR:", error);
-}
+                    setTeams(teamsData);
+                } catch (error) {
+                    console.error(
+                        "LOAD TEAMS ERROR:",
+                        error
+                    );
+                }
             } catch (error) {
                 console.error(
                     "LOAD MANAGER PROJECTS ERROR:",
@@ -512,6 +479,7 @@ try {
             handleProjectError,
         ]
     );
+
     // ========================================================
     // INITIAL LOAD
     // ========================================================
@@ -523,67 +491,132 @@ try {
             try {
                 setLoading(true);
 
-                const manager = await loadCurrentManager();
+                const manager =
+                    await loadCurrentManager();
 
-                if (!mounted) return;
+                if (!mounted) {
+                    return;
+                }
 
-                const apiProjects = await getMyProjects();
+                const apiProjects =
+                    await getMyProjects();
 
-                if (!mounted) return;
+                if (!mounted) {
+                    return;
+                }
 
-                const normalizedProjects = Array.isArray(apiProjects)
-                    ? apiProjects.map(normalizeManagerProject).filter(Boolean)
-                    : [];
+                const normalizedProjects =
+                    Array.isArray(apiProjects)
+                        ? apiProjects
+                              .map(
+                                  normalizeManagerProject
+                              )
+                              .filter(Boolean)
+                        : [];
 
-                const projectsWithSpecifications = await Promise.all(
-                    normalizedProjects.map(async (project) => {
-                        try {
-                            const specification = await getProjectSpecification(project.id);
-                            return {
-                                ...project,
-                                hasSpecification: Boolean(specification),
-                                specification: specification || null,
-                            };
-                        } catch (error) {
-                            const status = error?.cause?.response?.status ?? error?.response?.status;
-                            if (status === 404) {
-                                return { ...project, hasSpecification: false, specification: null };
+                const projectsWithSpecifications =
+                    await Promise.all(
+                        normalizedProjects.map(
+                            async (project) => {
+                                try {
+                                    const specification =
+                                        await getProjectSpecification(
+                                            project.id
+                                        );
+
+                                    return {
+                                        ...project,
+                                        hasSpecification:
+                                            Boolean(
+                                                specification
+                                            ),
+                                        specification:
+                                            specification ||
+                                            null,
+                                    };
+                                } catch (error) {
+                                    const status =
+                                        error?.cause
+                                            ?.response
+                                            ?.status ??
+                                        error?.response
+                                            ?.status;
+
+                                    if (
+                                        status ===
+                                        404
+                                    ) {
+                                        return {
+                                            ...project,
+                                            hasSpecification:
+                                                false,
+                                            specification:
+                                                null,
+                                        };
+                                    }
+
+                                    return project;
+                                }
                             }
-                            return project;
-                        }
-                    })
-                );
+                        )
+                    );
 
-                if (!mounted) return;
+                if (!mounted) {
+                    return;
+                }
 
-                const assigned = projectsWithSpecifications.filter(
-                    (project) =>
-                        String(project.managerId).toLowerCase() ===
-                        String(manager.id).toLowerCase()
-                );
+                const assigned =
+                    projectsWithSpecifications.filter(
+                        (project) =>
+                            String(
+                                project.managerId
+                            ).toLowerCase() ===
+                            String(
+                                manager.id
+                            ).toLowerCase()
+                    );
 
                 setProjects(assigned);
 
-                // 🌟 FIX: Fetch teams on initial load so the enrichment useEffect can run!
+                // ------------------------------------------------
+                // LOAD TEAMS
+                // ------------------------------------------------
+
                 try {
-                    const teamsResult = await getTeams();
-                    const teamsData = Array.isArray(teamsResult) 
-                        ? teamsResult 
-                        : Array.isArray(teamsResult?.data) 
-                        ? teamsResult.data 
-                        : [];
-                    
+                    const teamsResult =
+                        await getTeams();
+
+                    const teamsData =
+                        Array.isArray(
+                            teamsResult
+                        )
+                            ? teamsResult
+                            : Array.isArray(
+                                  teamsResult?.data
+                              )
+                            ? teamsResult.data
+                            : [];
+
                     if (mounted) {
                         setTeams(teamsData);
                     }
                 } catch (error) {
-                    console.error("LOAD TEAMS ERROR (INITIAL):", error);
+                    console.error(
+                        "LOAD TEAMS ERROR (INITIAL):",
+                        error
+                    );
                 }
-
             } catch (error) {
-                console.error("INITIALIZE PROJECT MANAGEMENT ERROR:", error);
+                console.error(
+                    "INITIALIZE PROJECT MANAGEMENT ERROR:",
+                    error
+                );
+
                 if (mounted) {
-                    handleProjectError(error?.message || "Unable to load project management data.");
+                    handleProjectError(
+                        error?.message ||
+                            "Unable to load project management data."
+                    );
                 }
             } finally {
                 if (mounted) {
@@ -597,72 +630,80 @@ try {
         return () => {
             mounted = false;
         };
-    }, [loadCurrentManager, normalizeManagerProject, handleProjectError]);  
-  // ========================================================
-// ENRICH PROJECTS WITH TEAM MEMBER COUNTS
-// ========================================================
-useEffect(() => {
-    if (projects.length > 0 && teams.length > 0) {
+    }, [
+        loadCurrentManager,
+        normalizeManagerProject,
+        handleProjectError,
+    ]);
+
+    // ========================================================
+    // ENRICH PROJECTS WITH TEAM MEMBER COUNTS
+    // ========================================================
+
+    useEffect(() => {
+        if (
+            projects.length === 0 ||
+            teams.length === 0
+        ) {
+            return;
+        }
+
         setProjects((currentProjects) =>
             currentProjects.map((project) => {
-                const matchingTeam = teams.find(
-                    (team) =>
-                        String(team?.id) === String(project?.teamId) ||
-                        String(team?.teamId) === String(project?.teamId)
-                );
+                const matchingTeam =
+                    teams.find(
+                        (team) =>
+                            String(team?.id) ===
+                                String(
+                                    project?.teamId
+                                ) ||
+                            String(
+                                team?.teamId
+                            ) ===
+                                String(
+                                    project?.teamId
+                                ) ||
+                            String(
+                                team?.name
+                            ) ===
+                                String(
+                                    project?.teamName
+                                ) ||
+                            String(
+                                team?.name
+                            ) ===
+                                String(
+                                    project?.team
+                                )
+                    );
 
-                if (matchingTeam) {
-                    const memberCount =
-                        matchingTeam?.memberCount ??
-                        matchingTeam?.members?.length ??
-                        0;
-
-                    return {
-                        ...project,
-                        teamMemberCount: memberCount,
-                        // 🌟 FIX: Update BOTH 'team' and 'teamName' to the actual team name
-                        team: matchingTeam?.name || "No team assigned",
-                        teamName: matchingTeam?.name || "No team assigned",
-                    };
+                if (!matchingTeam) {
+                    return project;
                 }
-                return project;
+
+                const memberCount =
+                    matchingTeam?.memberCount ??
+                    matchingTeam?.members
+                        ?.length ??
+                    0;
+
+                const teamName =
+                    matchingTeam?.name ||
+                    project?.teamName ||
+                    project?.team ||
+                    "No team assigned";
+
+                return {
+                    ...project,
+                    teamMemberCount:
+                        memberCount,
+                    team: teamName,
+                    teamName: teamName,
+                };
             })
         );
-    }
-}, [teams]);
+    }, [projects.length, teams]);
 
-// ========================================================
-// ENRICH PROJECTS WITH TEAM MEMBER COUNTS
-// ========================================================
-useEffect(() => {
-    if (projects.length > 0 && teams.length > 0) {
-        setProjects((currentProjects) =>
-            currentProjects.map((project) => {
-                // Find the team that matches this project's teamId
-                const matchingTeam = teams.find(
-                    (team) =>
-                        String(team?.id) === String(project?.teamId) ||
-                        String(team?.teamId) === String(project?.teamId) ||
-                        team?.name === project?.team
-                );
-
-                if (matchingTeam) {
-                    const memberCount =
-                        matchingTeam?.memberCount ??
-                        matchingTeam?.members?.length ??
-                        0;
-
-                    return {
-                        ...project,
-                        teamMemberCount: memberCount,
-                        team: matchingTeam?.name || project?.team || "No team assigned",
-                    };
-                }
-                return project;
-            })
-        );
-    }
-}, [teams]); // 🌟 This runs when teams are loaded
     // ========================================================
     // ASSIGNED PROJECTS
     // ========================================================
@@ -681,10 +722,7 @@ useEffect(() => {
                     currentManager.id
                 ).toLowerCase()
         );
-    }, [
-        projects,
-        currentManager,
-    ]);
+    }, [projects, currentManager]);
 
     // ========================================================
     // PROJECT STATISTICS
@@ -741,7 +779,7 @@ useEffect(() => {
     }, [assignedProjects]);
 
     // ========================================================
-    // CLOSE MODAL
+    // CLOSE PROJECT MODAL
     // ========================================================
 
     const closeModal = useCallback(() => {
@@ -750,7 +788,7 @@ useEffect(() => {
     }, []);
 
     // ========================================================
-    // FIND CURRENT PROJECT
+    // FIND PROJECT
     // ========================================================
 
     const findProject = useCallback(
@@ -764,74 +802,136 @@ useEffect(() => {
         [projects]
     );
 
-       // ========================================================
+    // Keep helper available for future project actions.
+    void findProject;
+
+    // ========================================================
     // MANAGER AUTHORIZATION
     // ========================================================
 
-    const isCurrentManagerProject = useCallback(
-        (project) => {
-            if (!project || !currentManager?.id) {
-                return false;
-            }
-            return (
-                String(project.managerId).toLowerCase() ===
-                String(currentManager.id).toLowerCase()
+    const isCurrentManagerProject =
+        useCallback(
+            (project) => {
+                if (
+                    !project ||
+                    !currentManager?.id
+                ) {
+                    return false;
+                }
+
+                return (
+                    String(
+                        project.managerId
+                    ).toLowerCase() ===
+                    String(
+                        currentManager.id
+                    ).toLowerCase()
+                );
+            },
+            [currentManager]
+        );
+
+    // ========================================================
+    // AI-008: PROJECT SUMMARY
+    // ========================================================
+
+    const handleOpenSummary =
+        useCallback(
+            (project) => {
+                clearMessages();
+
+                if (!project) {
+                    handleProjectError(
+                        "The selected project could not be found."
+                    );
+                    return;
+                }
+
+                if (
+                    !isCurrentManagerProject(
+                        project
+                    )
+                ) {
+                    handleProjectError(
+                        "You are not authorised to view this project's AI summary."
+                    );
+                    return;
+                }
+
+                setSummaryProject(project);
+                setSummaryOpen(true);
+            },
+            [
+                clearMessages,
+                handleProjectError,
+                isCurrentManagerProject,
+            ]
+        );
+
+    // ========================================================
+    // AI-003: RECOMMENDATIONS
+    // ========================================================
+
+    const handleOpenRecommendations =
+        useCallback((project) => {
+            setRecommendationsProject(project);
+            setRecommendationsOpen(true);
+        }, []);
+
+    // ========================================================
+    // AI-009: BOTTLENECKS
+    // ========================================================
+
+    const handleOpenBottlenecks =
+        useCallback((project) => {
+            setBottlenecksProject(project);
+            setBottlenecksOpen(true);
+        }, []);
+
+    // ========================================================
+    // AI-004: TEAM PERFORMANCE
+    // ========================================================
+
+    const handleOpenTeamPerformance =
+        useCallback((project) => {
+            setTeamPerformanceProject(project);
+            setTeamPerformanceOpen(true);
+        }, []);
+
+    // ========================================================
+    // AI-005: PROGRESS PREDICTION
+    // ========================================================
+
+    const handleOpenProgressPrediction =
+        useCallback((project) => {
+            setProgressPredictionProject(
+                project
             );
-        },
-        [currentManager]
-    );
+            setProgressPredictionOpen(true);
+        }, []);
 
-    // 🌟 PASTE IT HERE, BELOW isCurrentManagerProject AND handleProjectError 🌟
     // ========================================================
-    // AI-008: OPEN AI PROJECT SUMMARY
+    // AI-007: SPRINT PLANNING
     // ========================================================
-    const handleOpenSummary = useCallback(
-        (project) => {
-            clearMessages();
-            if (!project) {
-                handleProjectError("The selected project could not be found.");
-                return;
-            }
-            if (!isCurrentManagerProject(project)) {
-                handleProjectError("You are not authorised to view this project's AI summary.");
-                return;
-            }
-            setSummaryProject(project);
-            setSummaryOpen(true);
-        },
-        [clearMessages, handleProjectError, isCurrentManagerProject]
-    );
 
+    const handleOpenSprintPlanning =
+        useCallback((project) => {
+            setSprintPlanningProject(project);
+            setSprintPlanningOpen(true);
+        }, []);
 
-    const handleOpenRecommendations = useCallback((project) => {
-        setRecommendationsProject(project);
-        setRecommendationsOpen(true);
-    }, []);
-
-    const handleOpenBottlenecks = useCallback((project) => {
-        setBottlenecksProject(project);
-        setBottlenecksOpen(true);
-    }, []);
-        // 🌟 AI-004: OPEN TEAM PERFORMANCE
-    const handleOpenTeamPerformance = useCallback((project) => {
-        setTeamPerformanceProject(project);
-        setTeamPerformanceOpen(true);
-    }, []);
-
-    // 🌟 AI-005: OPEN PROGRESS PREDICTION
-    const handleOpenProgressPrediction = useCallback((project) => {
-        setProgressPredictionProject(project);
-        setProgressPredictionOpen(true);
-    }, []);
-
-    // 🌟 AI-007: OPEN SPRINT PLANNING
-    const handleOpenSprintPlanning = useCallback((project) => {
-        setSprintPlanningProject(project);
-        setSprintPlanningOpen(true);
-    }, []);
     // ========================================================
-    // PM-001
-    // CREATE PROJECT SPECIFICATION
+    // AI DEADLINE PREDICTION
+    // ========================================================
+
+    const handleOpenDeadline =
+        useCallback((project) => {
+            setDeadlineProject(project);
+            setDeadlineOpen(true);
+        }, []);
+
+    // ========================================================
+    // PM-001: CREATE SPECIFICATION
     // ========================================================
 
     const handleCreateSpecification =
@@ -878,8 +978,7 @@ useEffect(() => {
         );
 
     // ========================================================
-    // PM-002
-    // UPDATE PROJECT SPECIFICATION
+    // PM-002: UPDATE SPECIFICATION
     // ========================================================
 
     const handleUpdateSpecification =
@@ -926,8 +1025,7 @@ useEffect(() => {
         );
 
     // ========================================================
-    // PM-003
-    // DELETE PROJECT SPECIFICATION
+    // PM-003: DELETE SPECIFICATION
     // ========================================================
 
     const handleDeleteSpecification =
@@ -981,8 +1079,7 @@ useEffect(() => {
         );
 
     // ========================================================
-    // PM-004
-    // VIEW ASSIGNED PROJECT
+    // PM-004: VIEW PROJECT
     // ========================================================
 
     const handleViewProject =
@@ -1019,8 +1116,7 @@ useEffect(() => {
         );
 
     // ========================================================
-    // PM-005
-    // UPDATE PROJECT TIMELINE
+    // PM-005: UPDATE TIMELINE
     // ========================================================
 
     const handleUpdateTimeline =
@@ -1057,8 +1153,7 @@ useEffect(() => {
         );
 
     // ========================================================
-    // PM-006
-    // SET / UPDATE PROJECT DEADLINE
+    // PM-006: UPDATE DEADLINE
     // ========================================================
 
     const handleUpdateDeadline =
@@ -1095,8 +1190,7 @@ useEffect(() => {
         );
 
     // ========================================================
-    // PM-007
-    // MANAGE PROJECT STATUS
+    // PM-007: MANAGE STATUS
     // ========================================================
 
     const handleManageStatus =
@@ -1154,10 +1248,8 @@ useEffect(() => {
                                 )
                                     ? {
                                           ...project,
-
                                           hasSpecification:
                                               true,
-
                                           specification,
                                       }
                                     : project
@@ -1170,7 +1262,6 @@ useEffect(() => {
                     "Project specification created successfully."
                 );
 
-                // Refresh from backend
                 await loadProjects(true);
             },
             [
@@ -1202,10 +1293,8 @@ useEffect(() => {
                                 )
                                     ? {
                                           ...project,
-
                                           hasSpecification:
                                               true,
-
                                           specification,
                                       }
                                     : project
@@ -1246,10 +1335,8 @@ useEffect(() => {
                                 )
                                     ? {
                                           ...project,
-
                                           hasSpecification:
                                               false,
-
                                           specification:
                                               null,
                                       }
@@ -1404,64 +1491,67 @@ useEffect(() => {
         );
 
     // ========================================================
-    // PROJECT STATUS STYLE
+    // PROJECT STATUS
     // ========================================================
 
-    const getStatusStyle = (status) => {
-        switch (
-            String(status || "")
-                .toLowerCase()
-        ) {
-            case "active":
-                return {
-                    badge:
-                        "border-emerald-200 bg-emerald-50 text-emerald-700",
-                    dot: "bg-emerald-500",
-                };
+    const getStatusStyle = useCallback(
+        (status) => {
+            switch (
+                String(status || "")
+                    .toLowerCase()
+            ) {
+                case "active":
+                    return {
+                        badge:
+                            "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+                        dot: "bg-emerald-500",
+                    };
 
-            case "planning":
-                return {
-                    badge:
-                        "border-amber-200 bg-amber-50 text-amber-700",
-                    dot: "bg-amber-500",
-                };
+                case "planning":
+                    return {
+                        badge:
+                            "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+                        dot: "bg-amber-500",
+                    };
 
-            case "completed":
-                return {
-                    badge:
-                        "border-blue-200 bg-blue-50 text-blue-700",
-                    dot: "bg-blue-500",
-                };
+                case "completed":
+                    return {
+                        badge:
+                            "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300",
+                        dot: "bg-sky-500",
+                    };
 
-            case "on hold":
-                return {
-                    badge:
-                        "border-orange-200 bg-orange-50 text-orange-700",
-                    dot: "bg-orange-500",
-                };
+                case "on hold":
+                    return {
+                        badge:
+                            "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300",
+                        dot: "bg-orange-500",
+                    };
 
-            case "cancelled":
-                return {
-                    badge:
-                        "border-red-200 bg-red-50 text-red-700",
-                    dot: "bg-red-500",
-                };
+                case "cancelled":
+                    return {
+                        badge:
+                            "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300",
+                        dot: "bg-red-500",
+                    };
 
-            case "archived":
-                return {
-                    badge:
-                        "border-slate-300 bg-slate-100 text-slate-600",
-                    dot: "bg-slate-500",
-                };
+                case "archived":
+                    return {
+                        badge:
+                            "border-border bg-muted text-muted-foreground",
+                        dot: "bg-muted-foreground",
+                    };
 
-            default:
-                return {
-                    badge:
-                        "border-slate-200 bg-slate-50 text-slate-600",
-                    dot: "bg-slate-400",
-                };
-        }
-    };
+                default:
+                    return {
+                        badge:
+                            "border-border bg-muted text-muted-foreground",
+                        dot: "bg-muted-foreground",
+                    };
+            }
+        },
+        []
+    );
 
     // ========================================================
     // LOADING STATE
@@ -1469,33 +1559,23 @@ useEffect(() => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 text-slate-900">
-
-                <main className="flex min-h-screen items-center justify-center px-6">
-
-                    <div className="text-center">
-
-                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg">
-
-                            <Loader2
-                                size={30}
-                                className="animate-spin text-white"
-                            />
-
-                        </div>
-
-                        <h2 className="mt-5 text-lg font-bold text-slate-800">
-                            Loading Project Management
-                        </h2>
-
-                        <p className="mt-2 text-sm text-slate-500">
-                            Loading your assigned projects...
-                        </p>
-
+            <div className="flex min-h-[70vh] items-center justify-center bg-background text-foreground">
+                <div className="text-center">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                        <Loader2
+                            size={28}
+                            className="animate-spin"
+                        />
                     </div>
 
-                </main>
+                    <h2 className="mt-5 text-lg font-semibold text-foreground">
+                        Loading Project Management
+                    </h2>
 
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        Loading your assigned projects...
+                    </p>
+                </div>
             </div>
         );
     }
@@ -1505,848 +1585,743 @@ useEffect(() => {
     // ========================================================
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 text-slate-900">
+        <div className="min-h-full bg-background text-foreground">
+            <div className="mx-auto w-full max-w-[1800px]">
 
-            <main className="min-h-screen">
+                {/* ==================================================
+                    PAGE HEADER
+                ================================================== */}
 
-                <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-
-                    {/* ==================================================
-                        HEADER
-                    ================================================== */}
-
-                    <div className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 p-6 text-white shadow-xl shadow-blue-200/50">
-
-                        <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/10" />
-
-                        <div className="absolute -bottom-24 right-28 h-64 w-64 rounded-full bg-white/5" />
-
-                        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-                            <div className="flex items-center gap-4">
-
-                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 shadow-lg ring-1 ring-white/20 backdrop-blur-sm">
-
-                                    <FolderKanban
-                                        size={28}
-                                        className="text-white"
-                                    />
-
-                                </div>
-
-                                <div>
-
-                                    <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-100">
-                                        Manager Workspace
-                                    </p>
-
-                                    <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                                        Project Management
-                                    </h1>
-
-                                    <p className="mt-1 max-w-2xl text-sm text-blue-100">
-                                        Manage assigned projects,
-                                        specifications, timelines,
-                                        deadlines and project status.
-                                    </p>
-
-                                    {currentManager && (
-                                        <p className="mt-2 text-xs font-semibold text-blue-100">
-                                            Manager:{" "}
-                                            {
-                                                currentManager.name
-                                            }
-                                        </p>
-                                    )}
-
-                                </div>
-
+                <section className="mb-6 rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex min-w-0 items-start gap-4">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                                <FolderKanban size={24} />
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="min-w-0">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    Manager Workspace
+                                </p>
 
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        loadProjects(
-                                            true
-                                        )
-                                    }
-                                    disabled={
-                                        refreshing
-                                    }
-                                    className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-bold backdrop-blur-sm transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
+                                <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                                    Project Management
+                                </h1>
 
-                                    <RefreshCw
-                                        size={17}
-                                        className={
-                                            refreshing
-                                                ? "animate-spin"
-                                                : ""
-                                        }
-                                    />
+                                <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                                    Manage assigned projects,
+                                    specifications, timelines,
+                                    deadlines and project status.
+                                </p>
 
-                                    Refresh
-
-                                </button>
-
-                                <div className="w-fit rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur-sm">
-
-                                    <p className="text-xs font-medium text-blue-100">
-                                        Assigned Projects
+                                {currentManager && (
+                                    <p className="mt-2 text-sm font-medium text-muted-foreground">
+                                        Manager:{" "}
+                                        <span className="text-foreground">
+                                            {currentManager.name}
+                                        </span>
                                     </p>
-
-                                    <p className="mt-1 text-2xl font-bold">
-                                        {
-                                            assignedProjects.length
-                                        }
-                                    </p>
-
-                                </div>
-
+                                )}
                             </div>
-
                         </div>
 
+                        <div className="flex shrink-0 flex-wrap items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    loadProjects(true)
+                                }
+                                disabled={refreshing}
+                                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <RefreshCw
+                                    size={16}
+                                    className={
+                                        refreshing
+                                            ? "animate-spin"
+                                            : ""
+                                    }
+                                />
+
+                                Refresh
+                            </button>
+
+                            <div className="rounded-lg border border-border bg-muted/50 px-4 py-2.5">
+                                <p className="text-xs text-muted-foreground">
+                                    Assigned Projects
+                                </p>
+
+                                <p className="mt-0.5 text-xl font-bold text-foreground">
+                                    {
+                                        assignedProjects.length
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ==================================================
+                    SUCCESS MESSAGE
+                ================================================== */}
+
+                {successMessage && (
+                    <div
+                        role="status"
+                        className="mb-6 flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
+                    >
+                        <CheckCircle
+                            size={18}
+                            className="shrink-0"
+                        />
+
+                        <span>
+                            {successMessage}
+                        </span>
+                    </div>
+                )}
+
+                {/* ==================================================
+                    ERROR MESSAGE
+                ================================================== */}
+
+                {errorMessage && (
+                    <div
+                        role="alert"
+                        className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
+                    >
+                        <AlertTriangle
+                            size={18}
+                            className="shrink-0"
+                        />
+
+                        <span>
+                            {errorMessage}
+                        </span>
+                    </div>
+                )}
+
+                {/* ==================================================
+                    PROJECT STATISTICS
+                ================================================== */}
+
+                <section className="mb-8">
+                    <div className="mb-4">
+                        <h2 className="text-lg font-semibold text-foreground">
+                            Project Overview
+                        </h2>
+
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Quick summary of your project portfolio.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        {projectStats.map(
+                            (item) => {
+                                const Icon =
+                                    item.icon;
+
+                                return (
+                                    <div
+                                        key={
+                                            item.title
+                                        }
+                                        className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                                    >
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div>
+                                                <p className="text-sm font-medium text-muted-foreground">
+                                                    {
+                                                        item.title
+                                                    }
+                                                </p>
+
+                                                <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+                                                    {
+                                                        item.value
+                                                    }
+                                                </p>
+                                            </div>
+
+                                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
+                                                <Icon
+                                                    size={
+                                                        21
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            }
+                        )}
+                    </div>
+                </section>
+
+                {/* ==================================================
+                    ASSIGNED PROJECTS
+                ================================================== */}
+
+                <section>
+                    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <FolderKanban
+                                    size={20}
+                                    className="text-primary"
+                                />
+
+                                <h2 className="text-xl font-semibold text-foreground">
+                                    Assigned Projects
+                                </h2>
+                            </div>
+
+                            <p className="mt-1.5 text-sm text-muted-foreground">
+                                Projects currently assigned to you.
+                            </p>
+                        </div>
+
+                        <div className="w-fit rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-muted-foreground">
+                            {
+                                assignedProjects.length
+                            }{" "}
+                            {assignedProjects.length ===
+                            1
+                                ? "Project"
+                                : "Projects"}
+                        </div>
                     </div>
 
                     {/* ==================================================
-                        SUCCESS MESSAGE
+                        EMPTY STATE
                     ================================================== */}
 
-                    {successMessage && (
-                        <div
-                            role="status"
-                            className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 px-4 py-4 text-sm font-semibold text-emerald-700 shadow-sm"
-                        >
-
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-
-                                <CheckCircle
-                                    size={19}
-                                    className="text-emerald-600"
+                    {assignedProjects.length ===
+                    0 ? (
+                        <div className="rounded-xl border border-dashed border-border bg-card px-6 py-16 text-center">
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                                <FolderKanban
+                                    size={28}
                                 />
-
                             </div>
 
-                            <span>
-                                {
-                                    successMessage
-                                }
-                            </span>
+                            <h3 className="mt-5 text-lg font-semibold text-foreground">
+                                No Assigned Projects
+                            </h3>
 
+                            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                                You currently have no projects assigned to you.
+                            </p>
                         </div>
-                    )}
+                    ) : (
+                        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                            {assignedProjects.map(
+                                (project) => {
+                                    const statusStyle =
+                                        getStatusStyle(
+                                            project.status
+                                        );
 
-                    {/* ==================================================
-                        ERROR MESSAGE
-                    ================================================== */}
-
-                    {errorMessage && (
-                        <div
-                            role="alert"
-                            className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-gradient-to-r from-red-50 to-rose-50 px-4 py-4 text-sm font-semibold text-red-700 shadow-sm"
-                        >
-
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100">
-
-                                <AlertTriangle
-                                    size={19}
-                                    className="text-red-600"
-                                />
-
-                            </div>
-
-                            <span>
-                                {errorMessage}
-                            </span>
-
-                        </div>
-                    )}
-
-                    {/* ==================================================
-                        PROJECT STATISTICS
-                    ================================================== */}
-
-                    <section className="mb-10">
-
-                        <div className="mb-5 flex items-center justify-between">
-
-                            <div>
-
-                                <h2 className="text-lg font-bold text-slate-800">
-                                    Project Overview
-                                </h2>
-
-                                <p className="mt-1 text-sm text-slate-500">
-                                    Quick summary of your project portfolio.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-
-                            {projectStats.map(
-                                (
-                                    item,
-                                    index
-                                ) => {
-                                    const styles =
-                                        [
-                                            {
-                                                border:
-                                                    "border-blue-200",
-                                                bg:
-                                                    "bg-gradient-to-br from-blue-50 to-indigo-50",
-                                                iconBg:
-                                                    "bg-blue-600",
-                                            },
-                                            {
-                                                border:
-                                                    "border-amber-200",
-                                                bg:
-                                                    "bg-gradient-to-br from-amber-50 to-orange-50",
-                                                iconBg:
-                                                    "bg-amber-500",
-                                            },
-                                            {
-                                                border:
-                                                    "border-emerald-200",
-                                                bg:
-                                                    "bg-gradient-to-br from-emerald-50 to-green-50",
-                                                iconBg:
-                                                    "bg-emerald-600",
-                                            },
-                                            {
-                                                border:
-                                                    "border-violet-200",
-                                                bg:
-                                                    "bg-gradient-to-br from-violet-50 to-purple-50",
-                                                iconBg:
-                                                    "bg-violet-600",
-                                            },
-                                        ][
-                                            index
-                                        ];
+                                    const progress =
+                                        Math.min(
+                                            Math.max(
+                                                Number(
+                                                    project.progress
+                                                ) || 0,
+                                                0
+                                            ),
+                                            100
+                                        );
 
                                     return (
-                                        <div
+                                        <article
                                             key={
-                                                item.title
+                                                project.id
                                             }
-                                            className={`overflow-hidden rounded-2xl border ${styles.border} ${styles.bg} shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg`}
+                                            className="overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md"
                                         >
+                                            {/* PROJECT HEADER */}
 
-                                            <div className="h-1.5 bg-gradient-to-r from-current to-transparent opacity-70" />
-
-                                            <div className="p-5">
-
-                                                <div className="flex items-center justify-between">
-
-                                                    <div>
-
-                                                        <p className="text-sm font-semibold text-slate-500">
-                                                            {
-                                                                item.title
-                                                            }
-                                                        </p>
-
-                                                        <p className="mt-2 text-3xl font-extrabold text-slate-900">
-                                                            {
-                                                                item.value
-                                                            }
-                                                        </p>
-
-                                                    </div>
-
-                                                    <div
-                                                        className={`flex h-12 w-12 items-center justify-center rounded-xl ${styles.iconBg} shadow-md`}
-                                                    >
-
-                                                        <item.icon
-                                                            size={
-                                                                23
-                                                            }
-                                                            className="text-white"
-                                                        />
-
-                                                    </div>
-
-                                                </div>
-
-                                            </div>
-
-                                        </div>
-                                    );
-                                }
-                            )}
-
-                        </div>
-
-                    </section>
-
-                    {/* ==================================================
-                        ASSIGNED PROJECTS
-                    ================================================== */}
-
-                    <section>
-
-                        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-
-                            <div>
-
-                                <div className="flex items-center gap-2">
-
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-100">
-
-                                        <FolderKanban
-                                            size={19}
-                                            className="text-indigo-600"
-                                        />
-
-                                    </div>
-
-                                    <h2 className="text-xl font-bold text-slate-800">
-                                        Assigned Projects
-                                    </h2>
-
-                                </div>
-
-                                <p className="mt-2 text-sm text-slate-500">
-                                    Projects currently assigned to you.
-                                </p>
-
-                            </div>
-
-                            <div className="w-fit rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-blue-50 px-4 py-2.5 text-sm font-bold text-indigo-700 shadow-sm">
-
-                                {
-                                    assignedProjects.length
-                                }{" "}
-
-                                {assignedProjects.length ===
-                                1
-                                    ? "Project"
-                                    : "Projects"}
-
-                            </div>
-
-                        </div>
-
-                        {/* ==================================================
-                            EMPTY STATE
-                        ================================================== */}
-
-                        {assignedProjects.length ===
-                        0 ? (
-                            <div className="rounded-2xl border border-dashed border-indigo-200 bg-gradient-to-br from-white to-indigo-50 px-6 py-16 text-center shadow-sm">
-
-                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100">
-
-                                    <FolderKanban
-                                        className="text-indigo-500"
-                                        size={32}
-                                    />
-
-                                </div>
-
-                                <h3 className="mt-5 text-lg font-bold text-slate-800">
-                                    No Assigned Projects
-                                </h3>
-
-                                <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                                    You currently have no projects
-                                    assigned to you.
-                                </p>
-
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-
-                                {assignedProjects.map(
-                                    (
-                                        project,
-                                        projectIndex
-                                    ) => {
-                                        const statusStyle =
-                                            getStatusStyle(
-                                                project.status
-                                            );
-
-                                        const projectAccent =
-                                            projectIndex %
-                                                3 ===
-                                            0
-                                                ? "from-blue-500 via-indigo-500 to-violet-500"
-                                                : projectIndex %
-                                                      3 ===
-                                                  1
-                                                ? "from-emerald-500 via-teal-500 to-cyan-500"
-                                                : "from-orange-500 via-amber-500 to-yellow-500";
-
-                                        return (
-                                            <div
-                                                key={
-                                                    project.id
-                                                }
-                                                className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md transition duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl"
-                                            >
-
-                                                <div
-                                                    className={`h-2 bg-gradient-to-r ${projectAccent}`}
-                                                />
-
-                                                <div className="p-5">
-
-                                                    {/* PROJECT TOP */}
-
-                                                    <div className="mb-5 flex items-start justify-between gap-4">
+                                            <div className="border-b border-border p-5">
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="flex min-w-0 items-start gap-3">
+                                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
+                                                            <FolderKanban
+                                                                size={
+                                                                    20
+                                                                }
+                                                            />
+                                                        </div>
 
                                                         <div className="min-w-0">
+                                                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                                                Project
+                                                            </p>
 
-                                                            <div className="mb-2 flex items-center gap-2">
-
-                                                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 shadow-sm">
-
-                                                                    <FolderKanban
-                                                                        size={
-                                                                            18
-                                                                        }
-                                                                        className="text-white"
-                                                                    />
-
-                                                                </div>
-
-                                                                <span className="text-xs font-bold uppercase tracking-wider text-indigo-500">
-                                                                    Project
-                                                                </span>
-
-                                                            </div>
-
-                                                            <h3 className="text-lg font-bold leading-snug text-slate-900">
+                                                            <h3 className="mt-1 truncate text-lg font-semibold text-foreground">
                                                                 {
                                                                     project.name
                                                                 }
                                                             </h3>
 
+                                                            {project.description && (
+                                                                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                                                                    {
+                                                                        project.description
+                                                                    }
+                                                                </p>
+                                                            )}
                                                         </div>
-
-                                                        <div
-                                                            className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${statusStyle.badge}`}
-                                                        >
-
-                                                            <span
-                                                                className={`h-2 w-2 rounded-full ${statusStyle.dot}`}
-                                                            />
-
-                                                            {
-                                                                project.status ||
-                                                                    "Unknown"
-                                                            }
-
-                                                        </div>
-
                                                     </div>
 
-                                                    {/* PROJECT CARD */}
-
-                                                    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-
-                                                        <ProjectCard
-                                                            project={
-                                                                project
-                                                            }
+                                                    <div
+                                                        className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${statusStyle.badge}`}
+                                                    >
+                                                        <span
+                                                            className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`}
                                                         />
 
+                                                        {project.status ||
+                                                            "Unknown"}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* PROJECT INFORMATION */}
+
+                                            <div className="p-5">
+                                                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                                                    <ProjectCard
+                                                        project={
+                                                            project
+                                                        }
+                                                    />
+                                                </div>
+
+                                                {/* PROGRESS */}
+
+                                                <div className="mt-5">
+                                                    <div className="mb-2 flex items-center justify-between">
+                                                        <span className="text-sm font-medium text-muted-foreground">
+                                                            Project Progress
+                                                        </span>
+
+                                                        <span className="text-sm font-semibold text-foreground">
+                                                            {
+                                                                progress
+                                                            }
+                                                            %
+                                                        </span>
                                                     </div>
 
-                                                    {/* PROJECT PROGRESS */}
+                                                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                                                        <div
+                                                            className="h-full rounded-full bg-primary transition-all duration-500"
+                                                            style={{
+                                                                width: `${progress}%`,
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
 
-                                                    <div className="mt-5">
+                                                {/* PROJECT META */}
 
-                                                        <div className="mb-2 flex items-center justify-between">
-
-                                                            <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                                                                Project Progress
-                                                            </span>
-
-                                                            <span className="text-sm font-extrabold text-indigo-600">
-                                                                {
-                                                                    project.progress
+                                                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <CalendarRange
+                                                                size={
+                                                                    16
                                                                 }
-                                                                %
-                                                            </span>
-
-                                                        </div>
-
-                                                        <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-
-                                                            <div
-                                                                className={`h-full rounded-full bg-gradient-to-r ${projectAccent} transition-all duration-500`}
-                                                                style={{
-                                                                    width: `${Math.min(
-                                                                        Math.max(
-                                                                            Number(
-                                                                                project.progress
-                                                                            ) ||
-                                                                                0,
-                                                                            0
-                                                                        ),
-                                                                        100
-                                                                    )}%`,
-                                                                }}
+                                                                className="text-muted-foreground"
                                                             />
 
+                                                            <span className="text-xs font-medium text-muted-foreground">
+                                                                Start Date
+                                                            </span>
                                                         </div>
 
+                                                        <p className="mt-1 text-sm font-semibold text-foreground">
+                                                            {formatDate(
+                                                                project.startDate
+                                                            )}
+                                                        </p>
                                                     </div>
 
-                                                    {/* PROJECT INFORMATION */}
+                                                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <CalendarClock
+                                                                size={
+                                                                    16
+                                                                }
+                                                                className="text-muted-foreground"
+                                                            />
 
-                                                    <div className="mt-5 grid grid-cols-2 gap-3">
+                                                            <span className="text-xs font-medium text-muted-foreground">
+                                                                Deadline
+                                                            </span>
+                                                        </div>
 
-                                                        <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+                                                        <p className="mt-1 text-sm font-semibold text-foreground">
+                                                            {formatDate(
+                                                                project.deadline
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                </div>
 
-                                                            <div className="flex items-center gap-2">
+                                                {/* TEAM */}
 
-                                                                <CalendarRange
+                                                <div className="mt-3 flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                                                    <div className="flex items-center gap-2">
+                                                        <Users
+                                                            size={
+                                                                16
+                                                            }
+                                                            className="text-muted-foreground"
+                                                        />
+
+                                                        <span className="text-sm text-muted-foreground">
+                                                            Team
+                                                        </span>
+                                                    </div>
+
+                                                    <span className="text-sm font-medium text-foreground">
+                                                        {project.team ||
+                                                            project.teamName ||
+                                                            "No team assigned"}
+                                                    </span>
+                                                </div>
+
+                                                {/* ==================================================
+                                                    ACTIONS
+                                                ================================================== */}
+
+                                                <div className="mt-6 border-t border-border pt-5">
+                                                    <div className="mb-3 flex items-center gap-2">
+                                                        <CircleDot
+                                                            size={
+                                                                16
+                                                            }
+                                                            className="text-muted-foreground"
+                                                        />
+
+                                                        <span className="text-sm font-semibold text-foreground">
+                                                            Project Actions
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+
+                                                        {/* AI SUMMARY */}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleOpenSummary(
+                                                                    project
+                                                                )
+                                                            }
+                                                            className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                        >
+                                                            <FileText
+                                                                size={
+                                                                    16
+                                                                }
+                                                            />
+
+                                                            AI Project Summary
+                                                        </button>
+
+                                                        {/* AI RECOMMENDATIONS */}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleOpenRecommendations(
+                                                                    project
+                                                                )
+                                                            }
+                                                            className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                        >
+                                                            <Lightbulb
+                                                                size={
+                                                                    16
+                                                                }
+                                                            />
+
+                                                            AI Recommendations
+                                                        </button>
+
+                                                        {/* AI BOTTLENECKS */}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleOpenBottlenecks(
+                                                                    project
+                                                                )
+                                                            }
+                                                            className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                        >
+                                                            <AlertTriangle
+                                                                size={
+                                                                    16
+                                                                }
+                                                            />
+
+                                                            AI Bottlenecks
+                                                        </button>
+
+                                                        {/* AI DEADLINE */}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleOpenDeadline(
+                                                                    project
+                                                                )
+                                                            }
+                                                            className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                        >
+                                                            <CalendarClock
+                                                                size={
+                                                                    16
+                                                                }
+                                                            />
+
+                                                            AI Deadline Prediction
+                                                        </button>
+
+                                                        {/* AI TEAM PERFORMANCE */}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleOpenTeamPerformance(
+                                                                    project
+                                                                )
+                                                            }
+                                                            className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                        >
+                                                            <Users
+                                                                size={
+                                                                    16
+                                                                }
+                                                            />
+
+                                                            AI Team Performance
+                                                        </button>
+
+                                                        {/* AI PROGRESS */}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleOpenProgressPrediction(
+                                                                    project
+                                                                )
+                                                            }
+                                                            className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                        >
+                                                            <TrendingUp
+                                                                size={
+                                                                    16
+                                                                }
+                                                            />
+
+                                                            AI Progress Prediction
+                                                        </button>
+
+                                                        {/* AI SPRINT */}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleOpenSprintPlanning(
+                                                                    project
+                                                                )
+                                                            }
+                                                            className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                        >
+                                                            <CalendarDays
+                                                                size={
+                                                                    16
+                                                                }
+                                                            />
+
+                                                            AI Sprint Planning
+                                                        </button>
+
+                                                        {/* CREATE SPECIFICATION */}
+
+                                                        {!project.hasSpecification && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleCreateSpecification(
+                                                                        project
+                                                                    )
+                                                                }
+                                                                className="flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                                                            >
+                                                                <FilePlus2
                                                                     size={
                                                                         16
                                                                     }
-                                                                    className="text-blue-600"
                                                                 />
 
-                                                                <span className="text-xs font-semibold text-blue-700">
-                                                                    Start Date
-                                                                </span>
+                                                                Create Project Specification
+                                                            </button>
+                                                        )}
 
-                                                            </div>
+                                                        {/* UPDATE SPECIFICATION */}
 
-                                                            <p className="mt-1 text-sm font-bold text-slate-800">
-                                                                {
-                                                                    formatDate(
-                                                                        project.startDate
+                                                        {project.hasSpecification && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleUpdateSpecification(
+                                                                        project
                                                                     )
                                                                 }
-                                                            </p>
-
-                                                        </div>
-
-                                                        <div className="rounded-xl border border-orange-100 bg-orange-50 p-3">
-
-                                                            <div className="flex items-center gap-2">
-
-                                                                <CalendarClock
+                                                                className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                            >
+                                                                <FilePenLine
                                                                     size={
                                                                         16
                                                                     }
-                                                                    className="text-orange-600"
                                                                 />
 
-                                                                <span className="text-xs font-semibold text-orange-700">
-                                                                    Deadline
-                                                                </span>
+                                                                Update Project Specification
+                                                            </button>
+                                                        )}
 
-                                                            </div>
+                                                        {/* DELETE SPECIFICATION */}
 
-                                                            <p className="mt-1 text-sm font-bold text-slate-800">
-                                                                {
-                                                                    formatDate(
-                                                                        project.deadline
+                                                        {project.hasSpecification && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleDeleteSpecification(
+                                                                        project
                                                                     )
                                                                 }
-                                                            </p>
+                                                                disabled={
+                                                                    project.hasActiveSprint
+                                                                }
+                                                                className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                                                            >
+                                                                <Trash2
+                                                                    size={
+                                                                        16
+                                                                    }
+                                                                />
 
-                                                        </div>
+                                                                {project.hasActiveSprint
+                                                                    ? "Specification In Use"
+                                                                    : "Delete Project Specification"}
+                                                            </button>
+                                                        )}
 
-                                                    </div>
+                                                        {/* VIEW PROJECT */}
 
-                                                    {/* ACTION SECTION */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleViewProject(
+                                                                    project
+                                                                )
+                                                            }
+                                                            className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                        >
+                                                            <Eye
+                                                                size={
+                                                                    16
+                                                                }
+                                                            />
 
-                                                    <div className="mt-6 border-t border-slate-100 pt-5">
+                                                            View Assigned Project
+                                                        </button>
 
-                                                        <div className="mb-3 flex items-center gap-2">
+                                                        {/* UPDATE TIMELINE */}
 
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleUpdateTimeline(
+                                                                    project
+                                                                )
+                                                            }
+                                                            className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                        >
+                                                            <CalendarRange
+                                                                size={
+                                                                    16
+                                                                }
+                                                            />
+
+                                                            Update Project Timeline
+                                                        </button>
+
+                                                        {/* UPDATE DEADLINE */}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleUpdateDeadline(
+                                                                    project
+                                                                )
+                                                            }
+                                                            className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                        >
+                                                            <CalendarClock
+                                                                size={
+                                                                    16
+                                                                }
+                                                            />
+
+                                                            Set / Update Project Deadline
+                                                        </button>
+
+                                                        {/* MANAGE STATUS */}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleManageStatus(
+                                                                    project
+                                                                )
+                                                            }
+                                                            className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                                                        >
                                                             <CircleDot
                                                                 size={
                                                                     16
                                                                 }
-                                                                className="text-indigo-500"
                                                             />
 
-                                                            <span className="text-sm font-bold text-slate-700">
-                                                                Project Actions
-                                                            </span>
-
-                                                        </div>
-
-                                                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                                                            
-    {/* AI-008: AI PROJECT SUMMARY */}
-    <button
-        type="button"
-        onClick={() => handleOpenSummary(project)}
-        className="flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-700 transition hover:-translate-y-0.5 hover:bg-violet-100 hover:shadow-sm"
-    >
-        <FileText size={17} />
-        AI Project Summary
-    </button>
-
-    {/* 🌟 AI-003: RECOMMENDATIONS */}
-    <button
-        type="button"
-        onClick={() => handleOpenRecommendations(project)}
-        className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700 transition hover:-translate-y-0.5 hover:bg-amber-100 hover:shadow-sm"
-    >
-        <Lightbulb size={17} />
-        AI Recommendations
-    </button>
-
-    {/* 🌟 AI-009: BOTTLENECKS */}
-    <button
-        type="button"
-        onClick={() => handleOpenBottlenecks(project)}
-        className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition hover:-translate-y-0.5 hover:bg-red-100 hover:shadow-sm"
-    >
-        <AlertTriangle size={17} />
-        AI Bottlenecks
-    </button>
-       <button
-       type="button"
-       onClick={() => handleOpenDeadline(project)}
-       className="flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-700 transition hover:-translate-y-0.5 hover:bg-indigo-100 hover:shadow-sm"
-   >
-       <CalendarClock size={17} />
-       AI Deadline Prediction
-   </button>
-   
-    <button
-        type="button"
-        onClick={() => handleOpenTeamPerformance(project)}
-        className="flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-700 transition hover:-translate-y-0.5 hover:bg-violet-100 hover:shadow-sm"
-    >
-        <Users size={17} />
-        AI Team Performance
-    </button>
-
-    <button
-        type="button"
-        onClick={() => handleOpenProgressPrediction(project)}
-        className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 transition hover:-translate-y-0.5 hover:bg-emerald-100 hover:shadow-sm"
-    >
-        <TrendingUp size={17} />
-        AI Progress Prediction
-    </button>
-
-    <button
-        type="button"
-        onClick={() => handleOpenSprintPlanning(project)}
-        className="flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-700 transition hover:-translate-y-0.5 hover:bg-indigo-100 hover:shadow-sm"
-    >
-        <CalendarDays size={17} />
-        AI Sprint Planning
-    </button>
-
-                                                            {/* PM-001 */}
-
-                                                            {!project.hasSpecification && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        handleCreateSpecification(
-                                                                            project
-                                                                        )
-                                                                    }
-                                                                    className="group flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:from-blue-700 hover:to-indigo-700 hover:shadow-md"
-                                                                >
-
-                                                                    <FilePlus2
-                                                                        size={
-                                                                            17
-                                                                        }
-                                                                    />
-
-                                                                    Create Project Specification
-
-                                                                </button>
-                                                            )}
-                                                            
-
-                                                            {/* PM-002 */}
-
-                                                            {project.hasSpecification && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        handleUpdateSpecification(
-                                                                            project
-                                                                        )
-                                                                    }
-                                                                    className="group flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-700 transition hover:-translate-y-0.5 hover:bg-indigo-100 hover:shadow-sm"
-                                                                >
-
-                                                                    <FilePenLine
-                                                                        size={
-                                                                            17
-                                                                        }
-                                                                    />
-
-                                                                    Update Project Specification
-
-                                                                </button>
-                                                            )}
-
-                                                            {/* PM-003 */}
-
-                                                            {project.hasSpecification && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        handleDeleteSpecification(
-                                                                            project
-                                                                        )
-                                                                    }
-                                                                    disabled={
-                                                                        project.hasActiveSprint
-                                                                    }
-                                                                    className={
-                                                                        project.hasActiveSprint
-                                                                            ? "flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-400"
-                                                                            : "flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition hover:-translate-y-0.5 hover:bg-red-100 hover:shadow-sm"
-                                                                    }
-                                                                >
-
-                                                                    <Trash2
-                                                                        size={
-                                                                            17
-                                                                        }
-                                                                    />
-
-                                                                    {project.hasActiveSprint
-                                                                        ? "Specification In Use"
-                                                                        : "Delete Project Specification"}
-
-                                                                </button>
-                                                            )}
-
-                                                            {/* PM-004 */}
-
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    handleViewProject(
-                                                                        project
-                                                                    )
-                                                                }
-                                                                className="flex items-center justify-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-bold text-cyan-700 transition hover:-translate-y-0.5 hover:bg-cyan-100 hover:shadow-sm"
-                                                            >
-
-                                                                <Eye
-                                                                    size={
-                                                                        17
-                                                                    }
-                                                                />
-
-                                                                View Assigned Project
-
-                                                            </button>
-
-                                                            {/* PM-005 */}
-
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    handleUpdateTimeline(
-                                                                        project
-                                                                    )
-                                                                }
-                                                                className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 transition hover:-translate-y-0.5 hover:bg-emerald-100 hover:shadow-sm"
-                                                            >
-
-                                                                <CalendarRange
-                                                                    size={
-                                                                        17
-                                                                    }
-                                                                />
-
-                                                                Update Project Timeline
-
-                                                            </button>
-
-                                                            {/* PM-006 */}
-
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    handleUpdateDeadline(
-                                                                        project
-                                                                    )
-                                                                }
-                                                                className="flex items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-bold text-orange-700 transition hover:-translate-y-0.5 hover:bg-orange-100 hover:shadow-sm"
-                                                            >
-
-                                                                <CalendarClock
-                                                                    size={
-                                                                        17
-                                                                    }
-                                                                />
-
-                                                                Set / Update Project Deadline
-
-                                                            </button>
-
-                                                            {/* PM-007 */}
-
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    handleManageStatus(
-                                                                        project
-                                                                    )
-                                                                }
-                                                                className="flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-700 transition hover:-translate-y-0.5 hover:bg-violet-100 hover:shadow-sm"
-                                                            >
-
-                                                                <CircleDot
-                                                                    size={
-                                                                        17
-                                                                    }
-                                                                />
-
-                                                                Manage Project Status
-
-                                                            </button>
-
-                                                        </div>
-
+                                                            Manage Project Status
+                                                        </button>
                                                     </div>
-
                                                 </div>
-
                                             </div>
-                                        );
-                                    }
-                                )}
-
-                            </div>
-                        )}
-
-                    </section>
-
-                </div>
-
-            </main>
+                                        </article>
+                                    );
+                                }
+                            )}
+                        </div>
+                    )}
+                </section>
+            </div>
 
             {/* ============================================================
                 PM-001 — CREATE SPECIFICATION
             ============================================================ */}
 
             {selectedProject &&
-                modalType ===
-                    "create" && (
+                modalType === "create" && (
                     <CreateProjectSpecificationModal
                         project={
                             selectedProject
@@ -2371,8 +2346,7 @@ useEffect(() => {
             ============================================================ */}
 
             {selectedProject &&
-                modalType ===
-                    "update" && (
+                modalType === "update" && (
                     <UpdateProjectSpecificationModal
                         project={
                             selectedProject
@@ -2397,8 +2371,7 @@ useEffect(() => {
             ============================================================ */}
 
             {selectedProject &&
-                modalType ===
-                    "delete" && (
+                modalType === "delete" && (
                     <DeleteProjectSpecificationModal
                         project={
                             selectedProject
@@ -2423,8 +2396,7 @@ useEffect(() => {
             ============================================================ */}
 
             {selectedProject &&
-                modalType ===
-                    "view" && (
+                modalType === "view" && (
                     <ViewAssignedProjectModal
                         project={
                             selectedProject
@@ -2446,8 +2418,7 @@ useEffect(() => {
             ============================================================ */}
 
             {selectedProject &&
-                modalType ===
-                    "timeline" && (
+                modalType === "timeline" && (
                     <UpdateTimelineProjectModal
                         project={
                             selectedProject
@@ -2472,8 +2443,7 @@ useEffect(() => {
             ============================================================ */}
 
             {selectedProject &&
-                modalType ===
-                    "deadline" && (
+                modalType === "deadline" && (
                     <SetUpdateProjectDeadlineModal
                         project={
                             selectedProject
@@ -2498,8 +2468,7 @@ useEffect(() => {
             ============================================================ */}
 
             {selectedProject &&
-                modalType ===
-                    "status" && (
+                modalType === "status" && (
                     <ManageProjectStatusModal
                         project={
                             selectedProject
@@ -2518,110 +2487,212 @@ useEffect(() => {
                         }
                     />
                 )}
-                       {/* ============================================================
-                AI-008 — AI PROJECT SUMMARY MODAL
-            ============================================================ */}
-            {summaryOpen && summaryProject && (
-                <AiProjectSummaryModal
-                    project={summaryProject}
-                    currentManager={currentManager}
-                    onClose={() => setSummaryOpen(false)}
-                    onError={(msg) => {
-                        handleProjectError(msg);
-                        setSummaryOpen(false);
-                    }}
-                />
-            )}
-
-            {/* 🌟 ============================================================
-                AI-003 — AI RECOMMENDATIONS MODAL
-            ============================================================ */}
-            {recommendationsOpen && recommendationsProject && (
-                <AiRecommendationsModal
-                    project={recommendationsProject}
-                    currentManager={currentManager}
-                    onClose={() => setRecommendationsOpen(false)}
-                    onError={(msg) => {
-                        handleProjectError(msg);
-                        setRecommendationsOpen(false);
-                    }}
-                />
-            )}
-   {deadlineOpen && deadlineProject && (
-       <AiDeadlinePredictionModal
-           project={deadlineProject}
-           currentManager={currentManager}
-           onClose={() => setDeadlineOpen(false)}
-           onError={(msg) => {
-               handleProjectError(msg);
-               setDeadlineOpen(false);
-           }}
-       />
-   )}
-               {/* ============================================================
-                AI-004 — AI TEAM PERFORMANCE MODAL
-            ============================================================ */}
-            {teamPerformanceOpen && teamPerformanceProject && (
-                <AiTeamPerformanceModal
-                    project={teamPerformanceProject}
-                    currentManager={currentManager}
-                    onClose={() => setTeamPerformanceOpen(false)}
-                    onError={(msg) => {
-                        handleProjectError(msg);
-                        setTeamPerformanceOpen(false);
-                    }}
-                />
-            )}
 
             {/* ============================================================
-                AI-005 — AI PROGRESS PREDICTION MODAL
+                AI-008 — AI PROJECT SUMMARY
             ============================================================ */}
-            {progressPredictionOpen && progressPredictionProject && (
-                <AiProgressPredictionModal
-                    project={progressPredictionProject}
-                    currentManager={currentManager}
-                    onClose={() => setProgressPredictionOpen(false)}
-                    onError={(msg) => {
-                        handleProjectError(msg);
-                        setProgressPredictionOpen(false);
-                    }}
-                />
-            )}
 
-            {/* ============================================================
-                AI-007 — AI SPRINT PLANNING MODAL
-            ============================================================ */}
-            {sprintPlanningOpen && sprintPlanningProject && (
-                <AiSprintPlanningModal
-                    project={sprintPlanningProject}
-                    currentManager={currentManager}
-                    onClose={() => setSprintPlanningOpen(false)}
-                    onError={(msg) => {
-                        handleProjectError(msg);
-                        setSprintPlanningOpen(false);
-                    }}
-                />
+            {summaryOpen &&
+                summaryProject && (
+                    <AiProjectSummaryModal
+                        project={
+                            summaryProject
+                        }
+                        currentManager={
+                            currentManager
+                        }
+                        onClose={() =>
+                            setSummaryOpen(
+                                false
+                            )
+                        }
+                        onError={(msg) => {
+                            handleProjectError(
+                                msg
+                            );
+                            setSummaryOpen(
+                                false
+                            );
+                        }}
+                    />
                 )}
-            {/* 🌟 ============================================================
-                AI-009 — AI BOTTLENECKS MODAL
-            ============================================================ */}
-            {bottlenecksOpen && bottlenecksProject && (
-                <AiBottlenecksModal
-                    project={bottlenecksProject}
-                    currentManager={currentManager}
-                    onClose={() => setBottlenecksOpen(false)}
-                    onError={(msg) => {
-                        handleProjectError(msg);
-                        setBottlenecksOpen(false);
-                    }}
-                />
-            )}
 
+            {/* ============================================================
+                AI-003 — AI RECOMMENDATIONS
+            ============================================================ */}
+
+            {recommendationsOpen &&
+                recommendationsProject && (
+                    <AiRecommendationsModal
+                        project={
+                            recommendationsProject
+                        }
+                        currentManager={
+                            currentManager
+                        }
+                        onClose={() =>
+                            setRecommendationsOpen(
+                                false
+                            )
+                        }
+                        onError={(msg) => {
+                            handleProjectError(
+                                msg
+                            );
+                            setRecommendationsOpen(
+                                false
+                            );
+                        }}
+                    />
+                )}
+
+            {/* ============================================================
+                AI DEADLINE PREDICTION
+            ============================================================ */}
+
+            {deadlineOpen &&
+                deadlineProject && (
+                    <AiDeadlinePredictionModal
+                        project={
+                            deadlineProject
+                        }
+                        currentManager={
+                            currentManager
+                        }
+                        onClose={() =>
+                            setDeadlineOpen(
+                                false
+                            )
+                        }
+                        onError={(msg) => {
+                            handleProjectError(
+                                msg
+                            );
+                            setDeadlineOpen(
+                                false
+                            );
+                        }}
+                    />
+                )}
+
+            {/* ============================================================
+                AI-004 — AI TEAM PERFORMANCE
+            ============================================================ */}
+
+            {teamPerformanceOpen &&
+                teamPerformanceProject && (
+                    <AiTeamPerformanceModal
+                        project={
+                            teamPerformanceProject
+                        }
+                        currentManager={
+                            currentManager
+                        }
+                        onClose={() =>
+                            setTeamPerformanceOpen(
+                                false
+                            )
+                        }
+                        onError={(msg) => {
+                            handleProjectError(
+                                msg
+                            );
+                            setTeamPerformanceOpen(
+                                false
+                            );
+                        }}
+                    />
+                )}
+
+            {/* ============================================================
+                AI-005 — AI PROGRESS PREDICTION
+            ============================================================ */}
+
+            {progressPredictionOpen &&
+                progressPredictionProject && (
+                    <AiProgressPredictionModal
+                        project={
+                            progressPredictionProject
+                        }
+                        currentManager={
+                            currentManager
+                        }
+                        onClose={() =>
+                            setProgressPredictionOpen(
+                                false
+                            )
+                        }
+                        onError={(msg) => {
+                            handleProjectError(
+                                msg
+                            );
+                            setProgressPredictionOpen(
+                                false
+                            );
+                        }}
+                    />
+                )}
+
+            {/* ============================================================
+                AI-007 — AI SPRINT PLANNING
+            ============================================================ */}
+
+            {sprintPlanningOpen &&
+                sprintPlanningProject && (
+                    <AiSprintPlanningModal
+                        project={
+                            sprintPlanningProject
+                        }
+                        currentManager={
+                            currentManager
+                        }
+                        onClose={() =>
+                            setSprintPlanningOpen(
+                                false
+                            )
+                        }
+                        onError={(msg) => {
+                            handleProjectError(
+                                msg
+                            );
+                            setSprintPlanningOpen(
+                                false
+                            );
+                        }}
+                    />
+                )}
+
+            {/* ============================================================
+                AI-009 — AI BOTTLENECKS
+            ============================================================ */}
+
+            {bottlenecksOpen &&
+                bottlenecksProject && (
+                    <AiBottlenecksModal
+                        project={
+                            bottlenecksProject
+                        }
+                        currentManager={
+                            currentManager
+                        }
+                        onClose={() =>
+                            setBottlenecksOpen(
+                                false
+                            )
+                        }
+                        onError={(msg) => {
+                            handleProjectError(
+                                msg
+                            );
+                            setBottlenecksOpen(
+                                false
+                            );
+                        }}
+                    />
+                )}
         </div>
     );
 }
-
-
 
 // ============================================================
 // DEFAULT EXPORT
