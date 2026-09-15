@@ -1,5 +1,4 @@
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
     FolderKanban,
     Search,
@@ -11,41 +10,134 @@ import {
     AlertCircle,
 } from "lucide-react";
 
+import api from "../../../../services/api";
+
 // ============================================================
 // STAFF - VIEW ASSIGNED PROJECTS
 // STAFF-PROJECT-001
+//
+// Backend:
+// GET /api/projects/my-developer-projects
+//
+// Important:
+// - Projects are loaded from the backend/database.
+// - No localStorage is used for project data.
+// - api.js supplies the authenticated JWT.
+// - UI is intentionally kept unchanged.
 // ============================================================
 
-function getStoredProjects() {
-    try {
-        const storedProjects =
-            localStorage.getItem("aipms_staff_projects") ||
-            localStorage.getItem("staffProjects");
+// ============================================================
+// HELPERS
+// ============================================================
 
-        if (!storedProjects) {
-            return [];
+function getValue(object, ...keys) {
+    for (const key of keys) {
+        if (
+            object &&
+            object[key] !== undefined &&
+            object[key] !== null
+        ) {
+            return object[key];
         }
-
-        const parsedProjects = JSON.parse(storedProjects);
-
-        return Array.isArray(parsedProjects) ? parsedProjects : [];
-    } catch (error) {
-        console.error("Failed to load assigned projects:", error);
-        return [];
     }
+
+    return "";
 }
 
+function normalizeProjects(responseData) {
+    // Supports both:
+    //
+    // 1. Direct array:
+    //    [...]
+    //
+    // 2. Wrapped response:
+    //    { data: [...] }
+    //
+    // 3. Wrapped response:
+    //    { projects: [...] }
+
+    if (Array.isArray(responseData)) {
+        return responseData;
+    }
+
+    if (Array.isArray(responseData?.data)) {
+        return responseData.data;
+    }
+
+    if (Array.isArray(responseData?.projects)) {
+        return responseData.projects;
+    }
+
+    return [];
+}
+
+// ============================================================
+// COMPONENT
+// ============================================================
+
 function ViewAssignedProjects() {
-    const [projects, setProjects] = useState(getStoredProjects);
+    const [projects, setProjects] = useState([]);
+
     const [searchTerm, setSearchTerm] = useState("");
 
+    const [loading, setLoading] = useState(true);
+
+    const [refreshing, setRefreshing] = useState(false);
+
+    const [error, setError] = useState("");
+
     // ============================================================
-    // REFRESH PROJECTS
+    // LOAD ASSIGNED PROJECTS FROM BACKEND
+    //
+    // GET /api/projects/my-developer-projects
     // ============================================================
 
-    const loadProjects = () => {
-        setProjects(getStoredProjects());
+    const loadProjects = async (showRefreshState = false) => {
+        try {
+            if (showRefreshState) {
+                setRefreshing(true);
+            } else {
+                setLoading(true);
+            }
+
+            setError("");
+
+            const response = await api.get(
+                "/projects/my-developer-projects"
+            );
+
+            const backendProjects = normalizeProjects(
+                response.data
+            );
+
+            setProjects(backendProjects);
+        } catch (error) {
+            console.error(
+                "Failed to load assigned projects:",
+                error
+            );
+
+            const errorMessage =
+                error?.response?.data?.message ||
+                error?.response?.data?.Message ||
+                "Unable to load your assigned projects.";
+
+            setError(errorMessage);
+
+            setProjects([]);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
     };
+
+    // ============================================================
+    // LOAD PROJECTS WHEN COMPONENT OPENS
+    // ============================================================
+
+    useEffect(() => {
+        loadProjects();
+    }, []);
 
     // ============================================================
     // SEARCH / FILTER
@@ -59,24 +151,43 @@ function ViewAssignedProjects() {
         }
 
         return projects.filter((project) => {
-            const projectName =
-                project.name ||
-                project.projectName ||
-                "";
+            const projectName = String(
+                getValue(
+                    project,
+                    "name",
+                    "projectName",
+                    "Name",
+                    "ProjectName"
+                )
+            );
 
-            const description =
-                project.description ||
-                "";
+            const description = String(
+                getValue(
+                    project,
+                    "description",
+                    "Description"
+                )
+            );
 
-            const organization =
-                project.organization ||
-                project.organizationName ||
-                "";
+            const organization = String(
+                getValue(
+                    project,
+                    "organization",
+                    "organizationName",
+                    "Organization",
+                    "OrganizationName"
+                )
+            );
 
-            const manager =
-                project.manager ||
-                project.managerName ||
-                "";
+            const manager = String(
+                getValue(
+                    project,
+                    "manager",
+                    "managerName",
+                    "Manager",
+                    "ManagerName"
+                )
+            );
 
             return (
                 projectName.toLowerCase().includes(search) ||
@@ -107,23 +218,68 @@ function ViewAssignedProjects() {
 
     // ============================================================
     // VIEW PROJECT
+    //
+    // No localStorage.
+    //
+    // The project object is passed to the selected-project
+    // handler only if a parent later provides one.
+    //
+    // For now, preserve the existing user interaction.
     // ============================================================
 
     const handleViewProject = (project) => {
-        localStorage.setItem(
-            "aipms_selected_staff_project",
-            JSON.stringify(project)
-        );
-
-        localStorage.setItem(
-            "selectedProject",
-            JSON.stringify(project)
+        console.log(
+            "Selected staff project:",
+            project
         );
 
         alert(
             "Project selected. Open the View Project Details use case to see the project information."
         );
     };
+
+    // ============================================================
+    // LOADING STATE
+    // ============================================================
+
+    if (loading) {
+        return (
+            <div className="w-full">
+                <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                                <FolderKanban className="h-7 w-7 text-primary" />
+                            </div>
+
+                            <div>
+                                <h1 className="text-2xl font-bold text-foreground">
+                                    Assigned Projects
+                                </h1>
+
+                                <p className="text-sm text-muted-foreground">
+                                    View projects assigned to you.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-card p-10 text-center">
+                    <RefreshCw className="mx-auto mb-4 h-7 w-7 animate-spin text-primary" />
+
+                    <h2 className="mb-2 text-lg font-semibold text-card-foreground">
+                        Loading Assigned Projects
+                    </h2>
+
+                    <p className="text-sm text-muted-foreground">
+                        Loading your assigned projects from the
+                        server...
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     // ============================================================
     // RENDER
@@ -164,14 +320,44 @@ function ViewAssignedProjects() {
 
                 <button
                     type="button"
-                    onClick={loadProjects}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+                    onClick={() => loadProjects(true)}
+                    disabled={refreshing}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                    <RefreshCw className="h-4 w-4" />
-                    Refresh
+                    <RefreshCw
+                        className={`h-4 w-4 ${
+                            refreshing
+                                ? "animate-spin"
+                                : ""
+                        }`}
+                    />
+
+                    {refreshing
+                        ? "Refreshing..."
+                        : "Refresh"}
                 </button>
 
             </div>
+
+            {/* ==================================================
+                ERROR
+            ================================================== */}
+
+            {error && (
+                <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-800/60 bg-red-950/30 p-4 text-sm text-red-300">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+
+                    <div>
+                        <p className="font-medium">
+                            Unable to load assigned projects
+                        </p>
+
+                        <p className="mt-1">
+                            {error}
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* ==================================================
                 SEARCH
@@ -187,7 +373,9 @@ function ViewAssignedProjects() {
                         type="text"
                         value={searchTerm}
                         onChange={(event) =>
-                            setSearchTerm(event.target.value)
+                            setSearchTerm(
+                                event.target.value
+                            )
                         }
                         placeholder="Search assigned projects..."
                         className="w-full rounded-xl border border-border bg-card py-3 pl-11 pr-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20"
@@ -248,154 +436,207 @@ function ViewAssignedProjects() {
             {filteredProjects.length > 0 && (
                 <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
 
-                    {filteredProjects.map((project, index) => {
+                    {filteredProjects.map(
+                        (project, index) => {
 
-                        const projectName =
-                            project.name ||
-                            project.projectName ||
-                            `Project ${index + 1}`;
+                            const projectName =
+                                getValue(
+                                    project,
+                                    "name",
+                                    "projectName",
+                                    "Name",
+                                    "ProjectName"
+                                ) ||
+                                `Project ${index + 1}`;
 
-                        const description =
-                            project.description ||
-                            "No project description available.";
+                            const description =
+                                getValue(
+                                    project,
+                                    "description",
+                                    "Description"
+                                ) ||
+                                "No project description available.";
 
-                        const manager =
-                            project.manager ||
-                            project.managerName ||
-                            "Not assigned";
+                            const manager =
+                                getValue(
+                                    project,
+                                    "manager",
+                                    "managerName",
+                                    "Manager",
+                                    "ManagerName"
+                                ) ||
+                                "Not assigned";
 
-                        const organization =
-                            project.organization ||
-                            project.organizationName ||
-                            "Not specified";
+                            const organization =
+                                getValue(
+                                    project,
+                                    "organization",
+                                    "organizationName",
+                                    "Organization",
+                                    "OrganizationName"
+                                ) ||
+                                "Not specified";
 
-                        const startDate =
-                            project.startDate ||
-                            project.startDateTime;
+                            const startDate =
+                                getValue(
+                                    project,
+                                    "startDate",
+                                    "startDateTime",
+                                    "StartDate",
+                                    "StartDateTime"
+                                );
 
-                        const endDate =
-                            project.endDate ||
-                            project.endDateTime;
+                            const endDate =
+                                getValue(
+                                    project,
+                                    "endDate",
+                                    "endDateTime",
+                                    "EndDate",
+                                    "EndDateTime"
+                                );
 
-                        const projectStatus =
-                            project.status ||
-                            project.projectStatus ||
-                            "Active";
+                            const projectStatus =
+                                getValue(
+                                    project,
+                                    "status",
+                                    "projectStatus",
+                                    "Status",
+                                    "ProjectStatus"
+                                ) ||
+                                "Active";
 
-                        return (
-                            <div
-                                key={
-                                    project.id ||
-                                    project.projectId ||
-                                    index
-                                }
-                                className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50"
-                            >
+                            const projectId =
+                                getValue(
+                                    project,
+                                    "id",
+                                    "projectId",
+                                    "Id",
+                                    "ProjectId"
+                                );
 
-                                {/* PROJECT HEADER */}
+                            return (
+                                <div
+                                    key={
+                                        projectId ||
+                                        index
+                                    }
+                                    className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50"
+                                >
 
-                                <div className="mb-4 flex items-start justify-between gap-4">
+                                    {/* PROJECT HEADER */}
 
-                                    <div className="flex items-start gap-3">
+                                    <div className="mb-4 flex items-start justify-between gap-4">
 
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                                        <div className="flex items-start gap-3">
 
-                                            <FolderKanban className="h-6 w-6 text-primary" />
+                                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+
+                                                <FolderKanban className="h-6 w-6 text-primary" />
+
+                                            </div>
+
+                                            <div>
+
+                                                <h2 className="font-semibold text-card-foreground">
+                                                    {projectName}
+                                                </h2>
+
+                                                <span className="mt-1 inline-block rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                                                    {projectStatus}
+                                                </span>
+
+                                            </div>
 
                                         </div>
 
-                                        <div>
+                                    </div>
 
-                                            <h2 className="font-semibold text-card-foreground">
-                                                {projectName}
-                                            </h2>
+                                    {/* DESCRIPTION */}
 
-                                            <span className="mt-1 inline-block rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                                                {projectStatus}
+                                    <p className="mb-5 line-clamp-3 text-sm leading-6 text-muted-foreground">
+                                        {description}
+                                    </p>
+
+                                    {/* PROJECT INFORMATION */}
+
+                                    <div className="space-y-3 border-t border-border pt-4">
+
+                                        <div className="flex items-center gap-3 text-sm">
+
+                                            <UserRound className="h-4 w-4 text-muted-foreground" />
+
+                                            <span className="text-muted-foreground">
+                                                Manager:
+                                            </span>
+
+                                            <span className="text-card-foreground">
+                                                {manager}
+                                            </span>
+
+                                        </div>
+
+                                        <div className="flex items-center gap-3 text-sm">
+
+                                            <Building2 className="h-4 w-4 text-muted-foreground" />
+
+                                            <span className="text-muted-foreground">
+                                                Organization:
+                                            </span>
+
+                                            <span className="text-card-foreground">
+                                                {organization}
+                                            </span>
+
+                                        </div>
+
+                                        <div className="flex items-center gap-3 text-sm">
+
+                                            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+
+                                            <span className="text-muted-foreground">
+                                                Dates:
+                                            </span>
+
+                                            <span className="text-card-foreground">
+                                                {formatDate(
+                                                    startDate
+                                                )}
+
+                                                {" → "}
+
+                                                {formatDate(
+                                                    endDate
+                                                )}
                                             </span>
 
                                         </div>
 
                                     </div>
 
-                                </div>
+                                    {/* ACTION */}
 
-                                {/* DESCRIPTION */}
+                                    <div className="mt-5">
 
-                                <p className="mb-5 line-clamp-3 text-sm leading-6 text-muted-foreground">
-                                    {description}
-                                </p>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleViewProject(
+                                                    project
+                                                )
+                                            }
+                                            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition hover:bg-primary hover:text-primary-foreground"
+                                        >
+                                            <Eye className="h-4 w-4" />
 
-                                {/* PROJECT INFORMATION */}
-
-                                <div className="space-y-3 border-t border-border pt-4">
-
-                                    <div className="flex items-center gap-3 text-sm">
-
-                                        <UserRound className="h-4 w-4 text-muted-foreground" />
-
-                                        <span className="text-muted-foreground">
-                                            Manager:
-                                        </span>
-
-                                        <span className="text-card-foreground">
-                                            {manager}
-                                        </span>
-
-                                    </div>
-
-                                    <div className="flex items-center gap-3 text-sm">
-
-                                        <Building2 className="h-4 w-4 text-muted-foreground" />
-
-                                        <span className="text-muted-foreground">
-                                            Organization:
-                                        </span>
-
-                                        <span className="text-card-foreground">
-                                            {organization}
-                                        </span>
-
-                                    </div>
-
-                                    <div className="flex items-center gap-3 text-sm">
-
-                                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
-
-                                        <span className="text-muted-foreground">
-                                            Dates:
-                                        </span>
-
-                                        <span className="text-card-foreground">
-                                            {formatDate(startDate)}
-                                            {" → "}
-                                            {formatDate(endDate)}
-                                        </span>
+                                            View Project
+                                        </button>
 
                                     </div>
 
                                 </div>
-
-                                {/* ACTION */}
-
-                                <div className="mt-5">
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleViewProject(project)
-                                        }
-                                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition hover:bg-primary hover:text-primary-foreground"
-                                    >
-                                        <Eye className="h-4 w-4" />
-                                        View Project
-                                    </button>
-
-                                </div>
-
-                            </div>
-                        );
-                    })}
+                            );
+                        }
+                    )}
 
                 </div>
             )}

@@ -8,6 +8,10 @@ namespace AI_PMS.Application.Interfaces.Communication
             Guid managerId,
             SendTeamLeaderMessageDto request);
 
+        Task<MessageResponseDto> SendMessageToTeamMemberAsync(
+            Guid senderId,
+            SendTeamMemberMessageDto request);
+
         Task<List<MessageResponseDto>> GetConversationAsync(
             Guid managerId,
             Guid projectId);

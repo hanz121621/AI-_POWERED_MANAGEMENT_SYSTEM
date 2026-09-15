@@ -1,5 +1,4 @@
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
     MessageSquare,
@@ -11,60 +10,42 @@ import {
     Clock,
     Inbox,
     CheckCircle2,
+    AlertCircle,
 } from "lucide-react";
 
-// ============================================================
-// STORAGE
-// ============================================================
-
-const MESSAGES_STORAGE_KEY = "aipms_staff_messages";
+import api from "../../../../services/api";
 
 // ============================================================
-// SAMPLE MESSAGES
+// AIPMS — STAFF RECEIVE MESSAGES
+//
+// Backend endpoints:
+//
+// GET   /api/communication/messages/inbox
+// GET   /api/communication/messages/inbox/{messageId}
+// PATCH /api/communication/messages/inbox/{messageId}/read
+//
+// Backend MessageResponseDto:
+//
+// Id
+// SenderId
+// SenderName
+// ReceiverId
+// ReceiverName
+// ProjectId
+// TeamId
+// TaskId
+// Title
+// Message
+// IsRead
+// ReadAt
+// CreatedAt
+//
+// Important:
+// - No localStorage is used for messages.
+// - Messages come from the backend/database.
+// - The backend identifies the authenticated user from JWT.
+// - api.js handles the JWT Authorization header.
 // ============================================================
-
-const DEFAULT_MESSAGES = [
-    {
-        id: "message-001",
-        senderName: "Project Manager",
-        senderEmail: "manager@example.com",
-        subject: "Project Update",
-        message:
-            "Please review the latest project updates and make sure your assigned tasks are progressing as planned.",
-        createdAt: new Date().toISOString(),
-        read: false,
-        priority: "Normal",
-    },
-];
-
-// ============================================================
-// GET STORED MESSAGES
-// ============================================================
-
-function getStoredMessages() {
-    try {
-        const storedMessages = localStorage.getItem(
-            MESSAGES_STORAGE_KEY
-        );
-
-        if (!storedMessages) {
-            return DEFAULT_MESSAGES;
-        }
-
-        const parsedMessages = JSON.parse(storedMessages);
-
-        return Array.isArray(parsedMessages)
-            ? parsedMessages
-            : DEFAULT_MESSAGES;
-    } catch (error) {
-        console.error(
-            "Failed to load staff messages:",
-            error
-        );
-
-        return DEFAULT_MESSAGES;
-    }
-}
 
 // ============================================================
 // DATE FORMATTER
@@ -89,13 +70,73 @@ function formatDate(dateValue) {
 // ============================================================
 
 function ReceiveMessages() {
-    const [messages, setMessages] = useState(
-        getStoredMessages
-    );
+    const [messages, setMessages] = useState([]);
 
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedMessage, setSelectedMessage] =
-        useState(null);
+
+    const [selectedMessage, setSelectedMessage] = useState(null);
+
+    const [loading, setLoading] = useState(true);
+
+    const [refreshing, setRefreshing] = useState(false);
+
+    const [openingMessageId, setOpeningMessageId] = useState(null);
+
+    const [error, setError] = useState("");
+
+    // ========================================================
+    // LOAD INBOX
+    //
+    // GET /api/communication/messages/inbox
+    // ========================================================
+
+    const loadMessages = async (showRefreshState = false) => {
+        try {
+            if (showRefreshState) {
+                setRefreshing(true);
+            } else {
+                setLoading(true);
+            }
+
+            setError("");
+
+            const response = await api.get(
+                "/communication/messages/inbox"
+            );
+
+            const inboxMessages = Array.isArray(response.data)
+                ? response.data
+                : [];
+
+            setMessages(inboxMessages);
+
+            // Clear selected message when refreshing the inbox.
+            setSelectedMessage(null);
+        } catch (err) {
+            console.error(
+                "Failed to load staff messages:",
+                err
+            );
+
+            const message =
+                err?.response?.data?.message ||
+                err?.response?.data?.Message ||
+                "Unable to load your messages.";
+
+            setError(message);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    // ========================================================
+    // LOAD MESSAGES WHEN COMPONENT OPENS
+    // ========================================================
+
+    useEffect(() => {
+        loadMessages();
+    }, []);
 
     // ========================================================
     // FILTER MESSAGES
@@ -111,10 +152,8 @@ function ReceiveMessages() {
         return messages.filter((message) =>
             [
                 message.senderName,
-                message.senderEmail,
-                message.subject,
+                message.title,
                 message.message,
-                message.priority,
             ]
                 .filter(Boolean)
                 .some((value) =>
@@ -129,36 +168,98 @@ function ReceiveMessages() {
     // REFRESH
     // ========================================================
 
-    const handleRefresh = () => {
-        setMessages(getStoredMessages());
-        setSelectedMessage(null);
+    const handleRefresh = async () => {
+        await loadMessages(true);
     };
 
     // ========================================================
     // OPEN MESSAGE
+    //
+    // 1. GET individual message
+    // 2. PATCH message as read
     // ========================================================
 
-    const handleOpenMessage = (message) => {
-        const updatedMessages = messages.map((item) =>
-            item.id === message.id
-                ? {
-                      ...item,
-                      read: true,
-                  }
-                : item
-        );
+    const handleOpenMessage = async (message) => {
+        try {
+            setOpeningMessageId(message.id);
+            setError("");
 
-        setMessages(updatedMessages);
+            // -------------------------------------------------
+            // Get the complete message from backend
+            //
+            // GET /api/communication/messages/inbox/{messageId}
+            // -------------------------------------------------
 
-        setSelectedMessage({
-            ...message,
-            read: true,
-        });
+            const response = await api.get(
+                `/communication/messages/inbox/${message.id}`
+            );
 
-        localStorage.setItem(
-            MESSAGES_STORAGE_KEY,
-            JSON.stringify(updatedMessages)
-        );
+            let openedMessage = response.data;
+
+            // -------------------------------------------------
+            // Mark message as read if it is unread
+            //
+            // PATCH
+            // /api/communication/messages/inbox/{messageId}/read
+            // -------------------------------------------------
+
+            if (!message.isRead) {
+                try {
+                    await api.patch(
+                        `/communication/messages/inbox/${message.id}/read`
+                    );
+
+                    openedMessage = {
+                        ...openedMessage,
+                        isRead: true,
+                    };
+
+                    // -------------------------------------------------
+                    // Update inbox state locally so the UI
+                    // immediately reflects the database change.
+                    // -------------------------------------------------
+
+                    setMessages((previousMessages) =>
+                        previousMessages.map((item) =>
+                            item.id === message.id
+                                ? {
+                                      ...item,
+                                      isRead: true,
+                                  }
+                                : item
+                        )
+                    );
+                } catch (readError) {
+                    console.error(
+                        "Failed to mark message as read:",
+                        readError
+                    );
+
+                    // Still show the message even if the
+                    // read-status update fails.
+                    openedMessage = {
+                        ...openedMessage,
+                        isRead: message.isRead,
+                    };
+                }
+            }
+
+            setSelectedMessage(openedMessage);
+        } catch (err) {
+            console.error(
+                "Failed to open message:",
+                err
+            );
+
+            const message =
+                err?.response?.data?.message ||
+                err?.response?.data?.Message ||
+                "Unable to open this message.";
+
+            setError(message);
+        } finally {
+            setOpeningMessageId(null);
+        }
     };
 
     // ========================================================
@@ -166,8 +267,48 @@ function ReceiveMessages() {
     // ========================================================
 
     const unreadCount = messages.filter(
-        (message) => !message.read
+        (message) => !message.isRead
     ).length;
+
+    // ========================================================
+    // LOADING STATE
+    // ========================================================
+
+    if (loading) {
+        return (
+            <div className="w-full space-y-6 text-foreground">
+                <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <MessageSquare size={22} />
+                    </div>
+
+                    <div>
+                        <h2 className="text-xl font-bold text-foreground">
+                            Receive Messages
+                        </h2>
+
+                        <p className="text-sm text-muted-foreground">
+                            View messages received from managers
+                            and team members.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex min-h-[300px] items-center justify-center rounded-xl border border-border bg-card">
+                    <div className="flex items-center gap-3 text-primary">
+                        <RefreshCw
+                            size={20}
+                            className="animate-spin"
+                        />
+
+                        <span className="text-sm">
+                            Loading messages...
+                        </span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     // ========================================================
     // RENDER
@@ -200,12 +341,38 @@ function ReceiveMessages() {
                 <button
                     type="button"
                     onClick={handleRefresh}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+                    disabled={refreshing}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                    <RefreshCw size={16} />
-                    Refresh
+                    <RefreshCw
+                        size={16}
+                        className={
+                            refreshing
+                                ? "animate-spin"
+                                : ""
+                        }
+                    />
+
+                    {refreshing
+                        ? "Refreshing..."
+                        : "Refresh"}
                 </button>
             </div>
+
+            {/* ==================================================
+                ERROR MESSAGE
+            ================================================== */}
+
+            {error && (
+                <div className="flex items-start gap-2 rounded-xl border border-red-800/60 bg-red-950/30 px-4 py-3 text-sm text-red-300">
+                    <AlertCircle
+                        size={18}
+                        className="mt-0.5 shrink-0"
+                    />
+
+                    <span>{error}</span>
+                </div>
+            )}
 
             {/* ==================================================
                 SUMMARY
@@ -287,12 +454,15 @@ function ReceiveMessages() {
                         />
 
                         <h3 className="mt-4 font-semibold text-foreground">
-                            No messages found
+                            {searchTerm
+                                ? "No messages found"
+                                : "No messages"}
                         </h3>
 
                         <p className="mt-2 text-sm text-muted-foreground">
-                            There are no messages matching your
-                            search.
+                            {searchTerm
+                                ? "There are no messages matching your search."
+                                : "You currently have no received messages."}
                         </p>
                     </div>
                 ) : (
@@ -303,8 +473,12 @@ function ReceiveMessages() {
                             onClick={() =>
                                 handleOpenMessage(message)
                             }
-                            className={`w-full rounded-xl border p-5 text-left transition ${
-                                message.read
+                            disabled={
+                                openingMessageId ===
+                                message.id
+                            }
+                            className={`w-full rounded-xl border p-5 text-left transition disabled:cursor-wait disabled:opacity-70 ${
+                                message.isRead
                                     ? "border-border bg-card hover:bg-muted"
                                     : "border-primary/30 bg-primary/10 hover:bg-primary/15"
                             }`}
@@ -312,7 +486,13 @@ function ReceiveMessages() {
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex min-w-0 items-start gap-3">
                                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-primary">
-                                        {message.read ? (
+                                        {openingMessageId ===
+                                        message.id ? (
+                                            <RefreshCw
+                                                size={19}
+                                                className="animate-spin"
+                                            />
+                                        ) : message.isRead ? (
                                             <MailOpen size={19} />
                                         ) : (
                                             <Mail size={19} />
@@ -322,11 +502,11 @@ function ReceiveMessages() {
                                     <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <h3 className="font-semibold text-foreground">
-                                                {message.subject ||
+                                                {message.title ||
                                                     "No Subject"}
                                             </h3>
 
-                                            {!message.read && (
+                                            {!message.isRead && (
                                                 <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
                                                     New
                                                 </span>
@@ -351,22 +531,11 @@ function ReceiveMessages() {
                                         </div>
 
                                         <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
-                                            {message.message}
+                                            {message.message ||
+                                                "No message content."}
                                         </p>
                                     </div>
                                 </div>
-
-                                <span
-                                    className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${
-                                        message.priority ===
-                                        "High"
-                                            ? "border-primary/30 bg-primary/10 text-primary"
-                                            : "border-border bg-muted text-muted-foreground"
-                                    }`}
-                                >
-                                    {message.priority ||
-                                        "Normal"}
-                                </span>
                             </div>
                         </button>
                     ))
@@ -382,7 +551,7 @@ function ReceiveMessages() {
                     <div className="flex items-start justify-between gap-4">
                         <div>
                             <h3 className="text-lg font-bold text-foreground">
-                                {selectedMessage.subject ||
+                                {selectedMessage.title ||
                                     "No Subject"}
                             </h3>
 
@@ -392,7 +561,7 @@ function ReceiveMessages() {
                                     "Unknown sender"}
                             </p>
 
-                            <p className="text-xs text-muted-foreground">
+                            <p className="mt-1 text-xs text-muted-foreground">
                                 {formatDate(
                                     selectedMessage.createdAt
                                 )}
@@ -407,7 +576,8 @@ function ReceiveMessages() {
 
                     <div className="mt-5 rounded-lg border border-border bg-muted p-4">
                         <p className="whitespace-pre-wrap text-sm leading-6 text-card-foreground">
-                            {selectedMessage.message}
+                            {selectedMessage.message ||
+                                "No message content."}
                         </p>
                     </div>
                 </div>

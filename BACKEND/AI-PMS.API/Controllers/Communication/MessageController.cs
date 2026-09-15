@@ -1,4 +1,3 @@
-
 using AI_PMS.Application.DTOs.Communication;
 using AI_PMS.Application.Interfaces.Communication;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +9,7 @@ namespace AI_PMS.API.Controllers.Communication
     [ApiController]
     [Route("api/communication/messages")]
     [Authorize(Roles = "Manager,Contributor")]
-public class MessageController : ControllerBase
+    public class MessageController : ControllerBase
     {
         private readonly IMessageService _messageService;
 
@@ -25,11 +24,11 @@ public class MessageController : ControllerBase
         // POST: api/communication/messages/team-leader
         // =========================================================
 
-     [Authorize(Roles = "Manager")]
-[HttpPost("team-leader")]
-public async Task<ActionResult<MessageResponseDto>>
-    SendMessageToTeamLeader(
-        [FromBody] SendTeamLeaderMessageDto request)
+        [Authorize(Roles = "Manager")]
+        [HttpPost("team-leader")]
+        public async Task<ActionResult<MessageResponseDto>>
+            SendMessageToTeamLeader(
+                [FromBody] SendTeamLeaderMessageDto request)
         {
             var userIdClaim =
                 User.FindFirstValue(
@@ -62,7 +61,7 @@ public async Task<ActionResult<MessageResponseDto>>
                     message = ex.Message
                 });
             }
-                       catch (KeyNotFoundException ex)
+            catch (KeyNotFoundException ex)
             {
                 return NotFound(new
                 {
@@ -73,7 +72,72 @@ public async Task<ActionResult<MessageResponseDto>>
             {
                 return Forbid();
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
 
+        // =========================================================
+        // SEND MESSAGE TO TEAM MEMBER
+        //
+        // STAFF / CONTRIBUTOR -> TEAM MEMBER
+        //
+        // POST:
+        // api/communication/messages/team-member
+        // =========================================================
+
+        [Authorize(Roles = "Contributor")]
+        [HttpPost("team-member")]
+        public async Task<ActionResult<MessageResponseDto>>
+            SendMessageToTeamMember(
+                [FromBody] SendTeamMemberMessageDto request)
+        {
+            var userIdClaim =
+                User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+
+            if (!Guid.TryParse(
+                    userIdClaim,
+                    out var senderId))
+            {
+                return Unauthorized(new
+                {
+                    message = "Invalid authenticated user."
+                });
+            }
+
+            try
+            {
+                var result =
+                    await _messageService
+                        .SendMessageToTeamMemberAsync(
+                            senderId,
+                            request);
+
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new
@@ -86,7 +150,8 @@ public async Task<ActionResult<MessageResponseDto>>
         // =========================================================
         // RECEIVE MESSAGES / MY INBOX
         //
-        // GET: api/communication/messages/inbox
+        // GET:
+        // api/communication/messages/inbox
         // =========================================================
 
         [HttpGet("inbox")]
@@ -131,12 +196,14 @@ public async Task<ActionResult<MessageResponseDto>>
         // =========================================================
         // GET ONE RECEIVED MESSAGE
         //
-        // GET: api/communication/messages/inbox/{messageId}
+        // GET:
+        // api/communication/messages/inbox/{messageId}
         // =========================================================
 
         [HttpGet("inbox/{messageId:guid}")]
         public async Task<ActionResult<MessageResponseDto>>
-            GetReceivedMessage(Guid messageId)
+            GetReceivedMessage(
+                Guid messageId)
         {
             var userIdClaim =
                 User.FindFirstValue(
@@ -185,7 +252,8 @@ public async Task<ActionResult<MessageResponseDto>>
 
         [HttpPatch("inbox/{messageId:guid}/read")]
         public async Task<IActionResult>
-            MarkMessageAsRead(Guid messageId)
+            MarkMessageAsRead(
+                Guid messageId)
         {
             var userIdClaim =
                 User.FindFirstValue(
@@ -247,7 +315,8 @@ public async Task<ActionResult<MessageResponseDto>>
 
         [HttpGet("project/{projectId:guid}")]
         public async Task<ActionResult<List<MessageResponseDto>>>
-            GetConversation(Guid projectId)
+            GetConversation(
+                Guid projectId)
         {
             var userIdClaim =
                 User.FindFirstValue(
@@ -322,7 +391,8 @@ public async Task<ActionResult<MessageResponseDto>>
             {
                 var count =
                     await _messageService
-                        .GetUnreadCountAsync(userId);
+                        .GetUnreadCountAsync(
+                            userId);
 
                 return Ok(new
                 {
