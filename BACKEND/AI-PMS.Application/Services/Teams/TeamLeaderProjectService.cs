@@ -33,7 +33,6 @@ namespace AI_PMS.Application.Services.Teams
             _taskRepository = taskRepository;
             _userRepository = userRepository;
         }
-
         // =========================================================
         // TL-PROJECT-001
         // VIEW ASSIGNED PROJECTS
@@ -50,36 +49,7 @@ namespace AI_PMS.Application.Services.Teams
             }
 
             // -----------------------------------------------------
-            // Find teams where this user is an active Team Leader
-            // -----------------------------------------------------
-
-            var teams =
-                await _teamRepository.GetAllAsync();
-
-            var leaderTeams =
-                teams
-                    .Where(t =>
-                        t.IsActive &&
-                        t.TeamMembers.Any(tm =>
-                            tm.UserId == teamLeaderId &&
-                            tm.IsTeamLeader &&
-                            tm.IsActive &&
-                            tm.User != null &&
-                            tm.User.IsActive))
-                    .ToList();
-
-            if (!leaderTeams.Any())
-            {
-                return Enumerable.Empty<TeamLeaderProjectDto>();
-            }
-
-            var teamIds =
-                leaderTeams
-                    .Select(t => t.Id)
-                    .ToHashSet();
-
-            // -----------------------------------------------------
-            // Get projects
+            // 🌟 FIX: Find projects where this user is the designated Team Leader
             // -----------------------------------------------------
 
             var projects =
@@ -89,22 +59,30 @@ namespace AI_PMS.Application.Services.Teams
                 projects
                     .Where(p =>
                         !p.IsDeleted &&
-                        p.TeamId.HasValue &&
-                        teamIds.Contains(p.TeamId.Value))
+                        p.TeamLeaderId.HasValue &&
+                        p.TeamLeaderId.Value == teamLeaderId) // 🌟 Direct match to Project.TeamLeaderId!
                     .OrderBy(p => p.Name)
                     .ToList();
+
+            if (!assignedProjects.Any())
+            {
+                return Enumerable.Empty<TeamLeaderProjectDto>();
+            }
 
             var result =
                 new List<TeamLeaderProjectDto>();
 
             foreach (var project in assignedProjects)
             {
-                var team =
-                    leaderTeams.FirstOrDefault(t =>
-                        t.Id == project.TeamId);
+                // 🌟 Get Team Name directly from the TeamId on the project
+                string teamName = string.Empty;
+                if (project.TeamId.HasValue)
+                {
+                    var team = await _teamRepository.GetByIdAsync(project.TeamId.Value);
+                    teamName = team?.Name ?? string.Empty;
+                }
 
                 string managerName = string.Empty;
-
                 if (project.ManagerId.HasValue)
                 {
                     var manager =
@@ -150,59 +128,26 @@ namespace AI_PMS.Application.Services.Teams
                     new TeamLeaderProjectDto
                     {
                         Id = project.Id,
-
                         Name = project.Name,
-
-                        Description =
-                            project.Description
-                            ?? string.Empty,
-
-                        StatusId =
-                            project.StatusId,
-
-                        StatusName =
-                            project.Status?.Name
-                            ?? string.Empty,
-
-                        ProgressPercentage =
-                            project.ProgressPercentage,
-
-                        TeamId =
-                            project.TeamId,
-
-                        TeamName =
-                            team?.Name
-                            ?? string.Empty,
-
-                        ManagerId =
-                            project.ManagerId,
-
-                        ManagerName =
-                            managerName,
-
-                        PriorityId =
-                            (int)project.Priority,
-
-                        PriorityName =
-                            project.Priority.ToString(),
-
-                        StartDate =
-                            project.StartDate,
-
-                        Deadline =
-                            project.Deadline,
-
-                        CurrentSprintId =
-                            currentSprintId,
-
-                        CurrentSprintName =
-                            currentSprintName
+                        Description = project.Description ?? string.Empty,
+                        StatusId = project.StatusId,
+                        StatusName = project.Status?.Name ?? string.Empty,
+                        ProgressPercentage = project.ProgressPercentage,
+                        TeamId = project.TeamId,
+                        TeamName = teamName, // 🌟 Using the teamName we just fetched
+                        ManagerId = project.ManagerId,
+                        ManagerName = managerName,
+                        PriorityId = (int)project.Priority,
+                        PriorityName = project.Priority.ToString(),
+                        StartDate = project.StartDate,
+                        Deadline = project.Deadline,
+                        CurrentSprintId = currentSprintId,
+                        CurrentSprintName = currentSprintName
                     });
             }
 
             return result;
         }
-
         // =========================================================
         // INTERFACE IMPLEMENTATION
         // TL-PROJECT-001

@@ -8,9 +8,7 @@ namespace AI_PMS.Application.Interfaces.Tasks
         // =========================================================
         // CREATE TASK
         // =========================================================
-        Task<bool> CreateTaskAsync(
-            Guid managerId,
-            CreateTaskDto dto);
+        Task<bool> CreateTaskAsync(Guid creatorId, CreateTaskDto dto);
 
         // =========================================================
         // VIEW ALL TASKS

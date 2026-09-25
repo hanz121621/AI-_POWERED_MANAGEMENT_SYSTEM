@@ -5,7 +5,7 @@ namespace AI_PMS.Application.DTOs.Sprints
     public class CreateSprintDto
     {
         public Guid ProjectId { get; set; }
-
+   public Guid? TeamId { get; set; }
         public string Name { get; set; } = string.Empty;
 
         public string Goal { get; set; } = string.Empty;

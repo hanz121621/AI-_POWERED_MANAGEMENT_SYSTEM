@@ -192,37 +192,22 @@ namespace AI_PMS.Application.Services.Sprints
             // CREATE
             // -----------------------------------------------------
 
-            var sprint = new Sprint
+                       var sprint = new Sprint
             {
                 Id = Guid.NewGuid(),
-
                 ProjectId = dto.ProjectId,
-
                 CreatedBy = managerId,
-
                 Name = sprintName,
-
-                Goal = string.IsNullOrWhiteSpace(dto.Goal)
-                    ? string.Empty
-                    : dto.Goal.Trim(),
-StartDate = dto.StartDate.ToUniversalTime(),
-    EndDate = dto.EndDate.ToUniversalTime(),
-    
-
+                Goal = string.IsNullOrWhiteSpace(dto.Goal) ? string.Empty : dto.Goal.Trim(),
+                StartDate = dto.StartDate.ToUniversalTime(),
+                EndDate = dto.EndDate.ToUniversalTime(),
                 Priority = dto.Priority,
-
-                // Status comes from configured/default workflow.
-                // Current Sprint entity uses Planned as the
-                // configured initial value.
                 IsDeleted = false,
-
                 CreatedAt = DateTime.UtcNow,
-
                 UpdatedAt = null,
 
-                // IMPORTANT:
-                // Sprint is NOT automatically assigned to a Team.
-                TeamId = null
+                // 🌟 FIX: Assign the TeamId from the DTO if provided by the frontend
+                TeamId = dto.TeamId 
             };
 
             await _sprintRepository.AddAsync(sprint);

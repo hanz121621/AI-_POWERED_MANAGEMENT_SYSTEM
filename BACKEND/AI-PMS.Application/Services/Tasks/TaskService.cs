@@ -28,120 +28,91 @@ private readonly IAiSuggestionService _aiSuggestionService;
     _userRepository = userRepository;
     _aiSuggestionService = aiSuggestionService;
 }
-
         // =========================================================
         // CREATE TASK
         // =========================================================
         public async Task<bool> CreateTaskAsync(
-    Guid managerId,
-    CreateTaskDto dto)
-{
-    // 1. Verify the logged-in user exists
-    var manager =
-        await _userRepository.GetByIdAsync(managerId);
-
-    if (manager == null)
-    {
-        throw new InvalidOperationException(
-            "Manager not found.");
-    }
-
-    // 2. User must actually be a Manager
-    if (manager.Role != Role.Manager)
-    {
-        throw new InvalidOperationException(
-            "Only a Manager can create tasks.");
-    }
-
-    // 3. Manager must be active
-    if (!manager.IsActive)
-    {
-        throw new InvalidOperationException(
-            "The Manager account is inactive.");
-    }
-
-    // 4. Check Sprint
-    var sprint =
-        await _sprintRepository.GetByIdAsync(dto.SprintId);
-
-    if (sprint == null)
-    {
-        return false;
-    }
-
-    // 5. If a contributor was selected,
-    //    verify that the user is an active contributor
-    if (dto.AssignedContributorSDId.HasValue)
-    {
-        var contributor =
-            await _userRepository.GetByIdAsync(
-                dto.AssignedContributorSDId.Value);
-
-        if (contributor == null)
+            Guid creatorId, // 🌟 Renamed from managerId to creatorId
+            CreateTaskDto dto)
         {
-            throw new InvalidOperationException(
-                "contributor not found.");
+            // 1. Verify the logged-in user exists
+            var user = await _userRepository.GetByIdAsync(creatorId);
+
+            if (user == null)
+            {
+                throw new InvalidOperationException("User not found.");
+            }
+
+            // 2. 🌟 User must be a Manager OR a Contributor (Team Leader)
+            if (user.Role != Role.Manager && user.Role != Role.Contributor)
+            {
+                throw new InvalidOperationException("Only a Manager or Team Leader can create tasks.");
+            }
+
+            // 3. User must be active
+            if (!user.IsActive)
+            {
+                throw new InvalidOperationException("The user account is inactive.");
+            }
+
+            // 4. Check Sprint
+            var sprint = await _sprintRepository.GetByIdAsync(dto.SprintId);
+
+            if (sprint == null)
+            {
+                return false;
+            }
+
+            // 5. If a contributor was selected, verify that the user is an active contributor
+            if (dto.AssignedContributorSDId.HasValue)
+            {
+                var contributor = await _userRepository.GetByIdAsync(dto.AssignedContributorSDId.Value);
+
+                if (contributor == null)
+                {
+                    throw new InvalidOperationException("Contributor not found.");
+                }
+
+                if (contributor.Role != Role.Contributor)
+                {
+                    throw new InvalidOperationException("The selected user must have the contributor role.");
+                }
+
+                if (!contributor.IsActive)
+                {
+                    throw new InvalidOperationException("The selected contributor is inactive.");
+                }
+            }
+
+            // 6. Check duplicate task title in the same sprint
+            var existingTask = await _taskRepository.GetByTitleAsync(dto.SprintId, dto.Title);
+
+            if (existingTask != null)
+            {
+                throw new InvalidOperationException("A task with this title already exists in this sprint.");
+            }
+
+            // 7. Create task
+            var task = new TaskItem
+            {
+                Id = Guid.NewGuid(),
+                SprintId = dto.SprintId,
+                Title = dto.Title.Trim(),
+                Description = dto.Description,
+                AssignedContributorSDId = dto.AssignedContributorSDId,
+                Priority = dto.Priority,
+                Status = ProjectTaskStatus.Todo,
+                EstimatedHours = dto.EstimatedHours,
+                ActualHours = 0,
+                DueDate = dto.DueDate,
+                CreatedBy = creatorId, // 🌟 Use creatorId here
+                CreatedAt = DateTime.UtcNow
+            };
+
+            // Save task ONLY ONCE
+            await _taskRepository.AddAsync(task);
+            return true;
         }
-
-        if (contributor.Role != Role.Contributor)
-        {
-            throw new InvalidOperationException(
-                "The selected user must have the contributor role.");
-        }
-
-        if (!contributor.IsActive)
-        {
-            throw new InvalidOperationException(
-                "The selected contributor is inactive.");
-        }
-    }
-
-    // 6. Check duplicate task title in the same sprint
-    var existingTask =
-        await _taskRepository.GetByTitleAsync(
-            dto.SprintId,
-            dto.Title);
-
-    if (existingTask != null)
-    {
-        throw new InvalidOperationException(
-            "A task with this title already exists in this sprint.");
-    }
-
-  // 7. Create task
-var task = new TaskItem
-{
-    Id = Guid.NewGuid(),
-
-    SprintId = dto.SprintId,
-
-    Title = dto.Title.Trim(),
-
-    Description = dto.Description,
-
-    AssignedContributorSDId =
-        dto.AssignedContributorSDId,
-
-    Priority = dto.Priority,
-
-    Status = ProjectTaskStatus.Todo,
-
-    EstimatedHours = dto.EstimatedHours,
-
-    ActualHours = 0,
-
-    DueDate = dto.DueDate,
-
-    CreatedBy = managerId,
-
-    CreatedAt = DateTime.UtcNow
-};
-
-
-// Save task ONLY ONCE
-await _taskRepository.AddAsync(task);
-return true;
-}
           // =========================================================
 // GET MY WORK
 // Current logged-in Contributor

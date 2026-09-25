@@ -10,7 +10,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import api from "@/services/api"; // 🌟 IMPORT YOUR API SERVICE
 
-function AITaskBreakdownModal({ isOpen, onClose, parentTask, onSaveTasks }) {
+function AITaskBreakdownModal({ 
+  isOpen, 
+  onClose, 
+  parentTask, 
+  projectId,    // 🌟 ADDED: Project ID
+  sprintId,     // 🌟 ADDED: Sprint ID
+  onSaveTasks 
+}) {
   const [isLoading, setIsLoading] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [suggestedTasks, setSuggestedTasks] = useState([]);
@@ -84,18 +91,51 @@ function AITaskBreakdownModal({ isOpen, onClose, parentTask, onSaveTasks }) {
     ]);
   };
 
-  // --- HANDLE SAVE ---
-  const handleSave = () => {
+  // 🌟 --- HANDLE SAVE (UPDATED TO CALL BACKEND) ---
+  const handleSave = async () => {
     const validTasks = suggestedTasks.filter((t) => t.title.trim() !== "");
     if (validTasks.length === 0) {
       setError("You must have at least one task with a title.");
       return;
     }
     
-    if (onSaveTasks) {
-      onSaveTasks(validTasks);
+    setIsLoading(true); // Show loading state while saving
+    setError("");
+
+    try {
+      // 🌟 THE EXACT PAYLOAD YOUR BACKEND EXPECTS
+      const payload = {
+        projectId: projectId,
+        sprintId: sprintId,
+        parentTaskId: parentTask?.id || null, // Null if these are top-level sprint tasks
+        tasks: validTasks.map((task) => ({
+          title: task.title,
+          description: task.description || "",
+          estimatedHours: parseInt(task.estimatedHours) || 1,
+          recommendedRole: task.recommendedRole || "Developer",
+        })),
+      };
+
+      console.log("🚀 SAVING AI TASKS PAYLOAD:", payload);
+
+      // 🌟 CALL THE NEW BACKEND ENDPOINT
+      const response = await api.post("/AITask/save-generated-tasks", payload);
+
+      if (response.data?.success) {
+        // Call the parent's refresh function if provided
+        if (onSaveTasks) {
+          onSaveTasks(response.data.data);
+        }
+        onClose(); // Close the modal on success
+      } else {
+        throw new Error(response.data?.message || "Failed to save tasks.");
+      }
+    } catch (err) {
+      console.error("SAVE TASKS ERROR:", err);
+      setError(err.response?.data?.message || "An error occurred while saving tasks.");
+    } finally {
+      setIsLoading(false);
     }
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -232,7 +272,11 @@ function AITaskBreakdownModal({ isOpen, onClose, parentTask, onSaveTasks }) {
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isLoading || suggestedTasks.length === 0} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-            <Save size={16} className="mr-2" />
+            {isLoading ? (
+              <Loader2 size={16} className="mr-2 animate-spin" />
+            ) : (
+              <Save size={16} className="mr-2" />
+            )}
             Save {suggestedTasks.length} Tasks to Sprint
           </Button>
         </div>

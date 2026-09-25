@@ -5,6 +5,8 @@ import {
     AlertTriangle,
     Send,
     X,
+    Sparkles,  
+    Loader2,
 } from "lucide-react";
 
 import api from "@/services/api";
@@ -168,8 +170,50 @@ export default function UpdateTaskStatus({
 
     const [saving, setSaving] = useState(false);
 
+      // ... existing state variables ...
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+
+    // 🌟 NEW: AI Enhancer State
+    const [isEnhancing, setIsEnhancing] = useState(false);
+
+    // 🌟 NEW: AI Enhancer Handler
+    const handleAiEnhance = async () => {
+        if (!note.trim()) {
+            setError("Please type a brief note first (e.g., 'fixed the bug') so the AI can enhance it.");
+            return;
+        }
+
+        setIsEnhancing(true);
+        setError("");
+        setSuccess("");
+
+        try {
+            const response = await api.post("/AITask/enhance-status-update", {
+                taskTitle: activeTask?.title || "Task",
+                currentStatus: status,
+                briefNote: note
+            });
+
+            if (response.data?.success) {
+                // 🌟 Replace the brief note with the AI-generated professional update
+                // Note: Ensure 'generatedUpdate' matches the property name in your backend response
+                const aiText = response.data.data?.generatedUpdate || response.data.data?.enhancedUpdate;
+                if (aiText) {
+                    setNote(aiText);
+                    setSuccess("✨ AI has enhanced your note!");
+                    setTimeout(() => setSuccess(""), 3000);
+                }
+            } else {
+                setError(response.data?.message || "Failed to enhance note.");
+            }
+        } catch (requestError) {
+            console.error("AI ENHANCE ERROR:", requestError);
+            setError(getApiErrorMessage(requestError, "Failed to enhance note with AI."));
+        } finally {
+            setIsEnhancing(false);
+        }
+    };
 
     /*
      * Load the logged-in developer's assigned tasks
@@ -718,36 +762,88 @@ export default function UpdateTaskStatus({
                         className="mt-3 w-full rounded-lg border border-slate-300 px-4 py-2.5 outline-none focus:border-blue-500"
                     />
                 </div>
+                                               {/* ... (Previous code: Status buttons and Progress slider) ... */}
 
-                <div>
-                    <label className="mb-2 block text-sm font-medium">
-                        Progress Note
-                    </label>
+                               <div>
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium">
+                            Progress Note
+                        </label>
+                        
+                        {/* 🌟 AI ENHANCE BUTTON (Available for ALL statuses) */}
+                        <button
+                            type="button"
+                            onClick={handleAiEnhance}
+                            disabled={isEnhancing || saving || !note.trim()}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-violet-600 hover:text-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {isEnhancing ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                                <Sparkles className="h-3.5 w-3.5" />
+                            )}
+                            {isEnhancing ? "AI is writing..." : "✨ Enhance with AI"}
+                        </button>
+                    </div>
 
                     <textarea
                         value={note}
-                        onChange={(event) =>
-                            setNote(
-                                event.target.value
-                            )
-                        }
+                        onChange={(event) => setNote(event.target.value)}
                         rows={4}
-                        disabled={saving}
-                        placeholder="Add a progress note or explanation..."
-                        className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                        disabled={saving || isEnhancing}
+                        placeholder="Add a brief note (e.g., 'fixed login bug') and click Enhance..."
+                        className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 disabled:bg-slate-50"
                     />
                 </div>
 
+                {/* 🌟 AI BLOCKER ASSISTANT (Only shows when status is 'Blocked') */}
+                {status === "Blocked" && (
+                    <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/20">
+                        <div className="mb-2 flex items-center justify-between">
+                            <label className="text-sm font-bold text-red-700 dark:text-red-400">
+                                🚨 Blocker Details & AI Help
+                            </label>
+                            
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    if (!note.trim()) {
+                                        alert("Please describe your blocker in the note above first!");
+                                        return;
+                                    }
+                                    try {
+                                        const res = await api.post("/AITask/resolve-blocker", {
+                                            taskTitle: activeTask?.title || "Task",
+                                            taskDescription: activeTask?.description || "",
+                                            blockerDescription: note
+                                        });
+                                        if (res.data?.success) {
+                                            setNote(prev => prev + "\n\n--- AI TROUBLESHOOTING STEPS ---\n" + res.data.data.suggestions);
+                                        }
+                                    } catch (err) {
+                                        console.error("AI Blocker Help Error:", err);
+                                        alert("Failed to get AI help. Please try again.");
+                                    }
+                                }}
+                                className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition-colors"
+                            >
+                                <Sparkles className="h-3.5 w-3.5" /> Get AI Help
+                            </button>
+                        </div>
+                        <p className="text-xs text-red-600 dark:text-red-400">
+                            Describe your error above, then click "Get AI Help" to get instant troubleshooting steps.
+                        </p>
+                    </div>
+                )}
+
+                {/* Submit Button */}
                 <button
                     type="submit"
                     disabled={saving}
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                     <Send className="h-4 w-4" />
-
-                    {saving
-                        ? "Updating..."
-                        : "Update Status"}
+                    {saving ? "Updating..." : "Update Status"}
                 </button>
             </form>
         </div>

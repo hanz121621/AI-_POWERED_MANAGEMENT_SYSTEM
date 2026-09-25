@@ -142,24 +142,24 @@ const [teamLeaders, setTeamLeaders] =
                     project?.Description ??
                     "",
 
-                manager:
-                    project?.manager ??
-                    project?.managerName ??
-                    project?.ManagerName ??
-                    project?.projectManager ??
-                    "Not assigned",
+               manager:
+        project?.manager ||
+        project?.managerName ||
+        project?.ManagerName ||
+        project?.projectManager ||
+        "Not assigned",
 
-                team:
-                    project?.team ??
-                    project?.teamName ??
-                    project?.TeamName ??
-                    "No team assigned",
+             team:
+        project?.team ||
+        project?.teamName ||
+        project?.TeamName ||
+        "No team assigned",
 
-                teamLeader:
-                    project?.teamLeader ??
-                    project?.teamLeaderName ??
-                    project?.TeamLeaderName ??
-                    "Not assigned",
+             teamLeader:
+        project?.teamLeader ||
+        project?.teamLeaderName ||
+        project?.TeamLeaderName ||
+        "Not assigned",
 
                 status:
                     project?.status ??
@@ -417,59 +417,52 @@ useEffect(() => {
   loadTeamLeadersAndManagers,
 ]);
 // ========================================================
-// ENRICH PROJECTS WITH TEAM LEADER NAMES
+// ENRICH PROJECTS WITH NAMES (Manager, Team Leader, Team)
 // ========================================================
 useEffect(() => {
-  if (projects.length > 0 && teamLeaders.length > 0) {
-    setProjects((currentProjects) =>
-      currentProjects.map((project) => {
-        // If the team leader is missing or says "Not assigned", but we have an ID, find the name
-        if ((!project.teamLeader || project.teamLeader === "Not assigned") && project.teamLeaderId) {
-          const leader = teamLeaders.find((l) => String(l.id) === String(project.teamLeaderId));
-          if (leader) {
-            return {
-              ...project,
-              teamLeader: leader.fullName || leader.name || "Not assigned",
-            };
-          }
-        }
-        return project; // Return unchanged if no match
-      })
-    );
-  }
-}, [teamLeaders]); // 🌟 This safely updates the names when teamLeaders loads, without looping
-// ========================================================
-// ENRICH PROJECTS WITH TEAM MEMBER COUNTS
-// ========================================================
-useEffect(() => {
-    if (projects.length > 0 && teams.length > 0) {
-        setProjects((currentProjects) =>
-            currentProjects.map((project) => {
-                // Find the team that matches this project's teamId
-                const matchingTeam = teams.find(
-                    (team) =>
-                        String(team?.id) === String(project?.teamId) ||
-                        String(team?.teamId) === String(project?.teamId) ||
-                        team?.name === project?.team
-                );
-
-                if (matchingTeam) {
-                    const memberCount =
-                        matchingTeam?.memberCount ??
-                        matchingTeam?.members?.length ??
-                        0;
-
-                    return {
-                        ...project,
-                        teamMemberCount: memberCount,
-                        team: matchingTeam?.name || project?.team || "No team assigned",
-                    };
-                }
-                return project;
-            })
-        );
+  // 🌟 We use the functional update to always get the latest projects,
+  // avoiding the stale closure bug that was blocking the update!
+  setProjects((currentProjects) => {
+    if (currentProjects.length === 0) {
+      return currentProjects;
     }
-}, [teams]); // 🌟 This runs when teams are loaded
+
+    return currentProjects.map((project) => {
+      let updatedProject = { ...project };
+
+      // 1. Enrich Manager Name
+      const isManagerMissing = !project.manager || project.manager === "Not assigned" || String(project.manager).trim() === "";
+      if (isManagerMissing && project.managerId) {
+        const manager = managers.find((m) => String(m.id) === String(project.managerId));
+        if (manager) {
+          updatedProject.manager = manager.name || "Not assigned";
+        }
+      }
+
+      // 2. Enrich Team Leader Name
+      const isLeaderMissing = !project.teamLeader || project.teamLeader === "Not assigned" || String(project.teamLeader).trim() === "";
+      if (isLeaderMissing && project.teamLeaderId) {
+        const leader = teamLeaders.find((l) => String(l.id) === String(project.teamLeaderId));
+        if (leader) {
+          updatedProject.teamLeader = leader.fullName || leader.name || "Not assigned";
+        }
+      }
+
+      // 3. Enrich Team Name and Member Count
+      const matchingTeam = teams.find(
+        (team) =>
+          String(team?.id) === String(project?.teamId) ||
+          String(team?.teamId) === String(project?.teamId)
+      );
+      if (matchingTeam) {
+        updatedProject.teamMemberCount = matchingTeam?.memberCount ?? matchingTeam?.members?.length ?? 0;
+        updatedProject.team = matchingTeam?.name || project?.team || "No team assigned";
+      }
+
+      return updatedProject;
+    });
+  });
+}, [managers, teamLeaders, teams]); // 🌟 'projects' is intentionally omitted because we use the functional update
     // ========================================================
     // CREATE PROJECT
     // ========================================================

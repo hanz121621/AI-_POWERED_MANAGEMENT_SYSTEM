@@ -281,15 +281,22 @@ const TeamLeader = () => {
                 return;
             }
 
-            const [tasksResponse, progressResponse] =
-                await Promise.all([
-                    api.get(
-                        `/tasks/team-leader/sprint/${activeProject.sprintId}`
-                    ),
-                    api.get(
-                        `/team-leader/sprints/${activeProject.sprintId}/progress`
-                    ),
-                ]);
+                       let tasksResponse = { data: [] };
+            let progressResponse = { data: null };
+
+            // 🌟 FIX: Fetch tasks independently so a 404 on progress doesn't crash the dashboard
+            try {
+                tasksResponse = await api.get(`/tasks/team-leader/sprint/${activeProject.sprintId}`);
+            } catch (err) {
+                console.error("Failed to load sprint tasks:", err);
+            }
+
+            try {
+                progressResponse = await api.get(`/team-leader/sprints/${activeProject.sprintId}/progress`);
+            } catch (err) {
+                console.warn("Sprint progress endpoint not available yet (404):", err);
+                // Progress data will remain null, and the UI will gracefully fall back to calculating from tasks
+            }
 
             const sprintTasks = extractTasks(tasksResponse)
                 .map(normalizeTask);

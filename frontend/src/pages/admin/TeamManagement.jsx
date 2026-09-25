@@ -66,10 +66,9 @@ const [allUsers, setAllUsers] = useState([]);
     const [createSuccess, setCreateSuccess] = useState("");
 
     const [createForm, setCreateForm] = useState({
-        name: "",
-        description: "",
-        managerId: "",
-    });
+    name: "",
+    description: "",
+});
     const [contributorTypes, setContributorTypes] = useState([]);
     const [contributorSubTypes, setContributorSubTypes] =
     useState([]);
@@ -95,12 +94,11 @@ const [
     const [editing, setEditing] = useState(false);
     const [editingTeam, setEditingTeam] = useState(null);
 
-    const [editForm, setEditForm] = useState({
-        name: "",
-        description: "",
-        managerId: "",
-        isActive: true,
-    });
+      const [editForm, setEditForm] = useState({
+       name: "",
+       description: "",
+       isActive: true, // 🌟 Removed managerId
+   });
 
     // ========================================================
     // DELETE
@@ -789,9 +787,6 @@ console.log(
             const payload = {
                 name,
                 description: description || null,
-                managerId:
-                    createForm.managerId || null,
-
                 members: selectedMembers.map(
                     (member) => ({
                         userId: member.userId,
@@ -907,7 +902,6 @@ console.log(
         setCreateForm({
             name: "",
             description: "",
-            managerId: "",
         });
 
         setSelectedMembers([]);
@@ -933,10 +927,9 @@ console.log(
         clearCreateMessages();
 
         setCreateForm({
-            name: "",
-            description: "",
-            managerId: "",
-        });
+    name: "",
+    description: "",
+});
 
         setSelectedMembers([]);
 
@@ -973,20 +966,11 @@ console.log(
                 team;
 
             setEditingTeam(currentTeam);
-
-            setEditForm({
-                name: currentTeam.name || "",
-
-                description:
-                    currentTeam.description ||
-                    "",
-
-                managerId:
-                    getManagerId(currentTeam),
-
-                isActive:
-                    currentTeam.isActive !== false,
-            });
+   setEditForm({
+       name: currentTeam.name || "",
+       description: currentTeam.description || "",
+       isActive: currentTeam.isActive !== false, // 🌟 Removed managerId
+   });
 
             setEditOpen(true);
         } catch (err) {
@@ -1023,91 +1007,54 @@ console.log(
                     : value,
         }));
     };
-
-    // ========================================================
-    // UPDATE TEAM
-    // ========================================================
-
     const handleUpdateTeam = async (event) => {
         event.preventDefault();
 
         if (!editingTeam) return;
 
-        const teamId =
-            getTeamId(editingTeam);
+        const teamId = getTeamId(editingTeam);
 
         if (!teamId) {
             setError("Team ID is missing.");
             return;
         }
 
-        const name =
-            editForm.name.trim();
-
-        const description =
-            editForm.description.trim();
+        const name = editForm.name.trim();
+        const description = editForm.description.trim();
 
         clearPageMessages();
 
         if (!name) {
-            setError(
-                "Team name is required."
-            );
+            setError("Team name is required.");
             return;
         }
 
         if (name.length > 100) {
-            setError(
-                "Team name cannot exceed 100 characters."
-            );
+            setError("Team name cannot exceed 100 characters.");
             return;
         }
 
         if (description.length > 500) {
-            setError(
-                "Description cannot exceed 500 characters."
-            );
+            setError("Description cannot exceed 500 characters.");
             return;
         }
 
         try {
             setEditing(true);
 
+            // 🌟 REMOVED managerId FROM PAYLOAD
             const payload = {
                 name,
-
-                description:
-                    description || null,
-
-                managerId:
-                    editForm.managerId ||
-                    null,
-
-                isActive:
-                    editForm.isActive,
+                description: description || null,
+                isActive: editForm.isActive,
             };
 
-            const result =
-                await updateTeam(
-                    teamId,
-                    payload
-                );
+            const result = await updateTeam(teamId, payload);
 
-            console.log(
-                "UPDATE TEAM RESULT:",
-                result
-            );
+            console.log("UPDATE TEAM RESULT:", result);
 
-            if (
-                result &&
-                result.success === false
-            ) {
-                setError(
-                    result.error ||
-                    result.message ||
-                    "Unable to update team."
-                );
-
+            if (result && result.success === false) {
+                setError(result.error || result.message || "Unable to update team.");
                 return;
             }
 
@@ -1116,25 +1063,15 @@ console.log(
 
             await loadTeams();
 
-            setSuccessMessage(
-                result?.message ||
-                "Team updated successfully."
-            );
+            setSuccessMessage(result?.message || "Team updated successfully.");
         } catch (err) {
-            console.error(
-                "UPDATE TEAM ERROR:",
-                err
-            );
+            console.error("UPDATE TEAM ERROR:", err);
 
-            setError(
-                getErrorMessage(err) ||
-                "Unable to update team."
-            );
+            setError(getErrorMessage(err) || "Unable to update team.");
         } finally {
             setEditing(false);
         }
     };
-
     // ========================================================
     // CLOSE EDIT
     // ========================================================
@@ -1223,6 +1160,12 @@ console.log(
             setDeletingTeamId(null);
         }
     };
+
+
+
+
+
+
 
     // ========================================================
     // VIEW TEAM DETAILS
@@ -1741,33 +1684,30 @@ console.log(
     // ========================================================
     // FILTER USERS BY SELECTED CONTRIBUTOR TYPE + SUBTYPE
     // ========================================================
+const filteredAvailableUsers = availableUsers.filter((user) => {
+    const userId = user?.id || user?.userId;
 
-    const filteredAvailableUsers = availableUsers.filter((user) => {
-        // No contributor type selected yet
-        if (!memberForm.contributorTypeId) {
-            return true;
-        }
+    // 1. Hide users already added to the team
+    const isAlreadyAdded = selectedMembers.some(
+        (member) => String(member.userId) === String(userId)
+    );
+    if (isAlreadyAdded) {
+        return false;
+    }
 
-        const userTypeId = String(user?.contributorTypeId || "");
-        const selectedTypeId = String(memberForm.contributorTypeId || "");
+    // 2. Require BOTH contributor type AND subtype to be selected
+    if (!memberForm.contributorTypeId || !memberForm.contributorSubTypeId) {
+        return false; // Don't show any users until both are selected
+    }
 
-        // First filter by contributor type
-        if (userTypeId !== selectedTypeId) {
-            return false;
-        }
+    const userTypeId = String(user?.contributorTypeId || "");
+    const selectedTypeId = String(memberForm.contributorTypeId || "");
+    const userSubTypeId = String(user?.contributorSubTypeId || "");
+    const selectedSubTypeId = String(memberForm.contributorSubTypeId || "");
 
-        // If no subtype is selected, show all users belonging to the selected contributor type.
-        if (!memberForm.contributorSubTypeId) {
-            return true;
-        }
-
-        const userSubTypeId = String(user?.contributorSubTypeId || "");
-        const selectedSubTypeId = String(memberForm.contributorSubTypeId || "");
-
-        // Then filter by subtype
-        return userSubTypeId === selectedSubTypeId;
-    });
-
+    // 3. Filter by BOTH type AND subtype
+    return userTypeId === selectedTypeId && userSubTypeId === selectedSubTypeId;
+});
     // ========================================================
     // RENDER
     // ========================================================
@@ -2145,63 +2085,6 @@ console.log(
                                     />
 
                                 </div>
-
-                                {/* ==================================================
-                                    MANAGER
-                                ================================================== */}
-
-                                <div>
-
-                                    <label className="mb-2 block text-sm font-semibold">
-                                        Manager
-                                    </label>
-
-                                    <select
-                                        name="managerId"
-                                        value={createForm.managerId}
-                                        onChange={handleCreateChange}
-                                        disabled={creating}
-                                        className="
-                                            w-full rounded-xl border border-border
-                                            bg-background px-4 py-2.5 text-sm
-                                            outline-none transition
-                                            focus:border-primary
-                                            focus:ring-2 focus:ring-primary/20
-                                        "
-                                    >
-
-                                        <option value="">
-                                            No manager
-                                        </option>
-
-                                        {managers.map(
-                                            (manager) => {
-                                                const id =
-                                                    getUserId(
-                                                        manager
-                                                    );
-
-                                                if (!id) {
-                                                    return null;
-                                                }
-
-                                                return (
-                                                    <option
-                                                        key={id}
-                                                        value={id}
-                                                    >
-                                                        {getUserName(
-                                                            manager
-                                                        )}
-                                                    </option>
-                                                );
-                                            }
-                                        )}
-
-                                    </select>
-
-                                </div>
-
                                 {/* ==================================================
                                     TEAM MEMBERS
                                 ================================================== */}
@@ -2707,69 +2590,6 @@ console.log(
                                 />
 
                             </div>
-
-                            <div>
-
-                                <label className="mb-2 block text-sm font-semibold">
-                                    Manager
-                                </label>
-
-                                <select
-                                    name="managerId"
-                                    value={
-                                        editForm.managerId
-                                    }
-                                    onChange={
-                                        handleEditChange
-                                    }
-                                    disabled={editing}
-                                    className="
-                                        w-full rounded-xl border border-border
-                                        bg-background px-4 py-2.5 text-sm
-                                        outline-none transition
-                                        focus:border-primary
-                                        focus:ring-2 focus:ring-primary/20
-                                    "
-                                >
-
-                                    <option value="">
-                                        No manager
-                                    </option>
-
-                                    {managers.map(
-                                        (
-                                            manager
-                                        ) => {
-                                            const id =
-                                                getUserId(
-                                                    manager
-                                                );
-
-                                            if (!id) {
-                                                return null;
-                                            }
-
-                                            return (
-                                                <option
-                                                    key={
-                                                        id
-                                                    }
-                                                    value={
-                                                        id
-                                                    }
-                                                >
-                                                    {getUserName(
-                                                        manager
-                                                    )}
-                                                </option>
-                                            );
-                                        }
-                                    )}
-
-                                </select>
-
-                            </div>
-
                             <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-muted/30 p-4">
 
                                 <input
