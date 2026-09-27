@@ -15,7 +15,12 @@
 // - Assign Sprint to Team
 // ============================================================
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 
 import {
     ListChecks,
@@ -26,16 +31,19 @@ import {
     AlertTriangle,
     X,
     UsersRound,
-    Sparkles,
     RefreshCw,
+    CalendarDays,
+    Target,
 } from "lucide-react";
 
 // ============================================================
-// SPRINT SERVICE
+// SERVICES
 // ============================================================
 
 import sprintService from "../../services/sprintService";
-import api from "../../services/api"; // 🌟 ADD THIS (or wherever your api.js is)
+import { getTeams } from "../../services/teamService";
+import { getMyProjects } from "../../services/projectService";
+
 // ============================================================
 // SPRINT COMPONENTS
 // ============================================================
@@ -67,15 +75,41 @@ const getValue = (object, ...keys) => {
 };
 
 // ============================================================
-// NORMALIZE SPRINT RESPONSE
-//
-// This allows the UI to work with common backend DTO naming
-// conventions such as:
-// Id / id
-// Name / name
-// Status / status
-// Progress / progress
-// etc.
+// EXTRACT ARRAY
+// ============================================================
+
+const extractArray = (response, keys = []) => {
+    if (Array.isArray(response)) {
+        return response;
+    }
+
+    if (Array.isArray(response?.data)) {
+        return response.data;
+    }
+
+    for (const key of keys) {
+        if (Array.isArray(response?.[key])) {
+            return response[key];
+        }
+
+        if (Array.isArray(response?.data?.[key])) {
+            return response.data[key];
+        }
+    }
+
+    if (Array.isArray(response?.items)) {
+        return response.items;
+    }
+
+    if (Array.isArray(response?.data?.items)) {
+        return response.data.items;
+    }
+
+    return [];
+};
+
+// ============================================================
+// NORMALIZE SPRINT
 // ============================================================
 
 const normalizeSprint = (sprint) => {
@@ -83,7 +117,13 @@ const normalizeSprint = (sprint) => {
         return null;
     }
 
-    const id = getValue(sprint, "id", "Id", "sprintId", "SprintId");
+    const id = getValue(
+        sprint,
+        "id",
+        "Id",
+        "sprintId",
+        "SprintId"
+    );
 
     const name = getValue(
         sprint,
@@ -104,7 +144,9 @@ const normalizeSprint = (sprint) => {
     const status = getValue(
         sprint,
         "status",
-        "Status"
+        "Status",
+        "statusName",
+        "StatusName"
     );
 
     const progress = getValue(
@@ -173,29 +215,56 @@ const normalizeSprint = (sprint) => {
         ...sprint,
 
         id,
-        name: name || "Unnamed Sprint",
-        goal: goal || "",
-        status: status || "Planning",
-        progress: Number(progress) || 0,
 
-        teamId: teamId ?? null,
+        name:
+            name ||
+            "Unnamed Sprint",
+
+        goal:
+            goal ||
+            "",
+
+        status:
+            status ||
+            "Planning",
+
+        progress:
+            Number(progress) || 0,
+
+        teamId:
+            teamId ??
+            null,
+
         team:
             typeof team === "object"
-                ? getValue(team, "name", "Name")
+                ? getValue(
+                      team,
+                      "name",
+                      "Name",
+                      "teamName",
+                      "TeamName"
+                  )
                 : team || "",
 
-        projectId: projectId ?? null,
+        projectId:
+            projectId ??
+            null,
+
         projectName:
             projectName ||
             "Project",
 
-        managerId: managerId ?? null,
+        managerId:
+            managerId ??
+            null,
 
         startDate:
-            startDate || "",
+            startDate ||
+            "",
 
         endDate:
-            endDate || "",
+            endDate ||
+            "",
 
         tasks:
             Array.isArray(tasks)
@@ -205,7 +274,7 @@ const normalizeSprint = (sprint) => {
 };
 
 // ============================================================
-// STATUS HELPER
+// STATUS HELPERS
 // ============================================================
 
 const normalizeStatus = (status) =>
@@ -213,199 +282,318 @@ const normalizeStatus = (status) =>
         .trim()
         .toLowerCase();
 
+const getStatusStyle = (status) => {
+    const normalized = normalizeStatus(status);
+
+    if (
+        normalized === "active" ||
+        normalized === "in progress"
+    ) {
+        return {
+            wrapper:
+                "border-primary/20 bg-primary/10 text-primary",
+            dot:
+                "bg-primary",
+        };
+    }
+
+    if (
+        normalized === "completed" ||
+        normalized === "complete" ||
+        normalized === "done"
+    ) {
+        return {
+            wrapper:
+                "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+            dot:
+                "bg-emerald-500",
+        };
+    }
+
+    if (
+        normalized === "planning" ||
+        normalized === "planned"
+    ) {
+        return {
+            wrapper:
+                "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+            dot:
+                "bg-amber-500",
+        };
+    }
+
+    return {
+        wrapper:
+            "border-border bg-muted text-muted-foreground",
+        dot:
+            "bg-muted-foreground",
+    };
+};
+
+// ============================================================
+// DATE FORMATTER
+// ============================================================
+
+const formatDate = (date) => {
+    if (!date) {
+        return "Not set";
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return "Not set";
+    }
+
+    return parsedDate.toLocaleDateString();
+};
+
 // ============================================================
 // COMPONENT
 // ============================================================
 
 function SprintManagement() {
     // ========================================================
-    // SPRINT DATA
+    // DATA
     // ========================================================
 
-   const [sprints, setSprints] = useState([]);
+    const [sprints, setSprints] = useState([]);
     const [teams, setTeams] = useState([]);
-    const [projects, setProjects] = useState([]); // 🌟 Added for CreateSprintModal
+    const [projects, setProjects] = useState([]);
+
+    // ========================================================
+    // LOADING
+    // ========================================================
 
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
 
     // ========================================================
-    // MODAL STATE
+    // MODAL
     // ========================================================
 
-    const [selectedSprint, setSelectedSprint] =
-        useState(null);
-
-    const [modalMode, setModalMode] =
-        useState(null);
+    const [selectedSprint, setSelectedSprint] = useState(null);
+    const [modalMode, setModalMode] = useState(null);
+    const [showCreateForm, setShowCreateForm] = useState(false);
 
     // ========================================================
-    // CREATE SPRINT MODAL
+    // PROGRESS
     // ========================================================
 
-    const [showCreateForm, setShowCreateForm] =
-        useState(false);
+    const [showProgress, setShowProgress] = useState(false);
 
     // ========================================================
-    // MONITOR SPRINT PROGRESS
+    // ASSIGN TEAM
     // ========================================================
 
-    const [showProgress, setShowProgress] =
-        useState(false);
-
-    // ========================================================
-    // ASSIGN SPRINT TO TEAM
-    // ========================================================
-
-    const [showAssignTeam, setShowAssignTeam] =
-        useState(false);
-
-    const [selectedTeam, setSelectedTeam] =
-        useState("");
+    const [showAssignTeam, setShowAssignTeam] = useState(false);
+    const [selectedTeam, setSelectedTeam] = useState("");
 
     // ========================================================
     // MESSAGES
     // ========================================================
 
-    const [successMessage, setSuccessMessage] =
-        useState("");
+    const [successMessage, setSuccessMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
 
-    const [errorMessage, setErrorMessage] =
-        useState("");
- const loadTeams = useCallback(async () => {
+    // ========================================================
+    // MESSAGE HELPERS
+    // ========================================================
+
+    const clearMessages = useCallback(() => {
+        setSuccessMessage("");
+        setErrorMessage("");
+    }, []);
+
+    const showSuccess = useCallback((message) => {
+        setErrorMessage("");
+        setSuccessMessage(message);
+
+        window.setTimeout(() => {
+            setSuccessMessage("");
+        }, 4000);
+    }, []);
+
+    const showError = useCallback((message) => {
+        setSuccessMessage("");
+        setErrorMessage(message);
+    }, []);
+
+    // ========================================================
+    // LOAD TEAMS
+    // ========================================================
+
+    const loadTeams = useCallback(async () => {
         try {
-            const response = await api.get("/Team");
-            const teamData = Array.isArray(response.data) ? response.data : [];
+            const response = await getTeams();
+
+            const teamData = extractArray(
+                response,
+                ["teams"]
+            );
+
             setTeams(teamData);
         } catch (error) {
-            console.error("Failed to load teams:", error);
+            console.error(
+                "Failed to load teams:",
+                error
+            );
+
+            setTeams([]);
         }
     }, []);
+
+    // ========================================================
+    // LOAD MANAGER PROJECTS
+    // ========================================================
 
     const loadProjects = useCallback(async () => {
         try {
-            const response = await api.get("/projects/my-projects");
-            const projectData = response.data?.data || response.data || [];
+            const response = await getMyProjects();
+
+            const projectData = extractArray(
+                response,
+                ["projects"]
+            );
+
             setProjects(projectData);
         } catch (error) {
-            console.error("Failed to load projects:", error);
+            console.error(
+                "Failed to load projects:",
+                error
+            );
+
+            setProjects([]);
         }
     }, []);
+
+    // ========================================================
+    // LOAD SPRINTS
+    // ========================================================
 
     const loadSprints = useCallback(async () => {
         try {
             setLoading(true);
             setErrorMessage("");
 
-            const response = await sprintService.getAllSprints();
-            const data = Array.isArray(response)
-                ? response
-                : Array.isArray(response?.data)
-                ? response.data
-                : Array.isArray(response?.items)
-                ? response.items
-                : [];
+            const response =
+                await sprintService.getAllSprints();
 
-            const normalized = data.map(normalizeSprint).filter(Boolean);
+            const data = extractArray(
+                response,
+                ["sprints"]
+            );
+
+            const normalized = data
+                .map(normalizeSprint)
+                .filter(Boolean);
+
             setSprints(normalized);
         } catch (error) {
-            console.error("Failed to load sprints:", error);
+            console.error(
+                "Failed to load sprints:",
+                error
+            );
+
             setErrorMessage(
                 error?.response?.data?.message ||
-                error?.response?.data?.title ||
-                "Failed to load sprints from the server."
+                    error?.response?.data?.title ||
+                    "Failed to load sprints from the server."
             );
         } finally {
             setLoading(false);
         }
     }, []);
-useEffect(() => {
-        loadSprints();
-        loadTeams();
-        loadProjects(); // 🌟 Now it will work perfectly without crashing
-    }, [loadSprints, loadTeams, loadProjects]);
-    // ========================================================
-    // MESSAGE HELPERS
-    // ========================================================
-
-    const clearMessages = () => {
-        setSuccessMessage("");
-        setErrorMessage("");
-    };
-
-    const showSuccess = (message) => {
-        setErrorMessage("");
-        setSuccessMessage(message);
-        window.setTimeout(() => {
-            setSuccessMessage("");
-        }, 4000);
-    };
-
-    const showError = (message) => {
-        setSuccessMessage("");
-        setErrorMessage(message);
-    };
 
     // ========================================================
-    // CLOSE STANDARD MODAL
+    // INITIAL LOAD
     // ========================================================
 
-    const closeModal = () => {
-        setSelectedSprint(null);
-        setModalMode(null);
-    };
+    useEffect(() => {
+        const initialize = async () => {
+            await Promise.all([
+                loadSprints(),
+                loadTeams(),
+                loadProjects(),
+            ]);
+        };
+
+        initialize();
+    }, [
+        loadSprints,
+        loadTeams,
+        loadProjects,
+    ]);
 
     // ========================================================
-    // CLOSE PROGRESS MODAL
-    // ========================================================
-
-    const closeProgress = () => {
-        setShowProgress(false);
-        setSelectedSprint(null);
-    };
-
-    // ========================================================
-    // CLOSE ASSIGN TEAM MODAL
-    // ========================================================
-
-    const closeAssignTeam = () => {
-        setShowAssignTeam(false);
-        setSelectedSprint(null);
-        setSelectedTeam("");
-    };
-
-    // ========================================================
-    // SPRINTS
-    //
-    // Backend authorization is responsible for ensuring that
-    // the manager only receives/manages permitted sprints.
-    // ========================================================
-
-      // ========================================================
-    // SPRINTS (Enriched with Team Names)
+    // ENRICH SPRINTS
     // ========================================================
 
     const assignedSprints = useMemo(() => {
         return sprints.map((sprint) => {
-            // 🌟 Find the team that matches this sprint's teamId
-            const matchedTeam = teams.find(
-                (t) => t.id === sprint.teamId || t.Id === sprint.teamId
+            const matchedTeam = teams.find((team) => {
+                const teamId =
+                    team?.id ??
+                    team?.Id ??
+                    team?.teamId ??
+                    team?.TeamId;
+
+                return (
+                    sprint.teamId &&
+                    teamId &&
+                    String(teamId).toLowerCase() ===
+                        String(sprint.teamId).toLowerCase()
+                );
+            });
+
+            const matchedProject = projects.find(
+                (project) => {
+                    const projectId =
+                        project?.id ??
+                        project?.Id ??
+                        project?.projectId ??
+                        project?.ProjectId;
+
+                    return (
+                        sprint.projectId &&
+                        projectId &&
+                        String(projectId).toLowerCase() ===
+                            String(sprint.projectId).toLowerCase()
+                    );
+                }
             );
+
+            const teamName =
+                matchedTeam?.name ??
+                matchedTeam?.Name ??
+                matchedTeam?.teamName ??
+                matchedTeam?.TeamName ??
+                sprint.team ??
+                "Not assigned";
+
+            const projectName =
+                matchedProject?.name ??
+                matchedProject?.Name ??
+                matchedProject?.projectName ??
+                matchedProject?.ProjectName ??
+                sprint.projectName ??
+                "Project";
 
             return {
                 ...sprint,
-                // 🌟 Add the team name to the sprint object so the UI can display it!
-                teamName: matchedTeam 
-                    ? (matchedTeam.name || matchedTeam.Name || "Unknown Team") 
-                    : "Not assigned",
-                
-                // Also map to 'team' just in case SprintCard expects that specific property name
-                team: matchedTeam 
-                    ? (matchedTeam.name || matchedTeam.Name || "Unknown Team") 
-                    : "Not assigned",
+
+                teamName,
+
+                team: teamName,
+
+                projectName,
             };
         });
-    }, [sprints, teams]); // 👈 IMPORTANT: Make sure 'teams' is in the dependency array!
+    }, [
+        sprints,
+        teams,
+        projects,
+    ]);
 
     // ========================================================
     // STATISTICS
@@ -439,67 +627,56 @@ useEffect(() => {
                     ) === "planning"
             ).length;
 
-        return [
-            {
-                title: "Total Sprints",
-                value: total,
-                icon: ListChecks,
-                color:
-                    "from-violet-500 to-purple-600",
-                iconBg:
-                    "bg-violet-100",
-                iconColor:
-                    "text-violet-600",
-            },
-            {
-                title: "Active Sprints",
-                value: active,
-                icon: Activity,
-                color:
-                    "from-emerald-500 to-green-600",
-                iconBg:
-                    "bg-emerald-100",
-                iconColor:
-                    "text-emerald-600",
-            },
-            {
-                title: "Completed",
-                value: completed,
-                icon: CheckCircle2,
-                color:
-                    "from-blue-500 to-cyan-600",
-                iconBg:
-                    "bg-blue-100",
-                iconColor:
-                    "text-blue-600",
-            },
-            {
-                title: "Planning",
-                value: planning,
-                icon: Clock,
-                color:
-                    "from-amber-500 to-orange-600",
-                iconBg:
-                    "bg-amber-100",
-                iconColor:
-                    "text-amber-600",
-            },
-        ];
-    }, [assignedSprints]);
+        return {
+            total,
+            active,
+            completed,
+            planning,
+        };
+    }, [
+        assignedSprints,
+    ]);
+
+    // ========================================================
+    // CLOSE STANDARD MODAL
+    // ========================================================
+
+    const closeModal = () => {
+        setSelectedSprint(null);
+        setModalMode(null);
+    };
+
+    // ========================================================
+    // CLOSE PROGRESS
+    // ========================================================
+
+    const closeProgress = () => {
+        setShowProgress(false);
+        setSelectedSprint(null);
+    };
+
+    // ========================================================
+    // CLOSE ASSIGN TEAM
+    // ========================================================
+
+    const closeAssignTeam = () => {
+        setShowAssignTeam(false);
+        setSelectedSprint(null);
+        setSelectedTeam("");
+    };
 
     // ========================================================
     // CREATE SPRINT
     // ========================================================
 
-    const handleCreateSprint = async (
-        sprintData
-    ) => {
+    const handleCreateSprint = async (sprintData) => {
         clearMessages();
 
         if (!sprintData) {
             showError(
                 "Sprint information is required."
             );
+
             return;
         }
 
@@ -565,15 +742,17 @@ useEffect(() => {
         try {
             setActionLoading(true);
 
-            // Keep the complete object returned by
-            // CreateSprintModal and send it to the API.
             await sprintService.createSprint(
                 sprintData
             );
 
             setShowCreateForm(false);
 
-            await loadSprints();
+            await Promise.all([
+                loadSprints(),
+                loadTeams(),
+                loadProjects(),
+            ]);
 
             showSuccess(
                 "Sprint created successfully."
@@ -595,7 +774,7 @@ useEffect(() => {
     };
 
     // ========================================================
-    // UPDATE SPRINT
+    // UPDATE
     // ========================================================
 
     const handleUpdate = (sprint) => {
@@ -612,10 +791,6 @@ useEffect(() => {
         setSelectedSprint(sprint);
         setModalMode("update");
     };
-
-    // ========================================================
-    // UPDATE COMPLETED
-    // ========================================================
 
     const handleSprintUpdated = async (
         sprintId,
@@ -634,8 +809,6 @@ useEffect(() => {
         try {
             setActionLoading(true);
 
-            // If the modal already returns the complete
-            // update payload, send it directly.
             await sprintService.updateSprint(
                 sprintId,
                 updatedSprint
@@ -665,7 +838,7 @@ useEffect(() => {
     };
 
     // ========================================================
-    // DELETE SPRINT
+    // DELETE
     // ========================================================
 
     const handleDelete = (sprint) => {
@@ -703,10 +876,6 @@ useEffect(() => {
         setSelectedSprint(sprint);
         setModalMode("delete");
     };
-
-    // ========================================================
-    // DELETE COMPLETED
-    // ========================================================
 
     const handleSprintDeleted = async (
         sprintId
@@ -752,7 +921,7 @@ useEffect(() => {
     };
 
     // ========================================================
-    // START SPRINT
+    // START
     // ========================================================
 
     const handleStart = (sprint) => {
@@ -766,12 +935,11 @@ useEffect(() => {
             return;
         }
 
-        const status =
+        if (
             normalizeStatus(
                 sprint.status
-            );
-
-        if (status !== "planning") {
+            ) !== "planning"
+        ) {
             showError(
                 "Only a planning sprint can be started."
             );
@@ -800,10 +968,6 @@ useEffect(() => {
         setSelectedSprint(sprint);
         setModalMode("start");
     };
-
-    // ========================================================
-    // START COMPLETED
-    // ========================================================
 
     const handleSprintStarted = async (
         sprintId
@@ -849,7 +1013,7 @@ useEffect(() => {
     };
 
     // ========================================================
-    // COMPLETE SPRINT
+    // COMPLETE
     // ========================================================
 
     const handleComplete = (sprint) => {
@@ -878,10 +1042,6 @@ useEffect(() => {
         setSelectedSprint(sprint);
         setModalMode("complete");
     };
-
-    // ========================================================
-    // COMPLETE COMPLETED
-    // ========================================================
 
     const handleSprintCompleted = async (
         sprintId
@@ -927,7 +1087,7 @@ useEffect(() => {
     };
 
     // ========================================================
-    // VIEW BACKLOG
+    // BACKLOG
     // ========================================================
 
     const handleViewBacklog = (sprint) => {
@@ -946,7 +1106,7 @@ useEffect(() => {
     };
 
     // ========================================================
-    // MONITOR SPRINT PROGRESS
+    // MONITOR PROGRESS
     // ========================================================
 
     const handleMonitorProgress = async (
@@ -965,7 +1125,6 @@ useEffect(() => {
         try {
             setActionLoading(true);
 
-            // Get the latest progress from backend.
             const response =
                 await sprintService.getSprintProgressReport(
                     sprint.projectId,
@@ -987,7 +1146,6 @@ useEffect(() => {
 
             setSelectedSprint({
                 ...sprint,
-
                 ...(report || {}),
 
                 progress:
@@ -1003,8 +1161,6 @@ useEffect(() => {
                 error
             );
 
-            // We still open the monitor using the
-            // currently loaded sprint data.
             setSelectedSprint(sprint);
             setShowProgress(true);
 
@@ -1018,7 +1174,7 @@ useEffect(() => {
     };
 
     // ========================================================
-    // ASSIGN SPRINT TO TEAM
+    // ASSIGN TEAM
     // ========================================================
 
     const handleAssignTeam = (sprint) => {
@@ -1035,8 +1191,7 @@ useEffect(() => {
         setSelectedSprint(sprint);
 
         setSelectedTeam(
-            sprint.teamId ??
-                sprint.team ??
+            sprint.teamId ||
                 ""
         );
 
@@ -1066,7 +1221,7 @@ useEffect(() => {
 
             if (!teamValue) {
                 showError(
-                    "Please enter the team ID."
+                    "Please select a team."
                 );
 
                 return;
@@ -1075,16 +1230,6 @@ useEffect(() => {
             try {
                 setActionLoading(true);
 
-                /*
-                 * assignSprintToTeam requires:
-                 *
-                 * sprintId
-                 * teamId
-                 *
-                 * The existing modal uses a text field.
-                 * Therefore the value entered here is sent
-                 * directly as the team ID.
-                 */
                 await sprintService.assignSprintToTeam(
                     selectedSprint.id,
                     teamValue
@@ -1114,86 +1259,77 @@ useEffect(() => {
         };
 
     // ========================================================
+    // REFRESH
+    // ========================================================
+
+    const handleRefresh = async () => {
+        clearMessages();
+
+        await Promise.all([
+            loadSprints(),
+            loadTeams(),
+            loadProjects(),
+        ]);
+    };
+
+    // ========================================================
     // RENDER
     // ========================================================
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900">
+        <div className="min-h-full bg-background text-foreground">
 
-            <main className="min-h-screen">
-
-                <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+            <main>
+                <div className="mx-auto w-full max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
 
                     {/* ==================================================
                         HEADER
                     ================================================== */}
 
-                    <div className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-500 p-7 text-white shadow-lg">
+                    <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
 
-                        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/10" />
+                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
 
-                        <div className="absolute -bottom-20 right-24 h-44 w-44 rounded-full bg-white/10" />
+                            <div className="flex items-start gap-4">
 
-                        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-                            <div className="flex items-center gap-4">
-
-                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20 backdrop-blur-sm">
-
-                                    <ListChecks
-                                        size={28}
-                                        className="text-white"
-                                    />
-
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                    <ListChecks className="h-6 w-6" />
                                 </div>
 
                                 <div>
+                                    <p className="text-sm font-medium text-muted-foreground">
+                                        Manager Workspace
+                                    </p>
 
-                                    <div className="mb-1 flex items-center gap-2">
-
-                                        <Sparkles
-                                            size={16}
-                                            className="text-cyan-200"
-                                        />
-
-                                        <span className="text-xs font-semibold uppercase tracking-wider text-white/80">
-                                            Sprint Workspace
-                                        </span>
-
-                                    </div>
-
-                                    <h1 className="text-3xl font-bold tracking-tight">
+                                    <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                                         Sprint Management
                                     </h1>
 
-                                    <p className="mt-1 max-w-2xl text-sm text-white/80">
-                                        Create, manage, monitor and assign project sprints.
+                                    <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                                        Create, manage and monitor project
+                                        sprints across your assigned teams.
                                     </p>
-
                                 </div>
 
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-3">
 
                                 <button
                                     type="button"
-                                    onClick={
-                                        loadSprints
-                                    }
+                                    onClick={handleRefresh}
                                     disabled={
                                         loading ||
                                         actionLoading
                                     }
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     <RefreshCw
-                                        size={17}
-                                        className={
+                                        className={`h-4 w-4 ${
                                             loading
                                                 ? "animate-spin"
                                                 : ""
-                                        }
+                                        }`}
                                     />
 
                                     Refresh
@@ -1203,16 +1339,15 @@ useEffect(() => {
                                     type="button"
                                     onClick={() => {
                                         clearMessages();
-                                        setShowCreateForm(
-                                            true
-                                        );
+                                        setShowCreateForm(true);
                                     }}
                                     disabled={
                                         actionLoading
                                     }
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-violet-700 shadow-md transition hover:bg-slate-50 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                    <Plus size={18} />
+                                    <Plus className="h-4 w-4" />
+
                                     Create Sprint
                                 </button>
 
@@ -1220,21 +1355,15 @@ useEffect(() => {
 
                         </div>
 
-                    </div>
+                    </section>
 
                     {/* ==================================================
-                        SUCCESS MESSAGE
+                        MESSAGES
                     ================================================== */}
 
                     {successMessage && (
-                        <div
-                            role="status"
-                            className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm"
-                        >
-                            <CheckCircle2
-                                size={19}
-                                className="shrink-0 text-emerald-600"
-                            />
+                        <div className="mt-5 flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-5 w-5 shrink-0" />
 
                             <span>
                                 {successMessage}
@@ -1242,94 +1371,129 @@ useEffect(() => {
                         </div>
                     )}
 
-                    {/* ==================================================
-                        ERROR MESSAGE
-                    ================================================== */}
-
                     {errorMessage && (
-                        <div
-                            role="alert"
-                            className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-sm"
-                        >
-                            <AlertTriangle
-                                size={19}
-                                className="mt-0.5 shrink-0 text-red-600"
-                            />
+                        <div className="mt-5 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive">
+                            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
 
                             <span>
                                 {errorMessage}
                             </span>
-
                         </div>
                     )}
 
                     {/* ==================================================
-                        STATISTICS
+                        OVERVIEW
                     ================================================== */}
 
-                    <section className="mb-10">
+                    <section className="mt-6">
 
-                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="mb-4">
+                            <h2 className="text-lg font-semibold text-foreground">
+                                Sprint Overview
+                            </h2>
 
-                            {sprintStats.map(
-                                (item) => {
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Current sprint status across your projects.
+                            </p>
+                        </div>
 
-                                    const Icon =
-                                        item.icon;
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
-                                    return (
-                                        <div
-                                            key={
-                                                item.title
-                                            }
-                                            className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
-                                        >
+                            {/* TOTAL */}
 
-                                            <div
-                                                className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${item.color}`}
-                                            />
+                            <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/40 hover:shadow-md">
 
-                                            <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between">
 
-                                                <div>
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">
+                                            Total Sprints
+                                        </p>
 
-                                                    <p className="text-sm font-medium text-slate-500">
-                                                        {
-                                                            item.title
-                                                        }
-                                                    </p>
+                                        <p className="mt-2 text-2xl font-bold text-foreground">
+                                            {sprintStats.total}
+                                        </p>
+                                    </div>
 
-                                                    <p className="mt-2 text-3xl font-bold text-slate-900">
-                                                        {
-                                                            item.value
-                                                        }
-                                                    </p>
+                                    <div className="rounded-lg bg-primary/10 p-3 text-primary">
+                                        <ListChecks className="h-5 w-5" />
+                                    </div>
 
-                                                </div>
+                                </div>
 
-                                                <div
-                                                    className={`flex h-12 w-12 items-center justify-center rounded-xl ${item.iconBg}`}
-                                                >
+                            </div>
 
-                                                    <Icon
-                                                        size={22}
-                                                        className={
-                                                            item.iconColor
-                                                        }
-                                                    />
+                            {/* ACTIVE */}
 
-                                                </div>
+                            <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/40 hover:shadow-md">
 
-                                            </div>
+                                <div className="flex items-center justify-between">
 
-                                            <div
-                                                className={`mt-4 h-1 w-16 rounded-full bg-gradient-to-r ${item.color}`}
-                                            />
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">
+                                            Active Sprints
+                                        </p>
 
-                                        </div>
-                                    );
-                                }
-                            )}
+                                        <p className="mt-2 text-2xl font-bold text-foreground">
+                                            {sprintStats.active}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-lg bg-primary/10 p-3 text-primary">
+                                        <Activity className="h-5 w-5" />
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            {/* COMPLETED */}
+
+                            <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/40 hover:shadow-md">
+
+                                <div className="flex items-center justify-between">
+
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">
+                                            Completed
+                                        </p>
+
+                                        <p className="mt-2 text-2xl font-bold text-foreground">
+                                            {sprintStats.completed}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-lg bg-emerald-500/10 p-3 text-emerald-600 dark:text-emerald-400">
+                                        <CheckCircle2 className="h-5 w-5" />
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            {/* PLANNING */}
+
+                            <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/40 hover:shadow-md">
+
+                                <div className="flex items-center justify-between">
+
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">
+                                            Planning
+                                        </p>
+
+                                        <p className="mt-2 text-2xl font-bold text-foreground">
+                                            {sprintStats.planning}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-lg bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
+                                        <Clock className="h-5 w-5" />
+                                    </div>
+
+                                </div>
+
+                            </div>
 
                         </div>
 
@@ -1339,36 +1503,37 @@ useEffect(() => {
                         SPRINT LIST
                     ================================================== */}
 
-                    <section>
+                    <section className="mt-6 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
 
-                        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div className="border-b border-border px-5 py-4">
 
-                            <div>
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
-                                <div className="flex items-center gap-2">
+                                <div>
 
-                                    <div className="h-2.5 w-2.5 rounded-full bg-violet-500" />
+                                    <div className="flex items-center gap-2">
 
-                                    <h2 className="text-xl font-bold text-slate-900">
-                                        Project Sprints
-                                    </h2>
+                                        <ListChecks className="h-5 w-5 text-primary" />
+
+                                        <h2 className="text-lg font-semibold text-foreground">
+                                            Project Sprints
+                                        </h2>
+
+                                    </div>
+
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        Manage sprints assigned to your
+                                        project teams.
+                                    </p>
 
                                 </div>
 
-                                <p className="mt-1 text-sm text-slate-500">
-                                    Manage the sprints assigned to your project teams.
-                                </p>
-
-                            </div>
-
-                            <div className="rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-bold text-violet-700">
-
-                                {assignedSprints.length}{" "}
-
-                                {assignedSprints.length ===
-                                1
-                                    ? "Sprint"
-                                    : "Sprints"}
+                                <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm font-medium text-muted-foreground">
+                                    {assignedSprints.length}{" "}
+                                    {assignedSprints.length === 1
+                                        ? "Sprint"
+                                        : "Sprints"}
+                                </div>
 
                             </div>
 
@@ -1379,99 +1544,161 @@ useEffect(() => {
                         ================================================== */}
 
                         {loading ? (
-                            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
+                            <div className="flex min-h-[320px] items-center justify-center p-6">
 
-                                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100">
+                                <div className="flex flex-col items-center gap-3">
 
-                                    <RefreshCw
-                                        size={30}
-                                        className="animate-spin text-violet-600"
-                                    />
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                                        <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                                    </div>
 
-                                </div>
-
-                                <h3 className="text-lg font-bold text-slate-900">
-                                    Loading Sprints
-                                </h3>
-
-                                <p className="mt-2 text-sm text-slate-500">
-                                    Fetching sprint information from the server...
-                                </p>
-
-                            </div>
-                        ) : assignedSprints.length ===
-                          0 ? (
-                            <div className="rounded-2xl border border-dashed border-violet-300 bg-white px-6 py-16 text-center shadow-sm">
-
-                                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100">
-
-                                    <ListChecks
-                                        size={32}
-                                        className="text-violet-600"
-                                    />
+                                    <p className="text-sm font-medium text-muted-foreground">
+                                        Loading sprints...
+                                    </p>
 
                                 </div>
 
-                                <h3 className="text-lg font-bold text-slate-900">
-                                    No Sprints
-                                </h3>
+                            </div>
+                        ) : assignedSprints.length === 0 ? (
 
-                                <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                                    No sprints have been created yet.
-                                </p>
+                            /* ==================================================
+                               EMPTY
+                            ================================================== */
 
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        clearMessages();
+                            <div className="p-6 sm:p-10">
 
-                                        setShowCreateForm(
-                                            true
-                                        );
-                                    }}
-                                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:from-violet-700 hover:to-blue-700 hover:shadow-md"
-                                >
-                                    <Plus size={17} />
-                                    Create Sprint
-                                </button>
+                                <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 px-6 text-center">
+
+                                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-background text-muted-foreground shadow-sm">
+                                        <ListChecks className="h-7 w-7" />
+                                    </div>
+
+                                    <h3 className="text-base font-semibold text-foreground">
+                                        No sprints found
+                                    </h3>
+
+                                    <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+                                        Create a sprint to start organizing
+                                        work for your project team.
+                                    </p>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            clearMessages();
+                                            setShowCreateForm(true);
+                                        }}
+                                        className="mt-5 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+                                    >
+                                        <Plus className="h-4 w-4" />
+
+                                        Create Sprint
+                                    </button>
+
+                                </div>
 
                             </div>
+
                         ) : (
-                            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+
+                            /* ==================================================
+                               SPRINT CARDS
+                            ================================================== */
+
+                            <div className="space-y-4 p-5">
 
                                 {assignedSprints.map(
-                                    (sprint) => (
-                                        <div
-                                            key={
-                                                sprint.id
-                                            }
-                                            className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
-                                        >
+                                    (sprint) => {
 
-                                            {/* Status accent */}
+                                        const statusStyle =
+                                            getStatusStyle(
+                                                sprint.status
+                                            );
 
-                                            <div
-                                                className={
-                                                    normalizeStatus(
-                                                        sprint.status
-                                                    ) ===
-                                                    "active"
-                                                        ? "absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-emerald-400 to-green-600"
-                                                        : normalizeStatus(
-                                                              sprint.status
-                                                          ) ===
-                                                          "completed"
-                                                        ? "absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blue-400 to-cyan-600"
-                                                        : "absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-amber-400 to-orange-500"
+                                        return (
+                                            <article
+                                                key={
+                                                    sprint.id
                                                 }
-                                            />
+                                                className="rounded-xl border border-border bg-background p-5 transition hover:border-primary/30 hover:shadow-sm"
+                                            >
 
-                                            <div className="rounded-xl bg-white p-4">
+                                                {/* ==================================================
+                                                    TOP INFORMATION
+                                                ================================================== */}
+
+                                                <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+
+                                                    <div className="min-w-0">
+
+                                                        <div className="mb-2 flex flex-wrap items-center gap-2">
+
+                                                            <h3 className="text-lg font-semibold text-foreground">
+                                                                {
+                                                                    sprint.name
+                                                                }
+                                                            </h3>
+
+                                                            <span
+                                                                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${statusStyle.wrapper}`}
+                                                            >
+                                                                <span
+                                                                    className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`}
+                                                                />
+
+                                                                {
+                                                                    sprint.status
+                                                                }
+                                                            </span>
+
+                                                        </div>
+
+                                                        {sprint.goal && (
+                                                            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                                                                {
+                                                                    sprint.goal
+                                                                }
+                                                            </p>
+                                                        )}
+
+                                                    </div>
+
+                                                    <div className="flex flex-wrap items-center gap-2">
+
+                                                        <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+
+                                                            <Target className="h-4 w-4 text-primary" />
+
+                                                            <span className="max-w-[220px] truncate">
+                                                                {
+                                                                    sprint.projectName
+                                                                }
+                                                            </span>
+
+                                                        </div>
+
+                                                        <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+
+                                                            <UsersRound className="h-4 w-4 text-primary" />
+
+                                                            <span className="max-w-[180px] truncate">
+                                                                {
+                                                                    sprint.team
+                                                                }
+                                                            </span>
+
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+
+                                                {/* ==================================================
+                                                    SPRINT CARD
+                                                ================================================== */}
 
                                                 <SprintCard
-                                                    sprint={
-                                                        sprint
-                                                    }
+                                                    sprint={sprint}
                                                     onViewBacklog={
                                                         handleViewBacklog
                                                     }
@@ -1495,37 +1722,169 @@ useEffect(() => {
                                                     }
                                                 />
 
-                                            </div>
+                                                {/* ==================================================
+                                                    SPRINT META
+                                                ================================================== */}
 
-                                        </div>
-                                    )
+                                                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+                                                    <div className="rounded-lg border border-border bg-muted/20 p-3">
+
+                                                        <div className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+
+                                                            <CalendarDays className="h-4 w-4" />
+
+                                                            Start Date
+
+                                                        </div>
+
+                                                        <p className="text-sm font-medium text-foreground">
+                                                            {
+                                                                formatDate(
+                                                                    sprint.startDate
+                                                                )
+                                                            }
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="rounded-lg border border-border bg-muted/20 p-3">
+
+                                                        <div className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+
+                                                            <CalendarDays className="h-4 w-4" />
+
+                                                            End Date
+
+                                                        </div>
+
+                                                        <p className="text-sm font-medium text-foreground">
+                                                            {
+                                                                formatDate(
+                                                                    sprint.endDate
+                                                                )
+                                                            }
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="rounded-lg border border-border bg-muted/20 p-3">
+
+                                                        <div className="mb-1 text-xs font-medium text-muted-foreground">
+                                                            Progress
+                                                        </div>
+
+                                                        <p className="text-sm font-semibold text-foreground">
+                                                            {
+                                                                sprint.progress
+                                                            }%
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="rounded-lg border border-border bg-muted/20 p-3">
+
+                                                        <div className="mb-1 text-xs font-medium text-muted-foreground">
+                                                            Tasks
+                                                        </div>
+
+                                                        <p className="text-sm font-semibold text-foreground">
+                                                            {
+                                                                sprint.tasks?.length ||
+                                                                0
+                                                            }
+                                                        </p>
+
+                                                    </div>
+
+                                                </div>
+
+                                                {/* ==================================================
+                                                    PROGRESS
+                                                ================================================== */}
+
+                                                <div className="mt-5">
+
+                                                    <div className="mb-2 flex items-center justify-between">
+
+                                                        <span className="text-xs font-medium text-muted-foreground">
+                                                            Sprint Progress
+                                                        </span>
+
+                                                        <span className="text-xs font-semibold text-foreground">
+                                                            {
+                                                                sprint.progress
+                                                            }%
+                                                        </span>
+
+                                                    </div>
+
+                                                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+
+                                                        <div
+                                                            className="h-full rounded-full bg-primary transition-all duration-500"
+                                                            style={{
+                                                                width: `${Math.min(
+                                                                    100,
+                                                                    Math.max(
+                                                                        0,
+                                                                        Number(
+                                                                            sprint.progress
+                                                                        ) || 0
+                                                                    )
+                                                                )}%`,
+                                                            }}
+                                                        />
+
+                                                    </div>
+
+                                                </div>
+
+                                            </article>
+                                        );
+                                    }
                                 )}
 
                             </div>
+
                         )}
 
                     </section>
 
                 </div>
-
             </main>
 
-              {showCreateForm && (
-    <CreateSprintModal
-        isOpen={showCreateForm}
-        onClose={() => setShowCreateForm(false)}
-        onCreated={handleCreateSprint}
-        projects={projects} // 🌟 PASS PROJECTS HERE
-        teams={teams}       // 🌟 PASS TEAMS HERE
-    />
-)}
+            {/* ==========================================================
+                CREATE
+            ========================================================== */}
+
+            {showCreateForm && (
+                <CreateSprintModal
+                    isOpen={
+                        showCreateForm
+                    }
+                    onClose={() =>
+                        setShowCreateForm(false)
+                    }
+                    onCreated={
+                        handleCreateSprint
+                    }
+                    projects={
+                        projects
+                    }
+                    teams={
+                        teams
+                    }
+                />
+            )}
 
             {/* ==========================================================
-                UPDATE SPRINT
+                UPDATE
             ========================================================== */}
 
             {selectedSprint &&
-                modalMode === "update" && (
+                modalMode ===
+                    "update" && (
                     <UpdateSprintModal
                         sprint={
                             selectedSprint
@@ -1540,11 +1899,12 @@ useEffect(() => {
                 )}
 
             {/* ==========================================================
-                DELETE SPRINT
+                DELETE
             ========================================================== */}
 
             {selectedSprint &&
-                modalMode === "delete" && (
+                modalMode ===
+                    "delete" && (
                     <DeleteSprintModal
                         sprint={
                             selectedSprint
@@ -1559,11 +1919,12 @@ useEffect(() => {
                 )}
 
             {/* ==========================================================
-                START SPRINT
+                START
             ========================================================== */}
 
             {selectedSprint &&
-                modalMode === "start" && (
+                modalMode ===
+                    "start" && (
                     <StartSprintModal
                         sprint={
                             selectedSprint
@@ -1578,11 +1939,12 @@ useEffect(() => {
                 )}
 
             {/* ==========================================================
-                COMPLETE SPRINT
+                COMPLETE
             ========================================================== */}
 
             {selectedSprint &&
-                modalMode === "complete" && (
+                modalMode ===
+                    "complete" && (
                     <CompleteSprintModal
                         sprint={
                             selectedSprint
@@ -1597,11 +1959,12 @@ useEffect(() => {
                 )}
 
             {/* ==========================================================
-                VIEW SPRINT BACKLOG
+                BACKLOG
             ========================================================== */}
 
             {selectedSprint &&
-                modalMode === "backlog" && (
+                modalMode ===
+                    "backlog" && (
                     <SprintBacklogModal
                         sprint={
                             selectedSprint
@@ -1613,99 +1976,89 @@ useEffect(() => {
                 )}
 
             {/* ==========================================================
-                MONITOR SPRINT PROGRESS
+                PROGRESS MODAL
             ========================================================== */}
 
             {showProgress &&
                 selectedSprint && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm">
 
-                        <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                        <div className="w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
 
-                            <div className="relative overflow-hidden bg-gradient-to-r from-violet-600 to-blue-600 px-6 py-5 text-white">
+                            <div className="flex items-center justify-between border-b border-border px-5 py-4">
 
-                                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/10" />
+                                <div>
+                                    <h2 className="text-lg font-semibold text-foreground">
+                                        Sprint Progress
+                                    </h2>
 
-                                <div className="relative flex items-center justify-between">
-
-                                    <div>
-
-                                        <h2 className="text-lg font-bold">
-                                            Monitor Sprint Progress
-                                        </h2>
-
-                                        <p className="mt-1 text-sm text-white/80">
-                                            {
-                                                selectedSprint.name
-                                            }
-                                        </p>
-
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={
-                                            closeProgress
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {
+                                            selectedSprint.name
                                         }
-                                        className="rounded-lg p-2 text-white/80 transition hover:bg-white/10 hover:text-white"
-                                    >
-                                        <X size={19} />
-                                    </button>
-
+                                    </p>
                                 </div>
+
+                                <button
+                                    type="button"
+                                    onClick={
+                                        closeProgress
+                                    }
+                                    className="rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
 
                             </div>
 
-                            <div className="space-y-5 px-6 py-6">
+                            <div className="space-y-5 px-5 py-6">
 
                                 <div className="text-center">
 
-                                    <p className="text-sm font-medium text-slate-500">
+                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                        <Activity className="h-7 w-7" />
+                                    </div>
+
+                                    <p className="mt-4 text-sm font-medium text-muted-foreground">
                                         Current Progress
                                     </p>
 
-                                    <p className="mt-2 bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-5xl font-extrabold text-transparent">
+                                    <p className="mt-1 text-4xl font-bold text-foreground">
                                         {
                                             selectedSprint.progress
-                                        }
-                                        %
+                                        }%
                                     </p>
 
                                 </div>
 
-                                <div>
+                                <div className="h-3 overflow-hidden rounded-full bg-muted">
 
-                                    <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-
-                                        <div
-                                            className="h-full rounded-full bg-gradient-to-r from-violet-500 via-blue-500 to-cyan-500 transition-all"
-                                            style={{
-                                                width: `${Math.min(
-                                                    Math.max(
-                                                        Number(
-                                                            selectedSprint.progress
-                                                        ) ||
-                                                            0,
-                                                        0
-                                                    ),
-                                                    100
-                                                )}%`,
-                                            }}
-                                        />
-
-                                    </div>
+                                    <div
+                                        className="h-full rounded-full bg-primary transition-all"
+                                        style={{
+                                            width: `${Math.min(
+                                                100,
+                                                Math.max(
+                                                    0,
+                                                    Number(
+                                                        selectedSprint.progress
+                                                    ) || 0
+                                                )
+                                            )}%`,
+                                        }}
+                                    />
 
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
 
-                                    <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
+                                    <div className="rounded-lg border border-border bg-muted/20 p-4">
 
-                                        <p className="text-xs font-semibold text-violet-600">
+                                        <p className="text-xs font-medium text-muted-foreground">
                                             Status
                                         </p>
 
-                                        <p className="mt-1 font-bold text-slate-900">
+                                        <p className="mt-1 font-semibold text-foreground">
                                             {
                                                 selectedSprint.status
                                             }
@@ -1713,13 +2066,13 @@ useEffect(() => {
 
                                     </div>
 
-                                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                                    <div className="rounded-lg border border-border bg-muted/20 p-4">
 
-                                        <p className="text-xs font-semibold text-blue-600">
+                                        <p className="text-xs font-medium text-muted-foreground">
                                             Team
                                         </p>
 
-                                        <p className="mt-1 font-bold text-slate-900">
+                                        <p className="mt-1 truncate font-semibold text-foreground">
                                             {
                                                 selectedSprint.team ||
                                                 "Not assigned"
@@ -1730,13 +2083,13 @@ useEffect(() => {
 
                                 </div>
 
-                                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                                <div className="rounded-lg border border-border bg-muted/20 p-4">
 
-                                    <p className="text-sm font-semibold text-emerald-700">
+                                    <p className="text-xs font-medium text-muted-foreground">
                                         Sprint Goal
                                     </p>
 
-                                    <p className="mt-1 text-sm leading-6 text-slate-600">
+                                    <p className="mt-1 text-sm leading-6 text-foreground">
                                         {
                                             selectedSprint.goal ||
                                             "No sprint goal specified."
@@ -1745,16 +2098,15 @@ useEffect(() => {
 
                                 </div>
 
-                                <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
+                                <div className="rounded-lg border border-border bg-muted/20 p-4">
 
-                                    <p className="text-sm font-semibold text-amber-700">
+                                    <p className="text-xs font-medium text-muted-foreground">
                                         Backlog
                                     </p>
 
-                                    <p className="mt-1 text-sm text-slate-600">
+                                    <p className="mt-1 text-sm text-muted-foreground">
                                         {
-                                            selectedSprint
-                                                .tasks
+                                            selectedSprint.tasks
                                                 ?.length ||
                                             0
                                         }{" "}
@@ -1771,70 +2123,48 @@ useEffect(() => {
                 )}
 
             {/* ==========================================================
-                ASSIGN SPRINT TO TEAM
+                ASSIGN TEAM
             ========================================================== */}
 
             {showAssignTeam &&
                 selectedSprint && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 backdrop-blur-sm">
 
-                        <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                        <div className="w-full max-w-md overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
 
-                            <div className="relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-5 text-white">
+                            <div className="flex items-center justify-between border-b border-border px-5 py-4">
 
-                                <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
+                                <div>
+                                    <h2 className="text-lg font-semibold text-foreground">
+                                        Assign Sprint to Team
+                                    </h2>
 
-                                <div className="relative flex items-center justify-between">
-
-                                    <div className="flex items-center gap-3">
-
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
-
-                                            <UsersRound
-                                                size={19}
-                                                className="text-white"
-                                            />
-
-                                        </div>
-
-                                        <div>
-
-                                            <h2 className="text-lg font-bold">
-                                                Assign Sprint to Team
-                                            </h2>
-
-                                            <p className="text-sm text-white/80">
-                                                {
-                                                    selectedSprint.name
-                                                }
-                                            </p>
-
-                                        </div>
-
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={
-                                            closeAssignTeam
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {
+                                            selectedSprint.name
                                         }
-                                        className="rounded-lg p-2 text-white/80 transition hover:bg-white/10 hover:text-white"
-                                    >
-                                        <X size={19} />
-                                    </button>
-
+                                    </p>
                                 </div>
+
+                                <button
+                                    type="button"
+                                    onClick={
+                                        closeAssignTeam
+                                    }
+                                    className="rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
 
                             </div>
 
-                            <div className="px-6 py-5">
+                            <div className="px-5 py-5">
 
-                                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                                    Team ID
+                                <label className="mb-2 block text-sm font-medium text-foreground">
+                                    Team
                                 </label>
 
-                                <input
-                                    type="text"
+                                <select
                                     value={
                                         selectedTeam
                                     }
@@ -1847,20 +2177,61 @@ useEffect(() => {
                                                 .value
                                         )
                                     }
-                                    placeholder="Enter team ID"
                                     disabled={
                                         actionLoading
                                     }
-                                    className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                                />
+                                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-muted"
+                                >
 
-                                <p className="mt-2 text-xs leading-5 text-slate-500">
-                                    Enter the team ID that should be responsible for this sprint.
-                                </p>
+                                    <option value="">
+                                        Select a team
+                                    </option>
+
+                                    {teams.map(
+                                        (team) => {
+
+                                            const teamId =
+                                                team?.id ??
+                                                team?.Id ??
+                                                team?.teamId ??
+                                                team?.TeamId;
+
+                                            const teamName =
+                                                team?.name ??
+                                                team?.Name ??
+                                                team?.teamName ??
+                                                team?.TeamName ??
+                                                "Unnamed Team";
+
+                                            return (
+                                                <option
+                                                    key={
+                                                        teamId
+                                                    }
+                                                    value={
+                                                        teamId
+                                                    }
+                                                >
+                                                    {
+                                                        teamName
+                                                    }
+                                                </option>
+                                            );
+                                        }
+                                    )}
+
+                                </select>
+
+                                {teams.length ===
+                                    0 && (
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                        No teams are currently available.
+                                    </p>
+                                )}
 
                             </div>
 
-                            <div className="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 px-6 py-4">
+                            <div className="flex justify-end gap-2 border-t border-border bg-muted/20 px-5 py-4">
 
                                 <button
                                     type="button"
@@ -1870,7 +2241,7 @@ useEffect(() => {
                                     disabled={
                                         actionLoading
                                     }
-                                    className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted disabled:opacity-60"
                                 >
                                     Cancel
                                 </button>
@@ -1881,18 +2252,18 @@ useEffect(() => {
                                         handleSaveTeamAssignment
                                     }
                                     disabled={
-                                        actionLoading
+                                        actionLoading ||
+                                        !selectedTeam
                                     }
-                                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:from-cyan-600 hover:to-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
+
                                     {actionLoading && (
-                                        <RefreshCw
-                                            size={16}
-                                            className="animate-spin"
-                                        />
+                                        <RefreshCw className="h-4 w-4 animate-spin" />
                                     )}
 
                                     Assign Team
+
                                 </button>
 
                             </div>
@@ -1907,7 +2278,8 @@ useEffect(() => {
 }
 
 // ============================================================
-// DEFAULT EXPORT
+// EXPORT
 // ============================================================
 
 export default SprintManagement;
+
