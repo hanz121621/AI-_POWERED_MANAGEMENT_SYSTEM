@@ -1,84 +1,69 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+
 import {
-    CheckCircle2,
-    Globe2,
-    Languages,
+    ChevronDown,
+    Globe,
+    Loader2,
     RotateCcw,
     Save,
-    XCircle,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 
 // ============================================================
-// SETTING-002
-// CHANGE LANGUAGE PREFERENCES
+// AIPMS — ADMIN LANGUAGE PREFERENCES
 //
-// Primary Actor: Admin
+// Use Case:
+// SETTING-002 — Change Language Preference
 //
-// Editable:
-// - Preferred language
-//
-// Business Rules:
-// - Only enabled/supported languages can be selected
-// - Language preference is stored per user
-// - Cancel keeps the previous preference
-// - Changes are recorded in the audit log
+// IMPORTANT:
+// - This component keeps the existing Admin persistence logic.
+// - Admin language preference is stored in localStorage.
+// - UI styling follows the Manager Settings design.
+// - Supported Admin languages remain English and Amharic.
 // ============================================================
 
 
 // ============================================================
-// CONFIGURABLE LANGUAGES
-//
-// In the future these should come from the backend/database.
-// For now they are represented as configurable system data.
+// AVAILABLE LANGUAGES
 // ============================================================
 
 const AVAILABLE_LANGUAGES = [
     {
-        id: "en",
         code: "en",
         name: "English",
         nativeName: "English",
-        description: "Use English throughout the AI-PMS interface.",
+        description:
+            "Use English as the application interface language.",
         enabled: true,
     },
     {
-        id: "am",
         code: "am",
         name: "Amharic",
         nativeName: "አማርኛ",
-        description: "Use Amharic for supported AI-PMS interface content.",
+        description:
+            "Use Amharic as the application interface language.",
         enabled: true,
     },
 ];
 
 
 // ============================================================
-// GET CURRENT USER
+// LOCAL STORAGE HELPERS
 // ============================================================
 
 function getCurrentUser() {
     try {
-        const storedUser = localStorage.getItem("user");
+        const rawUser =
+            localStorage.getItem("user");
 
-        if (!storedUser) {
+        if (!rawUser) {
             return null;
         }
 
-        const parsedUser = JSON.parse(storedUser);
-
-        if (
-            !parsedUser ||
-            typeof parsedUser !== "object"
-        ) {
-            return null;
-        }
-
-        return parsedUser;
+        return JSON.parse(rawUser);
     } catch (error) {
-        console.error(
-            "Unable to read current user:",
+        console.warn(
+            "Unable to read current user from localStorage:",
             error
         );
 
@@ -87,28 +72,24 @@ function getCurrentUser() {
 }
 
 
-// ============================================================
-// GET USERS
-// ============================================================
-
 function getUsers() {
     try {
-        const storedUsers =
+        const rawUsers =
             localStorage.getItem("users");
 
-        if (!storedUsers) {
+        if (!rawUsers) {
             return [];
         }
 
-        const parsedUsers =
-            JSON.parse(storedUsers);
+        const users =
+            JSON.parse(rawUsers);
 
-        return Array.isArray(parsedUsers)
-            ? parsedUsers
+        return Array.isArray(users)
+            ? users
             : [];
     } catch (error) {
-        console.error(
-            "Unable to read users:",
+        console.warn(
+            "Unable to read users from localStorage:",
             error
         );
 
@@ -116,10 +97,6 @@ function getUsers() {
     }
 }
 
-
-// ============================================================
-// SAVE USERS
-// ============================================================
 
 function saveUsers(users) {
     localStorage.setItem(
@@ -129,10 +106,6 @@ function saveUsers(users) {
 }
 
 
-// ============================================================
-// FIND CURRENT USER
-// ============================================================
-
 function findCurrentUser(
     currentUser,
     users
@@ -141,54 +114,32 @@ function findCurrentUser(
         return null;
     }
 
-    return users.find((storedUser) => {
-
-        // Match ID
-        if (
-            currentUser.id !== undefined &&
-            currentUser.id !== null &&
-            storedUser.id !== undefined &&
-            storedUser.id !== null &&
-            String(storedUser.id) ===
-                String(currentUser.id)
-        ) {
-            return true;
-        }
-
-        // Match userId
-        if (
-            currentUser.userId !== undefined &&
-            currentUser.userId !== null &&
-            storedUser.userId !== undefined &&
-            storedUser.userId !== null &&
-            String(storedUser.userId) ===
-                String(currentUser.userId)
-        ) {
-            return true;
-        }
-
-        // Match email
-        if (
-            currentUser.email &&
-            storedUser.email &&
-            String(storedUser.email)
-                .trim()
-                .toLowerCase() ===
-                String(currentUser.email)
-                    .trim()
-                    .toLowerCase()
-        ) {
-            return true;
-        }
-
-        return false;
-    });
+    return (
+        users.find(
+            (user) =>
+                currentUser.id &&
+                user.id &&
+                String(user.id) ===
+                    String(currentUser.id)
+        ) ||
+        users.find(
+            (user) =>
+                currentUser.userId &&
+                user.userId &&
+                String(user.userId) ===
+                    String(currentUser.userId)
+        ) ||
+        users.find(
+            (user) =>
+                currentUser.email &&
+                user.email &&
+                String(user.email).toLowerCase() ===
+                    String(currentUser.email).toLowerCase()
+        ) ||
+        null
+    );
 }
 
-
-// ============================================================
-// GET USER LANGUAGE
-// ============================================================
 
 function getUserLanguage(user) {
     if (!user) {
@@ -204,67 +155,61 @@ function getUserLanguage(user) {
 }
 
 
-// ============================================================
-// ACTIVITY LOG
-// ============================================================
-
 function addActivityLog(
     user,
     action
 ) {
     try {
-        const storedLogs =
+        const rawLogs =
             localStorage.getItem(
                 "activityLogs"
             );
 
-        let logs = [];
-
-        if (storedLogs) {
-            try {
-                const parsedLogs =
-                    JSON.parse(storedLogs);
-
-                if (Array.isArray(parsedLogs)) {
-                    logs = parsedLogs;
-                }
-            } catch {
-                logs = [];
-            }
-        }
+        const logs = rawLogs
+            ? JSON.parse(rawLogs)
+            : [];
 
         const newLog = {
-            id: Date.now(),
-
-            action,
+            id:
+                typeof crypto !== "undefined" &&
+                crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : Date.now().toString(),
 
             userId:
-                user?.id ??
-                user?.userId ??
+                user?.id ||
+                user?.userId ||
                 null,
 
             userName:
                 user?.fullName ||
-                user?.name ||
-                "Unknown User",
-
-            userEmail:
+                user?.FullName ||
                 user?.email ||
-                "",
+                user?.Email ||
+                "Administrator",
+
+            action,
 
             timestamp:
                 new Date().toISOString(),
         };
 
-        logs.unshift(newLog);
+        const updatedLogs = [
+            newLog,
+            ...(Array.isArray(logs)
+                ? logs
+                : []),
+        ];
 
         localStorage.setItem(
             "activityLogs",
-            JSON.stringify(logs)
+            JSON.stringify(
+                updatedLogs
+            )
         );
     } catch (error) {
-        console.error(
-            "Unable to record activity:",
+        console.warn(
+            "Unable to save activity log:",
             error
         );
     }
@@ -272,198 +217,149 @@ function addActivityLog(
 
 
 // ============================================================
-// MAIN COMPONENT
+// NORMALIZE LANGUAGE
 // ============================================================
 
-function LanguagePreferences({
+function normalizeLanguage(value) {
+    const language =
+        String(value || "")
+            .trim()
+            .toLowerCase();
+
+    return AVAILABLE_LANGUAGES.some(
+        (item) =>
+            item.code === language &&
+            item.enabled
+    )
+        ? language
+        : "en";
+}
+
+
+// ============================================================
+// ADMIN LANGUAGE PREFERENCES
+// ============================================================
+
+export default function LanguagePreferences({
     onCancel,
     onSuccess,
 }) {
-    // ========================================================
+    // ----------------------------------------------------------
     // STATE
-    // ========================================================
+    // ----------------------------------------------------------
 
-    const [currentUser, setCurrentUser] =
-        useState(null);
+    const [
+        currentUser,
+        setCurrentUser,
+    ] = useState(null);
 
-    const [originalLanguage, setOriginalLanguage] =
-        useState("");
+    const [
+        originalLanguage,
+        setOriginalLanguage,
+    ] = useState("en");
 
-    const [selectedLanguage, setSelectedLanguage] =
-        useState("");
+    const [
+        selectedLanguage,
+        setSelectedLanguage,
+    ] = useState("en");
 
-    const [isLoading, setIsLoading] =
-        useState(true);
+    const [
+        isLoading,
+        setIsLoading,
+    ] = useState(true);
 
-    const [isSaving, setIsSaving] =
-        useState(false);
+    const [
+        isSaving,
+        setIsSaving,
+    ] = useState(false);
 
-    const [message, setMessage] =
-        useState({
-            type: "",
-            text: "",
-        });
+    const [
+        message,
+        setMessage,
+    ] = useState({
+        type: "",
+        text: "",
+    });
 
 
-    // ========================================================
-    // LOAD LANGUAGE PREFERENCES
-    // ========================================================
+    // ----------------------------------------------------------
+    // LOAD CURRENT LANGUAGE
+    // ----------------------------------------------------------
 
     useEffect(() => {
-        let isMounted = true;
+        const loadLanguagePreference =
+            () => {
+                try {
+                    setIsLoading(true);
 
-        const loadPreferences = () => {
-            try {
-                setIsLoading(true);
+                    setMessage({
+                        type: "",
+                        text: "",
+                    });
 
-                const loggedInUser =
-                    getCurrentUser();
+                    const user =
+                        getCurrentUser();
 
-                // ==================================================
-                // A4 / USER NOT FOUND
-                // ==================================================
+                    setCurrentUser(user);
 
-                if (!loggedInUser) {
-                    if (isMounted) {
-                        setMessage({
-                            type: "error",
-                            text:
-                                "User preferences not found.",
-                        });
+                    const users =
+                        getUsers();
 
-                        setIsLoading(false);
-                    }
-
-                    return;
-                }
-
-                const users = getUsers();
-
-                let foundUser =
-                    findCurrentUser(
-                        loggedInUser,
-                        users
-                    );
-
-                // ==================================================
-                // FALLBACK
-                // ==================================================
-
-                if (!foundUser) {
-                    foundUser =
-                        loggedInUser;
-                }
-
-                const configuredLanguages =
-                    AVAILABLE_LANGUAGES.filter(
-                        (language) =>
-                            language.enabled === true
-                    );
-
-                // ==================================================
-                // A4 / NO LANGUAGES
-                // ==================================================
-
-                if (
-                    configuredLanguages.length ===
-                    0
-                ) {
-                    if (isMounted) {
-                        setCurrentUser(
-                            foundUser
+                    const matchedUser =
+                        findCurrentUser(
+                            user,
+                            users
                         );
 
-                        setMessage({
-                            type: "error",
-                            text:
-                                "No languages are currently available.",
-                        });
+                    const language =
+                        normalizeLanguage(
+                            getUserLanguage(
+                                matchedUser ||
+                                    user
+                            )
+                        );
 
-                        setIsLoading(false);
-                    }
-
-                    return;
-                }
-
-                const savedLanguage =
-                    getUserLanguage(
-                        foundUser
+                    setOriginalLanguage(
+                        language
                     );
 
-                // ==================================================
-                // CHECK WHETHER SAVED LANGUAGE IS SUPPORTED
-                // ==================================================
-
-                const supportedLanguage =
-                    configuredLanguages.find(
-                        (language) =>
-                            language.code ===
-                            savedLanguage
+                    setSelectedLanguage(
+                        language
+                    );
+                } catch (error) {
+                    console.error(
+                        "Failed to load language preference:",
+                        error
                     );
 
-                const finalLanguage =
-                    supportedLanguage
-                        ? supportedLanguage.code
-                        : configuredLanguages[0]
-                              .code;
-
-                if (!isMounted) {
-                    return;
-                }
-
-                setCurrentUser(
-                    foundUser
-                );
-
-                setOriginalLanguage(
-                    finalLanguage
-                );
-
-                setSelectedLanguage(
-                    finalLanguage
-                );
-
-                setMessage({
-                    type: "",
-                    text: "",
-                });
-            } catch (error) {
-                console.error(
-                    "Unable to load language preferences:",
-                    error
-                );
-
-                if (isMounted) {
                     setMessage({
                         type: "error",
                         text:
-                            "Unable to load language preferences. Please try again.",
+                            "Failed to load language preference.",
                     });
-                }
-            } finally {
-                if (isMounted) {
+                } finally {
                     setIsLoading(false);
                 }
-            }
-        };
+            };
 
-        loadPreferences();
-
-        return () => {
-            isMounted = false;
-        };
+        loadLanguagePreference();
     }, []);
 
 
-    // ========================================================
-    // HANDLE LANGUAGE CHANGE
-    // ========================================================
+    // ==========================================================
+    // LANGUAGE CHANGE
+    // ==========================================================
 
     const handleLanguageChange = (
-        languageCode
+        event
     ) => {
+        const language =
+            normalizeLanguage(
+                event.target.value
+            );
+
         setSelectedLanguage(
-            languageCode
+            language
         );
 
         setMessage({
@@ -473,180 +369,138 @@ function LanguagePreferences({
     };
 
 
-    // ========================================================
+    // ==========================================================
     // VALIDATE LANGUAGE
-    // ========================================================
+    // ==========================================================
 
-    const validateLanguage = () => {
-        const language =
-            AVAILABLE_LANGUAGES.find(
-                (item) =>
-                    item.code ===
-                    selectedLanguage &&
-                    item.enabled === true
-            );
+    const validateLanguage =
+        () => {
+            const exists =
+                AVAILABLE_LANGUAGES.some(
+                    (item) =>
+                        item.code ===
+                            selectedLanguage &&
+                        item.enabled
+                );
 
-        if (!language) {
-            setMessage({
-                type: "error",
-                text:
-                    "Selected language is not available.",
-            });
+            if (!exists) {
+                setMessage({
+                    type: "error",
+                    text:
+                        "Please select a supported language.",
+                });
 
-            return false;
-        }
+                return false;
+            }
 
-        return true;
-    };
+            return true;
+        };
 
 
-    // ========================================================
+    // ==========================================================
     // SAVE LANGUAGE
-    // ========================================================
+    // ==========================================================
 
-    const handleSave = () => {
-        setMessage({
-            type: "",
-            text: "",
-        });
-
-        // ======================================================
-        // VALIDATE
-        // ======================================================
-
+    const handleSave = async () => {
         if (!validateLanguage()) {
-            return;
-        }
-
-        // ======================================================
-        // USER CHECK
-        // ======================================================
-
-        if (!currentUser) {
-            setMessage({
-                type: "error",
-                text:
-                    "User preferences not found.",
-            });
-
             return;
         }
 
         try {
             setIsSaving(true);
 
-            const users = getUsers();
+            setMessage({
+                type: "",
+                text: "",
+            });
 
-            // ==================================================
-            // FIND USER
-            // ==================================================
+            const users =
+                getUsers();
 
-            let currentIndex =
-                users.findIndex(
-                    (storedUser) => {
-
-                        const sameId =
-                            currentUser.id !==
-                                undefined &&
-                            currentUser.id !==
-                                null &&
-                            storedUser.id !==
-                                undefined &&
-                            storedUser.id !==
-                                null &&
-                            String(
-                                storedUser.id
-                            ) ===
-                                String(
-                                    currentUser.id
-                                );
-
-                        const sameUserId =
-                            currentUser.userId !==
-                                undefined &&
-                            currentUser.userId !==
-                                null &&
-                            storedUser.userId !==
-                                undefined &&
-                            storedUser.userId !==
-                                null &&
-                            String(
-                                storedUser.userId
-                            ) ===
-                                String(
-                                    currentUser.userId
-                                );
-
-                        const sameEmail =
-                            currentUser.email &&
-                            storedUser.email &&
-                            String(
-                                storedUser.email
-                            )
-                                .trim()
-                                .toLowerCase() ===
-                                String(
-                                    currentUser.email
-                                )
-                                    .trim()
-                                    .toLowerCase();
-
-                        return (
-                            sameId ||
-                            sameUserId ||
-                            sameEmail
-                        );
-                    }
+            const matchedUser =
+                findCurrentUser(
+                    currentUser,
+                    users
                 );
 
-            // ==================================================
-            // IF USER DOES NOT EXIST IN USERS
-            // ==================================================
+            let updatedUser;
 
-            if (currentIndex === -1) {
-                users.push({
-                    ...currentUser,
-                });
+            if (matchedUser) {
+                updatedUser = {
+                    ...matchedUser,
 
-                currentIndex =
-                    users.length - 1;
+                    languagePreference:
+                        selectedLanguage,
+
+                    preferredLanguage:
+                        selectedLanguage,
+                };
+
+                const updatedUsers =
+                    users.map(
+                        (user) => {
+                            const isSameUser =
+                                (
+                                    matchedUser.id &&
+                                    user.id &&
+                                    String(
+                                        matchedUser.id
+                                    ) ===
+                                        String(
+                                            user.id
+                                        )
+                                ) ||
+                                (
+                                    matchedUser.userId &&
+                                    user.userId &&
+                                    String(
+                                        matchedUser.userId
+                                    ) ===
+                                        String(
+                                            user.userId
+                                        )
+                                ) ||
+                                (
+                                    matchedUser.email &&
+                                    user.email &&
+                                    String(
+                                        matchedUser.email
+                                    ).toLowerCase() ===
+                                        String(
+                                            user.email
+                                        ).toLowerCase()
+                                );
+
+                            return isSameUser
+                                ? updatedUser
+                                : user;
+                        }
+                    );
+
+                saveUsers(
+                    updatedUsers
+                );
+            } else {
+                updatedUser = {
+                    ...(currentUser || {}),
+
+                    languagePreference:
+                        selectedLanguage,
+
+                    preferredLanguage:
+                        selectedLanguage,
+                };
+
+                saveUsers([
+                    ...users,
+                    updatedUser,
+                ]);
             }
 
-            // ==================================================
-            // UPDATE ONLY LANGUAGE PREFERENCE
-            // ==================================================
 
-            const existingUser =
-                users[currentIndex];
-
-            const updatedUser = {
-                ...existingUser,
-
-                languagePreference:
-                    selectedLanguage,
-
-                preferredLanguage:
-                    selectedLanguage,
-            };
-
-            // ==================================================
-            // SAVE USERS
-            // ==================================================
-
-            const updatedUsers = [
-                ...users,
-            ];
-
-            updatedUsers[currentIndex] =
-                updatedUser;
-
-            saveUsers(
-                updatedUsers
-            );
-
-            // ==================================================
-            // UPDATE LOGGED-IN USER
-            // ==================================================
+            // --------------------------------------------------
+            // UPDATE CURRENT USER
+            // --------------------------------------------------
 
             localStorage.setItem(
                 "user",
@@ -655,23 +509,22 @@ function LanguagePreferences({
                 )
             );
 
-            // ==================================================
-            // SAVE GLOBAL LANGUAGE PREFERENCE
-            //
-            // This allows the application theme/language
-            // context to read the selected language later.
-            // ==================================================
+
+            // --------------------------------------------------
+            // KEEP EXISTING GLOBAL LANGUAGE STORAGE
+            // --------------------------------------------------
 
             localStorage.setItem(
                 "language",
                 selectedLanguage
             );
 
-            // ==================================================
-            // AUDIT LOG
-            // ==================================================
 
-            const language =
+            // --------------------------------------------------
+            // ACTIVITY LOG
+            // --------------------------------------------------
+
+            const selectedLanguageInfo =
                 AVAILABLE_LANGUAGES.find(
                     (item) =>
                         item.code ===
@@ -680,50 +533,42 @@ function LanguagePreferences({
 
             addActivityLog(
                 updatedUser,
-                `Changed language preference to ${language?.name || selectedLanguage}`
+                `Changed language preference to ${
+                    selectedLanguageInfo?.name ||
+                    selectedLanguage
+                }`
             );
 
-            // ==================================================
+
+            // --------------------------------------------------
             // UPDATE STATE
-            // ==================================================
-
-            setCurrentUser(
-                updatedUser
-            );
+            // --------------------------------------------------
 
             setOriginalLanguage(
                 selectedLanguage
             );
 
-            // ==================================================
-            // SUCCESS
-            // ==================================================
+            setSelectedLanguage(
+                selectedLanguage
+            );
+
+
+            // --------------------------------------------------
+            // SUCCESS MESSAGE
+            // --------------------------------------------------
+
+            const successMessage =
+                "Language preference updated successfully.";
 
             setMessage({
                 type: "success",
-                text:
-                    "Language preference updated successfully.",
+                text: successMessage,
             });
 
-            // ==================================================
-            // CALLBACK
-            // ==================================================
 
-            if (
-                typeof onSuccess ===
-                "function"
-            ) {
-                onSuccess(
-                    updatedUser
-                );
-            }
-
-            // ==================================================
-            // REFRESH APPLICATION
-            //
-            // This lets the application reload supported
-            // interface translations if they are available.
-            // ==================================================
+            // --------------------------------------------------
+            // NOTIFY OTHER COMPONENTS
+            // --------------------------------------------------
 
             window.dispatchEvent(
                 new CustomEvent(
@@ -737,16 +582,27 @@ function LanguagePreferences({
                 )
             );
 
+
+            // --------------------------------------------------
+            // PARENT CALLBACK
+            // --------------------------------------------------
+
+            if (onSuccess) {
+                onSuccess(
+                    updatedUser
+                );
+            }
         } catch (error) {
             console.error(
-                "Language preference update error:",
+                "Failed to save language preference:",
                 error
             );
 
             setMessage({
                 type: "error",
                 text:
-                    "Unable to update language preference. Please try again.",
+                    error?.message ||
+                    "Failed to save language preference.",
             });
         } finally {
             setIsSaving(false);
@@ -754,34 +610,9 @@ function LanguagePreferences({
     };
 
 
-    // ========================================================
-    // CANCEL
-    // ========================================================
-
-    const handleCancel = () => {
-        setSelectedLanguage(
-            originalLanguage
-        );
-
-        setMessage({
-            type: "",
-            text: "",
-        });
-
-        if (
-            typeof onCancel ===
-            "function"
-        ) {
-            onCancel();
-        }
-    };
-
-
-    // ========================================================
+    // ==========================================================
     // RESET
-    //
-    // Reset the unsaved selection to the currently saved value.
-    // ========================================================
+    // ==========================================================
 
     const handleReset = () => {
         setSelectedLanguage(
@@ -795,292 +626,169 @@ function LanguagePreferences({
     };
 
 
-    // ========================================================
+    // ==========================================================
+    // CANCEL
+    // ==========================================================
+
+    const handleCancel = () => {
+        setSelectedLanguage(
+            originalLanguage
+        );
+
+        setMessage({
+            type: "",
+            text: "",
+        });
+
+        if (onCancel) {
+            onCancel();
+        }
+    };
+
+
+    // ==========================================================
     // LOADING
-    // ========================================================
+    // ==========================================================
 
     if (isLoading) {
         return (
-            <div
-                className="
-                    flex
-                    min-h-[500px]
-                    items-center
-                    justify-center
-                    bg-slate-50
-                    text-slate-900
-                    dark:bg-slate-950
-                    dark:text-slate-100
-                "
-            >
-                <div className="text-center">
+            <div className="flex min-h-[220px] items-center justify-center bg-background">
+                <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <Loader2 className="h-7 w-7 animate-spin" />
 
-                    <div
-                        className="
-                            mx-auto
-                            mb-4
-                            h-10
-                            w-10
-                            animate-spin
-                            rounded-full
-                            border-4
-                            border-slate-300
-                            border-t-blue-600
-                            dark:border-slate-700
-                            dark:border-t-blue-400
-                        "
-                    />
-
-                    <p
-                        className="
-                            text-sm
-                            font-medium
-                            text-slate-600
-                            dark:text-slate-400
-                        "
-                    >
+                    <p className="text-sm">
                         Loading language preferences...
                     </p>
-
                 </div>
             </div>
         );
     }
 
 
-    // ========================================================
+    // ==========================================================
     // RENDER
-    // ========================================================
+    // ==========================================================
 
     return (
-        <div
-            className="
-                min-h-screen
-                bg-slate-50
-                p-4
-                text-slate-900
-                transition-colors
-                md:p-6
-                dark:bg-slate-950
-                dark:text-slate-100
-            "
-        >
+        <div className="w-full bg-background text-foreground">
 
-            <div
-                className="
-                    mx-auto
-                    max-w-5xl
-                "
-            >
+            {/* =================================================
+                LANGUAGE SECTION
+            ================================================== */}
 
-                {/* ==================================================
+            <section className="rounded-xl border border-border bg-card shadow-sm">
+
+                {/* ------------------------------------------------
                     HEADER
-                ================================================== */}
+                ------------------------------------------------- */}
 
-                <div className="mb-6">
+                <div className="flex items-start gap-4 border-b border-border p-6">
 
-                    <div
-                        className="
-                            mb-3
-                            flex
-                            items-center
-                            gap-3
-                        "
-                    >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                        <Globe className="h-5 w-5" />
+                    </div>
 
-                        <div
-                            className="
-                                flex
-                                h-11
-                                w-11
-                                items-center
-                                justify-center
-                                rounded-xl
-                                bg-blue-100
-                                text-blue-600
-                                dark:bg-blue-500/10
-                                dark:text-blue-400
-                            "
-                        >
-                            <Languages
-                                className="h-6 w-6"
-                            />
-                        </div>
+                    <div>
+                        <h2 className="text-lg font-semibold text-card-foreground">
+                            Language Preference
+                        </h2>
 
-                        <div>
-
-                            <h1
-                                className="
-                                    text-2xl
-                                    font-bold
-                                    text-slate-900
-                                    dark:text-white
-                                "
-                            >
-                                Language Preferences
-                            </h1>
-
-                            <p
-                                className="
-                                    mt-1
-                                    text-sm
-                                    text-slate-500
-                                    dark:text-slate-400
-                                "
-                            >
-                                Choose the preferred language
-                                for the AI-PMS interface.
-                            </p>
-
-                        </div>
-
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Choose the language used throughout the application.
+                        </p>
                     </div>
 
                 </div>
 
 
-                {/* ==================================================
-                    MESSAGE
-                ================================================== */}
+                {/* ------------------------------------------------
+                    CONTENT
+                ------------------------------------------------- */}
 
-                {message.text && (
-                    <div
-                        className={`
-                            mb-6
-                            flex
-                            items-start
-                            gap-3
-                            rounded-xl
-                            border
-                            p-4
+                <div className="p-6">
 
-                            ${
-                                message.type ===
-                                "success"
-                                    ? `
-                                        border-emerald-200
-                                        bg-emerald-50
-                                        text-emerald-800
-                                        dark:border-emerald-800
-                                        dark:bg-emerald-950/40
-                                        dark:text-emerald-300
-                                    `
-                                    : `
-                                        border-red-200
-                                        bg-red-50
-                                        text-red-800
-                                        dark:border-red-800
-                                        dark:bg-red-950/40
-                                        dark:text-red-300
-                                    `
-                            }
-                        `}
-                    >
+                    {/* LANGUAGE ROW */}
 
-                        {message.type ===
-                        "success" ? (
-                            <CheckCircle2
-                                className="
-                                    mt-0.5
-                                    h-5
-                                    w-5
-                                    shrink-0
-                                "
-                            />
-                        ) : (
-                            <XCircle
-                                className="
-                                    mt-0.5
-                                    h-5
-                                    w-5
-                                    shrink-0
-                                "
-                            />
-                        )}
+                    <div className="flex items-center justify-between gap-6 py-4">
 
-                        <p
-                            className="
-                                text-sm
-                                font-medium
-                            "
-                        >
-                            {message.text}
-                        </p>
+                        <div className="min-w-0">
 
-                    </div>
-                )}
+                            <h3 className="text-sm font-medium text-foreground">
+                                Application Language
+                            </h3>
+
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Select your preferred interface language.
+                            </p>
+
+                        </div>
 
 
-                {/* ==================================================
-                    LANGUAGE CARD
-                ================================================== */}
+                        <div className="shrink-0">
 
-                <div
-                    className="
-                        overflow-hidden
-                        rounded-2xl
-                        border
-                        border-slate-200
-                        bg-slate-100
-                        shadow-sm
-                        dark:border-slate-800
-                        dark:bg-slate-900
-                    "
-                >
+                            <div className="relative">
 
-                    {/* CARD HEADER */}
-
-                    <div
-                        className="
-                            border-b
-                            border-slate-200
-                            p-6
-                            dark:border-slate-800
-                        "
-                    >
-
-                        <div
-                            className="
-                                flex
-                                items-start
-                                gap-3
-                            "
-                        >
-
-                            <Globe2
-                                className="
-                                    mt-0.5
-                                    h-5
-                                    w-5
-                                    text-blue-600
-                                    dark:text-blue-400
-                                "
-                            />
-
-                            <div>
-
-                                <h2
-                                    className="
-                                        text-lg
-                                        font-bold
-                                        text-slate-900
-                                        dark:text-white
-                                    "
+                                <select
+                                    value={
+                                        selectedLanguage
+                                    }
+                                    onChange={
+                                        handleLanguageChange
+                                    }
+                                    disabled={
+                                        isSaving
+                                    }
+                                    className={[
+                                        "min-w-[190px]",
+                                        "appearance-none",
+                                        "rounded-lg",
+                                        "border",
+                                        "border-input",
+                                        "bg-background",
+                                        "px-4",
+                                        "py-2",
+                                        "pr-10",
+                                        "text-sm",
+                                        "text-foreground",
+                                        "outline-none",
+                                        "transition-colors",
+                                        "focus:ring-2",
+                                        "focus:ring-ring",
+                                        "disabled:cursor-not-allowed",
+                                        "disabled:opacity-60",
+                                    ].join(" ")}
                                 >
-                                    Interface Language
-                                </h2>
 
-                                <p
-                                    className="
-                                        mt-1
-                                        text-sm
-                                        text-slate-500
-                                        dark:text-slate-400
-                                    "
-                                >
-                                    Select one of the currently
-                                    enabled languages.
-                                </p>
+                                    {AVAILABLE_LANGUAGES
+                                        .filter(
+                                            (
+                                                item
+                                            ) =>
+                                                item.enabled
+                                        )
+                                        .map(
+                                            (
+                                                item
+                                            ) => (
+                                                <option
+                                                    key={
+                                                        item.code
+                                                    }
+                                                    value={
+                                                        item.code
+                                                    }
+                                                >
+                                                    {
+                                                        item.nativeName
+                                                    }
+                                                </option>
+                                            )
+                                        )}
+
+                                </select>
+
+
+                                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
                             </div>
 
@@ -1089,304 +797,96 @@ function LanguagePreferences({
                     </div>
 
 
-                    {/* LANGUAGE OPTIONS */}
+                    {/* ------------------------------------------------
+                        SELECTED LANGUAGE DESCRIPTION
+                    ------------------------------------------------- */}
 
-                    <div
-                        className="
-                            space-y-4
-                            p-6
-                        "
-                    >
+                    <div className="mt-2 rounded-lg border border-border bg-muted/40 px-4 py-3">
 
-                        {AVAILABLE_LANGUAGES
-                            .filter(
-                                (language) =>
-                                    language.enabled ===
-                                    true
-                            )
-                            .map(
-                                (language) => {
+                        <p className="text-sm text-muted-foreground">
 
-                                    const isSelected =
-                                        selectedLanguage ===
-                                        language.code;
-
-                                    return (
-                                        <button
-                                            type="button"
-                                            key={
-                                                language.id
-                                            }
-                                            onClick={() =>
-                                                handleLanguageChange(
-                                                    language.code
-                                                )
-                                            }
-                                            className={`
-                                                flex
-                                                w-full
-                                                items-center
-                                                justify-between
-                                                rounded-xl
-                                                border
-                                                p-5
-                                                text-left
-                                                transition-all
-                                                duration-200
-
-                                                ${
-                                                    isSelected
-                                                        ? `
-                                                            border-blue-500
-                                                            bg-blue-50
-                                                            shadow-sm
-                                                            dark:border-blue-500
-                                                            dark:bg-blue-500/10
-                                                        `
-                                                        : `
-                                                            border-slate-200
-                                                            bg-slate-50
-                                                            hover:border-blue-300
-                                                            hover:bg-slate-100
-                                                            dark:border-slate-700
-                                                            dark:bg-slate-800
-                                                            dark:hover:border-blue-700
-                                                            dark:hover:bg-slate-800/80
-                                                        `
-                                                }
-                                            `}
-                                        >
-
-                                            <div
-                                                className="
-                                                    flex
-                                                    items-center
-                                                    gap-4
-                                                "
-                                            >
-
-                                                {/* RADIO */}
-
-                                                <div
-                                                    className={`
-                                                        flex
-                                                        h-5
-                                                        w-5
-                                                        items-center
-                                                        justify-center
-                                                        rounded-full
-                                                        border-2
-
-                                                        ${
-                                                            isSelected
-                                                                ? `
-                                                                    border-blue-600
-                                                                    dark:border-blue-400
-                                                                `
-                                                                : `
-                                                                    border-slate-400
-                                                                    dark:border-slate-600
-                                                                `
-                                                        }
-                                                    `}
-                                                >
-
-                                                    {isSelected && (
-                                                        <div
-                                                            className="
-                                                                h-2.5
-                                                                w-2.5
-                                                                rounded-full
-                                                                bg-blue-600
-                                                                dark:bg-blue-400
-                                                            "
-                                                        />
-                                                    )}
-
-                                                </div>
-
-
-                                                {/* LANGUAGE ICON */}
-
-                                                <div
-                                                    className="
-                                                        flex
-                                                        h-11
-                                                        w-11
-                                                        items-center
-                                                        justify-center
-                                                        rounded-lg
-                                                        bg-slate-200
-                                                        text-slate-700
-                                                        dark:bg-slate-700
-                                                        dark:text-slate-200
-                                                    "
-                                                >
-                                                    <Languages
-                                                        className="h-5 w-5"
-                                                    />
-                                                </div>
-
-
-                                                {/* TEXT */}
-
-                                                <div>
-
-                                                    <div
-                                                        className="
-                                                            flex
-                                                            flex-wrap
-                                                            items-center
-                                                            gap-2
-                                                        "
-                                                    >
-
-                                                        <span
-                                                            className="
-                                                                font-semibold
-                                                                text-slate-900
-                                                                dark:text-white
-                                                            "
-                                                        >
-                                                            {
-                                                                language.name
-                                                            }
-                                                        </span>
-
-                                                        <span
-                                                            className="
-                                                                rounded-md
-                                                                bg-slate-200
-                                                                px-2
-                                                                py-0.5
-                                                                text-xs
-                                                                font-medium
-                                                                text-slate-600
-                                                                dark:bg-slate-700
-                                                                dark:text-slate-300
-                                                            "
-                                                        >
-                                                            {
-                                                                language.nativeName
-                                                            }
-                                                        </span>
-
-                                                    </div>
-
-                                                    <p
-                                                        className="
-                                                            mt-1
-                                                            text-sm
-                                                            text-slate-500
-                                                            dark:text-slate-400
-                                                        "
-                                                    >
-                                                        {
-                                                            language.description
-                                                        }
-                                                    </p>
-
-                                                </div>
-
-                                            </div>
-
-
-                                            {/* SELECTED */}
-
-                                            {isSelected && (
-                                                <CheckCircle2
-                                                    className="
-                                                        h-5
-                                                        w-5
-                                                        shrink-0
-                                                        text-blue-600
-                                                        dark:text-blue-400
-                                                    "
-                                                />
-                                            )}
-
-                                        </button>
+                            {(() => {
+                                const selected =
+                                    AVAILABLE_LANGUAGES.find(
+                                        (
+                                            item
+                                        ) =>
+                                            item.code ===
+                                            selectedLanguage
                                     );
-                                }
-                            )}
+
+                                return (
+                                    selected?.description ||
+                                    "Your selected language will be used for the application interface."
+                                );
+                            })()}
+
+                        </p>
 
                     </div>
 
 
-                    {/* ==================================================
+                    {/* ------------------------------------------------
+                        MESSAGE
+                    ------------------------------------------------- */}
+
+                    {message.text && (
+                        <div
+                            className={[
+                                "mt-4 rounded-lg border px-4 py-3 text-sm",
+
+                                message.type ===
+                                    "success"
+                                    ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
+                                    : "border-destructive/30 bg-destructive/10 text-destructive",
+                            ].join(" ")}
+                        >
+                            {message.text}
+                        </div>
+                    )}
+
+
+                    {/* ------------------------------------------------
                         ACTIONS
-                    ================================================== */}
+                    ------------------------------------------------- */}
 
-                    <div
-                        className="
-                            flex
-                            flex-col-reverse
-                            gap-3
-                            border-t
-                            border-slate-200
-                            bg-slate-200/50
-                            p-6
-                            sm:flex-row
-                            sm:justify-end
-                            dark:border-slate-800
-                            dark:bg-slate-950/40
-                        "
-                    >
+                    <div className="mt-6 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-end">
 
-                        {/* RESET */}
-
-                        <Button
+                        <button
                             type="button"
-                            variant="outline"
                             onClick={
                                 handleReset
                             }
                             disabled={
-                                isSaving
+                                isSaving ||
+                                selectedLanguage ===
+                                    originalLanguage
                             }
-                            className="
-                                gap-2
-                                border-slate-300
-                                bg-transparent
-                                text-slate-700
-                                dark:border-slate-700
-                                dark:text-slate-200
-                            "
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            <RotateCcw
-                                className="h-4 w-4"
-                            />
+                            <RotateCcw className="h-4 w-4" />
 
                             Reset
-                        </Button>
+                        </button>
 
 
-                        {/* CANCEL */}
-
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={
-                                handleCancel
-                            }
-                            disabled={
-                                isSaving
-                            }
-                            className="
-                                border-slate-300
-                                bg-transparent
-                                text-slate-700
-                                dark:border-slate-700
-                                dark:text-slate-200
-                            "
-                        >
-                            Cancel
-                        </Button>
+                        {onCancel && (
+                            <button
+                                type="button"
+                                onClick={
+                                    handleCancel
+                                }
+                                disabled={
+                                    isSaving
+                                }
+                                className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                        )}
 
 
-                        {/* SAVE */}
-
-                        <Button
+                        <button
                             type="button"
                             onClick={
                                 handleSave
@@ -1394,121 +894,27 @@ function LanguagePreferences({
                             disabled={
                                 isSaving
                             }
-                            className="
-                                gap-2
-                                bg-blue-600
-                                text-white
-                                hover:bg-blue-700
-                                dark:bg-blue-600
-                                dark:hover:bg-blue-500
-                            "
+                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                         >
 
                             {isSaving ? (
-                                <>
-                                    <span
-                                        className="
-                                            h-4
-                                            w-4
-                                            animate-spin
-                                            rounded-full
-                                            border-2
-                                            border-white/40
-                                            border-t-white
-                                        "
-                                    />
-
-                                    Saving...
-                                </>
+                                <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                                <>
-                                    <Save
-                                        className="h-4 w-4"
-                                    />
-
-                                    Save Changes
-                                </>
+                                <Save className="h-4 w-4" />
                             )}
 
-                        </Button>
+                            {isSaving
+                                ? "Saving..."
+                                : "Save Changes"}
+
+                        </button>
 
                     </div>
 
                 </div>
 
-
-                {/* ==================================================
-                    INFORMATION
-                ================================================== */}
-
-                <div
-                    className="
-                        mt-6
-                        rounded-xl
-                        border
-                        border-blue-200
-                        bg-blue-50
-                        p-4
-                        dark:border-blue-900
-                        dark:bg-blue-950/30
-                    "
-                >
-
-                    <div
-                        className="
-                            flex
-                            gap-3
-                        "
-                    >
-
-                        <Globe2
-                            className="
-                                mt-0.5
-                                h-5
-                                w-5
-                                shrink-0
-                                text-blue-600
-                                dark:text-blue-400
-                            "
-                        />
-
-                        <div>
-
-                            <p
-                                className="
-                                    font-semibold
-                                    text-blue-900
-                                    dark:text-blue-300
-                                "
-                            >
-                                Language Preference
-                            </p>
-
-                            <p
-                                className="
-                                    mt-1
-                                    text-sm
-                                    leading-6
-                                    text-blue-700
-                                    dark:text-blue-400
-                                "
-                            >
-                                Your selected language is saved
-                                to your account and can be used
-                                by the AI-PMS interface in future
-                                sessions.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
+            </section>
 
         </div>
     );
 }
-
-export default LanguagePreferences;

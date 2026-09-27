@@ -1,359 +1,1118 @@
 
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
+
 import {
-    Languages,
-    Check,
-    Save,
+    ChevronDown,
+    Globe,
+    Loader2,
     RotateCcw,
-    Globe2,
-    Info,
+    Save,
 } from "lucide-react";
 
 // ============================================================
-// STORAGE
+// AIPMS — STAFF LANGUAGE PREFERENCES
+//
+// Use Case:
+// SETTING-002 — Change Language Preference
+//
+// Staff version follows the Admin Language Preferences UI.
+//
+// Supported languages:
+// - English
+// - Amharic
+//
+// Persistence:
+// - Current user: localStorage "user"
+// - Users list: localStorage "users"
+// - Global language: localStorage "language"
+// - Staff language event: "languageChanged"
 // ============================================================
-
-const LANGUAGE_STORAGE_KEY = "aipms_system_language";
 
 // ============================================================
 // AVAILABLE LANGUAGES
 // ============================================================
 
-const LANGUAGES = [
+const AVAILABLE_LANGUAGES = [
     {
         code: "en",
         name: "English",
         nativeName: "English",
-        description: "Use English throughout the system.",
+        description:
+            "Use English as the application interface language.",
+        enabled: true,
     },
     {
         code: "am",
         name: "Amharic",
         nativeName: "አማርኛ",
-        description: "በስርዓቱ ውስጥ የአማርኛ ቋንቋን ይጠቀሙ።",
+        description:
+            "Use Amharic as the application interface language.",
+        enabled: true,
     },
 ];
 
 // ============================================================
-// GET INITIAL LANGUAGE
+// LOCAL STORAGE HELPERS
 // ============================================================
 
-function getInitialLanguage() {
-    const storedLanguage = localStorage.getItem(
-        LANGUAGE_STORAGE_KEY
-    );
+function getCurrentUser() {
+    try {
+        const rawUser =
+            localStorage.getItem("user");
 
-    if (storedLanguage === "am" || storedLanguage === "en") {
-        return storedLanguage;
+        if (!rawUser) {
+            return null;
+        }
+
+        return JSON.parse(rawUser);
+    } catch (error) {
+        console.warn(
+            "Unable to read current user from localStorage:",
+            error
+        );
+
+        return null;
+    }
+}
+
+function getUsers() {
+    try {
+        const rawUsers =
+            localStorage.getItem("users");
+
+        if (!rawUsers) {
+            return [];
+        }
+
+        const users =
+            JSON.parse(rawUsers);
+
+        return Array.isArray(users)
+            ? users
+            : [];
+    } catch (error) {
+        console.warn(
+            "Unable to read users from localStorage:",
+            error
+        );
+
+        return [];
+    }
+}
+
+function saveUsers(users) {
+    try {
+        localStorage.setItem(
+            "users",
+            JSON.stringify(users)
+        );
+    } catch (error) {
+        console.warn(
+            "Unable to save users to localStorage:",
+            error
+        );
+
+        throw error;
+    }
+}
+
+function findCurrentUser(
+    currentUser,
+    users
+) {
+    if (!currentUser) {
+        return null;
     }
 
-    return "en";
-}
-
-// ============================================================
-// LANGUAGE CARD
-// ============================================================
-
-function LanguageCard({
-    language,
-    selected,
-    onSelect,
-}) {
     return (
-        <button
-            type="button"
-            onClick={() => onSelect(language.code)}
-            className={`w-full rounded-xl border p-5 text-left transition ${
-                selected
-                    ? "border-primary/30 bg-primary/10"
-                    : "border-border bg-card hover:bg-muted"
-            }`}
-        >
-            <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
-                    <div
-                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
-                            selected
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-muted-foreground"
-                        }`}
-                    >
-                        <Languages size={22} />
-                    </div>
-
-                    <div>
-                        <h3 className="font-semibold text-card-foreground">
-                            {language.name}
-                        </h3>
-
-                        <p className="mt-1 text-lg font-medium text-primary">
-                            {language.nativeName}
-                        </p>
-
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            {language.description}
-                        </p>
-                    </div>
-                </div>
-
-                <div
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
-                        selected
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border text-transparent"
-                    }`}
-                >
-                    <Check size={15} />
-                </div>
-            </div>
-        </button>
+        users.find(
+            (user) =>
+                currentUser.id &&
+                user.id &&
+                String(user.id) ===
+                    String(currentUser.id)
+        ) ||
+        users.find(
+            (user) =>
+                currentUser.userId &&
+                user.userId &&
+                String(user.userId) ===
+                    String(currentUser.userId)
+        ) ||
+        users.find(
+            (user) =>
+                currentUser.email &&
+                user.email &&
+                String(user.email).toLowerCase() ===
+                    String(currentUser.email).toLowerCase()
+        ) ||
+        null
     );
 }
 
 // ============================================================
-// MAIN COMPONENT
+// GET USER LANGUAGE
 // ============================================================
 
-function ChangeLanguagePreferences() {
-    const [selectedLanguage, setSelectedLanguage] =
-        useState(getInitialLanguage);
+function getUserLanguage(user) {
+    if (!user) {
+        return "en";
+    }
 
-    const [saved, setSaved] = useState(false);
-    const [error, setError] = useState("");
+    return (
+        user.languagePreference ||
+        user.language ||
+        user.preferredLanguage ||
+        "en"
+    );
+}
+
+// ============================================================
+// NORMALIZE LANGUAGE
+// ============================================================
+
+function normalizeLanguage(value) {
+    const language =
+        String(value || "")
+            .trim()
+            .toLowerCase();
+
+    return AVAILABLE_LANGUAGES.some(
+        (item) =>
+            item.code === language &&
+            item.enabled
+    )
+        ? language
+        : "en";
+}
+
+// ============================================================
+// ACTIVITY LOG
+// ============================================================
+
+function addActivityLog(
+    user,
+    action
+) {
+    try {
+        const rawLogs =
+            localStorage.getItem(
+                "activityLogs"
+            );
+
+        const logs = rawLogs
+            ? JSON.parse(rawLogs)
+            : [];
+
+        const newLog = {
+            id:
+                typeof crypto !== "undefined" &&
+                crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : Date.now().toString(),
+
+            userId:
+                user?.id ||
+                user?.userId ||
+                null,
+
+            userName:
+                user?.fullName ||
+                user?.FullName ||
+                user?.email ||
+                user?.Email ||
+                "Staff",
+
+            action,
+
+            timestamp:
+                new Date().toISOString(),
+        };
+
+        const updatedLogs = [
+            newLog,
+            ...(Array.isArray(logs)
+                ? logs
+                : []),
+        ];
+
+        localStorage.setItem(
+            "activityLogs",
+            JSON.stringify(updatedLogs)
+        );
+    } catch (error) {
+        console.warn(
+            "Unable to save activity log:",
+            error
+        );
+    }
+}
+
+// ============================================================
+// STAFF LANGUAGE PREFERENCES
+// ============================================================
+
+export default function ChangeLanguagePreferences({
+    onCancel,
+    onSuccess,
+}) {
+    // ========================================================
+    // STATE
+    // ========================================================
+
+    const [
+        currentUser,
+        setCurrentUser,
+    ] = useState(null);
+
+    const [
+        originalLanguage,
+        setOriginalLanguage,
+    ] = useState("en");
+
+    const [
+        selectedLanguage,
+        setSelectedLanguage,
+    ] = useState("en");
+
+    const [
+        isLoading,
+        setIsLoading,
+    ] = useState(true);
+
+    const [
+        isSaving,
+        setIsSaving,
+    ] = useState(false);
+
+    const [
+        message,
+        setMessage,
+    ] = useState({
+        type: "",
+        text: "",
+    });
 
     // ========================================================
-    // HANDLE LANGUAGE SELECTION
+    // LOAD CURRENT LANGUAGE
     // ========================================================
 
-    const handleSelectLanguage = (languageCode) => {
-        setSelectedLanguage(languageCode);
-        setSaved(false);
-        setError("");
+    useEffect(() => {
+        const loadLanguagePreference =
+            () => {
+                try {
+                    setIsLoading(true);
+
+                    setMessage({
+                        type: "",
+                        text: "",
+                    });
+
+                    const user =
+                        getCurrentUser();
+
+                    setCurrentUser(user);
+
+                    const users =
+                        getUsers();
+
+                    const matchedUser =
+                        findCurrentUser(
+                            user,
+                            users
+                        );
+
+                    const language =
+                        normalizeLanguage(
+                            getUserLanguage(
+                                matchedUser ||
+                                    user
+                            )
+                        );
+
+                    setOriginalLanguage(
+                        language
+                    );
+
+                    setSelectedLanguage(
+                        language
+                    );
+                } catch (error) {
+                    console.error(
+                        "Failed to load Staff language preference:",
+                        error
+                    );
+
+                    setMessage({
+                        type: "error",
+                        text:
+                            "Failed to load language preference.",
+                    });
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+        loadLanguagePreference();
+    }, []);
+
+    // ========================================================
+    // LANGUAGE CHANGE
+    // ========================================================
+
+    const handleLanguageChange = (
+        event
+    ) => {
+        const language =
+            normalizeLanguage(
+                event.target.value
+            );
+
+        setSelectedLanguage(
+            language
+        );
+
+        setMessage({
+            type: "",
+            text: "",
+        });
     };
+
+    // ========================================================
+    // VALIDATE LANGUAGE
+    // ========================================================
+
+    const validateLanguage =
+        () => {
+            const exists =
+                AVAILABLE_LANGUAGES.some(
+                    (item) =>
+                        item.code ===
+                            selectedLanguage &&
+                        item.enabled
+                );
+
+            if (!exists) {
+                setMessage({
+                    type: "error",
+                    text:
+                        "Please select a supported language.",
+                });
+
+                return false;
+            }
+
+            return true;
+        };
 
     // ========================================================
     // SAVE LANGUAGE
     // ========================================================
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        if (!validateLanguage()) {
+            return;
+        }
+
         try {
+            setIsSaving(true);
+
+            setMessage({
+                type: "",
+                text: "",
+            });
+
+            const users =
+                getUsers();
+
+            const matchedUser =
+                findCurrentUser(
+                    currentUser,
+                    users
+                );
+
+            let updatedUser;
+
+            // ==================================================
+            // UPDATE EXISTING STAFF USER
+            // ==================================================
+
+            if (matchedUser) {
+                updatedUser = {
+                    ...matchedUser,
+
+                    languagePreference:
+                        selectedLanguage,
+
+                    preferredLanguage:
+                        selectedLanguage,
+                };
+
+                const updatedUsers =
+                    users.map(
+                        (user) => {
+                            const isSameUser =
+                                (
+                                    matchedUser.id &&
+                                    user.id &&
+                                    String(
+                                        matchedUser.id
+                                    ) ===
+                                        String(
+                                            user.id
+                                        )
+                                ) ||
+                                (
+                                    matchedUser.userId &&
+                                    user.userId &&
+                                    String(
+                                        matchedUser.userId
+                                    ) ===
+                                        String(
+                                            user.userId
+                                        )
+                                ) ||
+                                (
+                                    matchedUser.email &&
+                                    user.email &&
+                                    String(
+                                        matchedUser.email
+                                    ).toLowerCase() ===
+                                        String(
+                                            user.email
+                                        ).toLowerCase()
+                                );
+
+                            return isSameUser
+                                ? updatedUser
+                                : user;
+                        }
+                    );
+
+                saveUsers(
+                    updatedUsers
+                );
+            } else {
+                // ==================================================
+                // CREATE UPDATED USER RECORD
+                // ==================================================
+
+                updatedUser = {
+                    ...(currentUser || {}),
+
+                    languagePreference:
+                        selectedLanguage,
+
+                    preferredLanguage:
+                        selectedLanguage,
+                };
+
+                saveUsers([
+                    ...users,
+                    updatedUser,
+                ]);
+            }
+
+            // ==================================================
+            // UPDATE CURRENT USER
+            // ==================================================
+
             localStorage.setItem(
-                LANGUAGE_STORAGE_KEY,
+                "user",
+                JSON.stringify(
+                    updatedUser
+                )
+            );
+
+            // ==================================================
+            // GLOBAL LANGUAGE STORAGE
+            // ==================================================
+
+            localStorage.setItem(
+                "language",
                 selectedLanguage
             );
 
-            // Notify other components that the language changed.
+            // Keep the existing Staff language storage key
+            // for compatibility with Staff components that
+            // already depend on it.
+            localStorage.setItem(
+                "aipms_system_language",
+                selectedLanguage
+            );
+
+            // ==================================================
+            // ACTIVITY LOG
+            // ==================================================
+
+            const selectedLanguageInfo =
+                AVAILABLE_LANGUAGES.find(
+                    (item) =>
+                        item.code ===
+                        selectedLanguage
+                );
+
+            addActivityLog(
+                updatedUser,
+                `Changed language preference to ${
+                    selectedLanguageInfo?.name ||
+                    selectedLanguage
+                }`
+            );
+
+            // ==================================================
+            // UPDATE STATE
+            // ==================================================
+
+            setOriginalLanguage(
+                selectedLanguage
+            );
+
+            setSelectedLanguage(
+                selectedLanguage
+            );
+
+            // ==================================================
+            // SUCCESS MESSAGE
+            // ==================================================
+
+            const successMessage =
+                "Language preference updated successfully.";
+
+            setMessage({
+                type: "success",
+                text: successMessage,
+            });
+
+            // ==================================================
+            // NOTIFY OTHER COMPONENTS
+            // ==================================================
+
             window.dispatchEvent(
-                new CustomEvent("languageChanged", {
-                    detail: {
-                        language: selectedLanguage,
-                    },
-                })
+                new CustomEvent(
+                    "languageChanged",
+                    {
+                        detail: {
+                            language:
+                                selectedLanguage,
+                        },
+                    }
+                )
             );
 
-            setSaved(true);
-            setError("");
-        } catch (err) {
+            // ==================================================
+            // PARENT CALLBACK
+            // ==================================================
+
+            if (onSuccess) {
+                onSuccess(
+                    updatedUser
+                );
+            }
+        } catch (error) {
             console.error(
-                "Failed to save language preference:",
-                err
+                "Failed to save Staff language preference:",
+                error
             );
 
-            setError(
-                "Unable to save the language preference. Please try again."
-            );
-
-            setSaved(false);
+            setMessage({
+                type: "error",
+                text:
+                    error?.message ||
+                    "Failed to save language preference.",
+            });
+        } finally {
+            setIsSaving(false);
         }
     };
 
     // ========================================================
-    // RESET LANGUAGE
+    // RESET
     // ========================================================
 
     const handleReset = () => {
-        setSelectedLanguage("en");
-        setSaved(false);
-        setError("");
+        setSelectedLanguage(
+            originalLanguage
+        );
+
+        setMessage({
+            type: "",
+            text: "",
+        });
     };
 
     // ========================================================
-    // CURRENT LANGUAGE
+    // CANCEL
     // ========================================================
 
-    const currentLanguage =
-        LANGUAGES.find(
-            (language) =>
-                language.code === selectedLanguage
-        ) || LANGUAGES[0];
+    const handleCancel = () => {
+        setSelectedLanguage(
+            originalLanguage
+        );
+
+        setMessage({
+            type: "",
+            text: "",
+        });
+
+        if (onCancel) {
+            onCancel();
+        }
+    };
+
+    // ========================================================
+    // LOADING
+    // ========================================================
+
+    if (isLoading) {
+        return (
+            <div
+                className="
+                    flex
+                    min-h-[220px]
+                    items-center
+                    justify-center
+                    bg-background
+                "
+            >
+                <div
+                    className="
+                        flex
+                        flex-col
+                        items-center
+                        gap-3
+                        text-muted-foreground
+                    "
+                >
+                    <Loader2
+                        className="
+                            h-7
+                            w-7
+                            animate-spin
+                        "
+                    />
+
+                    <p className="text-sm">
+                        Loading language preferences...
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    // ========================================================
+    // SELECTED LANGUAGE
+    // ========================================================
+
+    const selectedLanguageInfo =
+        AVAILABLE_LANGUAGES.find(
+            (item) =>
+                item.code ===
+                selectedLanguage
+        );
 
     // ========================================================
     // RENDER
     // ========================================================
 
     return (
-        <div className="space-y-6 text-foreground">
-            {/* ==================================================
-                HEADER
+        <div
+            className="
+                w-full
+                bg-background
+                text-foreground
+            "
+        >
+
+            {/* =================================================
+                LANGUAGE PREFERENCE
             ================================================== */}
 
-            <div>
-                <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <Languages size={22} />
+            <section
+                className="
+                    rounded-xl
+                    border
+                    border-border
+                    bg-card
+                    shadow-sm
+                "
+            >
+
+                {/* =================================================
+                    HEADER
+                ================================================== */}
+
+                <div
+                    className="
+                        flex
+                        items-start
+                        gap-4
+                        border-b
+                        border-border
+                        p-6
+                    "
+                >
+
+                    <div
+                        className="
+                            flex
+                            h-10
+                            w-10
+                            shrink-0
+                            items-center
+                            justify-center
+                            rounded-lg
+                            bg-accent
+                            text-accent-foreground
+                        "
+                    >
+                        <Globe className="h-5 w-5" />
                     </div>
 
                     <div>
-                        <h2 className="text-xl font-bold text-foreground">
-                            Language Preferences
+
+                        <h2
+                            className="
+                                text-lg
+                                font-semibold
+                                text-card-foreground
+                            "
+                        >
+                            Language Preference
                         </h2>
 
-                        <p className="text-sm text-muted-foreground">
-                            Choose the language used throughout
-                            the system.
+                        <p
+                            className="
+                                mt-1
+                                text-sm
+                                text-muted-foreground
+                            "
+                        >
+                            Choose the language used
+                            throughout the application.
                         </p>
+
                     </div>
-                </div>
-            </div>
 
-            {/* ==================================================
-                INFORMATION
-            ================================================== */}
-
-            <div className="flex gap-3 rounded-xl border border-primary/30 bg-primary/10 p-4">
-                <Info
-                    size={20}
-                    className="mt-0.5 shrink-0 text-primary"
-                />
-
-                <div>
-                    <p className="font-medium text-primary">
-                        Current language:{" "}
-                        {currentLanguage.nativeName}
-                    </p>
-
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Select a language below and click Save
-                        Changes to apply your preference.
-                    </p>
-                </div>
-            </div>
-
-            {/* ==================================================
-                LANGUAGE OPTIONS
-            ================================================== */}
-
-            <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                    <Globe2
-                        size={18}
-                        className="text-primary"
-                    />
-
-                    <h3 className="font-semibold text-foreground">
-                        Available Languages
-                    </h3>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                    {LANGUAGES.map((language) => (
-                        <LanguageCard
-                            key={language.code}
-                            language={language}
-                            selected={
+                {/* =================================================
+                    CONTENT
+                ================================================== */}
+
+                <div className="p-6">
+
+                    {/* =================================================
+                        LANGUAGE ROW
+                    ================================================== */}
+
+                    <div
+                        className="
+                            flex
+                            items-center
+                            justify-between
+                            gap-6
+                            py-4
+                        "
+                    >
+
+                        <div className="min-w-0">
+
+                            <h3
+                                className="
+                                    text-sm
+                                    font-medium
+                                    text-foreground
+                                "
+                            >
+                                Application Language
+                            </h3>
+
+                            <p
+                                className="
+                                    mt-1
+                                    text-sm
+                                    text-muted-foreground
+                                "
+                            >
+                                Select your preferred
+                                interface language.
+                            </p>
+
+                        </div>
+
+                        <div className="shrink-0">
+
+                            <div className="relative">
+
+                                <select
+                                    value={
+                                        selectedLanguage
+                                    }
+                                    onChange={
+                                        handleLanguageChange
+                                    }
+                                    disabled={
+                                        isSaving
+                                    }
+                                    className="
+                                        min-w-[190px]
+                                        appearance-none
+                                        rounded-lg
+                                        border
+                                        border-input
+                                        bg-background
+                                        px-4
+                                        py-2
+                                        pr-10
+                                        text-sm
+                                        text-foreground
+                                        outline-none
+                                        transition-colors
+                                        focus:ring-2
+                                        focus:ring-ring
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-60
+                                    "
+                                >
+
+                                    {AVAILABLE_LANGUAGES
+                                        .filter(
+                                            (
+                                                item
+                                            ) =>
+                                                item.enabled
+                                        )
+                                        .map(
+                                            (
+                                                item
+                                            ) => (
+                                                <option
+                                                    key={
+                                                        item.code
+                                                    }
+                                                    value={
+                                                        item.code
+                                                    }
+                                                >
+                                                    {
+                                                        item.nativeName
+                                                    }
+                                                </option>
+                                            )
+                                        )}
+
+                                </select>
+
+                                <ChevronDown
+                                    className="
+                                        pointer-events-none
+                                        absolute
+                                        right-3
+                                        top-1/2
+                                        h-4
+                                        w-4
+                                        -translate-y-1/2
+                                        text-muted-foreground
+                                    "
+                                />
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {/* =================================================
+                        SELECTED LANGUAGE DESCRIPTION
+                    ================================================== */}
+
+                    <div
+                        className="
+                            mt-2
+                            rounded-lg
+                            border
+                            border-border
+                            bg-muted/40
+                            px-4
+                            py-3
+                        "
+                    >
+
+                        <p
+                            className="
+                                text-sm
+                                text-muted-foreground
+                            "
+                        >
+                            {selectedLanguageInfo?.description ||
+                                "Your selected language will be used for the application interface."}
+                        </p>
+
+                    </div>
+
+                    {/* =================================================
+                        MESSAGE
+                    ================================================== */}
+
+                    {message.text && (
+                        <div
+                            className={[
+                                "mt-4 rounded-lg border px-4 py-3 text-sm",
+                                message.type ===
+                                    "success"
+                                    ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
+                                    : "border-destructive/30 bg-destructive/10 text-destructive",
+                            ].join(" ")}
+                        >
+                            {message.text}
+                        </div>
+                    )}
+
+                    {/* =================================================
+                        ACTIONS
+                    ================================================== */}
+
+                    <div
+                        className="
+                            mt-6
+                            flex
+                            flex-col
+                            gap-3
+                            border-t
+                            border-border
+                            pt-4
+                            sm:flex-row
+                            sm:items-center
+                            sm:justify-end
+                        "
+                    >
+
+                        {/* RESET */}
+
+                        <button
+                            type="button"
+                            onClick={
+                                handleReset
+                            }
+                            disabled={
+                                isSaving ||
                                 selectedLanguage ===
-                                language.code
+                                    originalLanguage
                             }
-                            onSelect={
-                                handleSelectLanguage
+                            className="
+                                inline-flex
+                                items-center
+                                justify-center
+                                gap-2
+                                rounded-lg
+                                border
+                                border-border
+                                bg-card
+                                px-4
+                                py-2
+                                text-sm
+                                font-medium
+                                text-foreground
+                                transition-colors
+                                hover:bg-accent
+                                disabled:cursor-not-allowed
+                                disabled:opacity-50
+                            "
+                        >
+                            <RotateCcw className="h-4 w-4" />
+
+                            Reset
+                        </button>
+
+                        {/* CANCEL */}
+
+                        {onCancel && (
+                            <button
+                                type="button"
+                                onClick={
+                                    handleCancel
+                                }
+                                disabled={
+                                    isSaving
+                                }
+                                className="
+                                    inline-flex
+                                    items-center
+                                    justify-center
+                                    rounded-lg
+                                    border
+                                    border-border
+                                    bg-card
+                                    px-4
+                                    py-2
+                                    text-sm
+                                    font-medium
+                                    text-foreground
+                                    transition-colors
+                                    hover:bg-accent
+                                    disabled:cursor-not-allowed
+                                    disabled:opacity-50
+                                "
+                            >
+                                Cancel
+                            </button>
+                        )}
+
+                        {/* SAVE */}
+
+                        <button
+                            type="button"
+                            onClick={
+                                handleSave
                             }
-                        />
-                    ))}
-                </div>
-            </div>
+                            disabled={
+                                isSaving
+                            }
+                            className="
+                                inline-flex
+                                items-center
+                                justify-center
+                                gap-2
+                                rounded-lg
+                                bg-primary
+                                px-4
+                                py-2
+                                text-sm
+                                font-medium
+                                text-primary-foreground
+                                transition-opacity
+                                hover:opacity-90
+                                disabled:cursor-not-allowed
+                                disabled:opacity-60
+                            "
+                        >
 
-            {/* ==================================================
-                AMHARIC PREVIEW
-            ================================================== */}
+                            {isSaving ? (
+                                <Loader2
+                                    className="
+                                        h-4
+                                        w-4
+                                        animate-spin
+                                    "
+                                />
+                            ) : (
+                                <Save className="h-4 w-4" />
+                            )}
 
-            {selectedLanguage === "am" && (
-                <div className="rounded-xl border border-border bg-card p-5">
-                    <p className="mb-3 text-sm font-medium text-card-foreground">
-                        Amharic Preview
-                    </p>
+                            {isSaving
+                                ? "Saving..."
+                                : "Save Changes"}
 
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                        <p>
-                            <span className="text-foreground">
-                                የሰራተኛ መገለጫ:
-                            </span>{" "}
-                            የግል መረጃዎን ይመልከቱ እና
-                            ያስተካክሉ።
-                        </p>
+                        </button>
 
-                        <p>
-                            <span className="text-foreground">
-                                የተመደቡ ስራዎች:
-                            </span>{" "}
-                            የተመደቡልዎትን ስራዎች ይመልከቱ።
-                        </p>
-
-                        <p>
-                            <span className="text-foreground">
-                                ማሳወቂያዎች:
-                            </span>{" "}
-                            አዲስ መልዕክቶችን እና የስራ
-                            ማሳወቂያዎችን ይመልከቱ።
-                        </p>
                     </div>
+
                 </div>
-            )}
 
-            {/* ==================================================
-                SUCCESS MESSAGE
-            ================================================== */}
+            </section>
 
-            {saved && (
-                <div className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
-                    Language preference saved successfully.
-                </div>
-            )}
-
-            {/* ==================================================
-                ERROR MESSAGE
-            ================================================== */}
-
-            {error && (
-                <div className="rounded-xl border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
-                    {error}
-                </div>
-            )}
-
-            {/* ==================================================
-                ACTIONS
-            ================================================== */}
-
-            <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end">
-                <button
-                    type="button"
-                    onClick={handleReset}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
-                >
-                    <RotateCcw size={17} />
-                    Reset
-                </button>
-
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-                >
-                    <Save size={17} />
-                    Save Changes
-                </button>
-            </div>
         </div>
     );
 }
 
-export default ChangeLanguagePreferences;

@@ -17,12 +17,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import {
-    getAllUsers,
-} from "@/services/userService";
+
+import { getAllUsers } from "@/services/userService";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
 function CreateProjectModal({
     open,
     onClose,
@@ -35,111 +35,112 @@ function CreateProjectModal({
     // INITIAL FORM DATA
     // ========================================================
 
-   const initialFormData = {
-    name: "",
-    description: "",
-    managerId: "", // 🌟 ADD THIS LINE
-    team: "",
-    teamId: "",
-    teamLeader: "",
-    teamLeaderId: "",
-    startDate: "",
-    deadline: "",
-};
+    const initialFormData = {
+        name: "",
+        description: "",
+        managerId: "",
+        team: "",
+        teamId: "",
+        teamLeader: "",
+        teamLeaderId: "",
+        startDate: "",
+        deadline: "",
+    };
 
     // ========================================================
     // FORM DATA
     // ========================================================
 
-    const [formData, setFormData] =
-        useState(initialFormData);
+    const [formData, setFormData] = useState(initialFormData);
 
-  // ========================================================
-// ERROR
-// ========================================================
+    // ========================================================
+    // ERROR
+    // ========================================================
 
-const [error, setError] = useState("");
+    const [error, setError] = useState("");
 
-// ========================================================
-// USERS FROM DATABASE
-// ========================================================
+    // ========================================================
+    // USERS FROM DATABASE
+    // ========================================================
 
-const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState([]);
+    const [loadingUsers, setLoadingUsers] = useState(false);
 
-const [loadingUsers, setLoadingUsers] =
-    useState(false);
+    // ========================================================
+    // SELECTED TEAM
+    // ========================================================
 
-const selectedTeam = useMemo(() => {
-    if (!formData.team) {
-        return null;
-    }
+    const selectedTeam = useMemo(() => {
+        if (!formData.team) {
+            return null;
+        }
 
-    return teams.find(
-        (team) =>
-            team?.name === formData.team
-    ) || null;
-}, [teams, formData.team]);
+        return (
+            teams.find(
+                (team) => team?.name === formData.team
+            ) || null
+        );
+    }, [teams, formData.team]);
 
-// ========================================================
-// FILTER TEAM LEADERS FROM DATABASE USERS
-// ========================================================
+    // ========================================================
+    // FILTER TEAM LEADERS FROM DATABASE USERS
+    // ========================================================
 
-const teamLeaders = useMemo(() => {
-    return users.filter((user) => {
-        const contributorType =
-            String(
-                user?.contributorType ||
-                ""
+    const teamLeaders = useMemo(() => {
+        return users.filter((user) => {
+            const contributorType = String(
+                user?.contributorType || ""
             )
                 .trim()
                 .toLowerCase();
 
-        return (
-            user?.isActive !== false &&
-            contributorType === "team leader"
-        );
-    });
-}, [users]);
-// ========================================================
-// LOAD USERS FROM DATABASE
-// ========================================================
-
-useEffect(() => {
-    if (!open) {
-        return;
-    }
-
-    const loadUsers = async () => {
-        try {
-            setLoadingUsers(true);
-
-            const result =
-                await getAllUsers();
-
-            console.log(
-                "PROJECT MODAL USERS:",
-                result
+            return (
+                user?.isActive !== false &&
+                contributorType === "team leader"
             );
+        });
+    }, [users]);
 
-            setUsers(
-                Array.isArray(result)
-                    ? result
-                    : []
-            );
-        } catch (error) {
-            console.error(
-                "LOAD USERS ERROR:",
-                error
-            );
+    // ========================================================
+    // LOAD USERS FROM DATABASE
+    // ========================================================
 
-            setUsers([]);
-        } finally {
-            setLoadingUsers(false);
+    useEffect(() => {
+        if (!open) {
+            return;
         }
-    };
 
-    loadUsers();
-}, [open]);
+        const loadUsers = async () => {
+            try {
+                setLoadingUsers(true);
+
+                const result = await getAllUsers();
+
+                console.log(
+                    "PROJECT MODAL USERS:",
+                    result
+                );
+
+                setUsers(
+                    Array.isArray(result)
+                        ? result
+                        : []
+                );
+            } catch (error) {
+                console.error(
+                    "LOAD USERS ERROR:",
+                    error
+                );
+
+                setUsers([]);
+            } finally {
+                setLoadingUsers(false);
+            }
+        };
+
+        loadUsers();
+    }, [open]);
+
     // ========================================================
     // HANDLE INPUT CHANGE
     // ========================================================
@@ -163,17 +164,10 @@ useEffect(() => {
     // ========================================================
 
     const validateForm = () => {
-        const name =
-            formData.name.trim();
-
-        const description =
-            formData.description.trim();
-
-        const startDate =
-            formData.startDate;
-
-        const deadline =
-            formData.deadline;
+        const name = formData.name.trim();
+        const description = formData.description.trim();
+        const startDate = formData.startDate;
+        const deadline = formData.deadline;
 
         // ----------------------------------------------------
         // REQUIRED FIELDS
@@ -200,9 +194,7 @@ useEffect(() => {
             Array.isArray(existingProjects) &&
             existingProjects.some(
                 (project) =>
-                    String(
-                        project?.name || ""
-                    )
+                    String(project?.name || "")
                         .trim()
                         .toLowerCase() ===
                     name.toLowerCase()
@@ -254,9 +246,6 @@ useEffect(() => {
 
         // ----------------------------------------------------
         // PROJECT CREATION DATE
-        //
-        // This is automatically generated when the project
-        // is created.
         // ----------------------------------------------------
 
         const createdAt =
@@ -278,23 +267,25 @@ useEffect(() => {
 
             description:
                 formData.description.trim(),
-                managerId: formData.managerId || null,
+
+            managerId:
+                formData.managerId || null,
 
             // =================================================
             // TEAM INFORMATION
             // =================================================
 
-          team:
-    formData.team.trim(),
+            team:
+                formData.team.trim(),
 
-teamId:
-    formData.teamId || null,
+            teamId:
+                formData.teamId || null,
 
-teamLeader:
-    formData.teamLeader.trim(),
+            teamLeader:
+                formData.teamLeader.trim(),
 
-teamLeaderId:
-    formData.teamLeaderId || null,
+            teamLeaderId:
+                formData.teamLeaderId || null,
 
             // =================================================
             // PROJECT DATES
@@ -318,9 +309,6 @@ teamLeaderId:
 
             // =================================================
             // SPRINT INFORMATION
-            //
-            // New projects start with zero sprints.
-            // This can be updated later when sprints are created.
             // =================================================
 
             sprintCount:
@@ -345,9 +333,6 @@ teamLeaderId:
 
             // =================================================
             // COMPLETION INFORMATION
-            //
-            // These values remain empty until the project
-            // is completed.
             // =================================================
 
             completionDate:
@@ -415,29 +400,26 @@ teamLeaderId:
                 className="
                     max-h-[90vh]
                     overflow-y-auto
-                    border-blue-800
-                    bg-blue-950
-                    text-white
+                    border-gray-200
+                    bg-white
+                    text-gray-900
                     sm:max-w-2xl
                 "
             >
-
                 {/* ==================================================
                     HEADER
                 ================================================== */}
 
                 <DialogHeader>
-
                     <DialogTitle
                         className="
                             flex
                             items-center
                             gap-3
                             text-xl
-                            text-white
+                            text-gray-900
                         "
                     >
-
                         <div
                             className="
                                 flex
@@ -447,9 +429,9 @@ teamLeaderId:
                                 justify-center
                                 rounded-xl
                                 border
-                                border-cyan-400/30
-                                bg-cyan-500/10
-                                text-cyan-400
+                                border-cyan-200
+                                bg-cyan-50
+                                text-cyan-600
                             "
                         >
                             <FolderKanban
@@ -458,18 +440,16 @@ teamLeaderId:
                         </div>
 
                         Create Project
-
                     </DialogTitle>
 
                     <DialogDescription
                         className="
-                            text-blue-300
+                            text-gray-500
                         "
                     >
                         Create a new project and
                         assign it to a team.
                     </DialogDescription>
-
                 </DialogHeader>
 
                 {/* ==================================================
@@ -484,15 +464,14 @@ teamLeaderId:
                             gap-3
                             rounded-xl
                             border
-                            border-red-500/30
-                            bg-red-500/10
+                            border-red-200
+                            bg-red-50
                             px-4
                             py-3
                             text-sm
-                            text-red-300
+                            text-red-600
                         "
                     >
-
                         <X
                             size={18}
                             className="
@@ -504,7 +483,6 @@ teamLeaderId:
                         <span>
                             {error}
                         </span>
-
                     </div>
                 )}
 
@@ -518,27 +496,24 @@ teamLeaderId:
                         space-y-5
                     "
                 >
-
                     {/* ==================================================
                         PROJECT NAME
                     ================================================== */}
 
                     <div className="space-y-2">
-
                         <label
                             htmlFor="project-name"
                             className="
                                 text-sm
                                 font-medium
-                                text-blue-100
+                                text-gray-700
                             "
                         >
                             Project Name
 
-                            <span className="ml-1 text-red-400">
+                            <span className="ml-1 text-red-500">
                                 *
                             </span>
-
                         </label>
 
                         <Input
@@ -547,25 +522,26 @@ teamLeaderId:
                             value={
                                 formData.name
                             }
-                           onChange={handleChange}
+                            onChange={
+                                handleChange
+                            }
                             placeholder="Enter project name"
                             className="
                                 h-11
-                                border-blue-700
-                                bg-blue-900
-                                text-white
-                                placeholder:text-blue-400
+                                border-gray-300
+                                bg-white
+                                text-gray-900
+                                placeholder:text-gray-400
                                 transition-all
                                 duration-300
-                                hover:border-blue-400
-                                hover:bg-blue-800
-                                focus:border-cyan-300
-                                focus:bg-blue-800
+                                hover:border-gray-400
+                                hover:bg-gray-50
+                                focus:border-cyan-500
+                                focus:bg-white
                                 focus:ring-2
-                                focus:ring-cyan-300/30
+                                focus:ring-cyan-500/20
                             "
                         />
-
                     </div>
 
                     {/* ==================================================
@@ -573,21 +549,19 @@ teamLeaderId:
                     ================================================== */}
 
                     <div className="space-y-2">
-
                         <label
                             htmlFor="project-description"
                             className="
                                 text-sm
                                 font-medium
-                                text-blue-100
+                                text-gray-700
                             "
                         >
                             Project Description
 
-                            <span className="ml-1 text-red-400">
+                            <span className="ml-1 text-red-500">
                                 *
                             </span>
-
                         </label>
 
                         <textarea
@@ -606,60 +580,108 @@ teamLeaderId:
                                 resize-none
                                 rounded-md
                                 border
-                                border-blue-700
-                                bg-blue-900
+                                border-gray-300
+                                bg-white
                                 px-3
                                 py-2
                                 text-sm
-                                text-white
+                                text-gray-900
                                 outline-none
-                                placeholder:text-blue-400
+                                placeholder:text-gray-400
                                 transition-all
                                 duration-300
-                                hover:border-blue-400
-                                hover:bg-blue-800
-                                focus:border-cyan-300
-                                focus:bg-blue-800
+                                hover:border-gray-400
+                                hover:bg-gray-50
+                                focus:border-cyan-500
+                                focus:bg-white
                                 focus:ring-2
-                                focus:ring-cyan-300/30
+                                focus:ring-cyan-500/20
                             "
                         />
-
                     </div>
-{/* ==================================================
-    PROJECT MANAGER
-================================================== */}
-<div className="space-y-2">
-    <label
-        htmlFor="project-manager"
-        className="flex items-center gap-2 text-sm font-medium text-blue-100"
-    >
-        <UserRound size={15} className="text-cyan-400" />
-        Project Manager
-        <span className="ml-1 text-red-400">*</span>
-    </label>
 
-    <select
-        id="project-manager"
-        name="managerId"
-        value={formData.managerId || ""}
-        onChange={handleChange}
-        className="h-11 w-full rounded-md border border-blue-700 bg-blue-900 px-3 text-sm text-white outline-none transition-all duration-300 hover:border-blue-400 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/30"
-    >
-        <option value="" className="bg-blue-950">
-            Select Project Manager
-        </option>
-        {managers.map((manager) => (
-            <option
-                key={manager.id}
-                value={manager.id} // 🌟 This sends the REAL database GUID!
-                className="bg-blue-950"
-            >
-                {manager.name}
-            </option>
-        ))}
-    </select>
-</div>
+                    {/* ==================================================
+                        PROJECT MANAGER
+                    ================================================== */}
+
+                    <div className="space-y-2">
+                        <label
+                            htmlFor="project-manager"
+                            className="
+                                flex
+                                items-center
+                                gap-2
+                                text-sm
+                                font-medium
+                                text-gray-700
+                            "
+                        >
+                            <UserRound
+                                size={15}
+                                className="text-cyan-600"
+                            />
+
+                            Project Manager
+
+                            <span className="ml-1 text-red-500">
+                                *
+                            </span>
+                        </label>
+
+                        <select
+                            id="project-manager"
+                            name="managerId"
+                            value={
+                                formData.managerId ||
+                                ""
+                            }
+                            onChange={
+                                handleChange
+                            }
+                            className="
+                                h-11
+                                w-full
+                                rounded-md
+                                border
+                                border-gray-300
+                                bg-white
+                                px-3
+                                text-sm
+                                text-gray-900
+                                outline-none
+                                transition-all
+                                duration-300
+                                hover:border-gray-400
+                                focus:border-cyan-500
+                                focus:ring-2
+                                focus:ring-cyan-500/20
+                            "
+                        >
+                            <option
+                                value=""
+                            >
+                                Select Project Manager
+                            </option>
+
+                            {managers.map(
+                                (manager) => (
+                                    <option
+                                        key={
+                                            manager.id
+                                        }
+                                        value={
+                                            manager.id
+                                        }
+                                    >
+                                        {
+                                            manager.name
+                                        }
+                                    </option>
+                                )
+                            )}
+                        </select>
+                    </div>
+
                     {/* ==================================================
                         TEAM + TEAM LEADER
                     ================================================== */}
@@ -672,13 +694,11 @@ teamLeaderId:
                             md:grid-cols-2
                         "
                     >
-
                         {/* ==================================================
                             TEAM
                         ================================================== */}
 
                         <div className="space-y-2">
-
                             <label
                                 htmlFor="project-team"
                                 className="
@@ -687,13 +707,12 @@ teamLeaderId:
                                     gap-2
                                     text-sm
                                     font-medium
-                                    text-blue-100
+                                    text-gray-700
                                 "
                             >
-
                                 <UsersRound
                                     size={15}
-                                    className="text-blue-400"
+                                    className="text-cyan-600"
                                 />
 
                                 Assigned Team
@@ -702,74 +721,82 @@ teamLeaderId:
                                     className="
                                         text-xs
                                         font-normal
-                                        text-blue-400
+                                        text-gray-400
                                     "
                                 >
                                     (Optional)
                                 </span>
-
                             </label>
 
                             {Array.isArray(teams) &&
                             teams.length > 0 ? (
+                                <select
+                                    id="project-team"
+                                    name="team"
+                                    value={
+                                        formData.team
+                                    }
+                                    onChange={(
+                                        event
+                                    ) => {
+                                        const teamName =
+                                            event.target
+                                                .value;
 
-                              <select
-    id="project-team"
-    name="team"
-    value={formData.team}
- onChange={(event) => {
-    const teamName =
-        event.target.value;
+                                        const selectedTeam =
+                                            teams.find(
+                                                (team) =>
+                                                    team?.name ===
+                                                    teamName
+                                            );
 
-    const selectedTeam =
-        teams.find(
-            (team) =>
-                team?.name === teamName
-        );
+                                        setFormData(
+                                            (
+                                                current
+                                            ) => ({
+                                                ...current,
 
-    setFormData((current) => ({
-        ...current,
+                                                team:
+                                                    teamName,
 
-        team:
-            teamName,
+                                                teamId:
+                                                    selectedTeam?.id ??
+                                                    selectedTeam?.teamId ??
+                                                    "",
 
-        teamId:
-            selectedTeam?.id ??
-            selectedTeam?.teamId ??
-            "",
+                                                teamLeader:
+                                                    "",
 
-        // Reset team leader when team changes
-        teamLeader:
-            "",
+                                                teamLeaderId:
+                                                    "",
+                                            })
+                                        );
 
-        teamLeaderId:
-            "",
-    }));
-
-    setError("");
-}}
-    className="
-        h-11
-        w-full
-        rounded-md
-        border
-        border-blue-700
-        bg-blue-900
-        px-3
-        text-sm
-        text-white
-        outline-none
-        transition-all
-        duration-300
-        hover:border-blue-400
-        focus:border-cyan-300
-        focus:ring-2
-        focus:ring-cyan-300/30
-    "
->
+                                        setError(
+                                            ""
+                                        );
+                                    }}
+                                    className="
+                                        h-11
+                                        w-full
+                                        rounded-md
+                                        border
+                                        border-gray-300
+                                        bg-white
+                                        px-3
+                                        text-sm
+                                        text-gray-900
+                                        outline-none
+                                        transition-all
+                                        duration-300
+                                        hover:border-gray-400
+                                        focus:border-cyan-500
+                                        focus:ring-2
+                                        focus:ring-cyan-500/20
+                                    "
+                                >
                                     <option
                                         value=""
-                                        className="bg-blue-950"
                                     >
                                         No team assigned
                                     </option>
@@ -782,9 +809,9 @@ teamLeaderId:
                                                     team?.name
                                                 }
                                                 value={
-                                                    team?.name || ""
+                                                    team?.name ||
+                                                    ""
                                                 }
-                                                className="bg-blue-950"
                                             >
                                                 {
                                                     team?.name
@@ -792,11 +819,8 @@ teamLeaderId:
                                             </option>
                                         )
                                     )}
-
                                 </select>
-
                             ) : (
-
                                 <Input
                                     id="project-team"
                                     name="team"
@@ -809,23 +833,21 @@ teamLeaderId:
                                     placeholder="Enter team name (optional)"
                                     className="
                                         h-11
-                                        border-blue-700
-                                        bg-blue-900
-                                        text-white
-                                        placeholder:text-blue-400
+                                        border-gray-300
+                                        bg-white
+                                        text-gray-900
+                                        placeholder:text-gray-400
                                         transition-all
                                         duration-300
-                                        hover:border-blue-400
-                                        hover:bg-blue-800
-                                        focus:border-cyan-300
-                                        focus:bg-blue-800
+                                        hover:border-gray-400
+                                        hover:bg-gray-50
+                                        focus:border-cyan-500
+                                        focus:bg-white
                                         focus:ring-2
-                                        focus:ring-cyan-300/30
+                                        focus:ring-cyan-500/20
                                     "
                                 />
-
                             )}
-
                         </div>
 
                         {/* ==================================================
@@ -833,7 +855,6 @@ teamLeaderId:
                         ================================================== */}
 
                         <div className="space-y-2">
-
                             <label
                                 htmlFor="project-team-leader"
                                 className="
@@ -842,13 +863,12 @@ teamLeaderId:
                                     gap-2
                                     text-sm
                                     font-medium
-                                    text-blue-100
+                                    text-gray-700
                                 "
                             >
-
                                 <UserRound
                                     size={15}
-                                    className="text-cyan-400"
+                                    className="text-cyan-600"
                                 />
 
                                 Team Leader
@@ -857,110 +877,121 @@ teamLeaderId:
                                     className="
                                         text-xs
                                         font-normal
-                                        text-blue-400
+                                        text-gray-400
                                     "
                                 >
                                     (Optional)
                                 </span>
-
                             </label>
-<select
-    id="project-team-leader"
-    name="teamLeader"
-    value={formData.teamLeaderId}
-    disabled={
-        !formData.team ||
-        loadingUsers ||
-        teamLeaders.length === 0
-    }
-    onChange={(event) => {
-        const leaderId =
-            event.target.value;
 
-        const selectedLeader =
-            teamLeaders.find(
-                (leader) =>
-                    String(
-                        leader?.userId ||
-                        leader?.id
-                    ) ===
-                    String(leaderId)
-            );
+                            <select
+                                id="project-team-leader"
+                                name="teamLeader"
+                                value={
+                                    formData.teamLeaderId
+                                }
+                                disabled={
+                                    !formData.team ||
+                                    loadingUsers ||
+                                    teamLeaders.length === 0
+                                }
+                                onChange={(
+                                    event
+                                ) => {
+                                    const leaderId =
+                                        event.target
+                                            .value;
 
-        setFormData((current) => ({
-            ...current,
+                                    const selectedLeader =
+                                        teamLeaders.find(
+                                            (leader) =>
+                                                String(
+                                                    leader?.userId ||
+                                                    leader?.id
+                                                ) ===
+                                                String(
+                                                    leaderId
+                                                )
+                                        );
 
-            teamLeader:
-                selectedLeader?.fullName ||
-                "",
+                                    setFormData(
+                                        (
+                                            current
+                                        ) => ({
+                                            ...current,
 
-            teamLeaderId:
-                selectedLeader?.userId ||
-                selectedLeader?.id ||
-                "",
-        }));
+                                            teamLeader:
+                                                selectedLeader?.fullName ||
+                                                "",
 
-        setError("");
-    }}
-  className="
-    w-full
-    h-11
-    rounded-md
-    border
-    border-blue-700
-    bg-blue-900
-    px-3
-    text-sm
-    text-white
-    transition-all
-    duration-300
-    hover:border-blue-400
-    hover:bg-blue-800
-    focus:border-cyan-300
-    focus:bg-blue-800
-    focus:outline-none
-    focus:ring-2
-    focus:ring-cyan-300/30
-    disabled:cursor-not-allowed
-    disabled:opacity-60
-    disabled:bg-blue-950
-    disabled:border-blue-900
-   
-    "
->
-    <option
-    value=""
-    className="bg-blue-950 text-white"
->
-        {loadingUsers
-            ? "Loading team leaders..."
-            : !formData.team
-                ? "Select a team first"
-                : teamLeaders.length === 0
-                    ? "No team leaders found"
-                    : "Select team leader"}
-    </option>
+                                            teamLeaderId:
+                                                selectedLeader?.userId ||
+                                                selectedLeader?.id ||
+                                                "",
+                                        })
+                                    );
 
-    {teamLeaders.map((leader) => {
-        const leaderId =
-            leader?.userId ||
-            leader?.id;
+                                    setError(
+                                        ""
+                                    );
+                                }}
+                                className="
+                                    h-11
+                                    w-full
+                                    rounded-md
+                                    border
+                                    border-gray-300
+                                    bg-white
+                                    px-3
+                                    text-sm
+                                    text-gray-900
+                                    outline-none
+                                    transition-all
+                                    duration-300
+                                    hover:border-gray-400
+                                    focus:border-cyan-500
+                                    focus:ring-2
+                                    focus:ring-cyan-500/20
+                                    disabled:cursor-not-allowed
+                                    disabled:opacity-60
+                                    disabled:bg-gray-100
+                                    disabled:border-gray-200
+                                "
+                            >
+                                <option value="">
+                                    {loadingUsers
+                                        ? "Loading team leaders..."
+                                        : !formData.team
+                                            ? "Select a team first"
+                                            : teamLeaders.length === 0
+                                                ? "No team leaders found"
+                                                : "Select team leader"}
+                                </option>
 
-        return (
-            <option
-                key={leaderId}
-                value={leaderId}
-            >
-                {leader?.fullName ||
-                    leader?.email ||
-                    "Unknown User"}
-            </option>
-        );
-    })}
-</select>
+                                {teamLeaders.map(
+                                    (leader) => {
+                                        const leaderId =
+                                            leader?.userId ||
+                                            leader?.id;
 
+                                        return (
+                                            <option
+                                                key={
+                                                    leaderId
+                                                }
+                                                value={
+                                                    leaderId
+                                                }
+                                            >
+                                                {leader?.fullName ||
+                                                    leader?.email ||
+                                                    "Unknown User"}
+                                            </option>
+                                        );
+                                    }
+                                )}
+                            </select>
                         </div>
-
                     </div>
 
                     {/* ==================================================
@@ -975,13 +1006,11 @@ teamLeaderId:
                             md:grid-cols-2
                         "
                     >
-
                         {/* ==================================================
                             START DATE
                         ================================================== */}
 
                         <div className="space-y-2">
-
                             <label
                                 htmlFor="project-start-date"
                                 className="
@@ -990,21 +1019,19 @@ teamLeaderId:
                                     gap-2
                                     text-sm
                                     font-medium
-                                    text-blue-100
+                                    text-gray-700
                                 "
                             >
-
                                 <CalendarDays
                                     size={15}
-                                    className="text-cyan-400"
+                                    className="text-cyan-600"
                                 />
 
                                 Start Date
 
-                                <span className="text-red-400">
+                                <span className="text-red-500">
                                     *
                                 </span>
-
                             </label>
 
                             <Input
@@ -1019,20 +1046,19 @@ teamLeaderId:
                                 }
                                 className="
                                     h-11
-                                    border-blue-700
-                                    bg-blue-900
-                                    text-white
+                                    border-gray-300
+                                    bg-white
+                                    text-gray-900
                                     transition-all
                                     duration-300
-                                    hover:border-blue-400
-                                    hover:bg-blue-800
-                                    focus:border-cyan-300
-                                    focus:bg-blue-800
+                                    hover:border-gray-400
+                                    hover:bg-gray-50
+                                    focus:border-cyan-500
+                                    focus:bg-white
                                     focus:ring-2
-                                    focus:ring-cyan-300/30
+                                    focus:ring-cyan-500/20
                                 "
                             />
-
                         </div>
 
                         {/* ==================================================
@@ -1040,7 +1066,6 @@ teamLeaderId:
                         ================================================== */}
 
                         <div className="space-y-2">
-
                             <label
                                 htmlFor="project-deadline"
                                 className="
@@ -1049,21 +1074,19 @@ teamLeaderId:
                                     gap-2
                                     text-sm
                                     font-medium
-                                    text-blue-100
+                                    text-gray-700
                                 "
                             >
-
                                 <CalendarDays
                                     size={15}
-                                    className="text-amber-400"
+                                    className="text-amber-500"
                                 />
 
                                 Deadline
 
-                                <span className="text-red-400">
+                                <span className="text-red-500">
                                     *
                                 </span>
-
                             </label>
 
                             <Input
@@ -1082,60 +1105,20 @@ teamLeaderId:
                                 }
                                 className="
                                     h-11
-                                    border-blue-700
-                                    bg-blue-900
-                                    text-white
+                                    border-gray-300
+                                    bg-white
+                                    text-gray-900
                                     transition-all
                                     duration-300
-                                    hover:border-blue-400
-                                    hover:bg-blue-800
-                                    focus:border-cyan-300
-                                    focus:bg-blue-800
+                                    hover:border-gray-400
+                                    hover:bg-gray-50
+                                    focus:border-cyan-500
+                                    focus:bg-white
                                     focus:ring-2
-                                    focus:ring-cyan-300/30
+                                    focus:ring-cyan-500/20
                                 "
                             />
-
                         </div>
-
-                    </div>
-
-                    {/* ==================================================
-                        INFORMATION NOTE
-                    ================================================== */}
-
-                    <div
-                        className="
-                            rounded-xl
-                            border
-                            border-blue-700/50
-                            bg-blue-900/40
-                            px-4
-                            py-3
-                            text-sm
-                            text-blue-300
-                        "
-                    >
-
-                        <p
-                            className="
-                                font-medium
-                                text-blue-200
-                            "
-                        >
-                            Project tracking information
-                        </p>
-
-                        <p className="mt-1">
-                            The project will start with
-                            Planning status, zero sprints,
-                            zero tasks, and zero progress.
-                            The creation date will be recorded
-                            automatically. Completion information
-                            will be added when the project is
-                            completed.
-                        </p>
-
                     </div>
 
                     {/* ==================================================
@@ -1146,11 +1129,10 @@ teamLeaderId:
                         className="
                             gap-2
                             border-t
-                            border-blue-800
+                            border-gray-200
                             pt-5
                         "
                     >
-
                         <Button
                             type="button"
                             variant="outline"
@@ -1158,14 +1140,14 @@ teamLeaderId:
                                 handleClose
                             }
                             className="
-                                border-blue-700
-                                bg-blue-950
-                                text-blue-200
+                                border-gray-300
+                                bg-white
+                                text-gray-700
                                 transition-all
                                 duration-300
-                                hover:border-blue-400
-                                hover:bg-blue-900
-                                hover:text-white
+                                hover:border-gray-400
+                                hover:bg-gray-50
+                                hover:text-gray-900
                             "
                         >
                             Cancel
@@ -1177,35 +1159,31 @@ teamLeaderId:
                                 gap-2
                                 border
                                 border-cyan-400/30
-                                bg-blue-700
+                                bg-cyan-600
                                 text-white
                                 shadow-md
                                 transition-all
                                 duration-300
                                 hover:-translate-y-0.5
-                                hover:border-cyan-300
-                                hover:bg-cyan-600
+                                hover:border-cyan-500
+                                hover:bg-cyan-700
                                 hover:shadow-lg
                                 hover:shadow-cyan-500/20
                             "
                         >
-
                             <FolderKanban
                                 size={17}
                             />
 
                             Save Project
-
                         </Button>
-
                     </DialogFooter>
-
                 </form>
-
             </DialogContent>
-
         </Dialog>
     );
 }
 
 export default CreateProjectModal;
+
+

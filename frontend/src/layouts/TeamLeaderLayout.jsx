@@ -1,46 +1,96 @@
-import { useEffect, useState } from "react";
+
+import { useState } from "react";
 import { Outlet } from "react-router-dom";
 
 import TeamLeaderSidebar from "@/components/contributor/shared/TeamLeaderSidebar";
 import TeamLeaderNavbar from "@/components/contributor/shared/TeamLeaderNavbar";
 
 function TeamLeaderLayout() {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+    // ============================================================
+    // SIDEBAR MOBILE STATE
+    // ============================================================
 
-    useEffect(() => {
-        const handleKeyDown = (event) => {
-            if (event.key === "Escape") {
-                setSidebarOpen(false);
-            }
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-
-        return () => {
-            window.removeEventListener("keydown", handleKeyDown);
-        };
-    }, []);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     return (
         <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
-            {/* Sidebar */}
+
+            {/* ==================================================
+                MOBILE OVERLAY
+            ================================================== */}
+
+            {isSidebarOpen && (
+                <div
+                    className="
+                        fixed
+                        inset-0
+                        z-40
+                        bg-black/50
+                        md:hidden
+                    "
+                    onClick={() =>
+                        setIsSidebarOpen(false)
+                    }
+                />
+            )}
+
+            {/* ==================================================
+                TEAM LEADER SIDEBAR
+            ================================================== */}
+
             <TeamLeaderSidebar
-                isOpen={sidebarOpen}
-                onClose={() => setSidebarOpen(false)}
+                isOpen={isSidebarOpen}
+                onClose={() =>
+                    setIsSidebarOpen(false)
+                }
             />
 
-            {/* Main application area */}
-            <div className="flex h-full min-w-0 flex-1 flex-col lg:ml-72">
+            {/* ==================================================
+                MAIN APPLICATION AREA
+            ================================================== */}
+
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+
+                {/* ==================================================
+                    TEAM LEADER NAVBAR
+                ================================================== */}
+
                 <TeamLeaderNavbar
-                    sidebarOpen={sidebarOpen}
+                    onToggleSidebar={() =>
+                        setIsSidebarOpen(true)
+                    }
+                    sidebarOpen={isSidebarOpen}
                     onMenuClick={() =>
-                        setSidebarOpen((current) => !current)
+                        setIsSidebarOpen(true)
                     }
                 />
 
-                {/* ONLY THIS AREA SCROLLS */}
-                <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-                    <div className="mx-auto w-full max-w-[1800px] px-3 py-4 sm:px-4 md:px-6 lg:px-8">
+                {/* ==================================================
+                    MAIN CONTENT
+                    ONLY THIS AREA SCROLLS
+                ================================================== */}
+
+                <main
+                    className="
+                        min-h-0
+                        min-w-0
+                        flex-1
+                        overflow-y-auto
+                        overflow-x-hidden
+                        p-3
+                        sm:p-4
+                        md:p-6
+                        lg:p-6
+                    "
+                >
+                    <div
+                        className="
+                            mx-auto
+                            w-full
+                            max-w-[1800px]
+                            min-w-0
+                        "
+                    >
                         <Outlet />
                     </div>
                 </main>

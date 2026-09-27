@@ -10,7 +10,6 @@ import {
     ShieldCheck,
     UsersRound,
     Code2,
-    KeyRound,
     CheckCircle2,
     AlertCircle,
     Eye,
@@ -23,7 +22,6 @@ import { createUser } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 
 import {
     Select,
@@ -64,73 +62,6 @@ const ACCOUNT_STATUSES = [
 ];
 
 // ============================================================
-// PERMISSIONS
-// ============================================================
-
-const PERMISSIONS = [
-    {
-        id: "dashboard.view",
-        label: "View Dashboard",
-    },
-    {
-        id: "users.view",
-        label: "View Users",
-    },
-    {
-        id: "users.create",
-        label: "Create Users",
-    },
-    {
-        id: "users.edit",
-        label: "Edit Users",
-    },
-    {
-        id: "users.delete",
-        label: "Delete Users",
-    },
-    {
-        id: "users.status",
-        label: "Manage User Status",
-    },
-    {
-        id: "activity.logs.view",
-        label: "View Activity Logs",
-    },
-    {
-        id: "roles.manage",
-        label: "Manage Roles",
-    },
-    {
-        id: "permissions.manage",
-        label: "Manage Permissions",
-    },
-    {
-        id: "projects.view",
-        label: "View Projects",
-    },
-    {
-        id: "projects.manage",
-        label: "Manage Projects",
-    },
-    {
-        id: "tasks.manage",
-        label: "Manage Tasks",
-    },
-    {
-        id: "reports.view",
-        label: "View Reports",
-    },
-    {
-        id: "reports.system.view",
-        label: "View System Reports",
-    },
-    {
-        id: "reports.export",
-        label: "Export Reports",
-    },
-];
-
-// ============================================================
 // INITIAL FORM
 // ============================================================
 
@@ -151,8 +82,6 @@ const initialForm = {
     contributorSubTypeId: "",
 
     newContributorSubTypeName: "",
-
-    permissions: [],
 };
 
 // ============================================================
@@ -164,11 +93,11 @@ function CreateUserDialog({
     onClose,
     onUserCreated,
 }) {
-    const [form, setForm] =
-        useState(initialForm);
+    const [form, setForm] = useState(
+        initialForm
+    );
 
-    const [errors, setErrors] =
-        useState({});
+    const [errors, setErrors] = useState({});
 
     const [showPassword, setShowPassword] =
         useState(false);
@@ -348,30 +277,32 @@ function CreateUserDialog({
                         ? data.items
                         : [];
 
-              const normalizedSubTypes =
-    subTypes
-        .map((subType) => ({
-            id:
-                subType?.id ??
-                subType?.Id ??
-                subType?.contributorSubTypeId ??
-                subType?.ContributorSubTypeId,
+                const normalizedSubTypes =
+                    subTypes
+                        .map((subType) => ({
+                            id:
+                                subType?.id ??
+                                subType?.Id ??
+                                subType?.contributorSubTypeId ??
+                                subType?.ContributorSubTypeId,
 
-            name:
-                subType?.name ??
-                subType?.Name ??
-                subType?.subTypeName ??
-                subType?.SubTypeName ??
-                subType?.contributorSubTypeName ??
-                subType?.ContributorSubTypeName ??
-                "",
-        }))
-        .filter(
-            (subType) =>
-                subType.id !== null &&
-                subType.id !== undefined &&
-                String(subType.name).trim() !== ""
-        );
+                            name:
+                                subType?.name ??
+                                subType?.Name ??
+                                subType?.subTypeName ??
+                                subType?.SubTypeName ??
+                                subType?.contributorSubTypeName ??
+                                subType?.ContributorSubTypeName ??
+                                "",
+                        }))
+                        .filter(
+                            (subType) =>
+                                subType.id !== null &&
+                                subType.id !== undefined &&
+                                String(
+                                    subType.name
+                                ).trim() !== ""
+                        );
 
                 console.log(
                     "NORMALIZED SUBTYPES:",
@@ -470,115 +401,119 @@ function CreateUserDialog({
         }));
     };
 
+    // ========================================================
+    // CONTRIBUTOR TYPE CHANGE
+    // ========================================================
 
+    const handleContributorTypeChange =
+        async (value) => {
+            console.log(
+                "SELECTED CONTRIBUTOR TYPE:",
+                value
+            );
 
+            // Match by name instead of id
+            const selectedType =
+                contributorTypes.find(
+                    (type) =>
+                        String(type.name).toLowerCase() ===
+                        String(value).toLowerCase()
+                );
 
+            if (!selectedType) {
+                console.error(
+                    "Contributor type not found:",
+                    value
+                );
 
+                return;
+            }
 
+            const isTeamLeader =
+                selectedType.name
+                    ?.trim()
+                    .toLowerCase() ===
+                "team leader";
 
+            setForm((previous) => ({
+                ...previous,
 
+                contributorType:
+                    selectedType.name,
 
+                contributorTypeId:
+                    String(
+                        selectedType.id
+                    ),
 
+                contributorSubType:
+                    isTeamLeader
+                        ? ""
+                        : previous.contributorSubType,
 
+                contributorSubTypeId:
+                    isTeamLeader
+                        ? ""
+                        : previous.contributorSubTypeId,
 
-   // ========================================================
-// CONTRIBUTOR TYPE CHANGE
-// ========================================================
-const handleContributorTypeChange =
-  async (value) => {
-    console.log(
-      "SELECTED CONTRIBUTOR TYPE:",
-      value
-    );
-    //  CHANGE: Match by name instead of id
-    const selectedType =
-      contributorTypes.find(
-        (type) =>
-          String(type.name).toLowerCase() ===
-          String(value).toLowerCase()
-      );
-    if (!selectedType) {
-      console.error(
-        "Contributor type not found:",
-        value
-      );
-      return;
-    }
-    const isTeamLeader =
-      selectedType.name
-        ?.trim()
-        .toLowerCase() === "team leader";
-    setForm((previous) => ({
-      ...previous,
-      contributorType:
-        selectedType.name,
-      contributorTypeId:
-        String(selectedType.id),
-      contributorSubType:
-        isTeamLeader
-          ? ""
-          : previous.contributorSubType,
-      contributorSubTypeId:
-        isTeamLeader
-          ? ""
-          : previous.contributorSubTypeId,
-      newContributorSubTypeName:
-        "",
-    }));
-    setContributorSubTypes([]);
-    if (!isTeamLeader) {
-      await loadContributorSubTypes(
-        selectedType.id
-      );
-    }
-  };
-// ========================================================
-// CONTRIBUTOR SUBTYPE CHANGE
-// ========================================================
-const handleContributorSubTypeChange =
-  (value) => {
-    // 🌟 CHANGE: Match by name instead of id
-    const selectedSubType =
-      contributorSubTypes.find(
-        (subType) =>
-          String(subType.name).toLowerCase() ===
-          String(value).toLowerCase()
-      );
-    const selectedId =
-      selectedSubType?.id ??
-      "";
-    setForm((previous) => ({
-      ...previous,
-      contributorSubType:
-        selectedSubType?.name ??
-        "",
-      contributorSubTypeId:
-        selectedId || "",
-      newContributorSubTypeName:
-        selectedSubType?.name ===
-        "Other"
-          ? ""
-          : previous.newContributorSubTypeName,
-    }));
-    setErrors((previous) => ({
-      ...previous,
-      contributorSubType: "",
-      newContributorSubTypeName: "",
-    }));
-  };
+                newContributorSubTypeName:
+                    "",
+            }));
 
+            setContributorSubTypes([]);
 
+            if (!isTeamLeader) {
+                await loadContributorSubTypes(
+                    selectedType.id
+                );
+            }
+        };
 
+    // ========================================================
+    // CONTRIBUTOR SUBTYPE CHANGE
+    // ========================================================
 
+    const handleContributorSubTypeChange =
+        (value) => {
+            // Match by name instead of id
+            const selectedSubType =
+                contributorSubTypes.find(
+                    (subType) =>
+                        String(
+                            subType.name
+                        ).toLowerCase() ===
+                        String(
+                            value
+                        ).toLowerCase()
+                );
 
+            const selectedId =
+                selectedSubType?.id ??
+                "";
 
+            setForm((previous) => ({
+                ...previous,
 
+                contributorSubType:
+                    selectedSubType?.name ??
+                    "",
 
+                contributorSubTypeId:
+                    selectedId || "",
 
+                newContributorSubTypeName:
+                    selectedSubType?.name ===
+                    "Other"
+                        ? ""
+                        : previous.newContributorSubTypeName,
+            }));
 
-
-
-
+            setErrors((previous) => ({
+                ...previous,
+                contributorSubType: "",
+                newContributorSubTypeName: "",
+            }));
+        };
 
     // ========================================================
     // CREATE CUSTOM SUBTYPE
@@ -711,47 +646,6 @@ const handleContributorSubTypeChange =
         };
 
     // ========================================================
-    // PERMISSIONS
-    // ========================================================
-
-    const handlePermissionChange =
-        (permissionId) => {
-            setForm((previous) => {
-                const current =
-                    Array.isArray(
-                        previous.permissions
-                    )
-                        ? previous.permissions
-                        : [];
-
-                const exists =
-                    current.includes(
-                        permissionId
-                    );
-
-                return {
-                    ...previous,
-
-                    permissions: exists
-                        ? current.filter(
-                              (permission) =>
-                                  permission !==
-                                  permissionId
-                          )
-                        : [
-                              ...current,
-                              permissionId,
-                          ],
-                };
-            });
-
-            setErrors((previous) => ({
-                ...previous,
-                permissions: "",
-            }));
-        };
-
-    // ========================================================
     // VALIDATION
     // ========================================================
 
@@ -831,18 +725,19 @@ const handleContributorSubTypeChange =
             }
 
             const isTeamLeader =
-    form.contributorType
-        ?.trim()
-        .toLowerCase() === "team leader";
+                form.contributorType
+                    ?.trim()
+                    .toLowerCase() ===
+                "team leader";
 
-if (
-    form.contributorTypeId &&
-    !isTeamLeader &&
-    !form.contributorSubTypeId
-) {
-    newErrors.contributorSubType =
-        "Please select a contributor subtype.";
-}
+            if (
+                form.contributorTypeId &&
+                !isTeamLeader &&
+                !form.contributorSubTypeId
+            ) {
+                newErrors.contributorSubType =
+                    "Please select a contributor subtype.";
+            }
 
             const selectedSubType =
                 contributorSubTypes.find(
@@ -1013,13 +908,6 @@ if (
                 bio: null,
 
                 isActive,
-
-                permissions:
-                    Array.isArray(
-                        form.permissions
-                    )
-                        ? form.permissions
-                        : [],
             };
 
             // ==================================================
@@ -1067,11 +955,6 @@ if (
             console.log(
                 "CONTRIBUTOR SUBTYPE ID:",
                 userData.contributorSubTypeId
-            );
-
-            console.log(
-                "PERMISSIONS:",
-                userData.permissions
             );
 
             console.log(
@@ -1224,35 +1107,42 @@ if (
         return null;
     }
 
-   // ========================================================
-// SELECTED CONTRIBUTOR TYPE
-// ========================================================
+    // ========================================================
+    // SELECTED CONTRIBUTOR TYPE
+    // ========================================================
 
-const selectedContributorType =
-    contributorTypes.find(
-        (type) =>
-            String(type.id) ===
-            String(form.contributorTypeId)
-    );
+    const selectedContributorType =
+        contributorTypes.find(
+            (type) =>
+                String(type.id) ===
+                String(
+                    form.contributorTypeId
+                )
+        );
 
-const isTeamLeader =
-    selectedContributorType?.name
-        ?.trim()
-        .toLowerCase() === "team leader";
+    const isTeamLeader =
+        selectedContributorType?.name
+            ?.trim()
+            .toLowerCase() ===
+        "team leader";
 
-// ========================================================
-// SELECTED SUBTYPE
-// ========================================================
+    // ========================================================
+    // SELECTED SUBTYPE
+    // ========================================================
 
-const selectedSubType =
-    contributorSubTypes.find(
-        (subType) =>
-            String(subType.id) ===
-            String(form.contributorSubTypeId)
-    );
+    const selectedSubType =
+        contributorSubTypes.find(
+            (subType) =>
+                String(subType.id) ===
+                String(
+                    form.contributorSubTypeId
+                )
+        );
 
-const isOtherSubType =
-    selectedSubType?.name === "Other";
+    const isOtherSubType =
+        selectedSubType?.name ===
+        "Other";
+
     // ========================================================
     // RENDER
     // ========================================================
@@ -1270,6 +1160,7 @@ const isOtherSubType =
             }}
         >
             <Card className="flex max-h-[95vh] w-full max-w-4xl flex-col overflow-hidden shadow-2xl">
+
                 {/* =================================================
                     HEADER
                 ================================================== */}
@@ -1318,6 +1209,7 @@ const isOtherSubType =
                             handleSubmit
                         }
                     >
+
                         {/* SUCCESS */}
 
                         {successMessage && (
@@ -1519,10 +1411,6 @@ const isOtherSubType =
                         </div>
 
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                            {console.log(
-    "ACCOUNT STATUS OPTIONS:",
-    ACCOUNT_STATUSES
-)}
                             <SelectField
                                 label="Account Status"
                                 required
@@ -1681,87 +1569,93 @@ const isOtherSubType =
 
                                 <CardContent>
                                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                                        {console.log(
-    "DROPDOWN OPTIONS:",
-    contributorTypes.map((type) => ({
-        value: type.id,
-        label: type.name,
-    }))
-)}
-<SelectField
-  label="Contributor Type"
-  required
-  icon={
-    <UsersRound
-      size={
-        17
-      }
-    />
-  }
-  // 🌟 CHANGE: Use the Name for the dropdown value
-  value={
-    form.contributorType
-  }
-  onChange={
-    handleContributorTypeChange
-  }
-  placeholder={
-    loadingTypes
-      ? "Loading contributor types..."
-      : "Select contributor type"
-  }
-  // 🌟 CHANGE: Use the Name as the option value
-  options={contributorTypes.map(
-    (type) => ({
-      value: type.name,
-      label: type.name,
-    })
-  )}
-  error={
-    errors.contributorType
-  }
-  disabled={
-    loadingTypes ||
-    submitting
-  }
-/>
-{form.contributorTypeId && !isTeamLeader && (
-  <SelectField
-    label="Contributor Subtype"
-    required
-    icon={
-      <Code2 size={17} />
-    }
-    // 🌟 CHANGE: Use the Name for the dropdown value
-    value={
-      form.contributorSubType
-    }
-    onChange={
-      handleContributorSubTypeChange
-    }
-    placeholder={
-      loadingSubTypes
-        ? "Loading subtypes..."
-        : "Select contributor subtype"
-    }
-    // 🌟 CHANGE: Use the Name as the option value
-    options={contributorSubTypes.map(
-      (subType) => ({
-        value: subType.name,
-        label: subType.name,
-      })
-    )}
-    error={
-      errors.contributorSubType
-    }
-    disabled={
-      loadingSubTypes ||
-      submitting
-    }
-  />
-)}
 
+                                        <SelectField
+                                            label="Contributor Type"
+                                            required
+                                            icon={
+                                                <UsersRound
+                                                    size={
+                                                        17
+                                                    }
+                                                />
+                                            }
+                                            value={
+                                                form.contributorType
+                                            }
+                                            onChange={
+                                                handleContributorTypeChange
+                                            }
+                                            placeholder={
+                                                loadingTypes
+                                                    ? "Loading contributor types..."
+                                                    : "Select contributor type"
+                                            }
+                                            options={
+                                                contributorTypes.map(
+                                                    (
+                                                        type
+                                                    ) => ({
+                                                        value:
+                                                            type.name,
+                                                        label:
+                                                            type.name,
+                                                    })
+                                                )
+                                            }
+                                            error={
+                                                errors.contributorType
+                                            }
+                                            disabled={
+                                                loadingTypes ||
+                                                submitting
+                                            }
+                                        />
 
+                                        {form.contributorTypeId &&
+                                            !isTeamLeader && (
+                                                <SelectField
+                                                    label="Contributor Subtype"
+                                                    required
+                                                    icon={
+                                                        <Code2
+                                                            size={
+                                                                17
+                                                            }
+                                                        />
+                                                    }
+                                                    value={
+                                                        form.contributorSubType
+                                                    }
+                                                    onChange={
+                                                        handleContributorSubTypeChange
+                                                    }
+                                                    placeholder={
+                                                        loadingSubTypes
+                                                            ? "Loading subtypes..."
+                                                            : "Select contributor subtype"
+                                                    }
+                                                    options={
+                                                        contributorSubTypes.map(
+                                                            (
+                                                                subType
+                                                            ) => ({
+                                                                value:
+                                                                    subType.name,
+                                                                label:
+                                                                    subType.name,
+                                                            })
+                                                        )
+                                                    }
+                                                    error={
+                                                        errors.contributorSubType
+                                                    }
+                                                    disabled={
+                                                        loadingSubTypes ||
+                                                        submitting
+                                                    }
+                                                />
+                                            )}
                                     </div>
 
                                     {isOtherSubType && (
@@ -1828,68 +1722,6 @@ const isOtherSubType =
                                     )}
                                 </CardContent>
                             </Card>
-                        )}
-
-                        {/* =================================================
-                            PERMISSIONS
-                        ================================================== */}
-
-                        {form.accountCategory && (
-                            <div className="mt-8">
-                                <SectionTitle
-                                    icon={
-                                        <KeyRound
-                                            size={18}
-                                        />
-                                    }
-                                    title="Permissions"
-                                    description="Assign the user's system permissions."
-                                />
-
-                                <div className="max-h-72 overflow-y-auto rounded-xl border bg-background p-3">
-                                    <div className="grid grid-cols-1 gap-1 md:grid-cols-2">
-                                        {PERMISSIONS.map(
-                                            (
-                                                permission
-                                            ) => (
-                                                <label
-                                                    key={
-                                                        permission.id
-                                                    }
-                                                    className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition hover:bg-muted"
-                                                >
-                                                    <Checkbox
-                                                        checked={
-                                                            form.permissions.includes(
-                                                                permission.id
-                                                            )
-                                                        }
-                                                        onCheckedChange={() =>
-                                                            handlePermissionChange(
-                                                                permission.id
-                                                            )
-                                                        }
-                                                    />
-
-                                                    <span className="text-sm">
-                                                        {
-                                                            permission.label
-                                                        }
-                                                    </span>
-                                                </label>
-                                            )
-                                        )}
-                                    </div>
-                                </div>
-
-                                {errors.permissions && (
-                                    <ErrorText
-                                        text={
-                                            errors.permissions
-                                        }
-                                    />
-                                )}
-                            </div>
                         )}
 
                         {/* =================================================
@@ -1961,11 +1793,6 @@ const isOtherSubType =
                                                 />
                                             </>
                                         )}
-
-                                        <SummaryItem
-                                            label="Permissions"
-                                            value={`${form.permissions.length} selected`}
-                                        />
                                     </div>
                                 </CardContent>
                             </Card>
@@ -2396,3 +2223,5 @@ function getErrorMessage(
 }
 
 export default CreateUserDialog;
+
+

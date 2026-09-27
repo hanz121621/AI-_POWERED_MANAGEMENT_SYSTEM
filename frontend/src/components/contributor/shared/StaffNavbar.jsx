@@ -1,20 +1,23 @@
-
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
     Bell,
     ChevronDown,
-    LogOut,
     Menu,
-    Moon,
     Search,
-    Settings,
     ShieldCheck,
-    Sun,
-    UserRound,
     X,
 } from "lucide-react";
+
+import { Input } from "@/components/ui/input";
+import ThemeToggle from "@/components/common/ThemeToggle";
+
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+} from "@/components/ui/avatar";
 
 import { Button } from "@/components/ui/button";
 
@@ -29,7 +32,15 @@ const USER_STORAGE_KEYS = [
     "authUser",
 ];
 
+/* ============================================================
+   GET STORED USER
+============================================================ */
+
 function getStoredUser() {
+    if (typeof window === "undefined") {
+        return null;
+    }
+
     for (const key of USER_STORAGE_KEYS) {
         try {
             const storedUser = localStorage.getItem(key);
@@ -58,9 +69,7 @@ function getStoredUser() {
 }
 
 /* ============================================================
-   DEFAULT STAFF
-   ------------------------------------------------------------
-   Used only when no authenticated user exists in localStorage.
+   DEFAULT STAFF USER
 ============================================================ */
 
 const DEFAULT_USER = {
@@ -74,7 +83,7 @@ const DEFAULT_USER = {
 };
 
 /* ============================================================
-   HELPER FUNCTIONS
+   USER HELPERS
 ============================================================ */
 
 function getUserName(user) {
@@ -83,23 +92,6 @@ function getUserName(user) {
         user?.name ||
         user?.username ||
         user?.displayName ||
-        "Staff"
-    );
-}
-
-function getUserEmail(user) {
-    return (
-        user?.email ||
-        user?.emailAddress ||
-        "No email available"
-    );
-}
-
-function getUserRole(user) {
-    return (
-        user?.role ||
-        user?.accountCategory ||
-        user?.userRole ||
         "Staff"
     );
 }
@@ -127,7 +119,7 @@ function getInitials(name) {
 }
 
 /* ============================================================
-   COMPONENT
+   STAFF NAVBAR
 ============================================================ */
 
 function StaffNavbar({
@@ -141,34 +133,24 @@ function StaffNavbar({
        USER
     ======================================================== */
 
-    const [user, setUser] = useState(
+    const [user] = useState(
         () => getStoredUser() || DEFAULT_USER
     );
 
-    const [searchValue, setSearchValue] =
-        useState("");
+    /* ========================================================
+       SEARCH
+    ======================================================== */
 
-    const [notificationsOpen, setNotificationsOpen] =
-        useState(false);
-
-    const [profileOpen, setProfileOpen] =
-        useState(false);
-
+    const [searchValue, setSearchValue] = useState("");
     const [mobileSearchOpen, setMobileSearchOpen] =
         useState(false);
 
-    const [isDarkMode, setIsDarkMode] =
-        useState(() => {
-            try {
-                return (
-                    localStorage.getItem(
-                        "aipms_theme"
-                    ) === "dark"
-                );
-            } catch {
-                return false;
-            }
-        });
+    /* ========================================================
+       NOTIFICATIONS
+    ======================================================== */
+
+    const [notificationsOpen, setNotificationsOpen] =
+        useState(false);
 
     /* ========================================================
        USER INFORMATION
@@ -179,66 +161,13 @@ function StaffNavbar({
         [user]
     );
 
-    const userEmail = useMemo(
-        () => getUserEmail(user),
-        [user]
-    );
-
-    const userRole = useMemo(
-        () => getUserRole(user),
-        [user]
-    );
-
     const initials = useMemo(
         () => getInitials(userName),
         [userName]
     );
 
     /* ========================================================
-       NAVIGATION
-    ======================================================== */
-
-    const handleProfile = () => {
-        setProfileOpen(false);
-        navigate("/profile");
-    };
-
-    const handleSettings = () => {
-        setProfileOpen(false);
-        navigate("/settings");
-    };
-
-    const handleLogout = () => {
-        const keysToRemove = [
-            "user",
-            "token",
-            "refreshToken",
-            "aipms_user",
-            "currentUser",
-            "authUser",
-        ];
-
-        keysToRemove.forEach((key) => {
-            try {
-                localStorage.removeItem(key);
-            } catch (error) {
-                console.error(
-                    `Unable to remove ${key}:`,
-                    error
-                );
-            }
-        });
-
-        setUser(DEFAULT_USER);
-        setProfileOpen(false);
-
-        navigate("/login", {
-            replace: true,
-        });
-    };
-
-    /* ========================================================
-       SEARCH
+       SEARCH HANDLER
     ======================================================== */
 
     const handleSearchSubmit = (event) => {
@@ -250,44 +179,7 @@ function StaffNavbar({
             return;
         }
 
-        console.log(
-            "Staff search:",
-            query
-        );
-    };
-
-    /* ========================================================
-       DARK MODE
-    ======================================================== */
-
-    const handleThemeToggle = () => {
-        const nextTheme = !isDarkMode;
-
-        setIsDarkMode(nextTheme);
-
-        try {
-            localStorage.setItem(
-                "aipms_theme",
-                nextTheme
-                    ? "dark"
-                    : "light"
-            );
-        } catch (error) {
-            console.error(
-                "Unable to save theme:",
-                error
-            );
-        }
-
-        if (nextTheme) {
-            document.documentElement.classList.add(
-                "dark"
-            );
-        } else {
-            document.documentElement.classList.remove(
-                "dark"
-            );
-        }
+        console.log("Staff search:", query);
     };
 
     /* ========================================================
@@ -323,9 +215,23 @@ function StaffNavbar({
 
     const unreadNotificationCount =
         notifications.filter(
-            (notification) =>
-                notification.unread
+            (notification) => notification.unread
         ).length;
+
+    /* ========================================================
+       SIDEBAR HANDLER
+    ======================================================== */
+
+    const handleSidebarToggle = () => {
+        if (onMenuClick) {
+            onMenuClick();
+            return;
+        }
+
+        if (onToggleSidebar) {
+            onToggleSidebar();
+        }
+    };
 
     /* ========================================================
        RENDER
@@ -333,50 +239,42 @@ function StaffNavbar({
 
     return (
         <>
+            {/* ==================================================
+                NAVBAR
+            ================================================== */}
+
             <header
                 className="
                     sticky
                     top-0
                     z-40
+                    flex
+                    h-20
+                    items-center
+                    justify-between
                     border-b
-                    border-slate-200
-                    bg-white/95
-                    backdrop-blur
-                    dark:border-blue-900/70
-                    dark:bg-[#0b1f3a]/95
+                    border-border
+                    bg-background
+                    px-6
+                    text-foreground
+                    lg:px-8
                 "
             >
-                <div
-                    className="
-                        flex
-                        h-16
-                        items-center
-                        gap-3
-                        px-4
-                        md:px-6
-                    "
-                >
-                    {/* ==================================================
-                        MOBILE SIDEBAR BUTTON
-                    ================================================== */}
+                {/* =================================================
+                    LEFT SIDE
+                ================================================== */}
 
-                    <Button
+                <div className="relative flex w-full max-w-md items-center">
+
+                    {/* MOBILE MENU */}
+
+                    <button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={
-                            onMenuClick ||
-                            onToggleSidebar
-                        }
+                        onClick={handleSidebarToggle}
                         className="
-                            shrink-0
-                            text-slate-600
-                            hover:bg-slate-100
-                            hover:text-slate-900
-                            dark:text-slate-300
-                            dark:hover:bg-blue-950/60
-                            dark:hover:text-white
-                            lg:hidden
+                            mr-4
+                            text-foreground
+                            md:hidden
                         "
                         aria-label={
                             sidebarOpen
@@ -385,15 +283,13 @@ function StaffNavbar({
                         }
                     >
                         {sidebarOpen ? (
-                            <X className="h-5 w-5" />
+                            <X size={24} />
                         ) : (
-                            <Menu className="h-5 w-5" />
+                            <Menu size={24} />
                         )}
-                    </Button>
+                    </button>
 
-                    {/* ==================================================
-                        BRAND
-                    ================================================== */}
+                    {/* STAFF BRAND */}
 
                     <button
                         type="button"
@@ -401,10 +297,12 @@ function StaffNavbar({
                             navigate("/staff")
                         }
                         className="
-                            flex
+                            mr-4
+                            hidden
                             shrink-0
                             items-center
                             gap-2
+                            sm:flex
                         "
                     >
                         <div
@@ -415,22 +313,21 @@ function StaffNavbar({
                                 items-center
                                 justify-center
                                 rounded-lg
-                                bg-blue-600
-                                text-white
+                                bg-primary
+                                text-primary-foreground
                                 shadow-sm
                             "
                         >
                             <ShieldCheck className="h-5 w-5" />
                         </div>
 
-                        <div className="hidden sm:block">
+                        <div className="text-left">
                             <p
                                 className="
                                     text-sm
                                     font-bold
                                     leading-tight
-                                    text-slate-900
-                                    dark:text-white
+                                    text-foreground
                                 "
                             >
                                 AI-PMS
@@ -440,8 +337,7 @@ function StaffNavbar({
                                 className="
                                     text-[10px]
                                     font-medium
-                                    text-slate-500
-                                    dark:text-slate-400
+                                    text-muted-foreground
                                 "
                             >
                                 Staff Portal
@@ -449,21 +345,406 @@ function StaffNavbar({
                         </div>
                     </button>
 
-                    {/* ==================================================
-                        DESKTOP SEARCH
-                    ================================================== */}
+                    {/* DESKTOP SEARCH */}
 
-                    <form
-                        onSubmit={
-                            handleSearchSubmit
+                    <div className="relative w-full">
+                        <Search
+                            className="
+                                pointer-events-none
+                                absolute
+                                left-3
+                                top-1/2
+                                h-4
+                                w-4
+                                -translate-y-1/2
+                                text-muted-foreground
+                            "
+                        />
+
+                        <Input
+                            type="text"
+                            value={searchValue}
+                            onChange={(event) =>
+                                setSearchValue(
+                                    event.target.value
+                                )
+                            }
+                            onKeyDown={(event) => {
+                                if (
+                                    event.key ===
+                                    "Enter"
+                                ) {
+                                    handleSearchSubmit(
+                                        event
+                                    );
+                                }
+                            }}
+                            placeholder="Search tasks, projects..."
+                            className="
+                                hidden
+                                h-10
+                                w-full
+                                border-border
+                                bg-muted/50
+                                pl-10
+                                pr-4
+                                text-sm
+                                text-foreground
+                                placeholder:text-muted-foreground
+                                focus-visible:ring-2
+                                focus-visible:ring-primary
+                                md:block
+                            "
+                        />
+                    </div>
+                </div>
+
+                {/* =================================================
+                    RIGHT SIDE
+                ================================================== */}
+
+                <div className="ml-4 flex items-center gap-2">
+
+                    {/* MOBILE SEARCH */}
+
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                            setMobileSearchOpen(
+                                (current) =>
+                                    !current
+                            )
                         }
                         className="
-                            ml-4
-                            hidden
-                            max-w-md
-                            flex-1
-                            md:block
+                            h-10
+                            w-10
+                            rounded-full
+                            text-foreground
+                            transition-all
+                            duration-200
+                            hover:bg-muted
+                            hover:text-primary
+                            md:hidden
                         "
+                        aria-label="Search"
+                    >
+                        <Search className="h-5 w-5" />
+                    </Button>
+
+                    {/* NOTIFICATIONS */}
+
+                    <div className="relative">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                                setNotificationsOpen(
+                                    (current) =>
+                                        !current
+                                )
+                            }
+                            className="
+                                relative
+                                h-10
+                                w-10
+                                rounded-full
+                                text-foreground
+                                transition-all
+                                duration-200
+                                hover:bg-muted
+                                hover:text-primary
+                            "
+                            aria-label="Notifications"
+                        >
+                            <Bell className="h-5 w-5 text-muted-foreground" />
+
+                            {unreadNotificationCount >
+                                0 && (
+                                <span
+                                    className="
+                                        absolute
+                                        right-2
+                                        top-2
+                                        h-2
+                                        w-2
+                                        rounded-full
+                                        bg-red-500
+                                        ring-2
+                                        ring-background
+                                    "
+                                />
+                            )}
+                        </Button>
+
+                        {/* NOTIFICATION DROPDOWN */}
+
+                        {notificationsOpen && (
+                            <div
+                                className="
+                                    absolute
+                                    right-0
+                                    z-50
+                                    mt-2
+                                    w-[320px]
+                                    overflow-hidden
+                                    rounded-xl
+                                    border
+                                    border-border
+                                    bg-background
+                                    shadow-xl
+                                "
+                            >
+                                {/* HEADER */}
+
+                                <div
+                                    className="
+                                        flex
+                                        items-center
+                                        justify-between
+                                        border-b
+                                        border-border
+                                        px-4
+                                        py-3
+                                    "
+                                >
+                                    <div>
+                                        <p
+                                            className="
+                                                text-sm
+                                                font-semibold
+                                                text-foreground
+                                            "
+                                        >
+                                            Notifications
+                                        </p>
+
+                                        <p
+                                            className="
+                                                mt-0.5
+                                                text-xs
+                                                text-muted-foreground
+                                            "
+                                        >
+                                            Your work updates
+                                        </p>
+                                    </div>
+
+                                    <span
+                                        className="
+                                            rounded-full
+                                            bg-primary/10
+                                            px-2
+                                            py-1
+                                            text-[10px]
+                                            font-semibold
+                                            text-primary
+                                        "
+                                    >
+                                        {
+                                            unreadNotificationCount
+                                        }{" "}
+                                        new
+                                    </span>
+                                </div>
+
+                                {/* NOTIFICATION LIST */}
+
+                                <div className="max-h-[350px] overflow-y-auto">
+                                    {notifications.map(
+                                        (
+                                            notification
+                                        ) => (
+                                            <button
+                                                type="button"
+                                                key={
+                                                    notification.id
+                                                }
+                                                className="
+                                                    flex
+                                                    w-full
+                                                    gap-3
+                                                    border-b
+                                                    border-border
+                                                    px-4
+                                                    py-3
+                                                    text-left
+                                                    transition-colors
+                                                    hover:bg-muted/50
+                                                "
+                                            >
+                                                <div
+                                                    className={`
+                                                        mt-1
+                                                        h-2
+                                                        w-2
+                                                        shrink-0
+                                                        rounded-full
+                                                        ${
+                                                            notification.unread
+                                                                ? "bg-primary"
+                                                                : "bg-muted-foreground/30"
+                                                        }
+                                                    `}
+                                                />
+
+                                                <div className="min-w-0">
+                                                    <p
+                                                        className="
+                                                            text-xs
+                                                            font-semibold
+                                                            text-foreground
+                                                        "
+                                                    >
+                                                        {
+                                                            notification.title
+                                                        }
+                                                    </p>
+
+                                                    <p
+                                                        className="
+                                                            mt-1
+                                                            text-xs
+                                                            leading-5
+                                                            text-muted-foreground
+                                                        "
+                                                    >
+                                                        {
+                                                            notification.message
+                                                        }
+                                                    </p>
+
+                                                    <p
+                                                        className="
+                                                            mt-1
+                                                            text-[10px]
+                                                            text-muted-foreground
+                                                        "
+                                                    >
+                                                        {
+                                                            notification.time
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </button>
+                                        )
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* THEME */}
+
+                    <ThemeToggle />
+
+                    {/* USER PROFILE */}
+
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        className="
+                            h-12
+                            rounded-lg
+                            px-2
+                            text-foreground
+                            transition-all
+                            duration-200
+                            hover:bg-muted
+                        "
+                    >
+                        <div className="flex items-center gap-3">
+
+                            {/* AVATAR */}
+
+                            <Avatar className="h-10 w-10">
+                                {user?.avatar && (
+                                    <AvatarImage
+                                        src={user.avatar}
+                                        alt={userName}
+                                    />
+                                )}
+
+                                <AvatarFallback
+                                    className="
+                                        bg-primary
+                                        font-semibold
+                                        text-primary-foreground
+                                    "
+                                >
+                                    {initials}
+                                </AvatarFallback>
+                            </Avatar>
+
+                            {/* USER INFO */}
+
+                            <div
+                                className="
+                                    hidden
+                                    flex-col
+                                    items-start
+                                    sm:flex
+                                "
+                            >
+                                <span
+                                    className="
+                                        max-w-[130px]
+                                        truncate
+                                        text-sm
+                                        font-semibold
+                                        text-foreground
+                                    "
+                                >
+                                    {userName}
+                                </span>
+
+                                <span
+                                    className="
+                                        max-w-[130px]
+                                        truncate
+                                        text-xs
+                                        text-muted-foreground
+                                    "
+                                >
+                                    Staff
+                                </span>
+                            </div>
+
+                            {/* CHEVRON */}
+
+                            <ChevronDown
+                                className="
+                                    hidden
+                                    h-4
+                                    w-4
+                                    text-muted-foreground
+                                    sm:block
+                                "
+                            />
+                        </div>
+                    </Button>
+                </div>
+            </header>
+
+            {/* ==================================================
+                MOBILE SEARCH
+            ================================================== */}
+
+            {mobileSearchOpen && (
+                <div
+                    className="
+                        border-b
+                        border-border
+                        bg-background
+                        px-4
+                        py-3
+                        md:hidden
+                    "
+                >
+                    <form
+                        onSubmit={handleSearchSubmit}
                     >
                         <div className="relative">
                             <Search
@@ -475,11 +756,12 @@ function StaffNavbar({
                                     h-4
                                     w-4
                                     -translate-y-1/2
-                                    text-slate-400
+                                    text-muted-foreground
                                 "
                             />
 
-                            <input
+                            <Input
+                                autoFocus
                                 type="search"
                                 value={searchValue}
                                 onChange={(event) =>
@@ -487,786 +769,37 @@ function StaffNavbar({
                                         event.target.value
                                     )
                                 }
-                                placeholder="Search tasks, projects, team members..."
+                                placeholder="Search tasks, projects..."
                                 className="
                                     h-10
                                     w-full
-                                    rounded-lg
-                                    border
-                                    border-slate-200
-                                    bg-slate-50
-                                    pl-9
-                                    pr-3
+                                    border-border
+                                    bg-muted/50
+                                    pl-10
+                                    pr-4
                                     text-sm
-                                    text-slate-800
-                                    outline-none
-                                    transition
-                                    placeholder:text-slate-400
-                                    focus:border-blue-400
-                                    focus:ring-2
-                                    focus:ring-blue-100
-                                    dark:border-blue-900/70
-                                    dark:bg-[#132f52]
-                                    dark:text-white
-                                    dark:placeholder:text-slate-500
-                                    dark:focus:border-blue-600
-                                    dark:focus:ring-blue-950
+                                    text-foreground
+                                    placeholder:text-muted-foreground
+                                    focus-visible:ring-2
+                                    focus-visible:ring-primary
                                 "
                             />
                         </div>
                     </form>
-
-                    {/* ==================================================
-                        RIGHT SIDE
-                    ================================================== */}
-
-                    <div
-                        className="
-                            ml-auto
-                            flex
-                            items-center
-                            gap-1
-                        "
-                    >
-                        {/* MOBILE SEARCH */}
-
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                                setMobileSearchOpen(
-                                    (current) =>
-                                        !current
-                                )
-                            }
-                            className="
-                                text-slate-600
-                                hover:bg-slate-100
-                                dark:text-slate-300
-                                dark:hover:bg-blue-950/60
-                                md:hidden
-                            "
-                            aria-label="Search"
-                        >
-                            <Search className="h-5 w-5" />
-                        </Button>
-
-                        {/* THEME */}
-
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={
-                                handleThemeToggle
-                            }
-                            className="
-                                hidden
-                                text-slate-600
-                                hover:bg-slate-100
-                                dark:text-slate-300
-                                dark:hover:bg-blue-950/60
-                                sm:inline-flex
-                            "
-                            aria-label={
-                                isDarkMode
-                                    ? "Switch to light mode"
-                                    : "Switch to dark mode"
-                            }
-                        >
-                            {isDarkMode ? (
-                                <Sun className="h-5 w-5" />
-                            ) : (
-                                <Moon className="h-5 w-5" />
-                            )}
-                        </Button>
-
-                        {/* ==================================================
-                            NOTIFICATIONS
-                        ================================================== */}
-
-                        <div className="relative">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                    setNotificationsOpen(
-                                        (current) =>
-                                            !current
-                                    );
-
-                                    setProfileOpen(
-                                        false
-                                    );
-                                }}
-                                className="
-                                    relative
-                                    text-slate-600
-                                    hover:bg-slate-100
-                                    dark:text-slate-300
-                                    dark:hover:bg-blue-950/60
-                                "
-                                aria-label="Notifications"
-                            >
-                                <Bell className="h-5 w-5" />
-
-                                {unreadNotificationCount >
-                                    0 && (
-                                    <span
-                                        className="
-                                            absolute
-                                            right-1.5
-                                            top-1.5
-                                            flex
-                                            h-4
-                                            min-w-4
-                                            items-center
-                                            justify-center
-                                            rounded-full
-                                            bg-red-500
-                                            px-1
-                                            text-[9px]
-                                            font-bold
-                                            text-white
-                                            ring-2
-                                            ring-white
-                                            dark:ring-[#0b1f3a]
-                                        "
-                                    >
-                                        {
-                                            unreadNotificationCount
-                                        }
-                                    </span>
-                                )}
-                            </Button>
-
-                            {notificationsOpen && (
-                                <div
-                                    className="
-                                        absolute
-                                        right-0
-                                        mt-2
-                                        w-[320px]
-                                        overflow-hidden
-                                        rounded-xl
-                                        border
-                                        border-slate-200
-                                        bg-white
-                                        shadow-xl
-                                        dark:border-blue-900/70
-                                        dark:bg-[#0f2747]
-                                    "
-                                >
-                                    <div
-                                        className="
-                                            flex
-                                            items-center
-                                            justify-between
-                                            border-b
-                                            border-slate-200
-                                            px-4
-                                            py-3
-                                            dark:border-blue-900/70
-                                        "
-                                    >
-                                        <div>
-                                            <p
-                                                className="
-                                                    text-sm
-                                                    font-semibold
-                                                    text-slate-900
-                                                    dark:text-white
-                                                "
-                                            >
-                                                Notifications
-                                            </p>
-
-                                            <p
-                                                className="
-                                                    mt-0.5
-                                                    text-xs
-                                                    text-slate-500
-                                                    dark:text-slate-400
-                                                "
-                                            >
-                                                Your work
-                                                updates
-                                            </p>
-                                        </div>
-
-                                        <span
-                                            className="
-                                                rounded-full
-                                                bg-blue-100
-                                                px-2
-                                                py-1
-                                                text-[10px]
-                                                font-semibold
-                                                text-blue-700
-                                                dark:bg-blue-950/50
-                                                dark:text-blue-300
-                                            "
-                                        >
-                                            {
-                                                unreadNotificationCount
-                                            }{" "}
-                                            new
-                                        </span>
-                                    </div>
-
-                                    <div className="max-h-[350px] overflow-y-auto">
-                                        {notifications.map(
-                                            (
-                                                notification
-                                            ) => (
-                                                <button
-                                                    type="button"
-                                                    key={
-                                                        notification.id
-                                                    }
-                                                    className="
-                                                        flex
-                                                        w-full
-                                                        gap-3
-                                                        border-b
-                                                        border-slate-100
-                                                        px-4
-                                                        py-3
-                                                        text-left
-                                                        hover:bg-slate-50
-                                                        dark:border-blue-900/40
-                                                        dark:hover:bg-blue-950/30
-                                                    "
-                                                >
-                                                    <div
-                                                        className={`
-                                                            mt-1
-                                                            h-2
-                                                            w-2
-                                                            shrink-0
-                                                            rounded-full
-                                                            ${
-                                                                notification.unread
-                                                                    ? "bg-blue-500"
-                                                                    : "bg-slate-300 dark:bg-slate-600"
-                                                            }
-                                                        `}
-                                                    />
-
-                                                    <div className="min-w-0">
-                                                        <p
-                                                            className="
-                                                                text-xs
-                                                                font-semibold
-                                                                text-slate-800
-                                                                dark:text-white
-                                                            "
-                                                        >
-                                                            {
-                                                                notification.title
-                                                            }
-                                                        </p>
-
-                                                        <p
-                                                            className="
-                                                                mt-1
-                                                                text-xs
-                                                                leading-5
-                                                                text-slate-500
-                                                                dark:text-slate-400
-                                                            "
-                                                        >
-                                                            {
-                                                                notification.message
-                                                            }
-                                                        </p>
-
-                                                        <p
-                                                            className="
-                                                                mt-1
-                                                                text-[10px]
-                                                                text-slate-400
-                                                            "
-                                                        >
-                                                            {
-                                                                notification.time
-                                                            }
-                                                        </p>
-                                                    </div>
-                                                </button>
-                                            )
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* ==================================================
-                            PROFILE
-                        ================================================== */}
-
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setProfileOpen(
-                                        (current) =>
-                                            !current
-                                    );
-
-                                    setNotificationsOpen(
-                                        false
-                                    );
-                                }}
-                                className="
-                                    flex
-                                    items-center
-                                    gap-2
-                                    rounded-lg
-                                    p-1.5
-                                    transition
-                                    hover:bg-slate-100
-                                    dark:hover:bg-blue-950/60
-                                "
-                                aria-label="Open user menu"
-                            >
-                                {user?.avatar ? (
-                                    <img
-                                        src={
-                                            user.avatar
-                                        }
-                                        alt={userName}
-                                        className="
-                                            h-9
-                                            w-9
-                                            rounded-full
-                                            object-cover
-                                        "
-                                    />
-                                ) : (
-                                    <div
-                                        className="
-                                            flex
-                                            h-9
-                                            w-9
-                                            items-center
-                                            justify-center
-                                            rounded-full
-                                            bg-blue-600
-                                            text-xs
-                                            font-bold
-                                            text-white
-                                        "
-                                    >
-                                        {initials}
-                                    </div>
-                                )}
-
-                                <div className="hidden text-left lg:block">
-                                    <p
-                                        className="
-                                            max-w-[130px]
-                                            truncate
-                                            text-xs
-                                            font-semibold
-                                            text-slate-800
-                                            dark:text-white
-                                        "
-                                    >
-                                        {userName}
-                                    </p>
-
-                                    <p
-                                        className="
-                                            max-w-[130px]
-                                            truncate
-                                            text-[10px]
-                                            text-slate-500
-                                            dark:text-slate-400
-                                        "
-                                    >
-                                        Staff
-                                    </p>
-                                </div>
-
-                                <ChevronDown
-                                    className="
-                                        hidden
-                                        h-4
-                                        w-4
-                                        text-slate-400
-                                        lg:block
-                                    "
-                                />
-                            </button>
-
-                            {profileOpen && (
-                                <div
-                                    className="
-                                        absolute
-                                        right-0
-                                        mt-2
-                                        w-72
-                                        overflow-hidden
-                                        rounded-xl
-                                        border
-                                        border-slate-200
-                                        bg-white
-                                        shadow-xl
-                                        dark:border-blue-900/70
-                                        dark:bg-[#0f2747]
-                                    "
-                                >
-                                    {/* USER HEADER */}
-
-                                    <div
-                                        className="
-                                            border-b
-                                            border-slate-200
-                                            bg-slate-50
-                                            px-4
-                                            py-4
-                                            dark:border-blue-900/70
-                                            dark:bg-[#132f52]
-                                        "
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {user?.avatar ? (
-                                                <img
-                                                    src={
-                                                        user.avatar
-                                                    }
-                                                    alt={
-                                                        userName
-                                                    }
-                                                    className="
-                                                        h-11
-                                                        w-11
-                                                        rounded-full
-                                                        object-cover
-                                                    "
-                                                />
-                                            ) : (
-                                                <div
-                                                    className="
-                                                        flex
-                                                        h-11
-                                                        w-11
-                                                        items-center
-                                                        justify-center
-                                                        rounded-full
-                                                        bg-blue-600
-                                                        text-sm
-                                                        font-bold
-                                                        text-white
-                                                    "
-                                                >
-                                                    {
-                                                        initials
-                                                    }
-                                                </div>
-                                            )}
-
-                                            <div className="min-w-0">
-                                                <p
-                                                    className="
-                                                        truncate
-                                                        text-sm
-                                                        font-semibold
-                                                        text-slate-900
-                                                        dark:text-white
-                                                    "
-                                                >
-                                                    {
-                                                        userName
-                                                    }
-                                                </p>
-
-                                                <p
-                                                    className="
-                                                        mt-0.5
-                                                        truncate
-                                                        text-xs
-                                                        text-slate-500
-                                                        dark:text-slate-400
-                                                    "
-                                                >
-                                                    {
-                                                        userEmail
-                                                    }
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div
-                                            className="
-                                                mt-3
-                                                flex
-                                                flex-wrap
-                                                gap-2
-                                            "
-                                        >
-                                            <span
-                                                className="
-                                                    rounded-full
-                                                    bg-blue-100
-                                                    px-2.5
-                                                    py-1
-                                                    text-[10px]
-                                                    font-semibold
-                                                    text-blue-700
-                                                    dark:bg-blue-950/50
-                                                    dark:text-blue-300
-                                                "
-                                            >
-                                                {userRole}
-                                            </span>
-
-                                            <span
-                                                className="
-                                                    rounded-full
-                                                    bg-slate-100
-                                                    px-2.5
-                                                    py-1
-                                                    text-[10px]
-                                                    font-medium
-                                                    text-slate-600
-                                                    dark:bg-slate-800
-                                                    dark:text-slate-300
-                                                "
-                                            >
-                                                Staff
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* MENU */}
-
-                                    <div className="p-2">
-                                        <button
-                                            type="button"
-                                            onClick={
-                                                handleProfile
-                                            }
-                                            className="
-                                                flex
-                                                w-full
-                                                items-center
-                                                gap-3
-                                                rounded-lg
-                                                px-3
-                                                py-2.5
-                                                text-left
-                                                text-sm
-                                                text-slate-700
-                                                hover:bg-slate-100
-                                                dark:text-slate-200
-                                                dark:hover:bg-blue-950/50
-                                            "
-                                        >
-                                            <UserRound className="h-4 w-4" />
-
-                                            <span>
-                                                My Profile
-                                            </span>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={
-                                                handleSettings
-                                            }
-                                            className="
-                                                flex
-                                                w-full
-                                                items-center
-                                                gap-3
-                                                rounded-lg
-                                                px-3
-                                                py-2.5
-                                                text-left
-                                                text-sm
-                                                text-slate-700
-                                                hover:bg-slate-100
-                                                dark:text-slate-200
-                                                dark:hover:bg-blue-950/50
-                                            "
-                                        >
-                                            <Settings className="h-4 w-4" />
-
-                                            <span>
-                                                Settings
-                                            </span>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={
-                                                handleThemeToggle
-                                            }
-                                            className="
-                                                flex
-                                                w-full
-                                                items-center
-                                                gap-3
-                                                rounded-lg
-                                                px-3
-                                                py-2.5
-                                                text-left
-                                                text-sm
-                                                text-slate-700
-                                                hover:bg-slate-100
-                                                dark:text-slate-200
-                                                dark:hover:bg-blue-950/50
-                                                sm:hidden
-                                            "
-                                        >
-                                            {isDarkMode ? (
-                                                <Sun className="h-4 w-4" />
-                                            ) : (
-                                                <Moon className="h-4 w-4" />
-                                            )}
-
-                                            <span>
-                                                {isDarkMode
-                                                    ? "Light Mode"
-                                                    : "Dark Mode"}
-                                            </span>
-                                        </button>
-
-                                        <div
-                                            className="
-                                                my-2
-                                                border-t
-                                                border-slate-200
-                                                dark:border-blue-900/70
-                                            "
-                                        />
-
-                                        <button
-                                            type="button"
-                                            onClick={
-                                                handleLogout
-                                            }
-                                            className="
-                                                flex
-                                                w-full
-                                                items-center
-                                                gap-3
-                                                rounded-lg
-                                                px-3
-                                                py-2.5
-                                                text-left
-                                                text-sm
-                                                font-medium
-                                                text-red-600
-                                                hover:bg-red-50
-                                                dark:text-red-400
-                                                dark:hover:bg-red-950/30
-                                            "
-                                        >
-                                            <LogOut className="h-4 w-4" />
-
-                                            <span>
-                                                Sign Out
-                                            </span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
                 </div>
+            )}
 
-                {/* ========================================================
-                    MOBILE SEARCH
-                ======================================================== */}
+            {/* ==================================================
+                CLOSE NOTIFICATION DROPDOWN
+            ================================================== */}
 
-                {mobileSearchOpen && (
-                    <div
-                        className="
-                            border-t
-                            border-slate-200
-                            px-4
-                            py-3
-                            md:hidden
-                            dark:border-blue-900/70
-                        "
-                    >
-                        <form
-                            onSubmit={
-                                handleSearchSubmit
-                            }
-                        >
-                            <div className="relative">
-                                <Search
-                                    className="
-                                        pointer-events-none
-                                        absolute
-                                        left-3
-                                        top-1/2
-                                        h-4
-                                        w-4
-                                        -translate-y-1/2
-                                        text-slate-400
-                                    "
-                                />
-
-                                <input
-                                    autoFocus
-                                    type="search"
-                                    value={
-                                        searchValue
-                                    }
-                                    onChange={(event) =>
-                                        setSearchValue(
-                                            event.target.value
-                                        )
-                                    }
-                                    placeholder="Search..."
-                                    className="
-                                        h-10
-                                        w-full
-                                        rounded-lg
-                                        border
-                                        border-slate-200
-                                        bg-slate-50
-                                        pl-9
-                                        pr-3
-                                        text-sm
-                                        outline-none
-                                        focus:border-blue-400
-                                        focus:ring-2
-                                        focus:ring-blue-100
-                                        dark:border-blue-900/70
-                                        dark:bg-[#132f52]
-                                        dark:text-white
-                                    "
-                                />
-                            </div>
-                        </form>
-                    </div>
-                )}
-            </header>
-
-            {/* ========================================================
-               BACKDROP FOR DROPDOWN MENUS
-            ======================================================== */}
-
-            {(notificationsOpen ||
-                profileOpen) && (
+            {notificationsOpen && (
                 <button
                     type="button"
-                    aria-label="Close menu"
-                    onClick={() => {
-                        setNotificationsOpen(
-                            false
-                        );
-
-                        setProfileOpen(false);
-                    }}
+                    aria-label="Close notifications"
+                    onClick={() =>
+                        setNotificationsOpen(false)
+                    }
                     className="
                         fixed
                         inset-0

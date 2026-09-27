@@ -1,245 +1,26 @@
 
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 import {
-    Bell,
-    ChevronDown,
-    LogOut,
     Menu,
-    Moon,
     Search,
-    Settings,
-    Code2,
-    Sun,
-    UserRound,
-    X,
+    Bell,
 } from "lucide-react";
+
+import { Input } from "@/components/ui/input";
+import ThemeToggle from "@/components/common/ThemeToggle";
+
+import {
+    Avatar,
+    AvatarFallback,
+} from "@/components/ui/avatar";
 
 import { Button } from "@/components/ui/button";
 
-/* ============================================================
-   STORAGE HELPERS
-============================================================ */
-
-const USER_STORAGE_KEYS = [
-    "user",
-    "aipms_user",
-    "currentUser",
-    "authUser",
-];
-
-function getStoredUser() {
-    for (const key of USER_STORAGE_KEYS) {
-        try {
-            const storedUser = localStorage.getItem(key);
-
-            if (!storedUser) {
-                continue;
-            }
-
-            const parsedUser = JSON.parse(storedUser);
-
-            if (
-                parsedUser &&
-                typeof parsedUser === "object"
-            ) {
-                return parsedUser;
-            }
-        } catch (error) {
-            console.error(
-                `Unable to read ${key} from localStorage:`,
-                error
-            );
-        }
-    }
-
-    return null;
-}
-
-/* ============================================================
-   DEFAULT DEVELOPER
-   ------------------------------------------------------------
-   Used only when no authenticated user exists in localStorage.
-============================================================ */
-
-const DEFAULT_USER = {
-    id: null,
-    fullName: "Developer",
-    name: "Developer",
-    email: "developer@example.com",
-    role: "Developer",
-    accountCategory: "Developer",
-    avatar: null,
-};
-
-/* ============================================================
-   HELPER FUNCTIONS
-============================================================ */
-
-function getUserName(user) {
-    return (
-        user?.fullName ||
-        user?.name ||
-        user?.username ||
-        user?.displayName ||
-        "Developer"
-    );
-}
-
-function getUserEmail(user) {
-    return (
-        user?.email ||
-        user?.emailAddress ||
-        "No email available"
-    );
-}
-
-function getUserRole(user) {
-    return (
-        user?.role ||
-        user?.accountCategory ||
-        user?.userRole ||
-        "Developer"
-    );
-}
-
-function getInitials(name) {
-    if (!name) {
-        return "DV";
-    }
-
-    const parts = name
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean);
-
-    if (parts.length === 1) {
-        return parts[0]
-            .substring(0, 2)
-            .toUpperCase();
-    }
-
-    return (
-        parts[0].charAt(0) +
-        parts[parts.length - 1].charAt(0)
-    ).toUpperCase();
-}
-
-/* ============================================================
-   COMPONENT
-============================================================ */
-
-function DeveloperNavbar({
-    onMenuClick,
-    sidebarOpen = false,
-    onToggleSidebar,
-}) {
-    const navigate = useNavigate();
-
-    /* ========================================================
-       USER
-    ======================================================== */
-
-    const [user, setUser] = useState(
-        () => getStoredUser() || DEFAULT_USER
-    );
-
-    const [searchValue, setSearchValue] =
-        useState("");
-
-    const [notificationsOpen, setNotificationsOpen] =
-        useState(false);
-
-    const [profileOpen, setProfileOpen] =
-        useState(false);
-
-    const [mobileSearchOpen, setMobileSearchOpen] =
-        useState(false);
-
-    const [isDarkMode, setIsDarkMode] =
-        useState(() => {
-            try {
-                return (
-                    localStorage.getItem(
-                        "aipms_theme"
-                    ) === "dark"
-                );
-            } catch {
-                return false;
-            }
-        });
-
-    /* ========================================================
-       USER INFORMATION
-    ======================================================== */
-
-    const userName = useMemo(
-        () => getUserName(user),
-        [user]
-    );
-
-    const userEmail = useMemo(
-        () => getUserEmail(user),
-        [user]
-    );
-
-    const userRole = useMemo(
-        () => getUserRole(user),
-        [user]
-    );
-
-    const initials = useMemo(
-        () => getInitials(userName),
-        [userName]
-    );
-
-    /* ========================================================
-       NAVIGATION
-    ======================================================== */
-
-    const handleProfile = () => {
-        setProfileOpen(false);
-        navigate("/profile");
-    };
-
-    const handleSettings = () => {
-        setProfileOpen(false);
-        navigate("/settings");
-    };
-
-    const handleLogout = () => {
-        const keysToRemove = [
-            "user",
-            "token",
-            "refreshToken",
-            "aipms_user",
-            "currentUser",
-            "authUser",
-        ];
-
-        keysToRemove.forEach((key) => {
-            try {
-                localStorage.removeItem(key);
-            } catch (error) {
-                console.error(
-                    `Unable to remove ${key}:`,
-                    error
-                );
-            }
-        });
-
-        setUser(DEFAULT_USER);
-        setProfileOpen(false);
-
-        navigate("/login", {
-            replace: true,
-        });
-    };
-
-    /* ========================================================
-       SEARCH
-    ======================================================== */
+function DeveloperNavbar({ onToggleSidebar }) {
+    const [searchValue, setSearchValue] = useState("");
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
+    const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
     const handleSearchSubmit = (event) => {
         event.preventDefault();
@@ -250,49 +31,8 @@ function DeveloperNavbar({
             return;
         }
 
-        console.log(
-            "Developer search:",
-            query
-        );
+        console.log("Developer search:", query);
     };
-
-    /* ========================================================
-       DARK MODE
-    ======================================================== */
-
-    const handleThemeToggle = () => {
-        const nextTheme = !isDarkMode;
-
-        setIsDarkMode(nextTheme);
-
-        try {
-            localStorage.setItem(
-                "aipms_theme",
-                nextTheme
-                    ? "dark"
-                    : "light"
-            );
-        } catch (error) {
-            console.error(
-                "Unable to save theme:",
-                error
-            );
-        }
-
-        if (nextTheme) {
-            document.documentElement.classList.add(
-                "dark"
-            );
-        } else {
-            document.documentElement.classList.remove(
-                "dark"
-            );
-        }
-    };
-
-    /* ========================================================
-       NOTIFICATIONS
-    ======================================================== */
 
     const notifications = [
         {
@@ -321,151 +61,313 @@ function DeveloperNavbar({
         },
     ];
 
-    const unreadNotificationCount =
-        notifications.filter(
-            (notification) =>
-                notification.unread
-        ).length;
-
-    /* ========================================================
-       RENDER
-    ======================================================== */
+    const unreadNotificationCount = notifications.filter(
+        (notification) => notification.unread
+    ).length;
 
     return (
         <>
+            {/* =========================================================
+                DEVELOPER NAVBAR
+            ========================================================= */}
             <header
                 className="
                     sticky
                     top-0
                     z-40
+                    flex
+                    h-20
+                    items-center
+                    justify-between
                     border-b
-                    border-slate-200
-                    bg-white/95
-                    backdrop-blur
-                    dark:border-blue-900/70
-                    dark:bg-[#0b1f3a]/95
+                    border-border
+                    bg-background
+                    px-6
+                    text-foreground
+                    lg:px-8
                 "
             >
-                <div
-                    className="
-                        flex
-                        h-16
-                        items-center
-                        gap-3
-                        px-4
-                        md:px-6
-                    "
-                >
+                {/* =====================================================
+                    LEFT SIDE - MOBILE MENU + SEARCH
+                ===================================================== */}
+                <div className="relative flex w-full max-w-md items-center">
+                    <button
+                        type="button"
+                        onClick={onToggleSidebar}
+                        className="
+                            mr-4
+                            text-foreground
+                            md:hidden
+                        "
+                        aria-label="Open developer sidebar"
+                    >
+                        <Menu size={24} />
+                    </button>
 
-                    {/* ==================================================
-                        MOBILE SIDEBAR BUTTON
-                    ================================================== */}
+                    {/* Desktop Search */}
+                    <form
+                        onSubmit={handleSearchSubmit}
+                        className="relative w-full"
+                    >
+                        <Search
+                            className="
+                                pointer-events-none
+                                absolute
+                                left-3
+                                top-1/2
+                                h-4
+                                w-4
+                                -translate-y-1/2
+                                text-muted-foreground
+                            "
+                        />
 
+                        <Input
+                            type="text"
+                            value={searchValue}
+                            onChange={(event) =>
+                                setSearchValue(event.target.value)
+                            }
+                            placeholder="Search tasks, projects..."
+                            className="
+                                h-10
+                                w-full
+                                border-border
+                                bg-muted/50
+                                pl-10
+                                pr-4
+                                text-sm
+                                text-foreground
+                                placeholder:text-muted-foreground
+                                focus-visible:ring-2
+                                focus-visible:ring-primary
+                            "
+                        />
+                    </form>
+                </div>
+
+                {/* =====================================================
+                    RIGHT SIDE
+                ===================================================== */}
+                <div className="ml-4 flex items-center gap-2">
+
+                    {/* Mobile Search Button */}
                     <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        onClick={
-                            onMenuClick ||
-                            onToggleSidebar
+                        onClick={() =>
+                            setMobileSearchOpen(
+                                (current) => !current
+                            )
                         }
                         className="
-                            shrink-0
-                            text-slate-600
-                            hover:bg-slate-100
-                            hover:text-slate-900
-                            dark:text-slate-300
-                            dark:hover:bg-blue-950/60
-                            dark:hover:text-white
-                            lg:hidden
+                            text-foreground
+                            hover:bg-muted
+                            md:hidden
                         "
-                        aria-label={
-                            sidebarOpen
-                                ? "Close sidebar"
-                                : "Open sidebar"
-                        }
+                        aria-label="Search"
                     >
-                        {sidebarOpen ? (
-                            <X className="h-5 w-5" />
-                        ) : (
-                            <Menu className="h-5 w-5" />
-                        )}
+                        <Search className="h-5 w-5" />
                     </Button>
 
-                    {/* ==================================================
-                        BRAND
-                    ================================================== */}
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            navigate("/developer")
-                        }
-                        className="
-                            flex
-                            shrink-0
-                            items-center
-                            gap-2
-                        "
-                    >
-                        <div
+                    {/* =================================================
+                        NOTIFICATIONS
+                    ================================================= */}
+                    <div className="relative">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                                setNotificationsOpen(
+                                    (current) => !current
+                                )
+                            }
                             className="
-                                flex
-                                h-9
-                                w-9
-                                items-center
-                                justify-center
-                                rounded-lg
-                                bg-blue-600
-                                text-white
-                                shadow-sm
+                                relative
+                                h-10
+                                w-10
+                                rounded-full
+                                text-foreground
+                                transition-all
+                                duration-200
+                                hover:bg-muted
+                                hover:text-primary
                             "
+                            aria-label="Notifications"
                         >
-                            <Code2 className="h-5 w-5" />
-                        </div>
+                            <Bell className="h-5 w-5 text-muted-foreground" />
 
-                        <div className="hidden sm:block">
-                            <p
+                            {unreadNotificationCount > 0 && (
+                                <span
+                                    className="
+                                        absolute
+                                        right-2
+                                        top-2
+                                        h-2
+                                        w-2
+                                        rounded-full
+                                        bg-red-500
+                                        ring-2
+                                        ring-background
+                                    "
+                                />
+                            )}
+                        </Button>
+
+                        {/* Notification Dropdown */}
+                        {notificationsOpen && (
+                            <div
                                 className="
-                                    text-sm
-                                    font-bold
-                                    leading-tight
-                                    text-slate-900
-                                    dark:text-white
+                                    absolute
+                                    right-0
+                                    z-50
+                                    mt-2
+                                    w-[320px]
+                                    overflow-hidden
+                                    rounded-xl
+                                    border
+                                    border-border
+                                    bg-background
+                                    shadow-xl
                                 "
                             >
-                                AI-PMS
-                            </p>
+                                <div
+                                    className="
+                                        flex
+                                        items-center
+                                        justify-between
+                                        border-b
+                                        border-border
+                                        px-4
+                                        py-3
+                                    "
+                                >
+                                    <div>
+                                        <p className="text-sm font-semibold text-foreground">
+                                            Notifications
+                                        </p>
 
-                            <p
-                                className="
-                                    text-[10px]
-                                    font-medium
-                                    text-slate-500
-                                    dark:text-slate-400
-                                "
-                            >
-                                Developer Portal
-                            </p>
+                                        <p className="mt-0.5 text-xs text-muted-foreground">
+                                            Development and project updates
+                                        </p>
+                                    </div>
+
+                                    <span
+                                        className="
+                                            rounded-full
+                                            bg-primary/10
+                                            px-2
+                                            py-1
+                                            text-[10px]
+                                            font-semibold
+                                            text-primary
+                                        "
+                                    >
+                                        {unreadNotificationCount} new
+                                    </span>
+                                </div>
+
+                                <div className="max-h-[350px] overflow-y-auto">
+                                    {notifications.map(
+                                        (notification) => (
+                                            <button
+                                                type="button"
+                                                key={notification.id}
+                                                className="
+                                                    flex
+                                                    w-full
+                                                    gap-3
+                                                    border-b
+                                                    border-border
+                                                    px-4
+                                                    py-3
+                                                    text-left
+                                                    transition-colors
+                                                    hover:bg-muted
+                                                "
+                                            >
+                                                <div
+                                                    className={`
+                                                        mt-1
+                                                        h-2
+                                                        w-2
+                                                        shrink-0
+                                                        rounded-full
+                                                        ${
+                                                            notification.unread
+                                                                ? "bg-primary"
+                                                                : "bg-muted-foreground/30"
+                                                        }
+                                                    `}
+                                                />
+
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-semibold text-foreground">
+                                                        {notification.title}
+                                                    </p>
+
+                                                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                                        {notification.message}
+                                                    </p>
+
+                                                    <p className="mt-1 text-[10px] text-muted-foreground">
+                                                        {notification.time}
+                                                    </p>
+                                                </div>
+                                            </button>
+                                        )
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* =================================================
+                        THEME TOGGLE
+                    ================================================= */}
+                    <ThemeToggle />
+
+                    {/* =================================================
+                        DEVELOPER USER DISPLAY
+                        NO DROPDOWN
+                    ================================================= */}
+                    <div className="flex items-center gap-3 px-2">
+                        <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-primary font-semibold text-primary-foreground">
+                                NB
+                            </AvatarFallback>
+                        </Avatar>
+
+                        <div className="hidden flex-col items-start sm:flex">
+                            <span className="text-sm font-semibold text-foreground">
+                                Nati Beletu
+                            </span>
+
+                            <span className="text-xs text-muted-foreground">
+                                Developer
+                            </span>
                         </div>
-                    </button>
+                    </div>
+                </div>
+            </header>
 
-                    {/* ==================================================
-                        DESKTOP SEARCH
-                    ================================================== */}
-
-                    <form
-                        onSubmit={
-                            handleSearchSubmit
-                        }
-                        className="
-                            ml-4
-                            hidden
-                            max-w-md
-                            flex-1
-                            md:block
-                        "
-                    >
+            {/* =========================================================
+                MOBILE SEARCH
+            ========================================================= */}
+            {mobileSearchOpen && (
+                <div
+                    className="
+                        border-b
+                        border-border
+                        bg-background
+                        px-4
+                        py-3
+                        md:hidden
+                    "
+                >
+                    <form onSubmit={handleSearchSubmit}>
                         <div className="relative">
                             <Search
                                 className="
@@ -476,811 +378,49 @@ function DeveloperNavbar({
                                     h-4
                                     w-4
                                     -translate-y-1/2
-                                    text-slate-400
+                                    text-muted-foreground
                                 "
                             />
 
-                            <input
-                                type="search"
+                            <Input
+                                autoFocus
+                                type="text"
                                 value={searchValue}
                                 onChange={(event) =>
                                     setSearchValue(
                                         event.target.value
                                     )
                                 }
-                                placeholder="Search tasks, projects, code work..."
+                                placeholder="Search tasks, projects..."
                                 className="
                                     h-10
                                     w-full
-                                    rounded-lg
-                                    border
-                                    border-slate-200
-                                    bg-slate-50
-                                    pl-9
-                                    pr-3
+                                    border-border
+                                    bg-muted/50
+                                    pl-10
+                                    pr-4
                                     text-sm
-                                    text-slate-800
-                                    outline-none
-                                    transition
-                                    placeholder:text-slate-400
-                                    focus:border-blue-400
-                                    focus:ring-2
-                                    focus:ring-blue-100
-                                    dark:border-blue-900/70
-                                    dark:bg-[#132f52]
-                                    dark:text-white
-                                    dark:placeholder:text-slate-500
-                                    dark:focus:border-blue-600
-                                    dark:focus:ring-blue-950
+                                    text-foreground
+                                    placeholder:text-muted-foreground
+                                    focus-visible:ring-2
+                                    focus-visible:ring-primary
                                 "
                             />
                         </div>
                     </form>
-
-                    {/* ==================================================
-                        RIGHT SIDE
-                    ================================================== */}
-
-                    <div
-                        className="
-                            ml-auto
-                            flex
-                            items-center
-                            gap-1
-                        "
-                    >
-
-                        {/* MOBILE SEARCH */}
-
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                                setMobileSearchOpen(
-                                    (current) =>
-                                        !current
-                                )
-                            }
-                            className="
-                                text-slate-600
-                                hover:bg-slate-100
-                                dark:text-slate-300
-                                dark:hover:bg-blue-950/60
-                                md:hidden
-                            "
-                            aria-label="Search"
-                        >
-                            <Search className="h-5 w-5" />
-                        </Button>
-
-                        {/* THEME */}
-
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={
-                                handleThemeToggle
-                            }
-                            className="
-                                hidden
-                                text-slate-600
-                                hover:bg-slate-100
-                                dark:text-slate-300
-                                dark:hover:bg-blue-950/60
-                                sm:inline-flex
-                            "
-                            aria-label={
-                                isDarkMode
-                                    ? "Switch to light mode"
-                                    : "Switch to dark mode"
-                            }
-                        >
-                            {isDarkMode ? (
-                                <Sun className="h-5 w-5" />
-                            ) : (
-                                <Moon className="h-5 w-5" />
-                            )}
-                        </Button>
-
-                        {/* ==================================================
-                            NOTIFICATIONS
-                        ================================================== */}
-
-                        <div className="relative">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                    setNotificationsOpen(
-                                        (current) =>
-                                            !current
-                                    );
-
-                                    setProfileOpen(
-                                        false
-                                    );
-                                }}
-                                className="
-                                    relative
-                                    text-slate-600
-                                    hover:bg-slate-100
-                                    dark:text-slate-300
-                                    dark:hover:bg-blue-950/60
-                                "
-                                aria-label="Notifications"
-                            >
-                                <Bell className="h-5 w-5" />
-
-                                {unreadNotificationCount >
-                                    0 && (
-                                    <span
-                                        className="
-                                            absolute
-                                            right-1.5
-                                            top-1.5
-                                            flex
-                                            h-4
-                                            min-w-4
-                                            items-center
-                                            justify-center
-                                            rounded-full
-                                            bg-red-500
-                                            px-1
-                                            text-[9px]
-                                            font-bold
-                                            text-white
-                                            ring-2
-                                            ring-white
-                                            dark:ring-[#0b1f3a]
-                                        "
-                                    >
-                                        {
-                                            unreadNotificationCount
-                                        }
-                                    </span>
-                                )}
-                            </Button>
-
-                            {notificationsOpen && (
-                                <div
-                                    className="
-                                        absolute
-                                        right-0
-                                        mt-2
-                                        w-[320px]
-                                        overflow-hidden
-                                        rounded-xl
-                                        border
-                                        border-slate-200
-                                        bg-white
-                                        shadow-xl
-                                        dark:border-blue-900/70
-                                        dark:bg-[#0f2747]
-                                    "
-                                >
-                                    <div
-                                        className="
-                                            flex
-                                            items-center
-                                            justify-between
-                                            border-b
-                                            border-slate-200
-                                            px-4
-                                            py-3
-                                            dark:border-blue-900/70
-                                        "
-                                    >
-                                        <div>
-                                            <p
-                                                className="
-                                                    text-sm
-                                                    font-semibold
-                                                    text-slate-900
-                                                    dark:text-white
-                                                "
-                                            >
-                                                Notifications
-                                            </p>
-
-                                            <p
-                                                className="
-                                                    mt-0.5
-                                                    text-xs
-                                                    text-slate-500
-                                                    dark:text-slate-400
-                                                "
-                                            >
-                                                Development and
-                                                project updates
-                                            </p>
-                                        </div>
-
-                                        <span
-                                            className="
-                                                rounded-full
-                                                bg-blue-100
-                                                px-2
-                                                py-1
-                                                text-[10px]
-                                                font-semibold
-                                                text-blue-700
-                                                dark:bg-blue-950/50
-                                                dark:text-blue-300
-                                            "
-                                        >
-                                            {
-                                                unreadNotificationCount
-                                            }{" "}
-                                            new
-                                        </span>
-                                    </div>
-
-                                    <div className="max-h-[350px] overflow-y-auto">
-                                        {notifications.map(
-                                            (
-                                                notification
-                                            ) => (
-                                                <button
-                                                    type="button"
-                                                    key={
-                                                        notification.id
-                                                    }
-                                                    className="
-                                                        flex
-                                                        w-full
-                                                        gap-3
-                                                        border-b
-                                                        border-slate-100
-                                                        px-4
-                                                        py-3
-                                                        text-left
-                                                        hover:bg-slate-50
-                                                        dark:border-blue-900/40
-                                                        dark:hover:bg-blue-950/30
-                                                    "
-                                                >
-                                                    <div
-                                                        className={`
-                                                            mt-1
-                                                            h-2
-                                                            w-2
-                                                            shrink-0
-                                                            rounded-full
-                                                            ${
-                                                                notification.unread
-                                                                    ? "bg-blue-500"
-                                                                    : "bg-slate-300 dark:bg-slate-600"
-                                                            }
-                                                        `}
-                                                    />
-
-                                                    <div className="min-w-0">
-                                                        <p
-                                                            className="
-                                                                text-xs
-                                                                font-semibold
-                                                                text-slate-800
-                                                                dark:text-white
-                                                            "
-                                                        >
-                                                            {
-                                                                notification.title
-                                                            }
-                                                        </p>
-
-                                                        <p
-                                                            className="
-                                                                mt-1
-                                                                text-xs
-                                                                leading-5
-                                                                text-slate-500
-                                                                dark:text-slate-400
-                                                            "
-                                                        >
-                                                            {
-                                                                notification.message
-                                                            }
-                                                        </p>
-
-                                                        <p
-                                                            className="
-                                                                mt-1
-                                                                text-[10px]
-                                                                text-slate-400
-                                                            "
-                                                        >
-                                                            {
-                                                                notification.time
-                                                            }
-                                                        </p>
-                                                    </div>
-                                                </button>
-                                            )
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* ==================================================
-                            PROFILE
-                        ================================================== */}
-
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setProfileOpen(
-                                        (current) =>
-                                            !current
-                                    );
-
-                                    setNotificationsOpen(
-                                        false
-                                    );
-                                }}
-                                className="
-                                    flex
-                                    items-center
-                                    gap-2
-                                    rounded-lg
-                                    p-1.5
-                                    transition
-                                    hover:bg-slate-100
-                                    dark:hover:bg-blue-950/60
-                                "
-                                aria-label="Open user menu"
-                            >
-                                {user?.avatar ? (
-                                    <img
-                                        src={
-                                            user.avatar
-                                        }
-                                        alt={userName}
-                                        className="
-                                            h-9
-                                            w-9
-                                            rounded-full
-                                            object-cover
-                                        "
-                                    />
-                                ) : (
-                                    <div
-                                        className="
-                                            flex
-                                            h-9
-                                            w-9
-                                            items-center
-                                            justify-center
-                                            rounded-full
-                                            bg-blue-600
-                                            text-xs
-                                            font-bold
-                                            text-white
-                                        "
-                                    >
-                                        {initials}
-                                    </div>
-                                )}
-
-                                <div className="hidden text-left lg:block">
-                                    <p
-                                        className="
-                                            max-w-[130px]
-                                            truncate
-                                            text-xs
-                                            font-semibold
-                                            text-slate-800
-                                            dark:text-white
-                                        "
-                                    >
-                                        {userName}
-                                    </p>
-
-                                    <p
-                                        className="
-                                            max-w-[130px]
-                                            truncate
-                                            text-[10px]
-                                            text-slate-500
-                                            dark:text-slate-400
-                                        "
-                                    >
-                                        Developer
-                                    </p>
-                                </div>
-
-                                <ChevronDown
-                                    className="
-                                        hidden
-                                        h-4
-                                        w-4
-                                        text-slate-400
-                                        lg:block
-                                    "
-                                />
-                            </button>
-
-                            {profileOpen && (
-                                <div
-                                    className="
-                                        absolute
-                                        right-0
-                                        mt-2
-                                        w-72
-                                        overflow-hidden
-                                        rounded-xl
-                                        border
-                                        border-slate-200
-                                        bg-white
-                                        shadow-xl
-                                        dark:border-blue-900/70
-                                        dark:bg-[#0f2747]
-                                    "
-                                >
-
-                                    {/* USER HEADER */}
-
-                                    <div
-                                        className="
-                                            border-b
-                                            border-slate-200
-                                            bg-slate-50
-                                            px-4
-                                            py-4
-                                            dark:border-blue-900/70
-                                            dark:bg-[#132f52]
-                                        "
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {user?.avatar ? (
-                                                <img
-                                                    src={
-                                                        user.avatar
-                                                    }
-                                                    alt={
-                                                        userName
-                                                    }
-                                                    className="
-                                                        h-11
-                                                        w-11
-                                                        rounded-full
-                                                        object-cover
-                                                    "
-                                                />
-                                            ) : (
-                                                <div
-                                                    className="
-                                                        flex
-                                                        h-11
-                                                        w-11
-                                                        items-center
-                                                        justify-center
-                                                        rounded-full
-                                                        bg-blue-600
-                                                        text-sm
-                                                        font-bold
-                                                        text-white
-                                                    "
-                                                >
-                                                    {
-                                                        initials
-                                                    }
-                                                </div>
-                                            )}
-
-                                            <div className="min-w-0">
-                                                <p
-                                                    className="
-                                                        truncate
-                                                        text-sm
-                                                        font-semibold
-                                                        text-slate-900
-                                                        dark:text-white
-                                                    "
-                                                >
-                                                    {
-                                                        userName
-                                                    }
-                                                </p>
-
-                                                <p
-                                                    className="
-                                                        mt-0.5
-                                                        truncate
-                                                        text-xs
-                                                        text-slate-500
-                                                        dark:text-slate-400
-                                                    "
-                                                >
-                                                    {
-                                                        userEmail
-                                                    }
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div
-                                            className="
-                                                mt-3
-                                                flex
-                                                flex-wrap
-                                                gap-2
-                                            "
-                                        >
-                                            <span
-                                                className="
-                                                    rounded-full
-                                                    bg-blue-100
-                                                    px-2.5
-                                                    py-1
-                                                    text-[10px]
-                                                    font-semibold
-                                                    text-blue-700
-                                                    dark:bg-blue-950/50
-                                                    dark:text-blue-300
-                                                "
-                                            >
-                                                {
-                                                    userRole
-                                                }
-                                            </span>
-
-                                            <span
-                                                className="
-                                                    rounded-full
-                                                    bg-slate-100
-                                                    px-2.5
-                                                    py-1
-                                                    text-[10px]
-                                                    font-medium
-                                                    text-slate-600
-                                                    dark:bg-slate-800
-                                                    dark:text-slate-300
-                                                "
-                                            >
-                                                Developer
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* MENU */}
-
-                                    <div className="p-2">
-
-                                        {/* PROFILE */}
-
-                                        <button
-                                            type="button"
-                                            onClick={
-                                                handleProfile
-                                            }
-                                            className="
-                                                flex
-                                                w-full
-                                                items-center
-                                                gap-3
-                                                rounded-lg
-                                                px-3
-                                                py-2.5
-                                                text-left
-                                                text-sm
-                                                text-slate-700
-                                                hover:bg-slate-100
-                                                dark:text-slate-200
-                                                dark:hover:bg-blue-950/50
-                                            "
-                                        >
-                                            <UserRound className="h-4 w-4" />
-
-                                            <span>
-                                                My Profile
-                                            </span>
-                                        </button>
-
-                                        {/* SETTINGS */}
-
-                                        <button
-                                            type="button"
-                                            onClick={
-                                                handleSettings
-                                            }
-                                            className="
-                                                flex
-                                                w-full
-                                                items-center
-                                                gap-3
-                                                rounded-lg
-                                                px-3
-                                                py-2.5
-                                                text-left
-                                                text-sm
-                                                text-slate-700
-                                                hover:bg-slate-100
-                                                dark:text-slate-200
-                                                dark:hover:bg-blue-950/50
-                                            "
-                                        >
-                                            <Settings className="h-4 w-4" />
-
-                                            <span>
-                                                Settings
-                                            </span>
-                                        </button>
-
-                                        {/* MOBILE THEME */}
-
-                                        <button
-                                            type="button"
-                                            onClick={
-                                                handleThemeToggle
-                                            }
-                                            className="
-                                                flex
-                                                w-full
-                                                items-center
-                                                gap-3
-                                                rounded-lg
-                                                px-3
-                                                py-2.5
-                                                text-left
-                                                text-sm
-                                                text-slate-700
-                                                hover:bg-slate-100
-                                                dark:text-slate-200
-                                                dark:hover:bg-blue-950/50
-                                                sm:hidden
-                                            "
-                                        >
-                                            {isDarkMode ? (
-                                                <Sun className="h-4 w-4" />
-                                            ) : (
-                                                <Moon className="h-4 w-4" />
-                                            )}
-
-                                            <span>
-                                                {isDarkMode
-                                                    ? "Light Mode"
-                                                    : "Dark Mode"}
-                                            </span>
-                                        </button>
-
-                                        <div
-                                            className="
-                                                my-2
-                                                border-t
-                                                border-slate-200
-                                                dark:border-blue-900/70
-                                            "
-                                        />
-
-                                        {/* LOGOUT */}
-
-                                        <button
-                                            type="button"
-                                            onClick={
-                                                handleLogout
-                                            }
-                                            className="
-                                                flex
-                                                w-full
-                                                items-center
-                                                gap-3
-                                                rounded-lg
-                                                px-3
-                                                py-2.5
-                                                text-left
-                                                text-sm
-                                                font-medium
-                                                text-red-600
-                                                hover:bg-red-50
-                                                dark:text-red-400
-                                                dark:hover:bg-red-950/30
-                                            "
-                                        >
-                                            <LogOut className="h-4 w-4" />
-
-                                            <span>
-                                                Sign Out
-                                            </span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
                 </div>
+            )}
 
-                {/* ========================================================
-                    MOBILE SEARCH
-                ======================================================== */}
-
-                {mobileSearchOpen && (
-                    <div
-                        className="
-                            border-t
-                            border-slate-200
-                            px-4
-                            py-3
-                            md:hidden
-                            dark:border-blue-900/70
-                        "
-                    >
-                        <form
-                            onSubmit={
-                                handleSearchSubmit
-                            }
-                        >
-                            <div className="relative">
-                                <Search
-                                    className="
-                                        pointer-events-none
-                                        absolute
-                                        left-3
-                                        top-1/2
-                                        h-4
-                                        w-4
-                                        -translate-y-1/2
-                                        text-slate-400
-                                    "
-                                />
-
-                                <input
-                                    autoFocus
-                                    type="search"
-                                    value={
-                                        searchValue
-                                    }
-                                    onChange={(event) =>
-                                        setSearchValue(
-                                            event.target.value
-                                        )
-                                    }
-                                    placeholder="Search..."
-                                    className="
-                                        h-10
-                                        w-full
-                                        rounded-lg
-                                        border
-                                        border-slate-200
-                                        bg-slate-50
-                                        pl-9
-                                        pr-3
-                                        text-sm
-                                        outline-none
-                                        focus:border-blue-400
-                                        focus:ring-2
-                                        focus:ring-blue-100
-                                        dark:border-blue-900/70
-                                        dark:bg-[#132f52]
-                                        dark:text-white
-                                    "
-                                />
-                            </div>
-                        </form>
-                    </div>
-                )}
-            </header>
-
-            {/* ========================================================
-               BACKDROP FOR DROPDOWN MENUS
-            ======================================================== */}
-
-            {(notificationsOpen ||
-                profileOpen) && (
+            {/* =========================================================
+                NOTIFICATION BACKDROP
+            ========================================================= */}
+            {notificationsOpen && (
                 <button
                     type="button"
-                    aria-label="Close menu"
-                    onClick={() => {
-                        setNotificationsOpen(
-                            false
-                        );
-
-                        setProfileOpen(false);
-                    }}
+                    aria-label="Close notifications"
+                    onClick={() =>
+                        setNotificationsOpen(false)
+                    }
                     className="
                         fixed
                         inset-0
@@ -1295,3 +435,5 @@ function DeveloperNavbar({
 }
 
 export default DeveloperNavbar;
+
+

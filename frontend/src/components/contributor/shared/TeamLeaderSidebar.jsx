@@ -1,131 +1,84 @@
 ﻿
-import { NavLink } from "react-router-dom";
-
 import {
-    BarChart3,
-    CalendarRange,
-    ClipboardList,
     LayoutDashboard,
-    MessageSquare,
-    Settings,
+    ClipboardList,
     UserRound,
     BriefcaseBusiness,
+    CalendarRange,
+    MessageSquare,
+    BarChart3,
+    Settings,
+    HelpCircle,
+    LogOut,
+    X,
 } from "lucide-react";
+
+import { NavLink, useNavigate } from "react-router-dom";
 
 // ============================================================
 // TEAM LEADER SIDEBAR
 // ============================================================
 //
-// Main navigation:
-//
-// 1. Dashboard
-// 2. Task Management
-// 3. Profile Management
-// 4. Project Participation
-// 5. Sprint Participation
-// 6. Communication
-// 7. Reports
-// 8. Settings & Preferences
+// UI is synchronized with AdminSidebar.
 //
 // IMPORTANT:
-// - No dropdown menus
+// - Navigation contents are NOT changed
+// - Paths are NOT changed
+// - No dropdown navigation
 // - No nested navigation
-// - Each item is a direct parent module
-// - Keep paths synchronized with AppRoutes.jsx
+// - Responsive mobile sidebar
+// - Same visual structure as AdminSidebar
 //
 // ============================================================
+
 function TeamLeaderSidebar({
     isOpen = false,
     onClose,
 }) {
+    const navigate = useNavigate();
+
     // ========================================================
     // MAIN NAVIGATION
     // ========================================================
 
-    const navigation = [
+    const menuItems = [
         {
-            label: "Dashboard",
-            path: "/team-leader/dashboard",
+            name: "Dashboard",
             icon: LayoutDashboard,
+            path: "/team-leader/dashboard",
             end: true,
         },
-
         {
-            label: "Task Management",
-            path: "/team-leader/task-management",
+            name: "Task Management",
             icon: ClipboardList,
+            path: "/team-leader/task-management",
         },
-
         {
-            label: "Profile Management",
-            path: "/team-leader/profile-management",
+            name: "Profile Management",
             icon: UserRound,
+            path: "/team-leader/profile-management",
         },
-
         {
-            label: "Project Participation",
-            path: "/team-leader/project-participation",
+            name: "Project Participation",
             icon: BriefcaseBusiness,
+            path: "/team-leader/project-participation",
         },
-
         {
-            label: "Sprint Participation",
-            path: "/team-leader/sprint-participation",
+            name: "Sprint Participation",
             icon: CalendarRange,
+            path: "/team-leader/sprint-participation",
         },
-
         {
-            label: "Communication",
-            path: "/team-leader/communication",
+            name: "Communication",
             icon: MessageSquare,
+            path: "/team-leader/communication",
         },
-
         {
-            label: "Reports",
-            path: "/team-leader/reports",
+            name: "Reports",
             icon: BarChart3,
-        },
-
-        {
-            label: "Settings & Preferences",
-            path: "/team-leader/settings",
-            icon: Settings,
+            path: "/team-leader/reports",
         },
     ];
-
-    // ========================================================
-    // NAVIGATION ITEM CLASS
-    // ========================================================
-
-    const navItemClass = ({ isActive }) =>
-        `
-        group
-        flex
-        w-full
-        items-center
-        gap-3
-        rounded-xl
-        px-3
-        py-3
-        text-sm
-        font-medium
-        transition-all
-        duration-200
-
-        ${
-            isActive
-                ? `
-                    bg-blue-600
-                    text-white
-                    shadow-sm
-                  `
-                : `
-                    text-slate-300
-                    hover:bg-blue-950/70
-                    hover:text-white
-                  `
-        }
-        `;
 
     // ========================================================
     // RENDER
@@ -134,21 +87,19 @@ function TeamLeaderSidebar({
     return (
         <>
             {/* ==================================================
-                MOBILE BACKDROP
+                MOBILE OVERLAY
             ================================================== */}
 
             {isOpen && (
-                <button
-                    type="button"
-                    aria-label="Close sidebar"
-                    onClick={onClose}
+                <div
                     className="
                         fixed
                         inset-0
                         z-40
-                        bg-black/40
-                        lg:hidden
+                        bg-black/50
+                        md:hidden
                     "
+                    onClick={onClose}
                 />
             )}
 
@@ -163,19 +114,20 @@ function TeamLeaderSidebar({
                     left-0
                     z-50
                     flex
+                    h-screen
                     min-h-screen
-                    w-72
+                    w-64
                     shrink-0
                     flex-col
-                    border-r
-                    border-blue-900/70
-                    bg-[#081b33]
-                    text-white
+                    bg-sidebar
+                    text-sidebar-foreground
                     shadow-xl
                     transition-transform
                     duration-300
+                    ease-in-out
 
-                    lg:z-50 lg:translate-x-0
+                    md:relative
+                    md:translate-x-0
 
                     ${
                         isOpen
@@ -185,67 +137,41 @@ function TeamLeaderSidebar({
                 `}
             >
                 {/* ==================================================
-                    HEADER
+                    LOGO / BRAND
                 ================================================== */}
 
                 <div
                     className="
                         flex
-                        h-16
-                        shrink-0
                         items-center
                         justify-between
                         border-b
-                        border-blue-900/70
+                        border-sidebar-border
                         px-5
+                        py-6
                     "
                 >
-                    <div className="flex items-center gap-3">
-
-                        {/* LOGO */}
-
-                        <div
+                    <div className="min-w-0">
+                        <h1
                             className="
-                                flex
-                                h-9
-                                w-9
-                                shrink-0
-                                items-center
-                                justify-center
-                                rounded-xl
-                                bg-blue-600
-                                text-white
-                                shadow-sm
+                                truncate
+                                text-xl
+                                font-bold
+                                text-sidebar-foreground
                             "
                         >
-                            <UserRound className="h-5 w-5" />
-                        </div>
+                            Africom AI-PMS
+                        </h1>
 
-                        {/* TITLE */}
-
-                        <div className="min-w-0">
-                            <p
-                                className="
-                                    text-sm
-                                    font-bold
-                                    leading-tight
-                                    text-white
-                                "
-                            >
-                                AI-PMS
-                            </p>
-
-                            <p
-                                className="
-                                    mt-0.5
-                                    text-[10px]
-                                    font-medium
-                                    text-slate-400
-                                "
-                            >
-                                Team Leader Portal
-                            </p>
-                        </div>
+                        <p
+                            className="
+                                mt-1
+                                text-sm
+                                text-sidebar-foreground/60
+                            "
+                        >
+                            Team Leader Panel
+                        </p>
                     </div>
 
                     {/* MOBILE CLOSE */}
@@ -256,32 +182,15 @@ function TeamLeaderSidebar({
                         aria-label="Close sidebar"
                         className="
                             rounded-lg
-                            p-2
-                            text-slate-400
-                            transition
-                            hover:bg-blue-950/70
-                            hover:text-white
-                            lg:hidden
+                            p-1
+                            text-sidebar-foreground/60
+                            transition-colors
+                            hover:bg-sidebar-accent
+                            hover:text-sidebar-accent-foreground
+                            md:hidden
                         "
                     >
-                        <span className="sr-only">
-                            Close sidebar
-                        </span>
-
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            className="h-5 w-5"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
+                        <X size={24} />
                     </button>
                 </div>
 
@@ -291,130 +200,256 @@ function TeamLeaderSidebar({
 
                 <nav
                     className="
-                        min-h-0
                         flex-1
+                        space-y-2
                         overflow-y-auto
-                        px-3
-                        py-5
+                        px-4
+                        py-6
                     "
                 >
-                    {/* SECTION TITLE */}
+                    {menuItems.map((item) => {
+                        const Icon = item.icon;
 
-                    <div className="mb-4 px-3">
-                        <p
-                            className="
-                                text-[10px]
-                                font-bold
-                                uppercase
-                                tracking-[0.16em]
-                                text-slate-500
-                            "
-                        >
-                            Team Leader
-                        </p>
-                    </div>
+                        return (
+                            <NavLink
+                                key={item.name}
+                                to={item.path}
+                                end={item.end}
+                                onClick={onClose}
+                                className={({ isActive }) =>
+                                    `
+                                    group
+                                    flex
+                                    items-center
+                                    gap-3
+                                    rounded-lg
+                                    px-4
+                                    py-3
+                                    transition-all
+                                    duration-200
 
-                    {/* MAIN NAVIGATION */}
+                                    ${
+                                        isActive
+                                            ? `
+                                                bg-sidebar-primary
+                                                text-sidebar-primary-foreground
+                                                shadow-md
+                                                shadow-black/10
+                                            `
+                                            : `
+                                                text-sidebar-foreground/75
+                                                hover:bg-sidebar-accent
+                                                hover:text-sidebar-accent-foreground
+                                                hover:translate-x-1
+                                            `
+                                    }
+                                    `
+                                }
+                            >
+                                <Icon
+                                    size={20}
+                                    className="
+                                        shrink-0
+                                        transition-transform
+                                        duration-200
+                                        group-hover:scale-110
+                                    "
+                                />
 
-                    <div className="space-y-2">
-                        {navigation.map((item) => {
-                            const Icon = item.icon;
-
-                            return (
-                                <NavLink
-                                    key={item.path}
-                                    to={item.path}
-                                    end={item.end}
-                                    onClick={onClose}
-                                    className={navItemClass}
+                                <span
+                                    className="
+                                        truncate
+                                        text-sm
+                                        font-medium
+                                    "
                                 >
-                                    <Icon
-                                        className="
-                                            h-5
-                                            w-5
-                                            shrink-0
-                                        "
-                                    />
-
-                                    <span className="truncate">
-                                        {item.label}
-                                    </span>
-                                </NavLink>
-                            );
-                        })}
-                    </div>
+                                    {item.name}
+                                </span>
+                            </NavLink>
+                        );
+                    })}
                 </nav>
 
                 {/* ==================================================
-                    FOOTER
+                    BOTTOM TEAM LEADER SECTION
                 ================================================== */}
 
                 <div
                     className="
-                        shrink-0
                         border-t
-                        border-blue-900/70
-                        px-4
-                        py-4
+                        border-sidebar-border
+                        bg-sidebar
+                        p-4
                     "
                 >
-                    <div
-                        className="
-                            rounded-xl
-                            border
-                            border-blue-900/60
-                            bg-blue-950/40
-                            px-3
-                            py-3
-                        "
-                    >
-                        <div className="flex items-center gap-3">
+                    {/* USER INFORMATION */}
 
-                            {/* AVATAR */}
+                    <div className="mb-4 flex items-center gap-3">
+                        <div
+                            className="
+                                flex
+                                h-10
+                                w-10
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-full
+                                bg-sidebar-primary
+                                font-bold
+                                text-sidebar-primary-foreground
+                                shadow-md
+                            "
+                        >
+                            TL
+                        </div>
 
-                            <div
+                        <div className="min-w-0">
+                            <h3
                                 className="
-                                    flex
-                                    h-9
-                                    w-9
-                                    shrink-0
-                                    items-center
-                                    justify-center
-                                    rounded-full
-                                    bg-blue-600
-                                    text-white
+                                    truncate
+                                    text-sm
+                                    font-semibold
+                                    text-sidebar-foreground
                                 "
                             >
-                                <UserRound className="h-4 w-4" />
-                            </div>
+                                Team Leader
+                            </h3>
 
-                            {/* USER INFO */}
-
-                            <div className="min-w-0">
-                                <p
-                                    className="
-                                        truncate
-                                        text-xs
-                                        font-semibold
-                                        text-white
-                                    "
-                                >
-                                    Team Leader
-                                </p>
-
-                                <p
-                                    className="
-                                        mt-0.5
-                                        truncate
-                                        text-[10px]
-                                        text-slate-400
-                                    "
-                                >
-                                    Team Leader Workspace
-                                </p>
-                            </div>
+                            <p
+                                className="
+                                    truncate
+                                    text-xs
+                                    text-sidebar-foreground/60
+                                "
+                            >
+                                Team Leader Workspace
+                            </p>
                         </div>
                     </div>
+
+                    {/* SETTINGS */}
+
+                    <NavLink
+                        to="/team-leader/settings"
+                        onClick={onClose}
+                        className={({ isActive }) =>
+                            `
+                            group
+                            mb-1
+                            flex
+                            items-center
+                            gap-3
+                            rounded-lg
+                            px-4
+                            py-3
+                            transition-all
+                            duration-200
+
+                            ${
+                                isActive
+                                    ? `
+                                        bg-sidebar-primary
+                                        text-sidebar-primary-foreground
+                                        shadow-md
+                                        shadow-black/10
+                                    `
+                                    : `
+                                        text-sidebar-foreground/75
+                                        hover:bg-sidebar-accent
+                                        hover:text-sidebar-accent-foreground
+                                        hover:translate-x-1
+                                    `
+                            }
+                            `
+                        }
+                    >
+                        <Settings
+                            size={20}
+                            className="
+                                transition-transform
+                                duration-200
+                                group-hover:scale-110
+                            "
+                        />
+
+                        <span className="text-sm font-medium">
+                            Settings
+                        </span>
+                    </NavLink>
+
+                    {/* HELP */}
+
+                    <NavLink
+                        to="/team-leader/help"
+                        onClick={onClose}
+                        className="
+                            group
+                            mb-1
+                            flex
+                            items-center
+                            gap-3
+                            rounded-lg
+                            px-4
+                            py-3
+                            text-sidebar-foreground/75
+                            transition-all
+                            duration-200
+                            hover:translate-x-1
+                            hover:bg-sidebar-accent
+                            hover:text-sidebar-accent-foreground
+                        "
+                    >
+                        <HelpCircle
+                            size={20}
+                            className="
+                                transition-transform
+                                duration-200
+                                group-hover:scale-110
+                            "
+                        />
+
+                        <span className="text-sm font-medium">
+                            Help
+                        </span>
+                    </NavLink>
+
+                    {/* LOGOUT */}
+
+                    <button
+                        type="button"
+                        onClick={() =>
+                            navigate("/logout")
+                        }
+                        className="
+                            group
+                            flex
+                            w-full
+                            items-center
+                            gap-3
+                            rounded-lg
+                            px-4
+                            py-3
+                            text-red-400
+                            transition-all
+                            duration-200
+                            hover:translate-x-1
+                            hover:bg-red-500/10
+                            hover:text-red-300
+                        "
+                    >
+                        <LogOut
+                            size={20}
+                            className="
+                                transition-transform
+                                duration-200
+                                group-hover:scale-110
+                            "
+                        />
+
+                        <span className="text-sm font-medium">
+                            Logout
+                        </span>
+                    </button>
                 </div>
             </aside>
         </>
@@ -422,4 +457,3 @@ function TeamLeaderSidebar({
 }
 
 export default TeamLeaderSidebar;
-

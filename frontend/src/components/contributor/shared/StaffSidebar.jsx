@@ -1,3 +1,4 @@
+
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -18,6 +19,14 @@ import { Button } from "@/components/ui/button";
 // ============================================================
 // STAFF SIDEBAR
 // Navigation only
+//
+// IMPORTANT:
+// - Component name unchanged
+// - Props unchanged
+// - Staff routes unchanged
+// - Staff navigation items unchanged
+// - Logout functionality unchanged
+// - Only the visual design has been aligned with AdminSidebar
 // ============================================================
 
 function StaffSidebar({
@@ -139,21 +148,13 @@ function StaffSidebar({
     return (
         <>
             {/* ==================================================
-                MOBILE BACKDROP
+                MOBILE OVERLAY
             ================================================== */}
 
             {sidebarOpen && (
-                <button
-                    type="button"
-                    aria-label="Close sidebar"
+                <div
+                    className="fixed inset-0 z-40 bg-black/50 lg:hidden"
                     onClick={onClose}
-                    className="
-                        fixed
-                        inset-0
-                        z-40
-                        bg-black/40
-                        lg:hidden
-                    "
                 />
             )}
 
@@ -164,50 +165,37 @@ function StaffSidebar({
             <aside
                 className={`
                     fixed
+                    inset-y-0
                     left-0
-                    top-0
                     z-50
                     flex
                     h-screen
+                    min-h-screen
                     w-64
+                    shrink-0
                     flex-col
-                    border-r
-                    border-slate-200
-                    bg-white
+                    bg-sidebar
+                    text-sidebar-foreground
                     shadow-xl
                     transition-transform
                     duration-300
-                    dark:border-blue-900/70
-                    dark:bg-[#081b33]
+                    ease-in-out
+
+                    lg:relative
+                    lg:translate-x-0
 
                     ${
                         sidebarOpen
                             ? "translate-x-0"
                             : "-translate-x-full"
                     }
-
-                    lg:translate-x-0
                 `}
             >
                 {/* ==================================================
-                    SIDEBAR HEADER
+                    LOGO / BRAND
                 ================================================== */}
 
-                <div
-                    className="
-                        flex
-                        h-14
-                        shrink-0
-                        items-center
-                        justify-between
-                        border-b
-                        border-slate-200
-                        px-3
-                        dark:border-blue-900/70
-                    "
-                >
-                    {/* BRAND */}
-
+                <div className="flex items-center justify-between border-b border-sidebar-border px-5 py-6">
                     <button
                         type="button"
                         onClick={() =>
@@ -215,55 +203,23 @@ function StaffSidebar({
                                 "/staff/dashboard"
                             )
                         }
-                        className="
-                            flex
-                            items-center
-                            gap-2.5
-                        "
+                        className="flex items-center gap-3"
                     >
                         {/* LOGO */}
 
-                        <div
-                            className="
-                                flex
-                                h-8
-                                w-8
-                                shrink-0
-                                items-center
-                                justify-center
-                                rounded-lg
-                                bg-blue-600
-                                text-white
-                                shadow-sm
-                            "
-                        >
-                            <ShieldCheck className="h-4 w-4" />
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-md">
+                            <ShieldCheck className="h-5 w-5" />
                         </div>
 
-                        {/* BRAND TEXT */}
+                        {/* BRAND */}
 
                         <div className="text-left">
-                            <p
-                                className="
-                                    text-xs
-                                    font-bold
-                                    leading-tight
-                                    text-slate-900
-                                    dark:text-white
-                                "
-                            >
-                                AI-PMS
-                            </p>
+                            <h1 className="text-xl font-bold text-sidebar-foreground">
+                                Africom AI-PMS
+                            </h1>
 
-                            <p
-                                className="
-                                    text-[9px]
-                                    font-medium
-                                    text-slate-500
-                                    dark:text-slate-400
-                                "
-                            >
-                                Staff Portal
+                            <p className="mt-1 text-sm text-sidebar-foreground/60">
+                                Staff Panel
                             </p>
                         </div>
                     </button>
@@ -276,17 +232,16 @@ function StaffSidebar({
                         size="icon"
                         onClick={onClose}
                         className="
-                            h-8
-                            w-8
-                            text-slate-500
-                            hover:bg-slate-100
-                            dark:text-slate-300
-                            dark:hover:bg-blue-950/60
-                            lg:hidden
+                            h-9
+                            w-9
+                            text-sidebar-foreground/60
+                            hover:bg-sidebar-accent
+                            hover:text-sidebar-accent-foreground
+                            md:hidden
                         "
                         aria-label="Close sidebar"
                     >
-                        <X className="h-4 w-4" />
+                        <X className="h-5 w-5" />
                     </Button>
                 </div>
 
@@ -294,163 +249,142 @@ function StaffSidebar({
                     MAIN NAVIGATION
                 ================================================== */}
 
-                <nav
-                    className="
-                        flex-1
-                        overflow-y-auto
-                        px-2
-                        py-3
-                    "
-                >
-                    {/* ==================================================
-                        NAVIGATION LIST
-                    ================================================== */}
+                <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-6">
+                    {navigationItems.map((item) => {
+                        const Icon = item.icon;
+                        const active = isActive(item.path);
 
-                    <div className="space-y-0.5">
-                        {navigationItems.map((item) => {
-                            const Icon = item.icon;
-                            const active = isActive(item.path);
+                        return (
+                            <button
+                                type="button"
+                                key={item.path}
+                                onClick={() =>
+                                    handleNavigation(
+                                        item.path
+                                    )
+                                }
+                                className={`
+                                    group
+                                    flex
+                                    w-full
+                                    items-center
+                                    gap-3
+                                    rounded-lg
+                                    px-4
+                                    py-3
+                                    text-left
+                                    transition-all
+                                    duration-200
 
-                            return (
-                                <button
-                                    type="button"
-                                    key={item.path}
-                                    onClick={() =>
-                                        handleNavigation(
-                                            item.path
-                                        )
+                                    ${
+                                        active
+                                            ? `
+                                                bg-sidebar-primary
+                                                text-sidebar-primary-foreground
+                                                shadow-md
+                                                shadow-black/10
+                                              `
+                                            : `
+                                                text-sidebar-foreground/75
+                                                hover:bg-sidebar-accent
+                                                hover:text-sidebar-accent-foreground
+                                                hover:translate-x-1
+                                              `
                                     }
+                                `}
+                            >
+                                <Icon
+                                    size={20}
                                     className={`
-                                        group
-                                        flex
-                                        w-full
-                                        items-center
-                                        gap-2.5
-                                        rounded-lg
-                                        px-2.5
-                                        py-2.5
-                                        text-left
-                                        text-xs
-                                        transition
-
-                                        ${
-                                            active
-                                                ? `
-                                                    bg-blue-600
-                                                    font-semibold
-                                                    text-white
-                                                    shadow-sm
-                                                  `
-                                                : `
-                                                    text-slate-700
-                                                    hover:bg-slate-100
-                                                    hover:text-blue-700
-                                                    dark:text-slate-300
-                                                    dark:hover:bg-blue-950/50
-                                                    dark:hover:text-white
-                                                  `
-                                        }
+                                        shrink-0
+                                        transition-transform
+                                        duration-200
+                                        group-hover:scale-110
                                     `}
-                                >
-                                    <Icon
-                                        className={`
-                                            h-4
-                                            w-4
-                                            shrink-0
+                                />
 
-                                            ${
-                                                active
-                                                    ? "text-white"
-                                                    : "text-slate-400 group-hover:text-blue-600 dark:text-slate-500 dark:group-hover:text-blue-400"
-                                            }
-                                        `}
-                                    />
-
-                                    <span className="truncate">
-                                        {item.label}
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                                <span className="text-sm font-medium">
+                                    {item.label}
+                                </span>
+                            </button>
+                        );
+                    })}
                 </nav>
 
                 {/* ==================================================
-                    SIDEBAR FOOTER
+                    STAFF FOOTER
                 ================================================== */}
 
-                <div
-                    className="
-                        shrink-0
-                        border-t
-                        border-slate-200
-                        p-2
-                        dark:border-blue-900/70
-                    "
-                >
+                <div className="border-t border-sidebar-border bg-sidebar p-4">
                     {/* USER ROLE */}
 
-                    <div
-                        className="
-                            mb-1.5
-                            rounded-lg
-                            bg-slate-50
-                            px-2.5
-                            py-2
-                            dark:bg-[#0f2747]
-                        "
-                    >
-                        <div
-                            className="
-                                flex
-                                items-center
-                                gap-2.5
-                            "
-                        >
-                            <div
-                                className="
-                                    flex
-                                    h-7
-                                    w-7
-                                    shrink-0
-                                    items-center
-                                    justify-center
-                                    rounded-full
-                                    bg-blue-600
-                                    text-[9px]
-                                    font-bold
-                                    text-white
-                                "
-                            >
-                                ST
-                            </div>
+                    <div className="mb-4 flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-primary font-bold text-sidebar-primary-foreground shadow-md">
+                            ST
+                        </div>
 
-                            <div className="min-w-0">
-                                <p
-                                    className="
-                                        truncate
-                                        text-[10px]
-                                        font-semibold
-                                        text-slate-800
-                                        dark:text-white
-                                    "
-                                >
-                                    Staff
-                                </p>
+                        <div className="min-w-0">
+                            <h3 className="truncate text-sm font-semibold text-sidebar-foreground">
+                                Staff
+                            </h3>
 
-                                <p
-                                    className="
-                                        truncate
-                                        text-[9px]
-                                        text-slate-500
-                                        dark:text-slate-400
-                                    "
-                                >
-                                    Work Execution
-                                </p>
-                            </div>
+                            <p className="truncate text-xs text-sidebar-foreground/60">
+                                Work Execution
+                            </p>
                         </div>
                     </div>
+
+                    {/* SETTINGS */}
+
+                    <button
+                        type="button"
+                        onClick={() =>
+                            handleNavigation(
+                                "/staff/settings"
+                            )
+                        }
+                        className={`
+                            group
+                            mb-1
+                            flex
+                            w-full
+                            items-center
+                            gap-3
+                            rounded-lg
+                            px-4
+                            py-3
+                            text-left
+                            transition-all
+                            duration-200
+
+                            ${
+                                isActive(
+                                    "/staff/settings"
+                                )
+                                    ? `
+                                        bg-sidebar-primary
+                                        text-sidebar-primary-foreground
+                                        shadow-md
+                                        shadow-black/10
+                                      `
+                                    : `
+                                        text-sidebar-foreground/75
+                                        hover:bg-sidebar-accent
+                                        hover:text-sidebar-accent-foreground
+                                        hover:translate-x-1
+                                      `
+                            }
+                        `}
+                    >
+                        <Settings
+                            size={20}
+                            className="transition-transform duration-200 group-hover:scale-110"
+                        />
+
+                        <span className="text-sm font-medium">
+                            Settings
+                        </span>
+                    </button>
 
                     {/* LOGOUT */}
 
@@ -458,26 +392,28 @@ function StaffSidebar({
                         type="button"
                         onClick={handleLogout}
                         className="
+                            group
                             flex
                             w-full
                             items-center
-                            gap-2.5
+                            gap-3
                             rounded-lg
-                            px-2.5
-                            py-2
-                            text-left
-                            text-xs
-                            font-medium
-                            text-red-600
-                            transition
-                            hover:bg-red-50
-                            dark:text-red-400
-                            dark:hover:bg-red-950/30
+                            px-4
+                            py-3
+                            text-red-400
+                            transition-all
+                            duration-200
+                            hover:translate-x-1
+                            hover:bg-red-500/10
+                            hover:text-red-300
                         "
                     >
-                        <LogOut className="h-4 w-4" />
+                        <LogOut
+                            size={20}
+                            className="transition-transform duration-200 group-hover:scale-110"
+                        />
 
-                        <span>
+                        <span className="text-sm font-medium">
                             Sign Out
                         </span>
                     </button>
@@ -488,3 +424,4 @@ function StaffSidebar({
 }
 
 export default StaffSidebar;
+

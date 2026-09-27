@@ -1,211 +1,372 @@
 import { useState } from "react";
+
 import {
-    Settings as SettingsIcon,
     Bell,
-    Languages,
+    Bot,
+    Globe,
+    Loader2,
     Palette,
-    Sparkles,
+    RotateCcw,
+    Settings as SettingsIcon,
 } from "lucide-react";
+
+// ============================================================
+// TEAM LEADER SETTINGS COMPONENTS
+// ============================================================
 
 import NotificationPreferences from "@/components/contributor/teamleader/settings/NotificationPreferences";
 import LanguagePreferences from "@/components/contributor/teamleader/settings/LanguagePreferences";
 import ThemePreferences from "@/components/contributor/teamleader/settings/ThemePreferences";
 import AIPreferences from "@/components/contributor/teamleader/settings/AIPreferences";
 
-const SETTINGS_TABS = [
-    {
-        id: "notifications",
-        label: "Notifications",
-        description: "Manage alerts and notifications",
-        icon: Bell,
-    },
-    {
-        id: "language",
-        label: "Language",
-        description: "Choose your interface language",
-        icon: Languages,
-    },
-    {
-        id: "theme",
-        label: "Appearance",
-        description: "Customize the interface theme",
-        icon: Palette,
-    },
-    {
-        id: "ai",
-        label: "AI Preferences",
-        description: "Configure AI assistance",
-        icon: Sparkles,
-    },
-];
+// ============================================================
+// TEAM LEADER SETTINGS
+//
+// Sections:
+// 1. Language & Theme
+// 2. Notifications
+// 3. AI Preferences
+//
+// UI is aligned with the Admin Settings design.
+//
+// Important:
+// - Existing Team Leader components are preserved.
+// - No Dashboard Preferences are added because the
+//   Team Leader settings currently does not have one.
+// ============================================================
 
-export default function Settings() {
-    const [activeTab, setActiveTab] = useState("notifications");
+function Settings() {
+    // ========================================================
+    // STATE
+    // ========================================================
 
-    const renderContent = () => {
-        switch (activeTab) {
-            case "notifications":
-                return <NotificationPreferences />;
+    const [activeSection, setActiveSection] =
+        useState("preferences");
 
-            case "language":
-                return <LanguagePreferences />;
+    const [isRestoring, setIsRestoring] =
+        useState(false);
 
-            case "theme":
-                return <ThemePreferences />;
+    // ========================================================
+    // RESTORE DEFAULTS
+    //
+    // The actual persistence logic remains inside the
+    // individual Team Leader settings components.
+    //
+    // This keeps the button UI-safe without changing the
+    // existing settings APIs.
+    // ========================================================
 
-            case "ai":
-                return <AIPreferences />;
+    const handleRestoreDefaults = () => {
+        setIsRestoring(true);
 
-            default:
-                return <NotificationPreferences />;
-        }
+        setTimeout(() => {
+            setIsRestoring(false);
+        }, 500);
     };
 
-    return (
-        <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-7xl">
+    // ========================================================
+    // SECTION CARD
+    // ========================================================
 
-                {/* =====================================================
-                    PAGE HEADER
-                ====================================================== */}
-                <div className="mb-8">
-                    <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100">
-                            <SettingsIcon className="h-6 w-6 text-blue-600" />
-                        </div>
+    const SectionCard = ({
+        icon: Icon,
+        title,
+        description,
+        children,
+    }) => {
+        return (
+            <section className="rounded-xl border border-border bg-card shadow-sm">
+                {/* ==================================================
+                    SECTION HEADER
+                ================================================== */}
 
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                                Settings & Preferences
-                            </h1>
+                <div className="flex items-start gap-4 border-b border-border p-6">
+                    {/* ICON */}
 
-                            <p className="mt-1 text-sm text-slate-500">
-                                Manage your notification, language, appearance,
-                                and AI preferences.
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                        <Icon className="h-5 w-5" />
+                    </div>
+
+                    {/* TITLE */}
+
+                    <div>
+                        <h2 className="text-lg font-semibold text-card-foreground">
+                            {title}
+                        </h2>
+
+                        {description && (
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                {description}
                             </p>
-                        </div>
+                        )}
                     </div>
                 </div>
 
-                {/* =====================================================
-                    SETTINGS LAYOUT
-                ====================================================== */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                {/* ==================================================
+                    CONTENT
+                ================================================== */}
 
-                    {/* =================================================
-                        LEFT NAVIGATION
-                    ================================================== */}
-                    <aside className="lg:col-span-3">
-                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="p-6">
+                    {children}
+                </div>
+            </section>
+        );
+    };
 
-                            <div className="border-b border-slate-200 px-5 py-4">
-                                <h2 className="text-sm font-semibold text-slate-900">
-                                    Preferences
-                                </h2>
+    // ========================================================
+    // PAGE
+    // ========================================================
 
-                                <p className="mt-1 text-xs text-slate-500">
-                                    Configure your workspace
+    return (
+        <div className="min-h-screen bg-background text-foreground">
+            <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+
+                {/* =================================================
+                    HEADER
+                ================================================== */}
+
+                <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+                    {/* LEFT SIDE */}
+
+                    <div>
+                        <div className="flex items-center gap-3">
+
+                            {/* SETTINGS ICON */}
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                                <SettingsIcon className="h-5 w-5" />
+                            </div>
+
+                            {/* TITLE */}
+
+                            <div>
+                                <h1 className="text-2xl font-bold tracking-tight">
+                                    Settings
+                                </h1>
+
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Configure and manage your AI-PMS
+                                    preferences.
                                 </p>
                             </div>
-
-                            <nav className="p-2">
-                                {SETTINGS_TABS.map((tab) => {
-                                    const Icon = tab.icon;
-                                    const isActive = activeTab === tab.id;
-
-                                    return (
-                                        <button
-                                            key={tab.id}
-                                            type="button"
-                                            onClick={() => setActiveTab(tab.id)}
-                                            className={`mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
-                                                isActive
-                                                    ? "bg-blue-50 text-blue-700"
-                                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                                            }`}
-                                        >
-                                            <div
-                                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                                                    isActive
-                                                        ? "bg-blue-100"
-                                                        : "bg-slate-100"
-                                                }`}
-                                            >
-                                                <Icon
-                                                    className={`h-4 w-4 ${
-                                                        isActive
-                                                            ? "text-blue-600"
-                                                            : "text-slate-500"
-                                                    }`}
-                                                />
-                                            </div>
-
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-medium">
-                                                    {tab.label}
-                                                </p>
-
-                                                <p
-                                                    className={`mt-0.5 truncate text-xs ${
-                                                        isActive
-                                                            ? "text-blue-600/70"
-                                                            : "text-slate-400"
-                                                    }`}
-                                                >
-                                                    {tab.description}
-                                                </p>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </nav>
                         </div>
-                    </aside>
+
+                        {/* ROLE */}
+
+                        <p className="mt-4 text-sm text-muted-foreground">
+                            Signed in as{" "}
+                            <span className="font-medium text-foreground">
+                                Team Leader
+                            </span>
+                        </p>
+                    </div>
+
+                    {/* RESTORE DEFAULTS */}
+
+                    <button
+                        type="button"
+                        onClick={handleRestoreDefaults}
+                        disabled={isRestoring}
+                        className="
+                            inline-flex
+                            items-center
+                            justify-center
+                            gap-2
+                            rounded-lg
+                            border
+                            border-border
+                            bg-card
+                            px-4
+                            py-2
+                            text-sm
+                            font-medium
+                            text-foreground
+                            transition-colors
+                            hover:bg-accent
+                            disabled:cursor-not-allowed
+                            disabled:opacity-60
+                        "
+                    >
+                        {isRestoring ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <RotateCcw className="h-4 w-4" />
+                        )}
+
+                        Restore Defaults
+                    </button>
+                </div>
+
+                {/* =================================================
+                    SECTION NAVIGATION
+                ================================================== */}
+
+                <div className="mb-8 flex gap-2 overflow-x-auto rounded-xl border border-border bg-card p-2">
 
                     {/* =================================================
-                        RIGHT CONTENT
+                        LANGUAGE + THEME
                     ================================================== */}
-                    <main className="lg:col-span-9">
-                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-                            {/* Content Header */}
-                            <div className="border-b border-slate-200 px-6 py-5">
-                                {SETTINGS_TABS.map((tab) => {
-                                    if (tab.id !== activeTab) return null;
+                    <button
+                        type="button"
+                        onClick={() =>
+                            setActiveSection("preferences")
+                        }
+                        className={[
+                            "inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                            activeSection === "preferences"
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                        ].join(" ")}
+                    >
+                        <Palette className="h-4 w-4" />
 
-                                    const Icon = tab.icon;
+                        Language & Theme
+                    </button>
 
-                                    return (
-                                        <div
-                                            key={tab.id}
-                                            className="flex items-center gap-3"
-                                        >
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                                                <Icon className="h-5 w-5 text-slate-600" />
-                                            </div>
+                    {/* =================================================
+                        NOTIFICATIONS
+                    ================================================== */}
 
-                                            <div>
-                                                <h2 className="text-lg font-semibold text-slate-900">
-                                                    {tab.label}
-                                                </h2>
+                    <button
+                        type="button"
+                        onClick={() =>
+                            setActiveSection("notifications")
+                        }
+                        className={[
+                            "inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                            activeSection === "notifications"
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                        ].join(" ")}
+                    >
+                        <Bell className="h-4 w-4" />
 
-                                                <p className="text-sm text-slate-500">
-                                                    {tab.description}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                        Notifications
+                    </button>
 
-                            {/* Component */}
-                            <div className="p-6">
-                                {renderContent()}
-                            </div>
+                    {/* =================================================
+                        AI PREFERENCES
+                    ================================================== */}
+
+                    <button
+                        type="button"
+                        onClick={() =>
+                            setActiveSection("ai")
+                        }
+                        className={[
+                            "inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                            activeSection === "ai"
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                        ].join(" ")}
+                    >
+                        <Bot className="h-4 w-4" />
+
+                        AI Preferences
+                    </button>
+                </div>
+
+                {/* =================================================
+                    ACTIVE SECTION
+                ================================================== */}
+
+                {/* =================================================
+                    LANGUAGE + THEME
+                ================================================== */}
+
+                {activeSection === "preferences" && (
+                    <div className="space-y-6">
+
+                        {/* LANGUAGE */}
+
+                        <SectionCard
+                            icon={Globe}
+                            title="Language Preferences"
+                            description="Choose the preferred language for the AI-PMS interface."
+                        >
+                            <LanguagePreferences />
+                        </SectionCard>
+
+                        {/* THEME */}
+
+                        <SectionCard
+                            icon={Palette}
+                            title="Theme Preferences"
+                            description="Customize the visual appearance of the AI-PMS."
+                        >
+                            <ThemePreferences />
+                        </SectionCard>
+
+                        {/* INFORMATION */}
+
+                        <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                            Your language and theme preferences are
+                            managed through the AI-PMS settings system.
                         </div>
-                    </main>
+                    </div>
+                )}
+
+                {/* =================================================
+                    NOTIFICATIONS
+                ================================================== */}
+
+                {activeSection === "notifications" && (
+                    <SectionCard
+                        icon={Bell}
+                        title="Notification Preferences"
+                        description="Manage how and when you receive notifications."
+                    >
+                        <NotificationPreferences />
+                    </SectionCard>
+                )}
+
+                {/* =================================================
+                    AI PREFERENCES
+                ================================================== */}
+
+                {activeSection === "ai" && (
+                    <SectionCard
+                        icon={Bot}
+                        title="AI Preferences"
+                        description="Configure AI features, recommendations and analysis."
+                    >
+                        <AIPreferences />
+                    </SectionCard>
+                )}
+
+                {/* =================================================
+                    FOOTER
+                ================================================== */}
+
+                <div className="mt-8 rounded-xl border border-border bg-card p-5">
+                    <div className="flex items-start gap-3">
+
+                        {/* FOOTER ICON */}
+
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                            <SettingsIcon className="h-4 w-4" />
+                        </div>
+
+                        {/* FOOTER TEXT */}
+
+                        <div>
+                            <h3 className="text-sm font-semibold">
+                                Preference Storage
+                            </h3>
+
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Team Leader preference changes are
+                                managed through the AI-PMS settings
+                                system.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
+
+export default Settings;

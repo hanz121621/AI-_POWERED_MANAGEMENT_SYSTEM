@@ -1,481 +1,98 @@
-import { useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 
 import {
-    Activity,
-    BarChart3,
-    Code2,
+    LayoutDashboard,
+    UserRound,
     FolderKanban,
     ListTodo,
+    Activity,
     MessageSquare,
-    PanelLeftClose,
-    PanelLeftOpen,
-    Settings2,
-    ShieldCheck,
-    UserRound,
+    BarChart3,
+    Settings,
+    HelpCircle,
+    LogOut,
+    Code2,
     X,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { NavLink, useNavigate } from "react-router-dom";
 
 // ============================================================
 // DEVELOPER SIDEBAR
 // ============================================================
 //
-// Developer modules:
+// Developer navigation follows the same visual structure as
+// the AdminSidebar.
 //
-// 1. Dashboard
-// 2. Profile Management
-// 3. Project Participation
-// 4. Task Management
-// 5. Sprint Participation
-// 6. Communication
-// 7. Reports & Monitoring
-// 8. Settings & Preferences
+// Developer-specific routes are preserved.
 //
-// IMPORTANT:
-// All modules are DIRECT navigation items.
-// There are NO dropdowns or submenus.
-//
-// ============================================================
-
-
-// ============================================================
-// STORAGE KEYS
-// ============================================================
-
-const USER_STORAGE_KEYS = [
-    "user",
-    "aipms_user",
-    "currentUser",
-    "authUser",
-];
-
-
-// ============================================================
-// DEFAULT USER
-// ============================================================
-
-const DEFAULT_USER = {
-    id: null,
-    fullName: "Developer",
-    name: "Developer",
-    email: "developer@example.com",
-    role: "Developer",
-    accountCategory: "Developer",
-    specialization: "Development",
-    avatar: null,
-};
-
-
-// ============================================================
-// GET STORED USER
-// ============================================================
-
-function getStoredUser() {
-    for (const key of USER_STORAGE_KEYS) {
-        try {
-            const storedUser = localStorage.getItem(key);
-
-            if (!storedUser) {
-                continue;
-            }
-
-            const parsedUser = JSON.parse(storedUser);
-
-            if (
-                parsedUser &&
-                typeof parsedUser === "object"
-            ) {
-                return parsedUser;
-            }
-        } catch (error) {
-            console.error(
-                `Unable to read ${key} from localStorage:`,
-                error
-            );
-        }
-    }
-
-    return null;
-}
-
-
-// ============================================================
-// USER HELPERS
-// ============================================================
-
-function getUserName(user) {
-    return (
-        user?.fullName ||
-        user?.name ||
-        user?.username ||
-        user?.displayName ||
-        "Developer"
-    );
-}
-
-
-function getUserRole(user) {
-    return (
-        user?.role ||
-        user?.accountCategory ||
-        user?.userRole ||
-        "Developer"
-    );
-}
-
-
-function getUserSpecialization(user) {
-    return (
-        user?.specialization ||
-        user?.specializationName ||
-        user?.speciality ||
-        "Development"
-    );
-}
-
-
-function getInitials(name) {
-    if (!name) {
-        return "DV";
-    }
-
-    const parts = name
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean);
-
-    if (parts.length === 1) {
-        return parts[0]
-            .substring(0, 2)
-            .toUpperCase();
-    }
-
-    return (
-        parts[0].charAt(0) +
-        parts[parts.length - 1].charAt(0)
-    ).toUpperCase();
-}
-
-
-// ============================================================
-// MAIN NAVIGATION
-// ============================================================
-//
-// IMPORTANT:
-// These paths should match AppRoutes.jsx.
-//
-// Every item below is a DIRECT navigation item.
-// No item has a submenu.
-//
-// ============================================================
-
-const MAIN_NAVIGATION = [
-
-    // ========================================================
-    // DASHBOARD
-    // ========================================================
-
-    {
-        label: "Dashboard",
-        path: "/developer/dashboard",
-        icon: BarChart3,
-        exact: true,
-    },
-
-
-    // ========================================================
-    // PROFILE MANAGEMENT
-    // ========================================================
-
-    {
-        label: "My Profile",
-        path: "/developer/profile",
-        icon: UserRound,
-        exact: false,
-    },
-
-
-    // ========================================================
-    // PROJECT PARTICIPATION
-    // ========================================================
-
-    {
-        label: "Projects",
-        path: "/developer/projects",
-        icon: FolderKanban,
-        exact: false,
-    },
-
-
-    // ========================================================
-    // TASK MANAGEMENT
-    // ========================================================
-
-    {
-        label: "Tasks",
-        path: "/developer/tasks",
-        icon: ListTodo,
-        exact: false,
-    },
-
-
-    // ========================================================
-    // SPRINT PARTICIPATION
-    // ========================================================
-
-    {
-        label: "Sprint Participation",
-        path: "/developer/sprint-participation",
-        icon: Activity,
-        exact: false,
-    },
-
-
-    // ========================================================
-    // COMMUNICATION
-    // ========================================================
-
-    {
-        label: "Communication",
-        path: "/developer/communication",
-        icon: MessageSquare,
-        exact: false,
-    },
-
-
-    // ========================================================
-    // REPORTS & MONITORING
-    // ========================================================
-
-    {
-        label: "Reports & Monitoring",
-        path: "/developer/reports",
-        icon: BarChart3,
-        exact: false,
-    },
-
-
-    // ========================================================
-    // SETTINGS & PREFERENCES
-    // ========================================================
-
-    {
-        label: "Settings",
-        path: "/developer/settings",
-        icon: Settings2,
-        exact: false,
-    },
-];
-
-
-// ============================================================
-// COMPONENT
 // ============================================================
 
 function DeveloperSidebar({
-    open = false,
-    onClose,
-    collapsed = false,
-    onToggleCollapse,
+    isMobileOpen,
+    onCloseMobile,
 }) {
     const navigate = useNavigate();
-    const location = useLocation();
-
 
     // ========================================================
-    // USER
+    // DEVELOPER MENU ITEMS
     // ========================================================
 
-    const user = useMemo(
-        () => getStoredUser() || DEFAULT_USER,
-        []
-    );
-
-    const userName = useMemo(
-        () => getUserName(user),
-        [user]
-    );
-
-    const userRole = useMemo(
-        () => getUserRole(user),
-        [user]
-    );
-
-    const specialization = useMemo(
-        () => getUserSpecialization(user),
-        [user]
-    );
-
-    const initials = useMemo(
-        () => getInitials(userName),
-        [userName]
-    );
-
-
-    // ========================================================
-    // ACTIVE LINK
-    // ========================================================
-
-    const isActive = (item) => {
-        if (item.exact) {
-            return location.pathname === item.path;
-        }
-
-        return (
-            location.pathname === item.path ||
-            location.pathname.startsWith(
-                `${item.path}/`
-            )
-        );
-    };
-
-
-    // ========================================================
-    // NAVIGATION
-    // ========================================================
-
-    const handleNavigation = (path) => {
-        if (!path) {
-            return;
-        }
-
-        navigate(path);
-
-        if (onClose) {
-            onClose();
-        }
-    };
-
-
-    // ========================================================
-    // RENDER NAVIGATION ITEM
-    // ========================================================
-
-    const renderNavigationItem = (item) => {
-        const Icon = item.icon;
-        const active = isActive(item);
-
-        return (
-            <button
-                key={item.path}
-                type="button"
-                onClick={() =>
-                    handleNavigation(item.path)
-                }
-                title={
-                    collapsed
-                        ? item.label
-                        : undefined
-                }
-                aria-current={
-                    active
-                        ? "page"
-                        : undefined
-                }
-                className={`
-                    group
-                    flex
-                    w-full
-                    items-center
-                    gap-2.5
-                    rounded-md
-                    px-2.5
-                    py-2
-                    text-left
-                    text-xs
-                    font-medium
-                    transition-all
-                    duration-200
-
-                    ${
-                        collapsed
-                            ? "justify-center"
-                            : ""
-                    }
-
-                    ${
-                        active
-                            ? `
-                                bg-blue-600
-                                text-white
-                                shadow-sm
-                            `
-                            : `
-                                text-slate-700
-                                hover:bg-slate-100
-                                hover:text-slate-900
-
-                                dark:text-slate-300
-                                dark:hover:bg-blue-950/60
-                                dark:hover:text-white
-                            `
-                    }
-                `}
-            >
-                <Icon
-                    className={`
-                        h-4
-                        w-4
-                        shrink-0
-
-                        ${
-                            active
-                                ? "text-white"
-                                : "text-slate-500 dark:text-slate-400"
-                        }
-                    `}
-                />
-
-                {!collapsed && (
-                    <span className="truncate">
-                        {item.label}
-                    </span>
-                )}
-
-                {!collapsed && active && (
-                    <span
-                        className="
-                            ml-auto
-                            h-1
-                            w-1
-                            shrink-0
-                            rounded-full
-                            bg-white
-                        "
-                    />
-                )}
-            </button>
-        );
-    };
-
-
-    // ========================================================
-    // RENDER
-    // ========================================================
+    const menuItems = [
+        {
+            name: "Dashboard",
+            icon: LayoutDashboard,
+            path: "/developer/dashboard",
+        },
+        {
+            name: "My Profile",
+            icon: UserRound,
+            path: "/developer/profile",
+        },
+        {
+            name: "Projects",
+            icon: FolderKanban,
+            path: "/developer/projects",
+        },
+        {
+            name: "Tasks",
+            icon: ListTodo,
+            path: "/developer/tasks",
+        },
+        {
+            name: "Sprint Participation",
+            icon: Activity,
+            path: "/developer/sprint-participation",
+        },
+        {
+            name: "Communication",
+            icon: MessageSquare,
+            path: "/developer/communication",
+        },
+        {
+            name: "Reports & Monitoring",
+            icon: BarChart3,
+            path: "/developer/reports",
+        },
+    ];
 
     return (
         <>
             {/* ==================================================
-                MOBILE BACKDROP
+                MOBILE OVERLAY
             ================================================== */}
 
-            {open && (
-                <button
-                    type="button"
-                    aria-label="Close developer sidebar"
-                    onClick={onClose}
+            {isMobileOpen && (
+                <div
                     className="
                         fixed
                         inset-0
                         z-40
-                        bg-black/40
-                        lg:hidden
+                        bg-black/50
+                        md:hidden
                     "
+                    onClick={onCloseMobile}
                 />
             )}
-
 
             {/* ==================================================
                 SIDEBAR
@@ -487,465 +104,396 @@ function DeveloperSidebar({
                     inset-y-0
                     left-0
                     z-50
+
                     flex
+                    h-screen
+                    min-h-screen
+                    w-64
+                    shrink-0
                     flex-col
 
-                    border-r
-                    border-slate-200
-                    bg-white
-                    shadow-lg
+                    bg-sidebar
+                    text-sidebar-foreground
 
-                    transition-all
+                    transition-transform
                     duration-300
+                    ease-in-out
 
-                    dark:border-blue-900/70
-                    dark:bg-[#0b1f3a]
-
-                    ${
-                        collapsed
-                            ? "w-16"
-                            : "w-64"
-                    }
+                    md:relative
+                    md:translate-x-0
 
                     ${
-                        open
+                        isMobileOpen
                             ? "translate-x-0"
                             : "-translate-x-full"
                     }
-
-                    lg:translate-x-0
                 `}
             >
-
                 {/* ==================================================
-                    HEADER
+                    LOGO / BRAND
                 ================================================== */}
 
                 <div
                     className="
                         flex
-                        h-14
-                        shrink-0
                         items-center
                         justify-between
                         border-b
-                        border-slate-200
-                        px-3
-                        dark:border-blue-900/70
+                        border-sidebar-border
+                        px-5
+                        py-6
                     "
                 >
-
-                    {/* LOGO */}
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            handleNavigation(
-                                "/developer/dashboard"
-                            )
-                        }
-                        className={`
-                            flex
-                            items-center
-                            gap-2.5
-
-                            ${
-                                collapsed
-                                    ? "mx-auto"
-                                    : ""
-                            }
-                        `}
-                    >
+                    <div className="flex items-center gap-3">
                         <div
                             className="
                                 flex
-                                h-8
-                                w-8
-                                shrink-0
+                                h-10
+                                w-10
                                 items-center
                                 justify-center
-                                rounded-lg
-                                bg-blue-600
-                                text-white
-                                shadow-sm
+                                rounded-xl
+                                bg-sidebar-primary
+                                text-sidebar-primary-foreground
+                                shadow-md
                             "
                         >
-                            <Code2 className="h-4 w-4" />
+                            <Code2 size={20} />
                         </div>
 
-                        {!collapsed && (
-                            <div className="text-left">
-                                <p
-                                    className="
-                                        text-sm
-                                        font-bold
-                                        leading-tight
-                                        text-slate-900
-                                        dark:text-white
-                                    "
-                                >
-                                    AI-PMS
-                                </p>
+                        <div>
+                            <h1
+                                className="
+                                    text-xl
+                                    font-bold
+                                    text-sidebar-foreground
+                                "
+                            >
+                                Africom AI-PMS
+                            </h1>
 
-                                <p
-                                    className="
-                                        text-[9px]
-                                        font-medium
-                                        text-slate-500
-                                        dark:text-slate-400
-                                    "
-                                >
-                                    Developer Portal
-                                </p>
-                            </div>
-                        )}
-                    </button>
+                            <p
+                                className="
+                                    mt-1
+                                    text-sm
+                                    text-sidebar-foreground/60
+                                "
+                            >
+                                Developer Panel
+                            </p>
+                        </div>
+                    </div>
 
+                    {/* ==================================================
+                        MOBILE CLOSE
+                    ================================================== */}
 
-                    {/* DESKTOP COLLAPSE */}
-
-                    {onToggleCollapse && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={
-                                onToggleCollapse
-                            }
-                            className="
-                                hidden
-                                h-8
-                                w-8
-                                text-slate-500
-                                hover:bg-slate-100
-                                dark:text-slate-300
-                                dark:hover:bg-blue-950/60
-                                lg:flex
-                            "
-                            aria-label={
-                                collapsed
-                                    ? "Expand sidebar"
-                                    : "Collapse sidebar"
-                            }
-                        >
-                            {collapsed ? (
-                                <PanelLeftOpen className="h-4 w-4" />
-                            ) : (
-                                <PanelLeftClose className="h-4 w-4" />
-                            )}
-                        </Button>
-                    )}
-
-
-                    {/* MOBILE CLOSE */}
-
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={onClose}
-                        className="
-                            h-8
-                            w-8
-                            text-slate-500
-                            hover:bg-slate-100
-
-                            dark:text-slate-300
-                            dark:hover:bg-blue-950/60
-
-                            lg:hidden
-                        "
-                        aria-label="Close sidebar"
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
-                </div>
-
-
-                {/* ==================================================
-                    USER PROFILE
-                ================================================== */}
-
-                <div
-                    className={`
-                        border-b
-                        border-slate-200
-                        p-3
-
-                        dark:border-blue-900/70
-
-                        ${
-                            collapsed
-                                ? "flex justify-center"
-                                : ""
-                        }
-                    `}
-                >
                     <button
                         type="button"
-                        onClick={() =>
-                            handleNavigation(
-                                "/developer/profile"
-                            )
-                        }
-                        className={`
-                            flex
-                            w-full
-                            items-center
-                            gap-2.5
-                            rounded-lg
-                            p-1.5
-                            transition
-
-                            hover:bg-slate-100
-                            dark:hover:bg-blue-950/50
-
-                            ${
-                                collapsed
-                                    ? "justify-center"
-                                    : ""
-                            }
-                        `}
+                        onClick={onCloseMobile}
+                        className="
+                            text-sidebar-foreground/60
+                            transition-colors
+                            hover:text-sidebar-foreground
+                            md:hidden
+                        "
+                        aria-label="Close developer sidebar"
                     >
-
-                        {/* AVATAR */}
-
-                        {user?.avatar ? (
-                            <img
-                                src={user.avatar}
-                                alt={userName}
-                                className="
-                                    h-8
-                                    w-8
-                                    shrink-0
-                                    rounded-full
-                                    object-cover
-                                "
-                            />
-                        ) : (
-                            <div
-                                className="
-                                    flex
-                                    h-8
-                                    w-8
-                                    shrink-0
-                                    items-center
-                                    justify-center
-                                    rounded-full
-                                    bg-blue-600
-                                    text-[10px]
-                                    font-bold
-                                    text-white
-                                "
-                            >
-                                {initials}
-                            </div>
-                        )}
-
-
-                        {!collapsed && (
-                            <div
-                                className="
-                                    min-w-0
-                                    flex-1
-                                    text-left
-                                "
-                            >
-                                <p
-                                    className="
-                                        truncate
-                                        text-xs
-                                        font-semibold
-                                        text-slate-900
-                                        dark:text-white
-                                    "
-                                >
-                                    {userName}
-                                </p>
-
-                                <p
-                                    className="
-                                        truncate
-                                        text-[10px]
-                                        text-slate-500
-                                        dark:text-slate-400
-                                    "
-                                >
-                                    {userRole}
-                                </p>
-
-                                <div className="mt-0.5">
-                                    <span
-                                        className="
-                                            inline-flex
-                                            max-w-full
-                                            truncate
-                                            rounded-full
-                                            bg-blue-100
-                                            px-1.5
-                                            py-0.5
-                                            text-[8px]
-                                            font-semibold
-                                            text-blue-700
-
-                                            dark:bg-blue-950/60
-                                            dark:text-blue-300
-                                        "
-                                    >
-                                        {specialization}
-                                    </span>
-                                </div>
-                            </div>
-                        )}
+                        <X size={24} />
                     </button>
                 </div>
-
 
                 {/* ==================================================
                     NAVIGATION
                 ================================================== */}
 
-                <div
+                <nav
                     className="
                         flex-1
+                        space-y-2
                         overflow-y-auto
-                        px-2
-                        py-3
+                        px-4
+                        py-6
                     "
+                    aria-label="Developer navigation"
                 >
+                    {menuItems.map((item) => {
+                        const Icon = item.icon;
 
-                    {/* WORKSPACE */}
+                        return (
+                            <NavLink
+                                key={item.name}
+                                to={item.path}
+                                onClick={onCloseMobile}
+                                className={({ isActive }) =>
+                                    `
+                                    group
+                                    flex
+                                    items-center
+                                    gap-3
+                                    rounded-lg
+                                    px-4
+                                    py-3
+                                    transition-all
+                                    duration-200
 
-                    {!collapsed && (
-                        <p
-                            className="
-                                mb-1.5
-                                px-2.5
-                                text-[9px]
-                                font-bold
-                                uppercase
-                                tracking-wider
-                                text-slate-400
-                                dark:text-slate-500
-                            "
-                        >
-                            Developer Workspace
-                        </p>
-                    )}
+                                    ${
+                                        isActive
+                                            ? `
+                                                bg-sidebar-primary
+                                                text-sidebar-primary-foreground
+                                                shadow-md
+                                                shadow-black/10
+                                            `
+                                            : `
+                                                text-sidebar-foreground/75
+                                                hover:bg-sidebar-accent
+                                                hover:text-sidebar-accent-foreground
+                                                hover:translate-x-1
+                                            `
+                                    }
+                                    `
+                                }
+                            >
+                                {({ isActive }) => (
+                                    <>
+                                        <Icon
+                                            size={20}
+                                            className="
+                                                shrink-0
+                                                transition-transform
+                                                duration-200
+                                                group-hover:scale-110
+                                            "
+                                        />
 
-
-                    {/* ==================================================
-                        DIRECT MAIN NAVIGATION
-                    ================================================== */}
-
-                    <nav
-                        className="space-y-0.5"
-                        aria-label="Developer navigation"
-                    >
-                        {MAIN_NAVIGATION.map(
-                            renderNavigationItem
-                        )}
-                    </nav>
-                </div>
-
+                                        <span
+                                            className="
+                                                text-sm
+                                                font-medium
+                                            "
+                                        >
+                                            {item.name}
+                                        </span>
+                                    </>
+                                )}
+                            </NavLink>
+                        );
+                    })}
+                </nav>
 
                 {/* ==================================================
-                    FOOTER
+                    BOTTOM DEVELOPER SECTION
                 ================================================== */}
 
                 <div
                     className="
-                        shrink-0
                         border-t
-                        border-slate-200
-                        p-2
-                        dark:border-blue-900/70
+                        border-sidebar-border
+                        bg-sidebar
+                        p-4
                     "
                 >
+                    {/* ==================================================
+                        DEVELOPER PROFILE
+                    ================================================== */}
 
-                    {!collapsed ? (
+                    <div
+                        className="
+                            mb-4
+                            flex
+                            items-center
+                            gap-3
+                        "
+                    >
                         <div
                             className="
-                                rounded-lg
-                                border
-                                border-blue-100
-                                bg-blue-50
-                                p-2.5
-
-                                dark:border-blue-900/60
-                                dark:bg-blue-950/30
+                                flex
+                                h-10
+                                w-10
+                                items-center
+                                justify-center
+                                rounded-full
+                                bg-sidebar-primary
+                                font-bold
+                                text-sidebar-primary-foreground
+                                shadow-md
                             "
                         >
-                            <div className="flex items-center gap-2.5">
-
-                                <div
-                                    className="
-                                        flex
-                                        h-7
-                                        w-7
-                                        shrink-0
-                                        items-center
-                                        justify-center
-                                        rounded-md
-                                        bg-blue-600
-                                        text-white
-                                    "
-                                >
-                                    <ShieldCheck className="h-3.5 w-3.5" />
-                                </div>
-
-                                <div className="min-w-0">
-
-                                    <p
-                                        className="
-                                            truncate
-                                            text-[10px]
-                                            font-semibold
-                                            text-blue-900
-                                            dark:text-blue-200
-                                        "
-                                    >
-                                        Developer Access
-                                    </p>
-
-                                    <p
-                                        className="
-                                            mt-0.5
-                                            text-[8px]
-                                            leading-3
-                                            text-blue-700
-                                            dark:text-blue-300
-                                        "
-                                    >
-                                        Technical work permissions
-                                    </p>
-                                </div>
-                            </div>
+                            DV
                         </div>
-                    ) : (
-                        <div className="flex justify-center">
-                            <div
+
+                        <div>
+                            <h3
                                 className="
-                                    flex
-                                    h-8
-                                    w-8
-                                    items-center
-                                    justify-center
-                                    rounded-md
-                                    bg-blue-600
-                                    text-white
+                                    text-sm
+                                    font-semibold
+                                    text-sidebar-foreground
                                 "
-                                title="Developer Access"
                             >
-                                <ShieldCheck className="h-4 w-4" />
-                            </div>
+                                Developer
+                            </h3>
+
+                            <p
+                                className="
+                                    text-xs
+                                    text-sidebar-foreground/60
+                                "
+                            >
+                                Software Developer
+                            </p>
                         </div>
-                    )}
+                    </div>
+
+                    {/* ==================================================
+                        SETTINGS
+                    ================================================== */}
+
+                    <NavLink
+                        to="/developer/settings"
+                        onClick={onCloseMobile}
+                        className={({ isActive }) =>
+                            `
+                            group
+                            mb-1
+                            flex
+                            items-center
+                            gap-3
+                            rounded-lg
+                            px-4
+                            py-3
+                            transition-all
+                            duration-200
+
+                            ${
+                                isActive
+                                    ? `
+                                        bg-sidebar-primary
+                                        text-sidebar-primary-foreground
+                                        shadow-md
+                                        shadow-black/10
+                                    `
+                                    : `
+                                        text-sidebar-foreground/75
+                                        hover:bg-sidebar-accent
+                                        hover:text-sidebar-accent-foreground
+                                        hover:translate-x-1
+                                    `
+                            }
+                            `
+                        }
+                    >
+                        <Settings
+                            size={20}
+                            className="
+                                transition-transform
+                                duration-200
+                                group-hover:scale-110
+                            "
+                        />
+
+                        <span
+                            className="
+                                text-sm
+                                font-medium
+                            "
+                        >
+                            Settings
+                        </span>
+                    </NavLink>
+
+                    {/* ==================================================
+                        HELP
+                    ================================================== */}
+
+                    <NavLink
+                        to="/developer/help"
+                        onClick={onCloseMobile}
+                        className="
+                            group
+                            mb-1
+                            flex
+                            items-center
+                            gap-3
+                            rounded-lg
+                            px-4
+                            py-3
+                            text-sidebar-foreground/75
+                            transition-all
+                            duration-200
+                            hover:translate-x-1
+                            hover:bg-sidebar-accent
+                            hover:text-sidebar-accent-foreground
+                        "
+                    >
+                        <HelpCircle
+                            size={20}
+                            className="
+                                transition-transform
+                                duration-200
+                                group-hover:scale-110
+                            "
+                        />
+
+                        <span
+                            className="
+                                text-sm
+                                font-medium
+                            "
+                        >
+                            Help
+                        </span>
+                    </NavLink>
+
+                    {/* ==================================================
+                        LOGOUT
+                    ================================================== */}
+
+                    <button
+                        type="button"
+                        onClick={() =>
+                            navigate("/logout")
+                        }
+                        className="
+                            group
+                            flex
+                            w-full
+                            items-center
+                            gap-3
+                            rounded-lg
+                            px-4
+                            py-3
+                            text-red-400
+                            transition-all
+                            duration-200
+                            hover:translate-x-1
+                            hover:bg-red-500/10
+                            hover:text-red-300
+                        "
+                    >
+                        <LogOut
+                            size={20}
+                            className="
+                                transition-transform
+                                duration-200
+                                group-hover:scale-110
+                            "
+                        />
+
+                        <span
+                            className="
+                                text-sm
+                                font-medium
+                            "
+                        >
+                            Logout
+                        </span>
+                    </button>
                 </div>
             </aside>
         </>
     );
 }
 
-
 export default DeveloperSidebar;
+

@@ -1,38 +1,104 @@
-
 import { useEffect, useState } from "react";
 import {
-    Languages,
-    Globe2,
-    Check,
+    ChevronDown,
+    Globe,
+    Loader2,
+    RotateCcw,
     Save,
 } from "lucide-react";
+
 import api from "@/services/api";
 
-const STORAGE_KEY = "aipms_teamleader_language";
-const SYSTEM_STORAGE_KEY = "aipms_system_language";
+// ============================================================
+// AIPMS — TEAM LEADER LANGUAGE PREFERENCES
+//
+// Supported languages:
+// - English
+// - Amharic
+//
+// IMPORTANT:
+// - Backend persistence is preserved.
+// - Only English and Amharic are shown in the dropdown.
+// - Backend remains the source of truth.
+// - localStorage is used only as a cache/fallback.
+// ============================================================
+
+// ============================================================
+// STORAGE KEYS
+// ============================================================
+
+const STORAGE_KEY =
+    "aipms_teamleader_language";
+
+const SYSTEM_STORAGE_KEY =
+    "aipms_system_language";
+
+// ============================================================
+// SUPPORTED LANGUAGES
+//
+// DO NOT ADD OTHER LANGUAGES HERE.
+// ============================================================
 
 const DEFAULT_LANGUAGES = [
     {
         value: "en",
         label: "English",
         nativeLabel: "English",
-        description: "Use AI-PMS in English.",
+        description:
+            "Use English as the application interface language.",
     },
     {
         value: "am",
         label: "Amharic",
         nativeLabel: "አማርኛ",
-        description: "Use AI-PMS in Amharic.",
+        description:
+            "Use Amharic as the application interface language.",
     },
 ];
 
+// ============================================================
+// NORMALIZE LANGUAGE
+// ============================================================
+
 function normalizeLanguage(value) {
-    if (value === null || value === undefined) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
         return "";
     }
 
-    return String(value).trim().toLowerCase();
+    return String(value)
+        .trim()
+        .toLowerCase();
 }
+
+// ============================================================
+// GET SUPPORTED LANGUAGE
+//
+// Only "en" and "am" are accepted.
+// ============================================================
+
+function getSupportedLanguage(value) {
+    const normalized =
+        normalizeLanguage(value);
+
+    return DEFAULT_LANGUAGES.some(
+        (language) =>
+            language.value === normalized
+    )
+        ? normalized
+        : "";
+}
+
+// ============================================================
+// EXTRACT AVAILABLE LANGUAGES
+//
+// The backend may return many languages.
+// We intentionally keep ONLY:
+// - en
+// - am
+// ============================================================
 
 function extractLanguages(response) {
     const data =
@@ -44,78 +110,124 @@ function extractLanguages(response) {
         response;
 
     if (!Array.isArray(data)) {
-        return [];
+        return DEFAULT_LANGUAGES;
     }
 
-    return data
+    const backendLanguages = data
         .map((item) => {
+            // ------------------------------------------------
+            // Backend returns a string
+            // ------------------------------------------------
+
             if (typeof item === "string") {
-                const value = normalizeLanguage(item);
+                const value =
+                    normalizeLanguage(item);
 
-                const known = DEFAULT_LANGUAGES.find(
-                    (language) => language.value === value
-                );
+                const known =
+                    DEFAULT_LANGUAGES.find(
+                        (language) =>
+                            language.value ===
+                            value
+                    );
 
-                return (
-                    known || {
-                        value,
-                        label: item,
-                        nativeLabel: item,
-                        description: `Use AI-PMS in ${item}.`,
-                    }
-                );
+                return known || null;
             }
 
-            const value = normalizeLanguage(
-                item?.value ??
-                    item?.Value ??
-                    item?.code ??
-                    item?.Code ??
-                    item?.languageCode ??
-                    item?.LanguageCode ??
-                    item?.language ??
-                    item?.Language
-            );
+            // ------------------------------------------------
+            // Backend returns an object
+            // ------------------------------------------------
 
-            if (!value) {
+            const value =
+                normalizeLanguage(
+                    item?.value ??
+                        item?.Value ??
+                        item?.code ??
+                        item?.Code ??
+                        item?.languageCode ??
+                        item?.LanguageCode ??
+                        item?.language ??
+                        item?.Language
+                );
+
+            // ------------------------------------------------
+            // IMPORTANT:
+            // Ignore everything except en/am.
+            // ------------------------------------------------
+
+            if (
+                value !== "en" &&
+                value !== "am"
+            ) {
                 return null;
             }
 
-            const known = DEFAULT_LANGUAGES.find(
-                (language) => language.value === value
-            );
+            const known =
+                DEFAULT_LANGUAGES.find(
+                    (language) =>
+                        language.value ===
+                        value
+                );
+
+            if (!known) {
+                return null;
+            }
 
             return {
-                value,
+                ...known,
+
                 label:
                     item?.label ??
                     item?.Label ??
                     item?.name ??
                     item?.Name ??
-                    known?.label ??
-                    value,
+                    known.label,
+
                 nativeLabel:
                     item?.nativeLabel ??
                     item?.NativeLabel ??
                     item?.nativeName ??
                     item?.NativeName ??
-                    known?.nativeLabel ??
-                    item?.label ??
-                    item?.Label ??
-                    value,
+                    known.nativeLabel,
+
                 description:
                     item?.description ??
                     item?.Description ??
-                    known?.description ??
-                    `Use AI-PMS in ${
-                        item?.label ??
-                        item?.Label ??
-                        value
-                    }.`,
+                    known.description,
             };
         })
         .filter(Boolean);
+
+    // --------------------------------------------------------
+    // Make sure both English and Amharic are available.
+    //
+    // Even if backend returns only one of them,
+    // the UI will still show both.
+    // --------------------------------------------------------
+
+    const result = [];
+
+    DEFAULT_LANGUAGES.forEach(
+        (defaultLanguage) => {
+            const backendLanguage =
+                backendLanguages.find(
+                    (language) =>
+                        language.value ===
+                        defaultLanguage.value
+                );
+
+            result.push(
+                backendLanguage ||
+                    defaultLanguage
+            );
+        }
+    );
+
+    return result;
 }
+
+// ============================================================
+// EXTRACT PREFERENCE
+// ============================================================
 
 function extractPreference(response) {
     return (
@@ -127,6 +239,10 @@ function extractPreference(response) {
         response
     );
 }
+
+// ============================================================
+// EXTRACT LANGUAGE FROM PREFERENCE
+// ============================================================
 
 function extractLanguage(preference) {
     if (!preference) {
@@ -145,15 +261,32 @@ function extractLanguage(preference) {
     );
 }
 
+// ============================================================
+// LOCAL STORAGE
+//
+// Backend is still the source of truth.
+// LocalStorage is only cache/fallback.
+// ============================================================
+
 function getCachedLanguage() {
     try {
+        const systemLanguage =
+            getSupportedLanguage(
+                localStorage.getItem(
+                    SYSTEM_STORAGE_KEY
+                )
+            );
+
+        const teamLeaderLanguage =
+            getSupportedLanguage(
+                localStorage.getItem(
+                    STORAGE_KEY
+                )
+            );
+
         return (
-            normalizeLanguage(
-                localStorage.getItem(SYSTEM_STORAGE_KEY)
-            ) ||
-            normalizeLanguage(
-                localStorage.getItem(STORAGE_KEY)
-            ) ||
+            systemLanguage ||
+            teamLeaderLanguage ||
             "en"
         );
     } catch {
@@ -161,14 +294,38 @@ function getCachedLanguage() {
     }
 }
 
-function saveCachedLanguage(language) {
-    try {
-        localStorage.setItem(STORAGE_KEY, language);
-        localStorage.setItem(SYSTEM_STORAGE_KEY, language);
-    } catch {
+// ============================================================
+// SAVE CACHED LANGUAGE
+// ============================================================
+
+function saveCachedLanguage(
+    language
+) {
+    const supportedLanguage =
+        getSupportedLanguage(language);
+
+    if (!supportedLanguage) {
         return;
     }
+
+    try {
+        localStorage.setItem(
+            STORAGE_KEY,
+            supportedLanguage
+        );
+
+        localStorage.setItem(
+            SYSTEM_STORAGE_KEY,
+            supportedLanguage
+        );
+    } catch {
+        // Ignore localStorage errors.
+    }
 }
+
+// ============================================================
+// ERROR MESSAGE
+// ============================================================
 
 function getErrorMessage(error) {
     return (
@@ -180,103 +337,219 @@ function getErrorMessage(error) {
     );
 }
 
-export default function LanguagePreferences() {
-    const cachedLanguage = getCachedLanguage();
+// ============================================================
+// TEAM LEADER LANGUAGE PREFERENCES
+// ============================================================
 
-    const [languages, setLanguages] = useState(
+export default function LanguagePreferences({
+    onCancel,
+    onSuccess,
+}) {
+    // ----------------------------------------------------------
+    // INITIAL CACHED LANGUAGE
+    // ----------------------------------------------------------
+
+    const cachedLanguage =
+        getCachedLanguage();
+
+    // ----------------------------------------------------------
+    // STATE
+    // ----------------------------------------------------------
+
+    const [
+        languages,
+        setLanguages,
+    ] = useState(
         DEFAULT_LANGUAGES
     );
-    const [language, setLanguage] = useState(cachedLanguage);
-    const [savedLanguage, setSavedLanguage] =
-        useState(cachedLanguage);
-    const [saved, setSaved] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState("");
+
+    const [
+        originalLanguage,
+        setOriginalLanguage,
+    ] = useState(
+        cachedLanguage
+    );
+
+    const [
+        selectedLanguage,
+        setSelectedLanguage,
+    ] = useState(
+        cachedLanguage
+    );
+
+    const [
+        isLoading,
+        setIsLoading,
+    ] = useState(true);
+
+    const [
+        isSaving,
+        setIsSaving,
+    ] = useState(false);
+
+    const [
+        message,
+        setMessage,
+    ] = useState({
+        type: "",
+        text: "",
+    });
+
+    // ==========================================================
+    // LOAD LANGUAGE PREFERENCES
+    // ==========================================================
 
     useEffect(() => {
         let mounted = true;
 
-        const loadPreferences = async () => {
-            setLoading(true);
-            setError("");
+        const loadPreferences =
+            async () => {
+                try {
+                    setIsLoading(true);
 
-            try {
-                const [
-                    languagesResponse,
-                    preferenceResponse,
-                ] = await Promise.all([
-                    api.get("/user-preferences/languages"),
-                    api.get("/user-preferences"),
-                ]);
+                    setMessage({
+                        type: "",
+                        text: "",
+                    });
 
-                if (!mounted) {
-                    return;
-                }
+                    // ------------------------------------------------
+                    // LOAD BACKEND DATA
+                    // ------------------------------------------------
 
-                const backendLanguages =
-                    extractLanguages(languagesResponse);
+                    const [
+                        languagesResponse,
+                        preferenceResponse,
+                    ] = await Promise.all([
+                        api.get(
+                            "/user-preferences/languages"
+                        ),
 
-                const availableLanguages =
-                    backendLanguages.length > 0
-                        ? backendLanguages
-                        : DEFAULT_LANGUAGES;
+                        api.get(
+                            "/user-preferences"
+                        ),
+                    ]);
 
-                setLanguages(availableLanguages);
+                    if (!mounted) {
+                        return;
+                    }
 
-                const preference =
-                    extractPreference(preferenceResponse);
+                    // ------------------------------------------------
+                    // ONLY ENGLISH + AMHARIC
+                    // ------------------------------------------------
 
-                const backendLanguage =
-                    extractLanguage(preference);
+                    const availableLanguages =
+                        extractLanguages(
+                            languagesResponse
+                        );
 
-                const isBackendLanguageValid =
-                    availableLanguages.some(
-                        (item) =>
-                            item.value === backendLanguage
+                    setLanguages(
+                        availableLanguages
                     );
 
-                const isCachedLanguageValid =
-                    availableLanguages.some(
-                        (item) =>
-                            item.value === cachedLanguage
+                    // ------------------------------------------------
+                    // GET USER PREFERENCE
+                    // ------------------------------------------------
+
+                    const preference =
+                        extractPreference(
+                            preferenceResponse
+                        );
+
+                    const backendLanguage =
+                        extractLanguage(
+                            preference
+                        );
+
+                    // ------------------------------------------------
+                    // BACKEND LANGUAGE
+                    //
+                    // Only accept en/am.
+                    // ------------------------------------------------
+
+                    const supportedBackendLanguage =
+                        getSupportedLanguage(
+                            backendLanguage
+                        );
+
+                    // ------------------------------------------------
+                    // CACHED LANGUAGE
+                    // ------------------------------------------------
+
+                    const cached =
+                        getCachedLanguage();
+
+                    const supportedCachedLanguage =
+                        getSupportedLanguage(
+                            cached
+                        );
+
+                    // ------------------------------------------------
+                    // RESOLVE LANGUAGE
+                    //
+                    // Priority:
+                    // 1. Backend
+                    // 2. Cache
+                    // 3. English
+                    // ------------------------------------------------
+
+                    const resolvedLanguage =
+                        supportedBackendLanguage ||
+                        supportedCachedLanguage ||
+                        "en";
+
+                    setOriginalLanguage(
+                        resolvedLanguage
                     );
 
-                const resolvedLanguage =
-                    isBackendLanguageValid
-                        ? backendLanguage
-                        : isCachedLanguageValid
-                        ? cachedLanguage
-                        : availableLanguages[0]?.value ||
-                          "en";
+                    setSelectedLanguage(
+                        resolvedLanguage
+                    );
 
-                setLanguage(resolvedLanguage);
-                setSavedLanguage(resolvedLanguage);
+                    saveCachedLanguage(
+                        resolvedLanguage
+                    );
+                } catch (error) {
+                    if (!mounted) {
+                        return;
+                    }
 
-                saveCachedLanguage(resolvedLanguage);
-            } catch (requestError) {
-                if (!mounted) {
-                    return;
+                    console.error(
+                        "Failed to load language preference:",
+                        error
+                    );
+
+                    setMessage({
+                        type: "error",
+                        text: getErrorMessage(
+                            error
+                        ),
+                    });
+
+                    // ------------------------------------------------
+                    // FALLBACK
+                    // ------------------------------------------------
+
+                    const fallbackLanguage =
+                        getSupportedLanguage(
+                            cachedLanguage
+                        ) || "en";
+
+                    setOriginalLanguage(
+                        fallbackLanguage
+                    );
+
+                    setSelectedLanguage(
+                        fallbackLanguage
+
+                    );
+                } finally {
+                    if (mounted) {
+                        setIsLoading(
+                            false
+                        );
+                    }
                 }
-
-                setError(getErrorMessage(requestError));
-
-                const fallbackLanguage =
-                    DEFAULT_LANGUAGES.some(
-                        (item) =>
-                            item.value === cachedLanguage
-                    )
-                        ? cachedLanguage
-                        : "en";
-
-                setLanguage(fallbackLanguage);
-                setSavedLanguage(fallbackLanguage);
-            } finally {
-                if (mounted) {
-                    setLoading(false);
-                }
-            }
-        };
+            };
 
         loadPreferences();
 
@@ -285,202 +558,518 @@ export default function LanguagePreferences() {
         };
     }, []);
 
+    // ==========================================================
+    // LANGUAGE CHANGE
+    // ==========================================================
+
+    const handleLanguageChange =
+        (event) => {
+            const language =
+                getSupportedLanguage(
+                    event.target.value
+                );
+
+            // ------------------------------------------------
+            // Only English and Amharic allowed.
+            // ------------------------------------------------
+
+            if (!language) {
+                setMessage({
+                    type: "error",
+                    text:
+                        "Please select English or Amharic.",
+                });
+
+                return;
+            }
+
+            setSelectedLanguage(
+                language
+            );
+
+            setMessage({
+                type: "",
+                text: "",
+            });
+        };
+
+    // ==========================================================
+    // VALIDATE LANGUAGE
+    // ==========================================================
+
+    const validateLanguage = () => {
+        const validLanguage =
+            getSupportedLanguage(
+                selectedLanguage
+            );
+
+        if (!validLanguage) {
+            setMessage({
+                type: "error",
+                text:
+                    "Please select English or Amharic.",
+            });
+
+            return false;
+        }
+
+        return true;
+    };
+
+    // ==========================================================
+    // SAVE LANGUAGE
+    // ==========================================================
+
     const handleSave = async () => {
-        setSaved(false);
-        setError("");
-
-        const selectedLanguage = languages.find(
-            (item) => item.value === language
-        );
-
-        if (!selectedLanguage) {
-            setError("Please select a valid language.");
+        if (!validateLanguage()) {
             return;
         }
 
-        setSaving(true);
-
         try {
-            const response = await api.put(
-                "/user-preferences",
-                {
-                    language: selectedLanguage.value,
-                }
-            );
+            setIsSaving(true);
+
+            setMessage({
+                type: "",
+                text: "",
+            });
+
+            // ------------------------------------------------
+            // SAVE TO BACKEND
+            // ------------------------------------------------
+
+            const response =
+                await api.put(
+                    "/user-preferences",
+                    {
+                        language:
+                            selectedLanguage,
+                    }
+                );
+
+            // ------------------------------------------------
+            // READ BACKEND RESPONSE
+            // ------------------------------------------------
 
             const updatedPreference =
-                extractPreference(response);
+                extractPreference(
+                    response
+                );
 
             const returnedLanguage =
-                extractLanguage(updatedPreference);
+                extractLanguage(
+                    updatedPreference
+                );
+
+            // ------------------------------------------------
+            // Only accept English / Amharic
+            // ------------------------------------------------
+
+            const validReturnedLanguage =
+                getSupportedLanguage(
+                    returnedLanguage
+                );
 
             const finalLanguage =
-                returnedLanguage &&
-                languages.some(
-                    (item) =>
-                        item.value === returnedLanguage
+                validReturnedLanguage ||
+                selectedLanguage;
+
+            // ------------------------------------------------
+            // CACHE
+            // ------------------------------------------------
+
+            saveCachedLanguage(
+                finalLanguage
+            );
+
+            // ------------------------------------------------
+            // UPDATE STATE
+            // ------------------------------------------------
+
+            setOriginalLanguage(
+                finalLanguage
+            );
+
+            setSelectedLanguage(
+                finalLanguage
+            );
+
+            // ------------------------------------------------
+            // SUCCESS
+            // ------------------------------------------------
+
+            setMessage({
+                type: "success",
+                text:
+                    "Language preference updated successfully.",
+            });
+
+            // ------------------------------------------------
+            // GLOBAL LANGUAGE EVENT
+            // ------------------------------------------------
+
+            window.dispatchEvent(
+                new CustomEvent(
+                    "aipms-language-change",
+                    {
+                        detail: {
+                            language:
+                                finalLanguage,
+                        },
+                    }
                 )
-                    ? returnedLanguage
-                    : selectedLanguage.value;
-
-            saveCachedLanguage(finalLanguage);
-
-            setLanguage(finalLanguage);
-            setSavedLanguage(finalLanguage);
-            setSaved(true);
-
-            window.dispatchEvent(
-                new CustomEvent("aipms-language-change", {
-                    detail: {
-                        language: finalLanguage,
-                    },
-                })
             );
 
+            // ------------------------------------------------
+            // GLOBAL LANGUAGE CHANGED EVENT
+            // ------------------------------------------------
+
             window.dispatchEvent(
-                new CustomEvent("aipms-language-changed", {
-                    detail: {
-                        language: finalLanguage,
-                    },
-                })
+                new CustomEvent(
+                    "aipms-language-changed",
+                    {
+                        detail: {
+                            language:
+                                finalLanguage,
+                        },
+                    }
+                )
             );
 
-            window.setTimeout(() => {
-                if (mounted) {
-                    setSaved(false);
-                }
-            }, 3000);
-        } catch (requestError) {
-            setError(getErrorMessage(requestError));
+            // ------------------------------------------------
+            // ADMIN COMPATIBILITY EVENT
+            // ------------------------------------------------
+
+            window.dispatchEvent(
+                new CustomEvent(
+                    "languageChanged",
+                    {
+                        detail: {
+                            language:
+                                finalLanguage,
+                        },
+                    }
+                )
+            );
+
+            // ------------------------------------------------
+            // PARENT CALLBACK
+            // ------------------------------------------------
+
+            if (onSuccess) {
+                onSuccess({
+                    language:
+                        finalLanguage,
+                });
+            }
+        } catch (error) {
+            console.error(
+                "Failed to save language preference:",
+                error
+            );
+
+            setMessage({
+                type: "error",
+                text: getErrorMessage(
+                    error
+                ),
+            });
         } finally {
-            setSaving(false);
+            setIsSaving(false);
         }
     };
 
-    const currentLanguage =
-        languages.find(
-            (item) => item.value === savedLanguage
-        ) || languages[0] || DEFAULT_LANGUAGES[0];
+    // ==========================================================
+    // RESET
+    // ==========================================================
+
+    const handleReset = () => {
+        setSelectedLanguage(
+            originalLanguage
+        );
+
+        setMessage({
+            type: "",
+            text: "",
+        });
+    };
+
+    // ==========================================================
+    // CANCEL
+    // ==========================================================
+
+    const handleCancel = () => {
+        setSelectedLanguage(
+            originalLanguage
+        );
+
+        setMessage({
+            type: "",
+            text: "",
+        });
+
+        if (onCancel) {
+            onCancel();
+        }
+    };
+
+    // ==========================================================
+    // SELECTED LANGUAGE INFORMATION
+    // ==========================================================
+
+    const selectedLanguageInfo =
+        DEFAULT_LANGUAGES.find(
+            (item) =>
+                item.value ===
+                selectedLanguage
+        ) ||
+        DEFAULT_LANGUAGES[0];
+
+    // ==========================================================
+    // LOADING
+    // ==========================================================
+
+    if (isLoading) {
+        return (
+            <div className="flex min-h-[220px] items-center justify-center bg-background">
+                <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <Loader2 className="h-7 w-7 animate-spin" />
+
+                    <p className="text-sm">
+                        Loading language preferences...
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    // ==========================================================
+    // RENDER
+    // ==========================================================
 
     return (
-        <div className="space-y-6">
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
-                <div className="flex gap-3">
-                    <Languages className="mt-0.5 h-5 w-5 text-blue-600" />
+        <div className="w-full bg-background text-foreground">
+
+            {/* =================================================
+                LANGUAGE SECTION
+            ================================================== */}
+
+            <section className="rounded-xl border border-border bg-card shadow-sm">
+
+                {/* =================================================
+                    HEADER
+                ================================================== */}
+
+                <div className="flex items-start gap-4 border-b border-border p-6">
+
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                        <Globe className="h-5 w-5" />
+                    </div>
 
                     <div>
-                        <h3 className="text-sm font-semibold text-blue-900">
-                            Language preferences
-                        </h3>
+                        <h2 className="text-lg font-semibold text-card-foreground">
+                            Language Preference
+                        </h2>
 
-                        <p className="mt-1 text-sm text-blue-700">
-                            Select the language you prefer to use throughout
-                            the AI-PMS interface.
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Choose the language used throughout the application.
                         </p>
                     </div>
-                </div>
-            </div>
 
-            <div>
-                <div className="mb-3 flex items-center gap-2">
-                    <Globe2 className="h-4 w-4 text-slate-500" />
-
-                    <h3 className="text-sm font-semibold text-slate-900">
-                        Available languages
-                    </h3>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                    {languages.map((item) => {
-                        const selected =
-                            language === item.value;
+                {/* =================================================
+                    CONTENT
+                ================================================== */}
 
-                        return (
-                            <button
-                                key={item.value}
-                                type="button"
-                                disabled={loading || saving}
-                                onClick={() => {
-                                    setLanguage(item.value);
-                                    setSaved(false);
-                                    setError("");
-                                }}
-                                className={`
-                                    relative rounded-xl border p-5 text-left transition
-                                    disabled:cursor-not-allowed
-                                    disabled:opacity-60
-                                    ${
-                                        selected
-                                            ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500"
-                                            : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                <div className="p-6">
+
+                    {/* =================================================
+                        LANGUAGE ROW
+                    ================================================== */}
+
+                    <div className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+
+                        <div className="min-w-0">
+
+                            <h3 className="text-sm font-medium text-foreground">
+                                Application Language
+                            </h3>
+
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Select your preferred interface language.
+                            </p>
+
+                        </div>
+
+                        {/* =================================================
+                            DROPDOWN
+                        ================================================== */}
+
+                        <div className="shrink-0">
+
+                            <div className="relative">
+
+                                <select
+                                    value={
+                                        selectedLanguage
                                     }
-                                `}
-                            >
-                                {selected && (
-                                    <div className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600">
-                                        <Check className="h-4 w-4 text-white" />
-                                    </div>
-                                )}
+                                    onChange={
+                                        handleLanguageChange
+                                    }
+                                    disabled={
+                                        isSaving
+                                    }
+                                    className={[
+                                        "min-w-[190px]",
+                                        "appearance-none",
+                                        "rounded-lg",
+                                        "border",
+                                        "border-input",
+                                        "bg-background",
+                                        "px-4",
+                                        "py-2",
+                                        "pr-10",
+                                        "text-sm",
+                                        "text-foreground",
+                                        "outline-none",
+                                        "transition-colors",
+                                        "focus:ring-2",
+                                        "focus:ring-ring",
+                                        "disabled:cursor-not-allowed",
+                                        "disabled:opacity-60",
+                                    ].join(" ")}
+                                >
 
-                                <p className="text-base font-semibold text-slate-900">
-                                    {item.nativeLabel}
-                                </p>
+                                    {/* ONLY TWO OPTIONS */}
 
-                                <p className="mt-1 text-sm text-slate-500">
-                                    {item.label}
-                                </p>
+                                    <option value="en">
+                                        English
+                                    </option>
 
-                                <p className="mt-3 text-xs text-slate-400">
-                                    {item.description}
-                                </p>
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
+                                    <option value="am">
+                                        አማርኛ
+                                    </option>
 
-            {error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
-                    {error}
-                </div>
-            )}
+                                </select>
 
-            <div className="flex items-center justify-between border-t border-slate-200 pt-5">
-                <div>
-                    {saved && (
-                        <p className="text-sm font-medium text-emerald-600">
-                            Language preference updated successfully.
+                                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {/* =================================================
+                        DESCRIPTION
+                    ================================================== */}
+
+                    <div className="mt-2 rounded-lg border border-border bg-muted/40 px-4 py-3">
+
+                        <p className="text-sm text-muted-foreground">
+                            {
+                                selectedLanguageInfo.description
+                            }
                         </p>
+
+                    </div>
+
+                    {/* =================================================
+                        MESSAGE
+                    ================================================== */}
+
+                    {message.text && (
+                        <div
+                            className={[
+                                "mt-4 rounded-lg border px-4 py-3 text-sm",
+
+                                message.type ===
+                                    "success"
+                                    ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
+                                    : "border-destructive/30 bg-destructive/10 text-destructive",
+                            ].join(" ")}
+                        >
+                            {
+                                message.text
+                            }
+                        </div>
                     )}
 
-                    {!saved &&
-                        !error &&
-                        !loading &&
-                        !saving &&
-                        currentLanguage && (
-                            <p className="text-xs text-slate-400">
-                                Current language:{" "}
-                                {currentLanguage.nativeLabel}
-                            </p>
+                    {/* =================================================
+                        ACTIONS
+                    ================================================== */}
+
+                    <div className="mt-6 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-end">
+
+                        {/* RESET */}
+
+                        <button
+                            type="button"
+                            onClick={
+                                handleReset
+                            }
+                            disabled={
+                                isSaving ||
+                                selectedLanguage ===
+                                    originalLanguage
+                            }
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <RotateCcw className="h-4 w-4" />
+
+                            Reset
+                        </button>
+
+                        {/* CANCEL */}
+
+                        {onCancel && (
+                            <button
+                                type="button"
+                                onClick={
+                                    handleCancel
+                                }
+                                disabled={
+                                    isSaving
+                                }
+                                className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
                         )}
+
+                        {/* SAVE */}
+
+                        <button
+                            type="button"
+                            onClick={
+                                handleSave
+                            }
+                            disabled={
+                                isSaving ||
+                                selectedLanguage ===
+                                    originalLanguage
+                            }
+                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+
+                            {isSaving ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Save className="h-4 w-4" />
+                            )}
+
+                            {isSaving
+                                ? "Saving..."
+                                : "Save Changes"}
+
+                        </button>
+
+                    </div>
+
                 </div>
 
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={
-                        loading ||
-                        saving ||
-                        language === savedLanguage
-                    }
-                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    <Save className="h-4 w-4" />
-                    {saving
-                        ? "Saving..."
-                        : "Save Language"}
-                </button>
-            </div>
+            </section>
+
         </div>
     );
 }

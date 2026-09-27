@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 
@@ -7,7 +8,6 @@ import StaffSidebar from "@/components/contributor/shared/StaffSidebar";
 function StaffLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // Close sidebar with Escape
     useEffect(() => {
         const handleKeyDown = (event) => {
             if (event.key === "Escape") {
@@ -25,7 +25,6 @@ function StaffLayout() {
         };
     }, []);
 
-    // Close mobile sidebar when entering desktop size
     useEffect(() => {
         const handleResize = () => {
             if (window.innerWidth >= 1024) {
@@ -44,28 +43,38 @@ function StaffLayout() {
     }, []);
 
     return (
-       <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
-    <StaffSidebar
-        sidebarOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-    />
+        <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 z-40 bg-black/50 md:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
 
-    <div className="flex h-full min-w-0 flex-1 flex-col lg:ml-64">
-        <StaffNavbar
-            sidebarOpen={sidebarOpen}
-            onMenuClick={() =>
-                setSidebarOpen((current) => !current)
-            }
-        />
+            <StaffSidebar
+                sidebarOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+            />
 
-        <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-            <div className="mx-auto w-full max-w-[1800px] px-3 py-4 sm:px-4 md:px-6 lg:px-8">
-                <Outlet />
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                <StaffNavbar
+                    sidebarOpen={sidebarOpen}
+                    onMenuClick={() =>
+                        setSidebarOpen(
+                            (current) => !current
+                        )
+                    }
+                />
+
+                <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 lg:p-6">
+                    <div className="mx-auto w-full max-w-[1800px] min-w-0">
+                        <Outlet />
+                    </div>
+                </main>
             </div>
-        </main>
-    </div>
-</div>
+        </div>
     );
 }
 
 export default StaffLayout;
+

@@ -1,70 +1,46 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Outlet } from "react-router-dom";
 
-import DeveloperNavbar from "@/components/contributor/shared/DeveloperNavbar";
 import DeveloperSidebar from "@/components/contributor/shared/DeveloperSidebar";
+import DeveloperNavbar from "@/components/contributor/shared/DeveloperNavbar";
 
 function DeveloperLayout() {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
-
-    // Close sidebar with Escape
-    useEffect(() => {
-        const handleKeyDown = (event) => {
-            if (event.key === "Escape") {
-                setSidebarOpen(false);
-            }
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-
-        return () => {
-            window.removeEventListener(
-                "keydown",
-                handleKeyDown
-            );
-        };
-    }, []);
-
-    // Close mobile sidebar when entering desktop size
-    useEffect(() => {
-        const handleResize = () => {
-            if (window.innerWidth >= 1024) {
-                setSidebarOpen(false);
-            }
-        };
-
-        window.addEventListener("resize", handleResize);
-
-        return () => {
-            window.removeEventListener(
-                "resize",
-                handleResize
-            );
-        };
-    }, []);
+    // Track whether the sidebar is open on mobile
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     return (
         <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
-    <DeveloperSidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-    />
 
-    <div className="flex h-full min-w-0 flex-1 flex-col lg:ml-64">
-        <DeveloperNavbar
-            sidebarOpen={sidebarOpen}
-            onMenuClick={() =>
-                setSidebarOpen((current) => !current)
-            }
-        />
+            {/* Mobile Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 z-40 bg-black/50 md:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
 
-        <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-            <div className="mx-auto w-full max-w-[1800px] px-3 py-4 sm:px-4 md:px-6 lg:px-8">
-                <Outlet />
+            {/* Developer Sidebar */}
+            <DeveloperSidebar
+                isMobileOpen={isSidebarOpen}
+                onCloseMobile={() => setIsSidebarOpen(false)}
+            />
+
+            {/* Main Application Area */}
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+
+                {/* Developer Navbar */}
+                <DeveloperNavbar
+                    onToggleSidebar={() => setIsSidebarOpen(true)}
+                />
+
+                {/* Only this area scrolls */}
+                <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 lg:p-6">
+                    <div className="mx-auto w-full max-w-[1800px] min-w-0">
+                        <Outlet />
+                    </div>
+                </main>
             </div>
-        </main>
-    </div>
-</div>
+        </div>
     );
 }
 
